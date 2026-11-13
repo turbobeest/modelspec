@@ -1210,7 +1210,7 @@ def _apply_surrounding_edit(workflow: dict, filename: str, job: str, edit: str) 
 
 
 _MISSING = "<absent>"
-_WORKFLOW_CONTEXT_KEYS = ("env", "defaults", "permissions")
+_WORKFLOW_CONTEXT_KEYS = ("on", "env", "defaults", "permissions")
 _JOB_CONTEXT_KEYS = (
     "env",
     "defaults",
@@ -1220,18 +1220,24 @@ _JOB_CONTEXT_KEYS = (
     "runs-on",
     "permissions",
     "environment",
+    "outputs",
 )
+# Free keys. Each is free because it cannot change what a step prints or where
+# the output goes; the reason for each is in docs/evidence/MODEL-483-D-guard.md.
+# Every other key at workflow level or guarded-job level fails the guard.
+_WORKFLOW_FREE_KEYS = ("name", "run-name", "concurrency")
+_JOB_FREE_KEYS = ("name", "if", "needs", "timeout-minutes", "concurrency")
 # Taken from the unmodified workflow files. A change of env, defaults, shell,
 # permissions, or any step of the guarded job moves one of these digests.
 _SURROUNDING_PINS = {
     ("accuracy-nightly.yml", "accuracy"):
-        "9b57a2fb13509cb6104e832a38cf5f56220d80a0aa96bc0cf333a77e7b2919cb",
+        "451f19dfcdfc9cfd11f7421bf55844be9b248a585981d87ae65099dcd6a2e633",
     ("data-lag.yml", "lag"):
-        "5c852829612beaaf4778fdc64644820a525c16105c8cc36d9720f54a3f7bc9d3",
+        "7db49425242445ef12b118583fcc8a6be0a448eadcf1e8ef1088dc42ff6f9fff",
     ("rank-api.yml", "deploy-staging"):
-        "580d64e310d5ea9391fb1d3c9bb99d157919dbc308b26eca4e411cbe675a2817",
+        "afb3c4c094984241beeda52317316c33b5a98be1ad76e66ff604c7e16b0cee78",
     ("rank-api.yml", "deploy"):
-        "9c8496dfd092d04a636994767dff6b842d120cf8a03ed9dc908e4d23a695ce6e",
+        "f809ef878d45b08f8a0960a8faafe24f4565d3cbd94773221e796eba5501339b",
 }
 _STEP_PINS = {
     ("accuracy-nightly.yml", "accuracy"):
@@ -1302,26 +1308,58 @@ def _needs_job(needs, job: str) -> bool:
     return False
 
 
-def _step_downloads_artifact(step: dict) -> bool:
-    uses = step.get("uses") or ""
-    run = step.get("run") or ""
-    return (
-        "download-artifact" in uses
-        or "download-artifact" in run
-        or "gh run download" in run
-    )
+_ARTIFACT_FETCH = re.compile(
+    r"(?i)download-?artifact|run\s+download|/artifacts\b|artifacts\?"
+    r"|ListWorkflowRunArtifacts|getArtifact|artifacts/"
+)
 
 
-def _later_job_downloads_guarded_artifact(workflow: dict, job: str) -> bool:
+def _leaf_strings(value):
+    """Every key and every scalar under `value`, as text."""
+    if isinstance(value, dict):
+        for key, item in value.items():
+            yield str(key)
+            yield from _leaf_strings(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _leaf_strings(item)
+    else:
+        yield str(value)
+
+
+def _other_job_fetches_artifacts(workflow: dict, job: str) -> bool:
+    """Any other job, with or without `needs`, that names an artifact download."""
     for name, body in workflow.get("jobs", {}).items():
-        if name == job or not isinstance(body, dict):
+        if name == job:
             continue
-        if not _needs_job(body.get("needs"), job):
-            continue
-        for step in body.get("steps") or []:
-            if isinstance(step, dict) and _step_downloads_artifact(step):
-                return True
+        if any(_ARTIFACT_FETCH.search(text) for text in _leaf_strings(body)):
+            return True
     return False
+
+
+def _other_job_reads_outputs(workflow: dict, job: str) -> bool:
+    """Any other job that reads `needs.<job>` beyond `.result`, or dumps `needs`."""
+    name = re.escape(job)
+    reads = re.compile(
+        rf"needs\s*\.\s*{name}(?![\w-])(?!\s*\.\s*result\b)"
+        rf"|needs\s*\[\s*['\"]{name}['\"]\s*\](?!\s*\.\s*result\b)"
+        r"|toJSON\(\s*needs\b",
+        re.IGNORECASE,
+    )
+    for other, body in workflow.get("jobs", {}).items():
+        if other == job:
+            continue
+        if any(reads.search(text) for text in _leaf_strings(body)):
+            return True
+    return False
+
+
+def _unknown_keys(workflow: dict, job: str) -> list[str]:
+    workflow_known = set(_WORKFLOW_CONTEXT_KEYS) | set(_WORKFLOW_FREE_KEYS) | {"jobs"}
+    job_known = set(_JOB_CONTEXT_KEYS) | set(_JOB_FREE_KEYS) | {"steps"}
+    found = [f"workflow:{key}" for key in workflow if key not in workflow_known]
+    found += [f"job:{key}" for key in workflow["jobs"][job] if key not in job_known]
+    return found
 
 
 def context_guard_problems(filename: str, job: str, workflow: dict) -> list[str]:
@@ -1343,7 +1381,11 @@ def context_guard_problems(filename: str, job: str, workflow: dict) -> list[str]
         return [message]
     if _unpinned_uses(workflow, job):
         return [message]
-    if _later_job_downloads_guarded_artifact(workflow, job):
+    if _unknown_keys(workflow, job):
+        return [message]
+    if _other_job_reads_outputs(workflow, job):
+        return [message]
+    if _other_job_fetches_artifacts(workflow, job):
         return [message]
     return []
 
@@ -1447,3 +1489,415 @@ def test_a_later_job_that_only_needs_the_guarded_job_stays_free(
 )
 def test_a_uses_ref_needs_a_full_commit_sha(uses: str, pinned: bool) -> None:
     assert _uses_ref_is_pinned(uses) is pinned
+
+
+# ---------------------------------------------------------------------------
+# Round two. Four routes the first guard let through.
+# ---------------------------------------------------------------------------
+
+_TOKEN_STEP = {
+    "name": "Read",
+    "env": {"DATA_TOKEN": "${{ secrets.MODELSPEC_DATA_TOKEN }}"},
+    "run": (
+        'git clone "https://x-access-token:${DATA_TOKEN}@github.com/'
+        'turbobeest/modelspec-data.git" d\ncat d/README.md\n'
+    ),
+}
+
+
+def _all_documents() -> dict[str, dict]:
+    documents = {}
+    for path in sorted(Path(".github/workflows").glob("*.y*ml")):
+        documents[path.name] = yaml.load(path.read_text(), Loader=_WorkflowLoader)
+    for path in sorted(Path(".github/actions").glob("**/action.y*ml")):
+        documents[str(path.relative_to(".github"))] = yaml.load(
+            path.read_text(), Loader=_WorkflowLoader
+        )
+    return documents
+
+
+def _sibling_job_with_token(filename: str):
+    def edit(documents: dict) -> None:
+        documents[filename]["jobs"]["sibling"] = {
+            "runs-on": "ubuntu-latest",
+            "steps": [deepcopy(_TOKEN_STEP)],
+        }
+    return edit
+
+
+def _new_workflow(job: dict, **top):
+    def edit(documents: dict) -> None:
+        documents["brand-new.yml"] = {
+            "name": "New", "on": {"workflow_dispatch": {}}, "jobs": {"j": job}, **top,
+        }
+    return edit
+
+
+def _add_step_to(filename: str, job: str):
+    def edit(documents: dict) -> None:
+        documents[filename]["jobs"][job]["steps"].append(deepcopy(_TOKEN_STEP))
+    return edit
+
+
+def _new_action(documents: dict) -> None:
+    documents["actions/fetch/action.yml"] = {
+        "name": "fetch",
+        "runs": {"using": "composite", "steps": [{**deepcopy(_TOKEN_STEP), "shell": "bash"}]},
+    }
+
+
+def _new_job_in_exception_workflow(documents: dict) -> None:
+    documents["coverage-slo.yml"]["jobs"]["extra"] = {
+        "runs-on": "ubuntu-latest", "steps": [deepcopy(_TOKEN_STEP)],
+    }
+
+
+_PRIVATE_REFERENCE_CASES = (
+    ("repository-as-is", None),
+    ("sibling-job-in-accuracy-nightly", _sibling_job_with_token("accuracy-nightly.yml")),
+    ("sibling-job-in-data-lag", _sibling_job_with_token("data-lag.yml")),
+    ("sibling-job-in-rank-api", _sibling_job_with_token("rank-api.yml")),
+    ("new-workflow-file-with-the-token",
+     _new_workflow({"runs-on": "ubuntu-latest", "steps": [deepcopy(_TOKEN_STEP)]})),
+    ("new-workflow-file-with-the-repository-name-only",
+     _new_workflow({"runs-on": "ubuntu-latest",
+                    "steps": [{"run": "git ls-remote https://github.com/turbobeest/modelspec-data\n"}]})),
+    ("new-workflow-file-with-the-token-in-workflow-env",
+     _new_workflow({"runs-on": "ubuntu-latest", "steps": [{"run": "true"}]},
+                   env={"T": "${{ secrets.MODELSPEC_DATA_TOKEN }}"})),
+    ("new-reusable-job-inherits-every-secret",
+     _new_workflow({"uses": "./.github/workflows/x.yml", "secrets": "inherit"})),
+    ("new-job-dumps-the-secrets-context",
+     _new_workflow({"runs-on": "ubuntu-latest",
+                    "steps": [{"run": "echo '${{ toJSON(secrets) }}'"}]})),
+    ("new-job-indexes-a-secret-by-a-built-name",
+     _new_workflow({"runs-on": "ubuntu-latest",
+                    "steps": [{"run": "echo ${{ secrets[format('{0}_{1}', 'A', 'B')] }}"}]})),
+    ("new-composite-action-with-the-token", _new_action),
+    ("a-listed-exception-job-gains-a-step", _add_step_to("coverage-slo.yml", "private-health")),
+    ("a-dispatch-job-gains-a-step", _add_step_to("release-watch.yml", "dispatch")),
+    ("a-new-job-in-a-workflow-with-listed-exceptions", _new_job_in_exception_workflow),
+)
+
+
+@pytest.mark.parametrize(
+    "case,edit", _PRIVATE_REFERENCE_CASES, ids=[c[0] for c in _PRIVATE_REFERENCE_CASES],
+)
+def test_only_guarded_jobs_may_touch_the_private_repository(case: str, edit) -> None:
+    documents = _all_documents()
+    original = deepcopy(documents)
+    if edit is not None:
+        edit(documents)
+        assert documents != original, "the edit was never applied"
+    problems = private_reference_problems(documents)
+    if edit is None:
+        assert problems == []
+    else:
+        assert problems, case
+        assert all(_PRIVATE_REFERENCE_REVIEW in problem for problem in problems)
+
+
+_PRIVATE_REFERENCE = re.compile(
+    r"(?i)modelspec[-_]data|secrets\s*\[|toJSON\(\s*secrets"
+)
+
+
+def _private_hits(body) -> frozenset:
+    """(path, line) for every key, value or `run` line that names the private
+    repository or its secrets, or hands every secret to a called workflow."""
+    hits = set()
+
+    def walk(value, path: str) -> None:
+        if isinstance(value, dict):
+            for key, item in value.items():
+                walk_text(str(key), f"{path}/<key>{key}")
+                if key == "secrets" and item == "inherit":
+                    hits.add((f"{path}/secrets", "inherit"))
+                walk(item, f"{path}/{key}")
+        elif isinstance(value, list):
+            for index, item in enumerate(value):
+                walk(item, f"{path}[{index}]")
+        else:
+            walk_text(str(value), path)
+
+    def walk_text(text: str, path: str) -> None:
+        for line in text.splitlines() or [text]:
+            if _PRIVATE_REFERENCE.search(line):
+                hits.add((path, line.strip()))
+
+    walk(body, "")
+    return frozenset(hits)
+
+
+def _document_scopes(document: dict):
+    if isinstance(document.get("jobs"), dict):
+        yield "<workflow>", {key: value for key, value in document.items() if key != "jobs"}
+        yield from document["jobs"].items()
+    else:
+        yield "<action>", document
+
+
+def _private_reference_exceptions() -> dict:
+    """Jobs on main that are not guarded and still name the private repository.
+
+    Pinned as they are. Each one prints or hands on no private value (see the
+    note), and each has its own test. A new line, a new job, or a removed line
+    fails `private_reference_problems`.
+    """
+    exceptions = {}
+    for stub in ("curation-benchmarks", "daily-research", "leaderboard-refresh",
+                 "price-reread", "release-signals", "speed-probe"):
+        exceptions[(f"{stub}.yml", "moved")] = frozenset({
+            ("/steps[0]/name", "Run this writer in https://github.com/turbobeest/"
+                               f"modelspec-data/actions/workflows/{stub}.yml"),
+        })
+    for filename, job, path, writer in (
+        ("curation-gate.yml", "dispatch", "/steps[0]", "curation-benchmarks.yml"),
+        ("release-signals-gate.yml", "pending", "/steps[1]", "release-signals.yml"),
+        ("release-watch.yml", "dispatch", "/steps[0]", "release-signals.yml"),
+    ):
+        exceptions[(filename, job)] = frozenset({
+            (f"{path}/env/GH_TOKEN", "${{ secrets.MODELSPEC_DATA_DISPATCH_TOKEN }}"),
+            (f"{path}/run",
+             f"gh workflow run {writer} --repo turbobeest/modelspec-data --ref main"),
+        })
+    token = ("/steps[3]/env/MODELSPEC_DATA_TOKEN", "${{ secrets.MODELSPEC_DATA_TOKEN }}")
+    key = ("/steps[3]/env/<key>MODELSPEC_DATA_TOKEN", "MODELSPEC_DATA_TOKEN")
+    exceptions[("coverage-slo.yml", "private-health")] = frozenset({
+        token, key,
+        ("/steps[3]/run", 'if [ -z "$MODELSPEC_DATA_TOKEN" ]; then'),
+        ("/steps[3]/run",
+         "python -m scripts.slo workflows --repo turbobeest/modelspec-data --quiet"),
+    })
+    exceptions[("coverage-slo.yml", "release-counts")] = frozenset({token, key})
+    return exceptions
+
+
+_PRIVATE_REFERENCE_EXCEPTIONS = _private_reference_exceptions()
+
+
+def private_reference_problems(documents: dict[str, dict]) -> list[str]:
+    """Every workflow and composite action: only the guarded jobs, plus the pinned
+    exceptions above, may name the private repository or its token."""
+    guarded = set(_STEP_PINS)
+    problems = []
+    for name, document in sorted(documents.items()):
+        for scope, body in _document_scopes(document):
+            if (name, scope) in guarded:
+                continue
+            hits = _private_hits(body)
+            allowed = _PRIVATE_REFERENCE_EXCEPTIONS.get((name, scope), frozenset())
+            if hits != allowed:
+                problems.append(f"{name} {scope}: {_PRIVATE_REFERENCE_REVIEW}")
+    return problems
+
+
+_PRIVATE_REFERENCE_REVIEW = (
+    "only the guarded private-read jobs may use the private repository or its token; "
+    "a reviewer must check every output of that job"
+)
+
+_OUTPUT_EDITS = (
+    "job-outputs",
+    "job-outputs-empty",
+    "reader-needs-dot",
+    "reader-needs-bracket",
+    "reader-dumps-needs",
+    "reader-in-env",
+    "reader-in-if",
+)
+
+
+def _apply_output_edit(workflow: dict, job: str, edit: str) -> None:
+    jobs = workflow["jobs"]
+    if edit == "job-outputs":
+        jobs[job]["outputs"] = {"x": "${{ steps.fetch.outputs.x }}"}
+    elif edit == "job-outputs-empty":
+        jobs[job]["outputs"] = {}
+    else:
+        reader = {"needs": [job], "runs-on": "ubuntu-latest"}
+        if edit == "reader-needs-dot":
+            reader["steps"] = [{"run": f"echo ${{{{ needs.{job}.outputs.x }}}}\n"}]
+        elif edit == "reader-needs-bracket":
+            reader["steps"] = [{"run": f"echo ${{{{ needs['{job}'].outputs.x }}}}\n"}]
+        elif edit == "reader-dumps-needs":
+            reader["steps"] = [{"run": "echo '${{ toJSON(needs) }}'\n"}]
+        elif edit == "reader-in-env":
+            reader["env"] = {"X": f"${{{{ needs.{job}.outputs.x }}}}"}
+            reader["steps"] = [{"run": "true"}]
+        elif edit == "reader-in-if":
+            reader["if"] = f"needs.{job}.outputs.x == 'a'"
+            reader["steps"] = [{"run": "true"}]
+        else:
+            raise AssertionError(edit)
+        jobs["reader"] = reader
+
+
+@pytest.mark.parametrize("filename,job", _GUARDED_JOBS)
+@pytest.mark.parametrize("edit", _OUTPUT_EDITS)
+def test_guarded_job_outputs_are_pinned(filename: str, job: str, edit: str) -> None:
+    workflow = _load_workflow(filename)
+    original = deepcopy(workflow)
+    _apply_output_edit(workflow, job, edit)
+    assert workflow != original, "the edit was never applied"
+    assert context_guard_problems(filename, job, workflow) == [_review(filename)]
+
+
+@pytest.mark.parametrize("filename,job", _GUARDED_JOBS)
+def test_reading_only_the_result_of_a_guarded_job_stays_free(filename: str, job: str) -> None:
+    workflow = _load_workflow(filename)
+    workflow["jobs"]["reader"] = {
+        "needs": [job],
+        "if": f"needs.{job}.result == 'failure'",
+        "runs-on": "ubuntu-latest",
+        "env": {"R": f"${{{{ needs.{job}.result }}}}"},
+        "steps": [{"run": "echo other ${{ needs.other.outputs.x }}\n"}],
+    }
+    assert context_guard_problems(filename, job, workflow) == []
+
+
+_UNKNOWN_KEY_EDITS = (
+    "workflow-unknown-key",
+    "workflow-x-anchor-key",
+    "workflow-timeout-minutes",
+    "workflow-outputs",
+    "workflow-on-gains-a-trigger",
+    "workflow-on-removed-trigger-key",
+    "job-unknown-key",
+    "job-continue-on-error",
+    "job-uses",
+    "job-with",
+    "job-secrets",
+    "job-misspelt-environment",
+)
+
+
+def _apply_unknown_key_edit(workflow: dict, job: str, edit: str) -> None:
+    body = workflow["jobs"][job]
+    if edit == "workflow-unknown-key":
+        workflow["trace"] = "1"
+    elif edit == "workflow-x-anchor-key":
+        workflow["x-shared"] = {"shell": "bash -x {0}"}
+    elif edit == "workflow-timeout-minutes":
+        workflow["timeout-minutes"] = "5"
+    elif edit == "workflow-outputs":
+        workflow["outputs"] = {"x": "y"}
+    elif edit == "workflow-on-gains-a-trigger":
+        workflow["on"]["pull_request_target"] = {}
+    elif edit == "workflow-on-removed-trigger-key":
+        workflow["on"] = {"workflow_dispatch": {}}
+    elif edit == "job-unknown-key":
+        body["trace"] = "1"
+    elif edit == "job-continue-on-error":
+        body["continue-on-error"] = "true"
+    elif edit == "job-uses":
+        body["uses"] = "turbobeest/modelspec/.github/workflows/x.yml@" + "ab" * 20
+    elif edit == "job-with":
+        body["with"] = {"a": "b"}
+    elif edit == "job-secrets":
+        body["secrets"] = "inherit"
+    elif edit == "job-misspelt-environment":
+        body["environmnet"] = "production"
+    else:
+        raise AssertionError(edit)
+
+
+@pytest.mark.parametrize("filename,job", _GUARDED_JOBS)
+@pytest.mark.parametrize("edit", _UNKNOWN_KEY_EDITS)
+def test_unknown_workflow_or_job_key_fails_closed(filename: str, job: str, edit: str) -> None:
+    workflow = _load_workflow(filename)
+    original = deepcopy(workflow)
+    _apply_unknown_key_edit(workflow, job, edit)
+    assert workflow != original, "the edit was never applied"
+    assert context_guard_problems(filename, job, workflow) == [_review(filename)]
+
+
+@pytest.mark.parametrize("filename,job", _GUARDED_JOBS)
+def test_the_listed_free_keys_stay_free(filename: str, job: str) -> None:
+    workflow = _load_workflow(filename)
+    original = deepcopy(workflow)
+    workflow["name"] = "Renamed"
+    workflow["run-name"] = "Run ${{ github.run_number }}"
+    workflow["concurrency"] = {"group": "edited", "cancel-in-progress": "false"}
+    body = workflow["jobs"][job]
+    body["name"] = "Renamed job"
+    body["if"] = "github.ref == 'refs/heads/main'"
+    body["needs"] = []
+    body["timeout-minutes"] = "45"
+    body["concurrency"] = {"group": "edited2", "cancel-in-progress": "false"}
+    assert workflow != original
+    assert context_guard_problems(filename, job, workflow) == []
+
+
+_ARTIFACT_EDITS = (
+    "download-action-with-needs",
+    "download-action-without-needs",
+    "download-action-by-tag-without-needs",
+    "gh-run-download",
+    "gh-api-run-artifacts",
+    "gh-api-artifact-zip",
+    "curl-artifact-zip",
+    "script-downloads-artifact",
+    "script-lists-artifacts",
+    "job-level-expression-names-download",
+    "guarded-job-gains-upload-artifact",
+)
+
+
+def _apply_artifact_edit(workflow: dict, job: str, edit: str) -> None:
+    sha = "d3f86a106a0bac45b974a628896c90dbdf5c8093"
+    other = {"runs-on": "ubuntu-latest"}
+    if edit == "download-action-with-needs":
+        other.update(needs=[job], steps=[{"uses": f"actions/download-artifact@{sha}"}])
+    elif edit == "download-action-without-needs":
+        other.update(steps=[{"uses": f"actions/download-artifact@{sha}",
+                             "with": {"run-id": "1", "github-token": "${{ github.token }}"}}])
+    elif edit == "download-action-by-tag-without-needs":
+        other.update(steps=[{"uses": "actions/download-artifact@v4"}])
+    elif edit == "gh-run-download":
+        other.update(steps=[{"run": "gh run download 1 -D out\n"}])
+    elif edit == "gh-api-run-artifacts":
+        other.update(steps=[{"run": "gh api repos/o/r/actions/runs/1/artifacts\n"}])
+    elif edit == "gh-api-artifact-zip":
+        other.update(steps=[{"run": "gh api repos/o/r/actions/artifacts/9/zip > a.zip\n"}])
+    elif edit == "curl-artifact-zip":
+        other.update(steps=[{"run": "curl -L https://api.github.com/repos/o/r/actions/artifacts/9/zip\n"}])
+    elif edit == "script-downloads-artifact":
+        other.update(steps=[{"uses": "actions/github-script@" + "ab" * 20,
+                             "with": {"script": "await github.rest.actions.downloadArtifact({})"}}])
+    elif edit == "script-lists-artifacts":
+        other.update(steps=[{"uses": "actions/github-script@" + "ab" * 20,
+                             "with": {"script": "await actions.listWorkflowRunArtifacts({})"}}])
+    elif edit == "job-level-expression-names-download":
+        other.update(steps=[{"run": "true"}], env={"X": "gh run download"})
+    elif edit == "guarded-job-gains-upload-artifact":
+        workflow["jobs"][job]["steps"].append(
+            {"uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+             "with": {"path": "."}})
+        return
+    else:
+        raise AssertionError(edit)
+    workflow["jobs"]["fetcher"] = other
+
+
+@pytest.mark.parametrize("filename,job", _GUARDED_JOBS)
+@pytest.mark.parametrize("edit", _ARTIFACT_EDITS)
+def test_artifact_downloads_from_guarded_workflows_are_refused(
+    filename: str, job: str, edit: str,
+) -> None:
+    workflow = _load_workflow(filename)
+    original = deepcopy(workflow)
+    _apply_artifact_edit(workflow, job, edit)
+    assert workflow != original, "the edit was never applied"
+    assert context_guard_problems(filename, job, workflow) == [_review(filename)]
+
+
+@pytest.mark.parametrize("filename,job", _GUARDED_JOBS)
+def test_a_sibling_job_that_only_uploads_an_artifact_stays_free(filename: str, job: str) -> None:
+    workflow = _load_workflow(filename)
+    workflow["jobs"]["publisher"] = {
+        "runs-on": "ubuntu-latest",
+        "steps": [{"uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+                   "with": {"name": "x", "path": "."}}],
+    }
+    assert context_guard_problems(filename, job, workflow) == []

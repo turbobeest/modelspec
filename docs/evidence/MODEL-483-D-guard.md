@@ -51,14 +51,47 @@ The loader resolves anchors and `<<` merge keys, and it still leaves scalars as 
 
 Pinned for each guarded job, including absence:
 
-- Workflow `env`, `defaults`, and `permissions`.
-- Job `env`, `defaults`, `container`, `services`, `strategy`, `runs-on`, `permissions`, and `environment`. `environment` is included because that name selects variables that are not in the file. `deploy` names `production`. The other guarded jobs set none.
+- Workflow `on`, `env`, `defaults`, and `permissions`. `on` is pinned because the triggers decide which events, and which `inputs`, reach the steps.
+- Job `env`, `defaults`, `container`, `services`, `strategy`, `runs-on`, `permissions`, `environment`, and `outputs`. `environment` is included because that name selects variables that are not in the file. `deploy` names `production`. The other guarded jobs set none.
 - Every step of the job, not only the tail. Checkout `with`, a step `shell`, and a step inserted before the fetch all fail. The old tail pin is unchanged.
 - Every `uses` on the job or its steps must be a full commit SHA (`[0-9a-f]{40}`). A docker reference must carry `@sha256:` and 64 hex digits. A local `./` path is exempt: it has no ref and moves with this commit. There is no `.github/actions/` directory. A job-level `uses` of a branch fails even when the steps are unchanged, so updating the step digest cannot legalize a moving ref.
 
-A different job that `needs` the guarded job and whose steps use `download-artifact` or `gh run download` fails. A job that only `needs` it does not.
+## The four routes closed in round two
 
-Left free, and tested: workflow and job `concurrency`, and `timeout-minutes`. Also left free, because they do not change what a running step prints: workflow `on` and `name`, and job `if`, `name`, `needs`, and `outputs`.
+A review found four edits that passed round one. Each now fails, on all four guarded jobs, with a case that first checks the edited workflow differs from the original.
+
+1. A new sibling job, or a new workflow file, that uses the token or names the private repository. `test_only_guarded_jobs_may_touch_the_private_repository` scans every workflow under `.github/workflows/` and every `action.yml` under `.github/actions/` (none exists today). Every job and the workflow level of every file other than the guarded jobs, derived from the same `_STEP_PINS` data the guard uses, must hold no key or text that names `modelspec-data` (any spelling of the private repository's name, so the `MODELSPEC_DATA_TOKEN` and `MODELSPEC_DATA_DISPATCH_TOKEN` secrets too), hands on every secret (`secrets: inherit`), dumps `toJSON(secrets)`, or indexes `secrets[...]`.
+2. `outputs:` on a guarded job, and any job that reads `needs.<guarded>` beyond `.result`, or dumps `toJSON(needs)`. `test_guarded_job_outputs_are_pinned`. No guarded job has `outputs` today, so the pin is absence.
+3. An unknown key. `test_unknown_workflow_or_job_key_fails_closed`. Every key at workflow level and at guarded-job level is either pinned or in the free list below. Anything else fails, including a misspelt key.
+4. A download of artifacts. `test_artifact_downloads_from_guarded_workflows_are_refused`. In a workflow that has a guarded job, any other job, with or without `needs`, whose text names a download-artifact action, `gh run download`, an `/artifacts` API path, or the artifact calls of `actions/github-script`, fails. A guarded job that gains an upload-artifact step still fails the step pin; a case keeps that. A sibling job that only uploads stays free.
+
+Free keys, one reason each. Everything else at those two levels fails.
+
+| Level | Key | Why free |
+| --- | --- | --- |
+| workflow | `name` | Display only. Its expressions see no secret and no step output. |
+| workflow | `run-name` | Display only. Its expressions see the `github`, `inputs`, and `vars` contexts, not steps. |
+| workflow | `concurrency` | Orders or cancels runs. It does not change what a step prints. |
+| job | `name` | Display only. |
+| job | `if` | Can only skip the job, which prints nothing. |
+| job | `needs` | Orders jobs. A pinned step that read a `needs` context would carry that text in its pin. |
+| job | `timeout-minutes` | Ends a run early. |
+| job | `concurrency` | Orders or cancels runs. |
+
+Pinned, not free: workflow `on`, `env`, `defaults`, `permissions`; job `env`, `defaults`, `container`, `services`, `strategy`, `runs-on`, `permissions`, `environment`, `outputs`. Not named, so failing when present: job `uses`, `with`, `secrets`, `continue-on-error`, and any other key. A job-level `uses` also fails the full-SHA rule.
+
+Jobs on `main` that are not guarded and name the private repository today. Nothing was changed; each is pinned in `_private_reference_exceptions()` as the exact set of keys and lines, so a new line, a new job, or a removed line fails the test.
+
+| File | Job | What it names |
+| --- | --- | --- |
+| `coverage-slo.yml` | `private-health` | `MODELSPEC_DATA_TOKEN` in a step env and the repository name in its command. Prints nothing and uploads nothing, by its own comment. |
+| `coverage-slo.yml` | `release-counts` | `MODELSPEC_DATA_TOKEN` in a step env. Has `outputs:` (validated counts) that `report` reads. That job is not guarded, so rule 2 does not reach it. |
+| `curation-gate.yml`, `release-signals-gate.yml`, `release-watch.yml` | `dispatch`, `pending`, `dispatch` | `MODELSPEC_DATA_DISPATCH_TOKEN` and `gh workflow run ... --repo` the private repository. A dispatch reads no private data. |
+| `curation-benchmarks.yml`, `daily-research.yml`, `leaderboard-refresh.yml`, `price-reread.yml`, `release-signals.yml`, `speed-probe.yml` | `moved` | A step name that holds the private workflow's URL. The step runs `true`. |
+
+Left free, and tested: the free keys above. Workflow-level `on` is pinned, so a cron or trigger edit on a guarded workflow now fails the test.
+
+The one sentence for a future editor: if one of these tests fails, a workflow edit may have changed what a private-reading job prints or where it goes; read every step of that job and every job that reads it, and then update the pinned data in `tests/test_accuracy_alert.py` in the same pull request.
 
 ## `uses` in a guarded job
 
@@ -74,26 +107,22 @@ Each one is `owner/name@` plus 40 hex digits. None is a tag, a branch, or a dock
 
 Out of reach of a static test of the workflow file:
 
-- The image behind `runs-on: ubuntu-latest`. The label is pinned. The image moves.
+- Anything a static test of the workflow file cannot see. The image behind `runs-on: ubuntu-latest`. The label is pinned. The image moves.
 - Repository, organization, and environment variables and secrets, and an Actions re-run that turns debug logging on. `ACTIONS_STEP_DEBUG`, `ACTIONS_RUNNER_DEBUG`, `GIT_TRACE`, and `BASH_ENV` can be set there without a workflow edit. The `production` environment name on `deploy` is pinned. Its values are not.
 - The programs the pinned steps run, including `scripts/accuracy.py`, `scripts/accuracy_alert.py`, `scripts/data_lag.py`, and `api/worker/vendor.py`. A change there is not a workflow-text edit.
+- A workflow triggered by `workflow_run`, or an API call from outside Actions, that reads a run's artifacts: a guarded job uploads none, so there is nothing to read, but that stays true only while the step pin holds.
 - A local `./` action, if one is added later. The step pin fails until it names that path. After that, edits under the path need a review. None exist today.
 
 ## Green
 
-Same interpreter, after the pin. Exit 0. 200 passed in 1.46s.
+Same interpreter. Round two went red first: 125 failed, 221 passed before the guard was extended, every failure on an empty problem list for a case whose edit had been applied. After the guard: exit 0, 346 passed in 3.3s. The four named tests have 14, 28, 48, and 44 parametrised cases.
 
 ```bash
 env PYTHONPATH=$PWD /home/turbobeest/dev/04-modelspec/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider \
   tests/test_accuracy_alert.py --tb=line
 ```
 
-`tests/test_writer_isolation.py`, same flags. Exit 0. 288 passed, 8 skipped, in 9.22s.
-
-```bash
-env PYTHONPATH=$PWD /home/turbobeest/dev/04-modelspec/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider \
-  tests/test_writer_isolation.py --tb=line
-```
+`tests/test_writer_isolation.py`, same flags. Exit 0. 288 passed, 8 skipped.
 
 ## Not observed
 
