@@ -2889,6 +2889,9 @@ def test_a_raw_arena_score_on_the_card_is_reconfirmed_at_two_decimals(
     assert report.reconfirmed[0].new_value == round(raw, 2)
     row = _evidence_row(card)
     assert row["score"] == round(raw, 2)
+    # The stored score changed, so the evidence id changes. That is intended.
+    assert row["id"] != "lab/example-model#arena_elo_overall#old"
+    assert row["id"] == refresh.evidence_id("lab/example-model", row)
     assert row["configuration"] == (
         "Pinned LMArena dataset; publication date 2026-10-01; rating 1100.12 "
         "[1080.00, 1120.00], 1000 votes, rank 4."
@@ -2953,11 +2956,12 @@ def test_a_stale_snapshot_sentence_is_removed_when_the_publish_date_changes(
     assert report.failures == [], report.failures
     row = _evidence_row(card)
     assert row["score"] == _ROUNDED_ARENA_RATING
-    assert "still shows this snapshot" not in row["configuration"]
-    assert "read 2026-09-24" not in row["configuration"]
-    assert "leaderboard_publish_date 2026-11-02" in row["configuration"]
-    assert "1000.99" in row["configuration"]
-    assert "2222 votes" in row["configuration"]
+    assert row["configuration"] == (
+        "LMArena's official leaderboard dataset, split latest, subset `text` "
+        "(raw, non-style-controlled), category overall; "
+        "leaderboard_publish_date 2026-11-02 is the stated date. "
+        f"Rating {_ROUNDED_ARENA_RATING:.2f} (95% CI 990.12-1010.88), 2222 votes."
+    )
     assert refresh.check_score_only(before, root).ok
 
 
@@ -3274,6 +3278,40 @@ def test_score_only_check_refuses_a_read_date_that_becomes_the_evidence_date(
 
     assert not result.ok
     assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_the_arena_sentence_edits_off_the_dataset_root(
+    tmp_path: Path,
+) -> None:
+    """A retold read date and a removed snapshot sentence stay dataset-root edits."""
+    before_text, after_text = _arena_read_date_cards(
+        tmp_path,
+        "leaderboard_publish_date 2026-11-02, read 2026-11-12. Rank 3, 2222 votes.",
+        evidence_date="2026-11-02",
+        observed_at="2026-11-12",
+    )
+    root = "source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset"
+    cases = {
+        "non-arena": (
+            ("benchmark_id: arena_text", "benchmark_id: fixture_benchmark"),
+            (root, "source_url: https://example.test/leaderboard.json"),
+        ),
+        "off-root": (
+            (
+                root,
+                "source_url: https://huggingface.co/datasets/lmarena-ai/"
+                "leaderboard-dataset/resolve/main/text/file.parquet",
+            ),
+        ),
+    }
+    for name, replacements in cases.items():
+        edited_before, edited_after = before_text, after_text
+        for old, new in replacements:
+            edited_before = edited_before.replace(old, new)
+            edited_after = edited_after.replace(old, new)
+        result = _guard_result(tmp_path / name, edited_before, edited_after)
+        assert not result.ok, name
+        assert result.errors == ("non-score card data changed: models/lab/model.md",)
 
 
 def test_score_only_check_accepts_a_retold_read_date_and_a_removed_snapshot_sentence(
