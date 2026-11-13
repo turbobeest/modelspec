@@ -31,6 +31,7 @@ import zipfile
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -193,9 +194,13 @@ class RowObservation:
     reading_revision: str = ""
     reading_checked: bool = False
     reading_rank: int | None = None
+    #: The card stored an Arena float with more than two decimals that rounds to this reading.
+    score_repair: bool = False
 
     @property
     def changed(self) -> bool:
+        if self.score_repair:
+            return False
         return self.old_value != self.new_value
 
     def score_change(self) -> ScoreChange:
@@ -482,6 +487,86 @@ def _format_like(literal: str, value: float) -> str:
     return f"{value:.2f}"
 
 
+class ConfigurationDateError(Exception):
+    """The configuration states a date the writer cannot retell."""
+
+
+_DATE_THE_WRITER_CANNOT_RETELL = "configuration states a date the writer cannot retell"
+#: ``read <date>`` immediately after the quoted publish date. ``re-read`` does not match.
+_READ_BESIDE_PUBLISH = re.compile(
+    r"(?i)((?:publication date|leaderboard_publish_date)\s+\d{4}-\d{2}-\d{2}\s*,\s*read )"
+    r"\d{4}-\d{2}-\d{2}\b"
+)
+_SNAPSHOT_SENTENCE = re.compile(
+    r"(?:(?<=\.) |\A)"
+    r"The live arena\.ai board read \d{4}-\d{2}-\d{2} still shows this snapshot "
+    r"\(same vote counts\)\."
+)
+
+
+def _fraction_decimals(value: float) -> int:
+    fraction = format(Decimal(str(value)), "f").partition(".")[2]
+    return len(fraction.rstrip("0"))
+
+
+def _score_is_precision_repair(old: object, new: object) -> bool:
+    """True when ``old`` has more than two decimals and rounds to ``new``."""
+    if isinstance(old, bool) or isinstance(new, bool):
+        return False
+    if not isinstance(old, (int, float)) or not isinstance(new, (int, float)):
+        return False
+    if float(old) == float(new):
+        return False
+    return _fraction_decimals(float(old)) > 2 and round(float(old), 2) == float(new)
+
+
+def _without_exact_snapshot_sentence(text: str) -> str:
+    """Remove the one sentence that says the live board still shows this snapshot."""
+    while True:
+        match = _SNAPSHOT_SENTENCE.search(text)
+        if match is None:
+            return text
+        rest = text[:match.start()] + text[match.end():]
+        text = rest.lstrip() if match.start() == 0 else rest
+
+
+def _quoted_publish_changed(before: str, after: str) -> bool:
+    old = set(_PUBLISH_QUOTE.findall(before))
+    new = set(_PUBLISH_QUOTE.findall(after))
+    return bool(old and new and old != new)
+
+
+def _snapshot_removal_is_the_reading(before: str, after: str) -> bool:
+    return (
+        _quoted_publish_changed(before, after)
+        and _SNAPSHOT_SENTENCE.search(before) is not None
+        and _SNAPSHOT_SENTENCE.search(after) is None
+    )
+
+
+def _settle_configuration_dates(
+    original: str, text: str, *, new_publish: str | None, new_observed: str,
+) -> str:
+    """Retell a read date beside a changed publish date, or drop the snapshot sentence.
+
+    When the quoted publish date is unchanged, ``text`` is returned as received.
+    When it changed, ``read <date>`` immediately after that date becomes this
+    run's observed date, and the sentence that says the live board still shows
+    this snapshot is removed. A standalone ISO date that is neither the new
+    publish date nor the observed date is refused. A date inside an id, a
+    path, a backticked span, or a URL is left as written.
+    """
+    quoted = set(_PUBLISH_QUOTE.findall(original))
+    if not (new_publish and quoted and any(day != new_publish for day in quoted)):
+        return text
+    text = _READ_BESIDE_PUBLISH.sub(lambda match: f"{match.group(1)}{new_observed}", text)
+    text = _without_exact_snapshot_sentence(text)
+    allowed = {day for day in (new_publish, new_observed) if day}
+    if any(day not in allowed for day in _standalone_date_strings(text)):
+        raise ConfigurationDateError(_DATE_THE_WRITER_CANNOT_RETELL)
+    return text
+
+
 def _retell_reading(
     text: object,
     *,
@@ -502,12 +587,16 @@ def _retell_reading(
 
     Returns None when a labeled quote cannot be replaced without leaving the
     previous reading in the sentence. The stale check reads the sentence with
-    ISO dates and ticket ids removed, and it does not watch the old rank.
+    standalone ISO dates and ticket ids removed, and it does not watch the old rank.
     A sentence that quotes none of those is returned unchanged. A quoted rank
-    with no replacement rank is refused.
+    with no replacement rank is refused. When the quoted publish date changes,
+    a ``read <date>`` beside it becomes this run's observed date and the
+    snapshot sentence is removed. A standalone date that is neither of those
+    is refused. A date inside an id, a path, a backticked span, or a URL stays.
     """
     if not isinstance(text, str) or not text:
         return text if isinstance(text, str) else ""
+    original = text
     unsafe = False
     quoted_score = False
     quoted_interval = False
@@ -639,13 +728,16 @@ def _retell_reading(
             fresh.append(float(new_n))
         if quoted_rank and new_rank is not None:
             fresh.append(float(new_rank))
-        checked = _TICKET_ID.sub(" ", _MASK_DATE.sub(" ", text))
+        checked = _TICKET_ID.sub(" ", _mask_standalone_dates(text, " "))
         for token in _NUMBER_TOKEN.findall(checked):
             value = float(token)
             stale = any(_numbers_close(old, value) for old in watched)
             current = any(_numbers_close(item, value) for item in fresh)
             if stale and not current:
                 return None
+    text = _settle_configuration_dates(
+        original, text, new_publish=new_publish, new_observed=new_observed,
+    )
     if quoted_publish:
         allowed = {day for day in (new_publish, new_observed) if day}
         for day in old_dates:
@@ -689,21 +781,24 @@ def _copy_matched_reading(
     old_dates = tuple(dict.fromkeys(filter(None, (
         _iso_day(old.get("evidence_date")), _iso_day(old.get("observed_at")),
     ))))
-    told = _retell_reading(
-        old.get("configuration") or "",
-        old_score=float(old.get("score")),
-        new_score=float(observation.new_value),
-        old_interval=old.get("interval"),
-        new_interval=observation.reading_interval,
-        old_n=old.get("n"),
-        new_n=observation.reading_n,
-        old_dates=old_dates,
-        new_publish=observation.reading_publish_date,
-        new_observed=_iso_day(observed_at),
-        new_revision=observation.reading_revision,
-        new_effort=written_effort,
-        new_rank=observation.reading_rank,
-    )
+    try:
+        told = _retell_reading(
+            old.get("configuration") or "",
+            old_score=float(old.get("score")),
+            new_score=float(observation.new_value),
+            old_interval=old.get("interval"),
+            new_interval=observation.reading_interval,
+            old_n=old.get("n"),
+            new_n=observation.reading_n,
+            old_dates=old_dates,
+            new_publish=observation.reading_publish_date,
+            new_observed=_iso_day(observed_at),
+            new_revision=observation.reading_revision,
+            new_effort=written_effort,
+            new_rank=observation.reading_rank,
+        )
+    except ConfigurationDateError:
+        return None, _DATE_THE_WRITER_CANNOT_RETELL
     if told is None:
         return None, "configuration still quotes the previous reading"
     if told != (old.get("configuration") or ""):
@@ -739,9 +834,12 @@ def _plan_observations(
             continue
         raw = _value(board, match, evidence.get("unit"))
         old = float(evidence["score"])
-        new = raw
-        if readers.numbers_agree(old, evidence.get("unit"),
-                                 readers.parse_quantity(str(new), evidence.get("unit"))):
+        new = _stored_score(raw, evidence)
+        score_repair = False
+        if _arena_reading_row(evidence):
+            score_repair = _score_is_precision_repair(old, new)
+        elif readers.numbers_agree(old, evidence.get("unit"),
+                                   readers.parse_quantity(str(new), evidence.get("unit"))):
             new = old
         interval, interval_reason = _matched_interval(match, new)
         if interval_reason:
@@ -773,6 +871,7 @@ def _plan_observations(
             reading_revision=board_revision,
             reading_checked=arena_board,
             reading_rank=_matched_rank(match) if arena_board else None,
+            score_repair=score_repair,
         ))
     return observations, failures
 
@@ -1002,6 +1101,17 @@ def _evidence_template(
     return templates[0]
 
 
+def _stored_score(raw: float, row: Mapping[str, Any]) -> float:
+    """The score a card stores for this reading.
+
+    An Arena dataset-root row uses ``round(value, 2)``, the same rule as a
+    refresh. Every other row keeps the precision ``_value`` returned.
+    """
+    if _arena_reading_row(row):
+        return round(float(raw), 2)
+    return float(raw)
+
+
 def _new_evidence(
     *, root: Path, model_id: str, front: Mapping[str, Any], board: BoardReading,
 ) -> tuple[list[dict[str, Any]], list[RowFailure]]:
@@ -1018,12 +1128,14 @@ def _new_evidence(
                 "no unambiguous evidence metadata template for this registered board",
             ))
             continue
+        source_url = template["source_url"]
+        raw = _value(board, matched, str(template["unit"]))
         row = {
             "benchmark_id": benchmark_id,
             "model_id_as_evaluated": _subject(matched),
-            "score": _value(board, matched, str(template["unit"])),
+            "score": _stored_score(raw, {"benchmark_id": benchmark_id, "source_url": source_url}),
             "unit": template["unit"],
-            "source_url": template["source_url"],
+            "source_url": source_url,
             "source_kind": template["source_kind"],
             "evidence_date": _evidence_date(board, matched),
             "date_type": "evaluated",
@@ -1206,9 +1318,14 @@ def _reading_changed(old: Mapping[str, Any], new: Mapping[str, Any]) -> bool:
     """True when the reading changed.
 
     A new date inside an existing ``Observed <date>`` phrase is not a new
-    reading. Adding or removing that phrase still is.
+    reading. Adding or removing that phrase still is. An Arena score that
+    only loses decimals past the second is not a new reading either.
     """
-    if any(old.get(key) != new.get(key) for key in ("score", "interval", "n", "effort")):
+    for key in ("score", "interval", "n", "effort"):
+        if old.get(key) == new.get(key):
+            continue
+        if key == "score" and _score_is_precision_repair(old.get(key), new.get(key)):
+            continue
         return True
     return (
         _configuration_without_observed(old.get("configuration"))
@@ -1852,12 +1969,16 @@ def render_report(report: RefreshReport) -> str:
                 f"| {board} | {result['rows_rewritten']} | {result['rows_reconfirmed']} | "
                 f"{result['rows_left']} | {skipped_cell} |"
             )
+    lines.extend(_dates_a_person_must_rewrite(report.failures))
     lines.extend(["", "## Score changes", "", audit_markdown(report.changes)])
-    if report.failures:
+    other_failures = [
+        row for row in report.failures if row.reason != _DATE_THE_WRITER_CANNOT_RETELL
+    ]
+    if other_failures:
         lines.extend(["", "## Failures", "",
                       "| Model | Benchmark | Source | Why |", "|---|---|---|---|"])
         lines.extend(f"| `{row.model_id}` | `{row.benchmark}` | {row.source} | {row.reason} |"
-                     for row in report.failures)
+                     for row in other_failures)
     if report.quarantined:
         lines.extend(["", "## Quarantined", "",
                       "| Model | Facet | Source | Why |", "|---|---|---|---|"])
@@ -1926,6 +2047,42 @@ def _board_tables(lines: list[str]) -> list[list[str]]:
     return tables
 
 
+def _dates_a_person_must_rewrite(failures: Sequence[RowFailure]) -> list[str]:
+    """Rows whose sentence states a date this writer will not retell."""
+    rows = [row for row in failures if row.reason == _DATE_THE_WRITER_CANNOT_RETELL]
+    if not rows:
+        return []
+    noun = "row" if len(rows) == 1 else "rows"
+    lines = [
+        "",
+        "## Dates the writer cannot retell",
+        "",
+        f"{len(rows)} {noun}.",
+        "These rows need a person to rewrite the sentence; they will not refresh until then.",
+        "",
+        "| Card | Benchmark |",
+        "|---|---|",
+    ]
+    lines.extend(f"| `{row.model_id}` | `{row.benchmark}` |" for row in rows)
+    return lines
+
+
+def _section_block(lines: list[str], heading: str) -> list[str]:
+    """The heading and the lines under it, up to the next heading."""
+    try:
+        start = lines.index(heading)
+    except ValueError:
+        return []
+    block = [heading]
+    for line in lines[start + 1:]:
+        if line.startswith("## "):
+            break
+        block.append(line)
+    while len(block) > 1 and block[-1] == "":
+        block.pop()
+    return block
+
+
 def _table_in_section(lines: list[str], heading: str) -> list[str]:
     try:
         start = lines.index(heading)
@@ -1958,6 +2115,7 @@ def _truncate_pull_request_body(body: str, limit: int, pr_url_budget: int) -> st
         if line.startswith("Arena rows whose source is not the dataset root:")
     ), "")
     boards = _board_tables(lines)
+    retell = _section_block(lines, "## Dates the writer cannot retell")
     failure_table = _table_in_section(lines, "## Failures")
     failure_header, failure_rows = (
         (failure_table[:2], failure_table[2:]) if len(failure_table) >= 2 else (failure_table, [])
@@ -1976,6 +2134,8 @@ def _truncate_pull_request_body(body: str, limit: int, pr_url_budget: int) -> st
                 parts.extend(["", line] if parts else [line])
         for table in boards:
             parts.extend(["", *table] if parts else list(table))
+        if retell:
+            parts.extend(["", *retell] if parts else list(retell))
         if failures or omitted_failures:
             block = ["## Failures", "", *failure_header, *failures]
             parts.extend(["", *block] if parts else block)
@@ -2028,8 +2188,8 @@ def fit_pull_request_body(
     Each ``${PR_URL}`` is measured as ``pr_url_budget`` characters, so filling
     in the pull request URL cannot push a fitted body over the limit. A body
     that does not fit keeps the opening line, the Arena revision line, the
-    rows-left line, the no-board line, the off-root line, and both per-board
-    tables in full.
+    rows-left line, the no-board line, the off-root line, both per-board
+    tables, and the dates-the-writer-cannot-retell section in full.
     Score-change rows are cut first, then failure rows, each on a row
     boundary. A count line names the rows left out and the run's
     ``leaderboard-refresh-report`` artifact.
@@ -2078,21 +2238,61 @@ def _arena_reading_row(row: Mapping[str, Any]) -> bool:
     )
 
 
-_MASK_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+# A date glued to a letter, digit, hyphen, slash or underscore is part of a
+# longer token. So is a dot that continues one (file.2024-08-06, 2024-08-06.txt).
+# A sentence period does not: "noted 2026-08-01." is still a date.
+_MASK_DATE = re.compile(
+    r"(?<![A-Za-z0-9_./-])"
+    r"(\d{4}-\d{2}-\d{2})"
+    r"(?![A-Za-z0-9_/-])"
+    r"(?!\.[A-Za-z0-9_./-])"
+)
+_BACKTICK_SPAN = re.compile(r"`[^`\n]*`")
+_URL_SPAN = re.compile(r"https?://[^\s<>)\]]+")
 _MASK_HEX = re.compile(r"(?i)\b[0-9a-f]{7,40}\b")
 _MASK_NUMBER = re.compile(r"-?\d+(?:\.\d+)?")
 
 
+def _skipped_date_spans(text: str) -> list[tuple[int, int]]:
+    spans = [match.span() for match in _BACKTICK_SPAN.finditer(text)]
+    spans.extend(match.span() for match in _URL_SPAN.finditer(text))
+    return spans
+
+
+def _standalone_date_matches(text: str) -> list[re.Match[str]]:
+    """ISO dates that are not part of an id, a path, backticks, or a URL."""
+    skipped = _skipped_date_spans(text)
+    return [
+        match for match in _MASK_DATE.finditer(text)
+        if not any(left <= match.start() and match.end() <= right for left, right in skipped)
+    ]
+
+
+def _standalone_date_strings(text: str) -> list[str]:
+    return [match.group(1) for match in _standalone_date_matches(text)]
+
+
+def _mask_standalone_dates(text: str, replacement: str) -> str:
+    for match in reversed(_standalone_date_matches(text)):
+        text = text[:match.start()] + replacement + text[match.end():]
+    return text
+
+
 def _mask_quoted_figures(text: str) -> str:
-    """Dates, then hex strings, then numbers, so only the wording remains."""
-    masked = _MASK_DATE.sub("0", text)
+    """Standalone dates, then hex strings, then numbers, so only the wording remains."""
+    masked = _mask_standalone_dates(text, "0")
     masked = _MASK_HEX.sub("0", masked)
     return _MASK_NUMBER.sub("0", masked)
 
 
 def _text_outside_checked_figures(text: str) -> str:
-    """Characters that are not an ISO date and not a checked number token."""
-    spans = [match.span() for match in _MASK_DATE.finditer(text)]
+    """Characters that are not a standalone ISO date and not a checked number token.
+
+    The exact snapshot sentence is ignored, so removing it is not a wording
+    change. A changed word inside that sentence no longer matches and stays.
+    """
+    text = _without_exact_snapshot_sentence(text)
+    spans = [match.span() for match in _standalone_date_matches(text)]
     spans.extend((start, start + len(token)) for start, token in _uncovered_numbers(text))
     spans.sort()
     kept: list[str] = []
@@ -2110,11 +2310,8 @@ def _text_outside_checked_figures(text: str) -> str:
 
 def _uncovered_numbers(text: str) -> list[tuple[int, str]]:
     """Numbers outside a date or a hex revision, with the index of each token."""
-    covered = [
-        (match.start(), match.end())
-        for pattern in (_MASK_DATE, _MASK_HEX)
-        for match in pattern.finditer(text)
-    ]
+    covered = [match.span() for match in _standalone_date_matches(text)]
+    covered.extend(match.span() for match in _MASK_HEX.finditer(text))
     found: list[tuple[int, str]] = []
     for match in _NUMBER_TOKEN.finditer(text):
         start, end = match.span()
@@ -2147,7 +2344,16 @@ def _printed_forms(literal: str, after: Mapping[str, Any]) -> set[str]:
 def _changed_figures_are_the_reading(
     before: str, after_text: str, after: Mapping[str, Any],
 ) -> bool:
-    """A changed number is the after row's own figure, a rank, or a date on that row."""
+    """A changed number is the after row's own figure, a rank, or a date on that row.
+
+    A date after the standalone word ``read`` may change only to the row's
+    observed date. ``re-read`` is not that word. Any other changed date may
+    become the row's evidence date, observed date, or verified date.
+    Removing the snapshot sentence counts only when the quoted publish date
+    changed. The same removal with the publish date left in place does not.
+    """
+    if _snapshot_removal_is_the_reading(before, after_text):
+        before = _without_exact_snapshot_sentence(before)
     old_numbers = _uncovered_numbers(before)
     new_numbers = _uncovered_numbers(after_text)
     if len(old_numbers) != len(new_numbers):
@@ -2159,18 +2365,34 @@ def _changed_figures_are_the_reading(
             continue
         if new not in _printed_forms(old, after):
             return False
-    old_dates = _MASK_DATE.findall(before)
-    new_dates = _MASK_DATE.findall(after_text)
+    old_dates = _standalone_date_matches(before)
+    new_dates = _standalone_date_matches(after_text)
     if len(old_dates) != len(new_dates):
         return False
+    read_spans = [match.span() for match in _READ_DATE.finditer(before)]
+    observed = _iso_day(after.get("observed_at"))
     allowed = {
         day for day in (
             _iso_day(after.get("evidence_date")),
-            _iso_day(after.get("observed_at")),
+            observed,
             _iso_day(after.get("verified_at")),
         ) if day
     }
-    return all(old == new or new in allowed for old, new in zip(old_dates, new_dates, strict=True))
+    for old_match, new_match in zip(old_dates, new_dates, strict=True):
+        old, new = old_match.group(1), new_match.group(1)
+        if old == new:
+            continue
+        follows_read = any(
+            left <= old_match.start() and old_match.end() <= right
+            for left, right in read_spans
+        )
+        if follows_read:
+            if new != observed:
+                return False
+            continue
+        if new not in allowed:
+            return False
+    return True
 
 
 def _verifier_named_effort(model_id_as_evaluated: object) -> str | None:
@@ -2201,9 +2423,14 @@ def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> 
     On a refreshed Arena dataset-root row, ``interval`` and ``n`` may change.
     ``configuration`` may change only when the two strings match after dates,
     hex strings and numbers are masked, every character outside a checked
-    number token and an ISO date is byte-identical, and every changed number
-    is the after row's score, an interval bound, ``n``, a date on that row,
-    or the number after ``rank``. A digit glued to a letter, a hex string,
+    number token and a standalone ISO date is byte-identical, and every
+    changed number is the after row's score, an interval bound, ``n``, or the
+    number after ``rank``. A date after the standalone word ``read`` may
+    become only the row's observed date. Any other changed date may become
+    the row's evidence date, observed date, or verified date. The sentence ``The
+    live arena.ai board read <date> still shows this snapshot (same vote
+    counts).`` may be removed when the quoted publish date changed. A changed
+    word elsewhere still fails. A digit glued to a letter, a hex string,
     and a run of 7 digits stay in that byte comparison. ``effort`` may change
     only from null or empty to the canonical level the unchanged ``model_id_as_evaluated``
     names. ``benchmark_version`` never changes. On every other row, when
@@ -2225,6 +2452,8 @@ def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> 
             new.pop(key, None)
         before_configuration = str(before.get("configuration") or "")
         after_configuration = str(after.get("configuration") or "")
+        if _snapshot_removal_is_the_reading(before_configuration, after_configuration):
+            before_configuration = _without_exact_snapshot_sentence(before_configuration)
         if (
             _mask_quoted_figures(before_configuration) == _mask_quoted_figures(after_configuration)
             and _text_outside_checked_figures(before_configuration)
@@ -2288,8 +2517,11 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
     date, ID and source-snapshot binding. A refreshed Arena dataset-root row
     may also change its interval and vote count, a configuration whose wording
     is unchanged once dates, hex strings and numbers are masked, whose
-    characters outside a checked number token and an ISO date are
+    characters outside a checked number token and a standalone ISO date are
     byte-identical, and whose changed numbers are that row's own figures.
+    That configuration may also replace the read date beside its publish date
+    with the row's observed date, and drop the sentence that says the live
+    board still shows this snapshot when the quoted publish date changed.
     Its effort may change from null to the canonical level its model id names.
     ``benchmark_version`` stays. A row whose source URL is an observation
     projector, dated by the observation, may also make its configuration's
