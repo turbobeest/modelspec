@@ -226,6 +226,32 @@ def test_huggingface_model_names_with_artifact_tokens_stay_discoveries(
     assert not result["rejected"]
 
 
+def test_interpretability_artefact_reasons_share_one_summary_line() -> None:
+    rejected = [
+        {
+            "model_name": "probe", "provider": "Acme",
+            "reason": "interpretability artefact (tag: transcoder)",
+            "source_id": "hf-acme", "url": "https://huggingface.co/acme-lab/probe",
+        },
+        {
+            "model_name": "lens", "provider": "Acme",
+            "reason": "interpretability artefact (tag: sae)",
+            "source_id": "hf-acme", "url": "https://huggingface.co/acme-lab/lens",
+        },
+    ]
+    text = release_watch.summary({
+        "observed_at": NOW.isoformat(),
+        "sources": [],
+        "discoveries": [],
+        "posted": None,
+        "rejected": rejected,
+    })
+    assert "- interpretability artefact: 2" in text
+    assert "- interpretability artefact (tag: " not in text
+    assert "| probe | Acme | interpretability artefact (tag: transcoder) |" in text
+    assert "| lens | Acme | interpretability artefact (tag: sae) |" in text
+
+
 def test_summary_lists_every_rejected_item_with_reason_and_source(tmp_path, monkeypatch):
     result = run_watch(tmp_path, monkeypatch, {
         "page": "<td>lfm-2</td>",
