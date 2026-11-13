@@ -674,3 +674,122 @@ def test_over_quota_count_skips_a_top10_another_clause_keeps(tmp_path, monkeypat
     assert cut["counts"]["over_quota_top10"] == 0
     reasons = {row["model_id"]: row["why"] for row in cut["near_misses"]}
     assert reasons["lab/old-extra"] == _QUOTA_WHY
+
+
+def _propose(root, *extra):
+    output, diff = root.parent / "proposal.yaml", root.parent / "diff.json"
+    command = [
+        sys.executable, str(Path(premier_slice1.__file__)),
+        "--data-dir", str(root), "--as-of", TODAY.isoformat(),
+        "--output", str(output), "--diff", str(diff), *extra,
+    ]
+    result = subprocess.run(command, capture_output=True, text=True)
+    return result, output, diff
+
+
+def test_the_proposer_refuses_a_mixed_top_10(tmp_path):
+    root = catalogue(tmp_path)
+    write_card(root, "lab/leader", rows=[evidence("lab/leader", BENCH, 90, day="2026-09-13")])
+    write_card(root, "lab/other", rows=[evidence("lab/other", BENCH, 80, day="2026-10-01")])
+    result, output, diff = _propose(root)
+
+    assert result.returncode != 0
+    assert "refusing a mixed top 10" in result.stderr
+    assert "terminal-bench-4.0: 1 at 2026-09-13, 1 at 2026-10-01" in result.stderr
+    assert "90" not in result.stderr
+    assert "80" not in result.stderr
+    assert not output.exists()
+    assert not diff.exists()
+
+
+def test_the_proposer_accepts_a_uniform_top_10(tmp_path):
+    root = catalogue(tmp_path)
+    write_card(root, "lab/leader", rows=[evidence("lab/leader", BENCH, 90, day="2026-09-13")])
+    write_card(root, "lab/other", rows=[evidence("lab/other", BENCH, 80, day="2026-09-13")])
+
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+
+    assert {row["model_id"] for row in document["models"]} >= {"lab/leader", "lab/other"}
+
+
+def test_allow_mixed_boards_still_proposes(tmp_path):
+    root = catalogue(tmp_path)
+    write_card(root, "lab/leader", rows=[evidence("lab/leader", BENCH, 90, day="2026-09-13")])
+    write_card(root, "lab/other", rows=[evidence("lab/other", BENCH, 80, day="2026-10-01")])
+    result, output, diff = _propose(root, "--allow-mixed-boards")
+
+    assert result.returncode == 0, result.stderr
+    assert output.exists()
+    assert diff.exists()
+    assert "90" not in result.stderr
+    assert "80" not in result.stderr
+
+
+def test_an_older_date_outside_the_top_10_does_not_refuse(tmp_path):
+    root = catalogue(tmp_path)
+    for number in range(10):
+        mid = f"lab/top-{number:02d}"
+        write_card(root, mid, rows=[evidence(mid, BENCH, 100 - number, day="2026-09-13")])
+    for number in range(2):
+        mid = f"lab/tail-{number:02d}"
+        write_card(root, mid, rows=[evidence(mid, BENCH, number, day="2026-10-01")])
+
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+
+    assert "lab/top-00" in {row["model_id"] for row in document["models"]}
+    assert "lab/tail-00" not in {row["model_id"] for row in document["models"]}
+
+
+def test_a_mixed_date_inside_the_top_10_refuses(tmp_path):
+    root = catalogue(tmp_path)
+    for number in range(10):
+        mid = f"lab/top-{number:02d}"
+        day = "2026-10-01" if number == 0 else "2026-09-13"
+        write_card(root, mid, rows=[evidence(mid, BENCH, 100 - number, day=day)])
+    write_card(root, "lab/tail", rows=[evidence("lab/tail", BENCH, 1, day="2026-09-13")])
+
+    with pytest.raises(Exception, match="refusing a mixed top 10"):
+        premier_slice1.build(data_dir=root, as_of=TODAY)
+
+
+def test_a_lower_is_better_top_10_uses_the_low_scores(tmp_path):
+    """The ten highest scores share a date. The ten lowest do not."""
+    root = catalogue(tmp_path)
+    write_benchmark(root, BENCH, direction="lower_is_better")
+    for number in range(10):
+        mid = f"lab/high-{number:02d}"
+        write_card(root, mid, rows=[evidence(mid, BENCH, 100 - number, day="2026-09-13")])
+    write_card(root, "lab/low-a", rows=[evidence("lab/low-a", BENCH, 1, day="2026-09-13")])
+    write_card(root, "lab/low-b", rows=[evidence("lab/low-b", BENCH, 2, day="2026-10-01")])
+
+    with pytest.raises(Exception, match="refusing a mixed top 10"):
+        premier_slice1.build(data_dir=root, as_of=TODAY)
+
+
+def test_a_dateless_seat_does_not_count_as_a_second_publish_date():
+    rows = [
+        {"model_id": f"lab/{number:02d}", "name": f"lab/{number:02d}",
+         "score": 100 - number, "date": "2026-09-13"}
+        for number in range(9)
+    ]
+    rows.append({"model_id": "lab/blank", "name": "blank", "score": 50, "date": ""})
+    rows.append({"model_id": "lab/tail", "name": "tail", "score": 1, "date": "2026-10-01"})
+    board = {"id": "terminal-bench-4.0", "direction": "higher_is_better", "rows": rows}
+
+    assert premier_slice1.mixed_publish_dates(board) is None
+
+
+def test_mixed_publish_dates_names_the_board_and_the_counts():
+    board = {
+        "id": "terminal-bench-4.0",
+        "direction": "higher_is_better",
+        "rows": [
+            {"model_id": "lab/a", "score": 3, "date": "2026-09-13"},
+            {"model_id": "lab/b", "score": 2, "date": "2026-09-13"},
+            {"model_id": "lab/c", "score": 1, "date": "2026-10-01"},
+        ],
+    }
+
+    assert premier_slice1.mixed_publish_dates(board) == (
+        "terminal-bench-4.0: 2 at 2026-09-13, 1 at 2026-10-01"
+    )

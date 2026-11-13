@@ -1277,6 +1277,64 @@ def test_score_only_check_accepts_null_effort_becoming_the_canonical_level(
     assert _guard_result(tmp_path, before_text, after_text).ok
 
 
+def test_score_only_check_accepts_a_hyphenated_effort_the_stored_name_spells(
+    tmp_path: Path,
+) -> None:
+    """Null effort may become the trailing token, with that row's own figures."""
+    before_text = _arena_guard_card("2026-09-24", model="example-model-high")
+    after_text = before_text.replace("score: 72.0", "score: 1210.25").replace(
+        "evidence_date: '2026-09-01'", "evidence_date: '2026-11-02'",
+    ).replace(
+        "    id: lab/model#stable\n",
+        "    interval: [1190.5, 1230.75]\n    n: 2222\n"
+        "    effort: high\n    id: lab/model#stable\n",
+    )
+
+    assert _guard_result(tmp_path, before_text, after_text).ok
+
+
+def test_score_only_check_refuses_effort_the_stored_name_does_not_spell(
+    tmp_path: Path,
+) -> None:
+    before_text = _arena_guard_card("2026-09-24", model="example-model")
+    after_text = before_text.replace("score: 72.0", "score: 1210.25").replace(
+        "    id: lab/model#stable\n",
+        "    effort: high\n    id: lab/model#stable\n",
+    )
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_a_different_spelled_effort(tmp_path: Path) -> None:
+    before_text = _arena_guard_card("2026-09-24", model="example-model-high")
+    after_text = before_text.replace("score: 72.0", "score: 1210.25").replace(
+        "    id: lab/model#stable\n",
+        "    effort: max\n    id: lab/model#stable\n",
+    )
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_an_effort_already_set_to_another_level(
+    tmp_path: Path,
+) -> None:
+    before_text = _arena_guard_card("2026-09-24", model="example-model-high").replace(
+        "    date_type: published\n",
+        "    date_type: published\n    effort: max\n",
+    )
+    after_text = before_text.replace("score: 72.0", "score: 1210.25").replace(
+        "effort: max", "effort: high",
+    )
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
 def test_score_only_check_refuses_a_non_canonical_effort_spelling(tmp_path: Path) -> None:
     before_text = _arena_guard_card("2026-09-24")
     after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
@@ -2224,11 +2282,42 @@ benchmarks:
     return card
 
 
+def _arena_census_card(
+    root: Path, *, model: str, benchmark: str, score: float, day: str, evaluated: str,
+) -> None:
+    path = root / "models" / f"{model}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        f"""---
+model_id: {model}
+display_name: {evaluated}
+version: {evaluated}
+benchmarks:
+  evidence:
+  - benchmark_id: {benchmark}
+    model_id_as_evaluated: {evaluated}
+    score: {score}
+    unit: Arena score (Elo scale)
+    effort: null
+    source_url: {_ARENA_DATASET}
+    source_kind: independent_evaluator
+    evidence_date: '{day}'
+    date_type: published
+    observed_at: '{day}'
+    verified_at: '{day}'
+    id: {model}#{benchmark}
+---
+""",
+        encoding="utf-8",
+    )
+
+
 def _run_arena_effort_refresh(monkeypatch, tmp_path: Path, *, dataset_name: str,
                               evaluated: str, display: str,
                               dataset_rows: list[dict] | None = None,
                               model: str = "lab/example-model",
-                              snapshot: Path | None = None, **card):
+                              snapshot: Path | None = None,
+                              siblings: list[dict] | None = None, **card):
     """Refresh one Arena row from a fixture projection. No network."""
     root = tmp_path / "repo"
     cache = tmp_path / "copies"
@@ -2236,6 +2325,8 @@ def _run_arena_effort_refresh(monkeypatch, tmp_path: Path, *, dataset_name: str,
     card = _arena_effort_card(
         root, model=model, evaluated=evaluated, display=display, **card,
     )
+    for sibling in siblings or ():
+        _arena_census_card(root, **sibling)
     _arena_registry(root, source_id)
     (root / "verification").mkdir()
     url = (
@@ -2360,6 +2451,251 @@ def test_a_hyphenated_dataset_name_keeps_null_effort(
     log = _verification_log(root)
     assert log["outcome"] == "verified"
     assert log["diff"] is None
+
+
+def test_a_hyphenated_stored_name_adopts_the_parenthetical_effort(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """example-model-high is the same row as Example Model (High)."""
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (High)",
+        evaluated="example-model-high",
+        display="Example Model",
+    )
+
+    assert report.quarantined == [], report.quarantined
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["model_id_as_evaluated"] == "example-model-high"
+    assert row["score"] == 1210.25
+    assert row["interval"] == [1190.5, 1230.75]
+    assert row["n"] == 2222
+    assert row["effort"] == "high"
+    assert str(row["evidence_date"]) == "2026-11-02"
+    log = _verification_log(root)
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
+    rendered = refresh.render_report(report)
+    assert "Arena boards with a mixed top 10: 0 of 1" in rendered
+    assert "| arena_elo_overall | 1 | 0 | no |" in rendered
+
+
+def test_a_stored_name_without_the_effort_token_is_left_for_a_person(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (High)",
+        evaluated="Example Model",
+        display="Example Model",
+    )
+
+    assert report.quarantined == []
+    assert [row.reason for row in report.failures] == [
+        "dataset names an effort the stored name does not",
+    ]
+    assert _arena_skip_classes(report) == {"effort": 1}
+    assert _evidence_row(card)["score"] == 1100.0
+    assert _evidence_row(card)["effort"] is None
+    assert _evidence_row(card)["model_id_as_evaluated"] == "Example Model"
+
+
+def test_a_stored_name_that_spells_another_effort_is_not_written(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (Max)",
+        evaluated="example-model-high",
+        display="Example Model",
+    )
+
+    assert report.quarantined == []
+    assert [row.reason for row in report.failures] == [
+        "stored name spells a different effort than the dataset row",
+    ]
+    assert _arena_skip_classes(report) == {"effort": 1}
+    assert _evidence_row(card)["score"] == 1100.0
+    assert _evidence_row(card)["effort"] is None
+    assert _evidence_row(card)["model_id_as_evaluated"] == "example-model-high"
+
+
+def test_two_dataset_rows_that_normalise_alike_are_not_written(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="unused",
+        evaluated="example-model-high",
+        display="Example Model",
+        dataset_rows=[
+            {
+                "model_name": "Example Model (High)",
+                "rating": 1210.25,
+                "rating_lower": 1190.5,
+                "rating_upper": 1230.75,
+                "vote_count": 2222,
+                "leaderboard_publish_date": "2026-11-02",
+                "rank": 3,
+            },
+            {
+                "model_name": "example-model-high",
+                "rating": 1300.0,
+                "rating_lower": 1280.0,
+                "rating_upper": 1320.0,
+                "vote_count": 3333,
+                "leaderboard_publish_date": "2026-11-02",
+                "rank": 1,
+            },
+        ],
+    )
+
+    assert report.quarantined == []
+    assert [row.reason for row in report.failures] == [
+        "two dataset rows normalise to the stored name",
+    ]
+    assert _arena_skip_classes(report) == {"no-unique-row": 1}
+    assert _evidence_row(card)["score"] == 1100.0
+    assert _evidence_row(card)["effort"] is None
+
+
+def test_a_card_effort_already_at_another_level_is_not_overwritten(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (High)",
+        evaluated="example-model-high",
+        display="Example Model",
+        effort="max",
+    )
+
+    assert report.quarantined == []
+    assert [row.reason for row in report.failures] == [
+        "card effort is already a different level",
+    ]
+    assert _arena_skip_classes(report) == {"effort": 1}
+    row = _evidence_row(card)
+    assert row["score"] == 1100.0
+    assert row["effort"] == "max"
+    assert row["model_id_as_evaluated"] == "example-model-high"
+
+
+def test_a_longer_stored_name_is_not_the_parenthetical_row(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """A prefix or an interior token is not the effort this rule reads."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (High)",
+        evaluated="example-model-high-extra",
+        display="Example Model High Extra",
+    )
+
+    assert report.quarantined == []
+    assert any("no unique row" in row.reason for row in report.failures)
+    assert _evidence_row(card)["score"] == 1100.0
+    assert _evidence_row(card)["effort"] is None
+
+
+def test_a_parenthetical_name_matches_only_the_stored_name_that_spells_it() -> None:
+    """Five invented names, plus the lookalikes the whole-name rule must miss."""
+    matched = refresh._parenthetical_effort_for_stored_name
+    spelled = refresh._effort_spelled_by_stored_name
+    cases = [
+        ("example-model-high", "Example Model (High)", "high"),
+        ("example-model-max", "Example Model (Max)", "max"),
+        ("example-model", "Example Model (High)", None),
+        ("example-model-high", "Example Model (Max)", None),
+        ("example-model-xhigh", "Example Model (xHigh)", "xhigh"),
+        ("example-model-x-high", "Example Model (xHigh)", None),
+        ("claude-fable-5.1-max", "Claude Fable 5.1 (Max)", "max"),
+        ("claude-fable-5.1", "Claude Fable 5.1 (Max)", None),
+        ("claude-fable-5.1-high", "Claude Fable 5.1 (Max)", None),
+        ("gpt-5.6-sol-xhigh", "GPT-5.6 Sol (xHigh)", "xhigh"),
+        ("gpt-5.6-sol", "GPT-5.6 Sol (xHigh)", None),
+        ("o3-mini-high", "o3-mini (High)", "high"),
+        ("o3-mini", "o3-mini (High)", None),
+        ("model-high-32k", "model (High) 32k", None),
+        ("example-model-high-extra", "Example Model (High)", None),
+        ("some-high-model", "Some Model (High)", None),
+    ]
+    for stored, dataset, effort in cases:
+        assert matched(stored, dataset) == effort, (stored, dataset)
+    assert spelled("model-high-32k") is None
+    assert spelled("o3-mini") is None
+    assert spelled("o3-mini-high") == "high"
+    assert spelled("example-model-x-high") == "high"
+    assert spelled("example-model-xhigh") == "xhigh"
+
+
+def test_the_report_counts_rows_left_on_an_older_publish_date(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, _card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (High)",
+        evaluated="example-model-high",
+        display="Example Model",
+        siblings=[
+            {
+                "model": "lab/older",
+                "benchmark": "arena_elo_overall",
+                "score": 1400.0,
+                "day": "2026-09-13",
+                "evaluated": "Older Model",
+            },
+            {
+                "model": "lab/coding",
+                "benchmark": "arena_elo_coding",
+                "score": 1000.0,
+                "day": "2026-10-01",
+                "evaluated": "Coding Model",
+            },
+        ],
+    )
+
+    assert report.failures == [], report.failures
+    rendered = refresh.render_report(report)
+    assert "Arena boards with a mixed top 10: 1 of 2" in rendered
+    assert "| arena_elo_coding | 1 | 0 | no |" in rendered
+    assert "| arena_elo_overall | 1 | 1 | yes |" in rendered
+    assert refresh.fit_pull_request_body(rendered) == rendered
+    path = tmp_path / "report.json"
+    refresh.write_report_json(path, report)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["arena_boards"] == 2
+    assert payload["arena_boards_with_mixed_top_10"] == 1
+    assert payload["arena_publish_dates"] == [
+        {
+            "benchmark": "arena_elo_coding",
+            "rows_at_new_publish_date": 1,
+            "rows_at_older_publish_date": 0,
+            "mixed_top_10": False,
+        },
+        {
+            "benchmark": "arena_elo_overall",
+            "rows_at_new_publish_date": 1,
+            "rows_at_older_publish_date": 1,
+            "mixed_top_10": True,
+        },
+    ]
+
+
+def test_the_pull_request_body_keeps_the_mixed_board_line() -> None:
+    line = "Arena boards with a mixed top 10: 1 of 2"
+    table = "\n".join([
+        "| Arena board | At the new publish date | Left at an older publish date | Mixed top 10 |",
+        "|---|---:|---:|---|",
+        "| arena_elo_coding | 1 | 0 | no |",
+        "| arena_elo_overall | 1 | 1 | yes |",
+    ])
+    body = f"Weekly refresh.\n\n{line}\n\n{table}\n"
+    assert refresh.fit_pull_request_body(body) == body
+    fitted = refresh.fit_pull_request_body(body, limit=80)
+    assert line in fitted
+    assert "| Arena board |" not in fitted
 
 
 def test_a_model_name_without_an_effort_suffix_still_verifies(
@@ -2541,12 +2877,17 @@ _ARENA_WRITER_FIXTURES = [
             "rank": 4,
         }],
     },
+    {
+        "dataset_name": "Example Model (High)",
+        "evaluated": "example-model-high",
+        "display": "Example Model",
+    },
 ]
 
 
 @pytest.mark.parametrize("card", _ARENA_WRITER_FIXTURES, ids=[
     "bracket", "ci", "quoted-interval", "effort", "november-rank", "day-rank",
-    "ticket-rank", "observed-date",
+    "ticket-rank", "observed-date", "hyphen-effort",
 ])
 def test_the_guard_accepts_the_writers_arena_fixture_row(
     monkeypatch, tmp_path: Path, card: dict,
