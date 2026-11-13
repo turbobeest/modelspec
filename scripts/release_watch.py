@@ -252,6 +252,10 @@ def failures(result: dict) -> list[str]:
 def _report_reason(reason: str) -> str:
     if reason == "derivative" or reason.startswith("derivative of "):
         return "derivative"
+    if reason == "interpretability artefact" or reason.startswith(
+        "interpretability artefact (tag: "
+    ):
+        return "interpretability artefact"
     return reason
 
 
