@@ -2,7 +2,7 @@
 
 Round 2, on this branch. The round-1 scratch tree and the drafted card were not on disk. This pass linked a copy of the private catalogue into an engine checkout and ran the harness steps with no new card. No new network. Python 3.14.4. The workflow's Python 3.11 was not used. No npm install. No Firecrawl. No vendor API.
 
-The earlier note's base was public commit `12f04b1b8ebe`. The data checkout's engine pin is public commit `3c9bc73abddf`, an ancestor of this branch. A live data-repo run keeps that pin until the data repo moves it.
+The data repository's main pins public engine commit `12f04b1b8ebe`, an ancestor of this branch. Round 2 cited `3c9bc73abddf`, the pin recorded by the previous writer install. A live data-repo run keeps `12f04b1b8ebe` until the data repository moves it.
 
 ## What `data-pr` gates on
 
@@ -14,7 +14,7 @@ Omitted: frozen-image engine recall scores the engine's committed public image, 
 
 `pr` and `nightly` exit non-zero when a data path is a symlink, and the message names `--profile data-pr`. The image-composing helpers are gone. No helper `git commit` remains, so `-c commit.gpgsign=false` does not apply. `cli/modelspec verify accuracy --profile` lists `pr`, `data-pr`, and `nightly`.
 
-The data-pr report builds the linked catalogue with the completeness gate on. Its snapshot line ends with `(linked catalogue)`. The always-on test `test_committed_public_image_recall_matches_the_baseline` still scores the engine's committed public image inside Run pytest.
+The data-pr report builds the linked catalogue with the completeness gate on. The snapshot line adds `(linked catalogue)` when the linked-tree check finds a symlink. This run used a linked tree, so the line included that label. The always-on test `test_committed_public_image_recall_matches_the_baseline` still scores the engine's committed public image inside Run pytest.
 
 ## Harness pass
 
@@ -31,7 +31,7 @@ The first scratch copy had no git directory. Two decision tests call `git ls-fil
 
 MODEL-160 `scripts.recall_run` on the same tree: exit 0 in 6s. 16 pass, 4 partial, 0 fail. One JSON report.
 
-The approved-answer step reused that report. It did not run recall again. The data checkout's merge-base with `origin/main` does not contain `reports/recall/baseline.json`, so the step copied the working-tree baseline. That is the workflow's fallback. `reports/recall/check.py` with `--approved-baseline` exited 0 in 0.033s.
+The approved-answer step reused that report. It did not run recall again. The data checkout's merge-base with `origin/main` contains `reports/recall/baseline.json` (`git cat-file -e` exited 0; the file contents were not recorded). The step reads that blob with `git show`. The working-tree `cp` is the fallback when the merge-base lacks the file. `reports/recall/check.py` with `--approved-baseline` exited 0 in 0.033s.
 
 ```
 pass: 16; question ids: Q01, Q02, Q03, Q04, Q05, Q06, Q08, Q09, Q12, Q13, Q14, Q15, Q16, Q18, Q19, Q20
@@ -66,3 +66,15 @@ Urllib log from that earlier run: 7 sent, all `huggingface.co`; 23 refused. `mod
 | Upload score-only audit | not reached | a score-only change |
 | Acknowledge | earlier dry run, status non-empty | POST `/v1/signals/ack` |
 | Closed and recheck | read only | a `pr_url` or a recheck row |
+
+## Round 3
+
+The approved-answer comparison runs in the engine as `python -I -m scripts.accuracy --compare-approved-answers`. A regression exits 0, records `regressed` and the question ids, and the pull request opens as a draft titled `ANSWERS REGRESS: `. Unreadable input exits non-zero. `--update-recall-baseline` refuses a linked tree before it reads the catalogue. `--profile data-pr --layers frozen_image_engine_recall` and `--layers output_parity_web` exit with `omitted from --profile data-pr`. The snapshot label `(linked catalogue)` follows the linked-tree check. The private recall harness was not re-run.
+
+Serial pytest on the project interpreter, no xdist, each exit 0:
+
+| File | Result |
+| --- | --- |
+| tests/test_writer_isolation.py | 296 passed in 8.82s |
+| tests/test_accuracy.py | 105 passed in 8.98s |
+| tests/test_release_signals.py | 241 passed in 2.37s |

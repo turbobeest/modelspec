@@ -727,15 +727,7 @@ def test_recall_approval_guard_does_not_cover_ratchet_documentation() -> None:
     assert result.details == []
 
 
-def test_data_pr_report_labels_the_linked_catalogue_snapshot(monkeypatch) -> None:
-    snapshot = FakeSnapshot()
-    loads = []
-
-    def load(root, snapshot_file, as_of):
-        loads.append(root)
-        return snapshot
-
-    monkeypatch.setattr(accuracy, "_load_snapshot", load)
+def _stub_data_pr_layers(monkeypatch) -> None:
     monkeypatch.setattr(
         accuracy, "deterministic_correctness",
         lambda *args, **kwargs: accuracy.LayerResult(
@@ -749,12 +741,63 @@ def test_data_pr_report_labels_the_linked_catalogue_snapshot(monkeypatch) -> Non
         ),
     )
 
+
+def test_data_pr_report_labels_the_linked_catalogue_snapshot(tmp_path: Path, monkeypatch) -> None:
+    repo = _linked_engine(tmp_path)
+    snapshot = FakeSnapshot()
+    loads = []
+
+    def load(root, snapshot_file, as_of):
+        loads.append(root)
+        return snapshot
+
+    monkeypatch.setattr(accuracy, "_load_snapshot", load)
+    _stub_data_pr_layers(monkeypatch)
+
+    report = accuracy.run_profile(root=repo, profile="data-pr")
+    text = accuracy._markdown(report)
+
+    assert loads == [repo.resolve()]
+    assert report.snapshot == "snap_test_accuracy"
+    assert "linked_catalogue" not in report.to_dict()
+    assert "Snapshot: `snap_test_accuracy` (linked catalogue)" in text
+
+
+def test_data_pr_report_without_a_link_omits_the_catalogue_label(monkeypatch) -> None:
+    snapshot = FakeSnapshot()
+
+    def load(root, snapshot_file, as_of):
+        return snapshot
+
+    monkeypatch.setattr(accuracy, "_load_snapshot", load)
+    _stub_data_pr_layers(monkeypatch)
+
     report = accuracy.run_profile(profile="data-pr")
     text = accuracy._markdown(report)
 
-    assert loads == [accuracy.ROOT.resolve()]
-    assert report.snapshot == "snap_test_accuracy"
-    assert "Snapshot: `snap_test_accuracy` (linked catalogue)" in text
+    assert "linked catalogue" not in text
+
+
+@pytest.mark.parametrize("layer", ["frozen_image_engine_recall", "output_parity_web"])
+def test_data_pr_rejects_an_omitted_layer(layer: str, tmp_path: Path, monkeypatch) -> None:
+    def recall(*args, **kwargs):
+        raise AssertionError(f"ran gating={kwargs.get('gating')}")
+
+    monkeypatch.setattr(accuracy, "run_golden", recall)
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness", lambda *args, **kwargs: pytest.fail("ran"),
+    )
+    monkeypatch.setattr(accuracy, "output_parity", lambda *args, **kwargs: pytest.fail("ran"))
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args, **kwargs: FakeSnapshot())
+
+    with pytest.raises(SystemExit) as raised:
+        accuracy.main([
+            "--profile", "data-pr",
+            "--layers", layer,
+            "--output-dir", str(tmp_path / "out"),
+        ])
+
+    assert raised.value.code == f"omitted from --profile data-pr: {layer}"
 
 
 def test_data_pr_snapshot_build_failure_fails_before_the_other_layers(monkeypatch) -> None:

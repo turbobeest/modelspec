@@ -13,8 +13,9 @@ gates current-data freshness, re-reads verified values, compares domain leaders
 with permitted independent boards, and reports recall changes without gating
 on them. The pr and nightly profiles refuse a tree whose data path is a symlink.
 The recall baseline update refuses that tree before it reads the catalogue.
-The data-pr report builds that linked catalogue with the completeness gate on
-and labels the snapshot line as the linked catalogue.
+The data-pr report builds that linked catalogue with the completeness gate on.
+The snapshot line says "(linked catalogue)" when the linked-tree check finds
+a symlink. Naming an omitted data-pr layer is an error.
 
 The compare-approved-answers operation reads one recall report and the
 baselines. It prints counts and question ids. A regression exits 0. It exits
@@ -130,6 +131,7 @@ class AccuracyReport:
     profile: str
     snapshot: str | None
     layers: tuple[LayerResult, ...]
+    linked_catalogue: bool = False
 
     @property
     def status(self) -> Literal["pass", "fail"]:
@@ -1705,7 +1707,7 @@ def reference_agreement(
 def _markdown(report: AccuracyReport) -> str:
     snapshot = report.snapshot or "not used"
     snapshot_line = f"Snapshot: `{snapshot}`"
-    if report.profile == "data-pr":
+    if report.linked_catalogue:
         snapshot_line += " (linked catalogue)"
     lines = [
         "# Decision engine accuracy",
@@ -1773,6 +1775,13 @@ def run_profile(
     as_of = as_of or date.today()
     config = load_config(config_path)
     selected = tuple(layers or PROFILES[profile])
+    if profile == "data-pr":
+        omitted = [
+            name for name in selected
+            if name in {"frozen_image_engine_recall", "output_parity_web"}
+        ]
+        if omitted:
+            raise SystemExit(f"omitted from --profile data-pr: {', '.join(omitted)}")
     snapshot = None
     # data-pr scores the linked catalogue. The build's completeness gate stays
     # on: a card that does not compile fails this profile before the other layers.
@@ -1806,7 +1815,7 @@ def run_profile(
                     root,
                     snapshot_file,
                     as_of,
-                    gating=profile in ("pr", "data-pr"),
+                    gating=profile == "pr",
                     approved_baseline_path=approved_recall_baseline,
                 )
             )
@@ -1838,6 +1847,7 @@ def run_profile(
         profile=profile,
         snapshot=getattr(snapshot, "snapshot_id", None),
         layers=tuple(results),
+        linked_catalogue=linked_data_path(root) is not None,
     )
 
 
