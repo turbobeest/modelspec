@@ -1960,6 +1960,22 @@ def test_the_process_job_gates_on_approved_private_answers_before_push() -> None
     assert '--approved-baseline "$RUNNER_TEMP/approved-private-recall.json"' in run
 
 
+def test_the_approved_answer_outputs_wire_the_pull_request_step() -> None:
+    gate = _process_step("Compare approved answers on private data")
+    opened = _process_step("Open or update the pull request")
+    writer = (ROOT / "scripts" / "accuracy.py").read_text(encoding="utf-8")
+    step_id = gate["id"]
+
+    assert step_id == "approved"
+    assert '--step-output "$GITHUB_OUTPUT"' in gate["run"]
+    assert 'handle.write(f"regressed=' in writer
+    assert 'handle.write(f"regression_ids=' in writer
+    assert opened["env"]["REGRESSED"] == f"${{{{ steps.{step_id}.outputs.regressed }}}}"
+    assert opened["env"]["REGRESSION_IDS"] == (
+        f"${{{{ steps.{step_id}.outputs.regression_ids }}}}"
+    )
+
+
 def _process_step(name: str) -> dict:
     workflow = yaml.safe_load(
         (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
