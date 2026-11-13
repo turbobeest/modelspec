@@ -244,6 +244,7 @@
   "tests/test_must_mention_overreach.py": 0.014,
   "tests/test_next_move.py": 0.663,
   "tests/test_no_font_cdn.py": 0.016,
+  "tests/test_not_published_since.py": 0.36,
   "tests/test_offering_drafter.py": 0.223,
   "tests/test_offering_fetch.py": 1.086,
   "tests/test_oll_leftovers.py": 14.605,

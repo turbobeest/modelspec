@@ -1,8 +1,8 @@
 # MODEL-482 a reading the live board no longer publishes
 
 Base `8d74c676a46149207f89da2e4a361d1340d40d29`. Branch `model-482-b`.
-The commit that adds this note is the change. Read it with
-`git log -1 --format=%H -- docs/evidence/MODEL-482-not-published-since.md`.
+The commits after that base are the change. The latest one that touches
+this note is `git log -1 --format=%H -- docs/evidence/MODEL-482-not-published-since.md`.
 
 ## What the key means
 
@@ -113,6 +113,10 @@ Green, after the change. Exit 0.
 - The same `-k not_published` command: 24 passed, 198 deselected, 0.80s.
 - `tests/test_leaderboard_refresh.py tests/test_arena_revision.py tests/test_accuracy.py tests/test_writer_isolation.py tests/test_class_fit.py tests/test_decision_model.py tests/test_decision_capability.py`: 808 passed, 8 skipped, 63.27s.
 - `tests/test_relations.py tests/test_legal.py tests/test_attach_evidence.py`: 133 passed, 211.30s.
+- `tests/test_not_published_since.py` alone: 18 passed, 0.36s. That is the duration recorded for the shard check.
+- `tests/test_ci_workflows.py::test_shard_timings_cover_the_current_suite_and_browser_modules` after that record: 1 passed, 0.28s.
+
+The first CI run failed that same check: 367 of 387 modules were measured, short of 95 percent, because the new file had no duration. No other shard failed that run.
 
 Invented names and invented scores only. No private card value is in
 this note.
@@ -138,6 +142,7 @@ no key, including when the other row's score agrees with the stored score.
 - No Worker memory probe. The key is not on the frozen public image.
 - No run of the weekly workflow, and no edit of it.
 - No full local suite.
-- `tests/shard_durations.json` was not edited. The new file is estimated
-  from its size. The eight-way shard summary still balances the packed
-  shards.
+- `tests/shard_durations.json` records `tests/test_not_published_since.py`
+  at 0.36s, the time that file took alone. The other unmeasured modules
+  were already unmeasured on the base. The eight-way shard summary still
+  balances the packed shards.
