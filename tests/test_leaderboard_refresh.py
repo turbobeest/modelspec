@@ -2799,16 +2799,16 @@ def test_no_unique_dataset_row_is_its_own_skip_class(monkeypatch, tmp_path: Path
     assert _evidence_row(card)["score"] == 1100.0
 
 
-_RAW_ARENA_RATING = 1000.987722764275
-_ROUNDED_ARENA_RATING = 1000.99
+_RAW_ARENA_RATING = 1234.5678912345
+_ROUNDED_ARENA_RATING = 1234.57
 
 
 def _arena_dataset_row(**overrides) -> dict:
     row = {
         "model_name": "Example Model",
         "rating": _RAW_ARENA_RATING,
-        "rating_lower": 990.125,
-        "rating_upper": 1010.875,
+        "rating_lower": 1210.126,
+        "rating_upper": 1250.874,
         "vote_count": 2222,
         "leaderboard_publish_date": "2026-11-02",
         "rank": 3,
@@ -2832,11 +2832,11 @@ def test_an_arena_score_is_written_with_two_decimals(monkeypatch, tmp_path: Path
     row = _evidence_row(card)
     assert row["score"] == _ROUNDED_ARENA_RATING
     assert str(_RAW_ARENA_RATING) not in card.read_text(encoding="utf-8")
-    assert "1000.99" in row["configuration"]
+    assert f"{_ROUNDED_ARENA_RATING:.2f}" in row["configuration"]
     assert row["id"] == refresh.evidence_id("lab/example-model", row)
     assert report.changes[0].new_value == _ROUNDED_ARENA_RATING
     rendered = refresh.render_report(report)
-    assert "1000.99" in rendered
+    assert f"{_ROUNDED_ARENA_RATING:.2f}" in rendered
     assert str(_RAW_ARENA_RATING) not in rendered
     audit_path = tmp_path / "audit.json"
     refresh.write_audit(audit_path, report.changes)
@@ -2926,7 +2926,7 @@ def test_a_read_date_beside_the_publish_date_becomes_the_observed_date(
     assert row["configuration"] == (
         "LMArena leaderboard dataset, CC BY 4.0, category overall, "
         "leaderboard_publish_date 2026-11-02, read 2026-11-11. "
-        "Rank 3, 2222 votes, interval [990.12, 1010.88]."
+        "Rank 3, 2222 votes, interval [1210.13, 1250.87]."
     )
     assert refresh.check_score_only(before, root).ok
 
@@ -2960,7 +2960,7 @@ def test_a_stale_snapshot_sentence_is_removed_when_the_publish_date_changes(
         "LMArena's official leaderboard dataset, split latest, subset `text` "
         "(raw, non-style-controlled), category overall; "
         "leaderboard_publish_date 2026-11-02 is the stated date. "
-        f"Rating {_ROUNDED_ARENA_RATING:.2f} (95% CI 990.12-1010.88), 2222 votes."
+        f"Rating {_ROUNDED_ARENA_RATING:.2f} (95% CI 1210.13-1250.87), 2222 votes."
     )
     assert refresh.check_score_only(before, root).ok
 
