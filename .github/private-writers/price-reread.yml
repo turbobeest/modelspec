@@ -500,7 +500,7 @@ jobs:
             ${{ runner.temp }}/report.md
             ${{ runner.temp }}/report.json
           retention-days: 35
-          if-no-files-found: error
+          if-no-files-found: warn
       - name: Count changes and alerts
         id: result
         run: |

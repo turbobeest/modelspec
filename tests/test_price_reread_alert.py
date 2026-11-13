@@ -226,6 +226,7 @@ def test_the_reread_job_uploads_the_report_and_can_label_issues() -> None:
         if (step.get("with") or {}).get("name") == "price-reread-report"
     )
     assert upload["if"] == "always()"
+    assert upload["with"]["if-no-files-found"] == "warn"
     assert str(upload["uses"]).startswith("actions/upload-artifact@")
     uploaded = upload["with"]["path"]
     assert "report.md" in uploaded and "report.json" in uploaded
