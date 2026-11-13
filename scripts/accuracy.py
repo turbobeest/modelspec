@@ -16,8 +16,8 @@ The data-pr report builds that linked catalogue with the completeness gate on
 and labels the snapshot line as the linked catalogue.
 
 The compare-approved-answers operation reads one recall report and the
-baselines. It prints counts and question ids. It exits non-zero when those
-inputs cannot be validated, and when a question regresses.
+baselines. It prints counts and question ids. A regression exits 0. It exits
+non-zero only when those inputs cannot be validated.
 """
 
 from __future__ import annotations
@@ -1961,6 +1961,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--baseline", type=Path)
     parser.add_argument("--approved-baseline", type=Path)
     parser.add_argument("--summary", type=Path)
+    parser.add_argument("--step-output", type=Path)
     args = parser.parse_args(argv)
     if args.compare_approved_answers and (
         args.update_recall_baseline or args.check_recall_approval
@@ -1981,7 +1982,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         except (OSError, ValueError, KeyError, TypeError):
             print("::error::Private recall inputs could not be validated.")
             return 1
-        return int(bool(regressions))
+        if args.step_output is not None:
+            with args.step_output.open("a", encoding="utf-8") as handle:
+                handle.write(f"regressed={'true' if regressions else 'false'}\n")
+                handle.write(f"regression_ids={', '.join(regressions)}\n")
+        return 0
     if args.update_recall_baseline and args.check_recall_approval:
         parser.error("choose only one maintenance operation")
     if args.update_recall_baseline:

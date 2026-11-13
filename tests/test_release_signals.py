@@ -1960,6 +1960,164 @@ def test_the_process_job_gates_on_approved_private_answers_before_push() -> None
     assert '--approved-baseline "$RUNNER_TEMP/approved-private-recall.json"' in run
 
 
+def _process_step(name: str) -> dict:
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    return next(
+        step for step in workflow["jobs"]["process"]["steps"] if step.get("name") == name
+    )
+
+
+def _engine_python(tmp_path: Path) -> Path:
+    """A `python` on PATH that loads this worktree, as the runner's .pth file does."""
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    launcher = bindir / "launch.py"
+    launcher.write_text(
+        "import sys\n"
+        f"sys.path.insert(0, {str(ROOT)!r})\n"
+        "args = sys.argv[1:]\n"
+        "if args and args[0] == '-I':\n"
+        "    args = args[1:]\n"
+        "if len(args) >= 2 and args[0] == '-m':\n"
+        "    sys.argv = [args[1], *args[2:]]\n"
+        "    module = __import__(args[1], fromlist=['main'])\n"
+        "    raise SystemExit(module.main())\n"
+        "if args and args[0] == '-c':\n"
+        "    exec(compile(args[1], '<workflow>', 'exec'), {'__name__': '__main__'})\n"
+        "    raise SystemExit(0)\n"
+        "raise SystemExit('unexpected python arguments')\n",
+        encoding="utf-8",
+    )
+    wrapper = bindir / "python"
+    wrapper.write_text(f"#!/bin/sh\nexec {sys.executable} {launcher} \"$@\"\n", encoding="utf-8")
+    wrapper.chmod(0o755)
+    return bindir
+
+
+def _approved_data_repo(tmp_path: Path) -> Path:
+    import subprocess
+
+    data = tmp_path / "data"
+    recall = data / "reports" / "recall"
+    recall.mkdir(parents=True)
+    verdicts = {f"Q{number:02d}": "pass" for number in range(1, 21)}
+    (recall / "baseline.json").write_text(
+        json.dumps({"schema_version": 1, "verdicts": verdicts}), encoding="utf-8",
+    )
+    subprocess.run(["git", "init", "-q"], cwd=data, check=True)
+    subprocess.run(["git", "config", "user.email", "signals@example.com"], cwd=data, check=True)
+    subprocess.run(["git", "config", "user.name", "signals"], cwd=data, check=True)
+    subprocess.run(["git", "add", "reports"], cwd=data, check=True)
+    subprocess.run(
+        ["git", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "baseline"],
+        cwd=data, check=True,
+    )
+    subprocess.run(["git", "update-ref", "refs/remotes/origin/main", "HEAD"], cwd=data, check=True)
+    return data
+
+
+def _run_approved_step(tmp_path: Path, *, report: dict | None) -> subprocess.CompletedProcess[str]:
+    import os
+    import subprocess
+
+    data = _approved_data_repo(tmp_path)
+    runner = tmp_path / "runner"
+    runner.mkdir()
+    if report is not None:
+        recall = runner / "recall"
+        recall.mkdir()
+        (recall / "recall.json").write_text(json.dumps({"questions": [
+            {"id": question_id, "verdict": verdict}
+            for question_id, verdict in report.items()
+        ]}), encoding="utf-8")
+    step = _process_step("Compare approved answers on private data")
+    env = os.environ | {
+        "PATH": f"{_engine_python(tmp_path)}:{os.environ['PATH']}",
+        "RUNNER_TEMP": str(runner),
+        "GITHUB_OUTPUT": str(runner / "github-output"),
+        "GITHUB_STEP_SUMMARY": str(runner / "summary"),
+    }
+    return subprocess.run(
+        ["bash", "-e", "-c", step["run"]],
+        cwd=data, capture_output=True, text=True, env=env, check=False,
+    )
+
+
+def test_a_regression_exits_zero_and_acknowledgement_still_runs(tmp_path: Path) -> None:
+    report = {f"Q{number:02d}": "pass" for number in range(1, 21)}
+    report["Q01"] = "partial"
+    result = _run_approved_step(tmp_path, report=report)
+    ack = _process_step("Acknowledge the signal and schedule its 1, 7, and 30 day re-checks")
+    commit = _process_step("Commit and push the isolated signal branch")
+    opened = _process_step("Open or update the pull request")
+
+    assert result.returncode == 0, result.stderr
+    recorded = (tmp_path / "runner" / "github-output").read_text(encoding="utf-8")
+    assert "regressed=true\n" in recorded
+    assert "regression_ids=Q01\n" in recorded
+    assert ack["if"] == "steps.classify.outputs.resolution != 'empty'"
+    assert "approved" not in ack["if"]
+    assert commit["if"] == "steps.classify.outputs.changed == 'true'"
+    assert opened["if"] == "steps.classify.outputs.changed == 'true'"
+
+
+def test_an_unreadable_approved_answer_input_fails_the_job(tmp_path: Path) -> None:
+    step = _process_step("Compare approved answers on private data")
+    result = _run_approved_step(tmp_path, report=None)
+
+    assert "continue-on-error" not in step
+    assert result.returncode != 0
+
+
+@pytest.mark.parametrize("human", ["true", "false"])
+def test_a_regression_forces_a_draft_and_lists_the_question_ids(tmp_path: Path, human: str) -> None:
+    import os
+    import subprocess
+
+    step = _process_step("Open or update the pull request")
+    (tmp_path / "result.json").write_text(
+        json.dumps({"model_id": "acme/orbit"}), encoding="utf-8",
+    )
+    env = os.environ | {
+        "PATH": f"{Path(sys.executable).parent}:{os.environ['PATH']}",
+        "RUNNER_TEMP": str(tmp_path),
+        "GITHUB_OUTPUT": str(tmp_path / "github-output"),
+        "BRANCH": "data/release-signal-fixture-initial",
+        "PR_MODE": "initial",
+        "HUMAN": human,
+        "REGRESSED": "true",
+        "REGRESSION_IDS": "Q01, Q05",
+        "EXISTING_PR_URL": "",
+    }
+    stub = (
+        'gh() { printf "%s\\n" "$*" >> "$RUNNER_TEMP/calls"; '
+        'echo "https://github.com/turbobeest/modelspec-data/pull/9"; }\n'
+    )
+    result = subprocess.run(
+        ["bash", "-e", "-c", stub + step["run"]],
+        cwd=tmp_path, capture_output=True, text=True, env=env, check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    recorded = (tmp_path / "calls").read_text(encoding="utf-8")
+    body = (tmp_path / "pr-body.md").read_text(encoding="utf-8")
+    assert recorded.splitlines()[0].startswith("pr create --draft ")
+    assert "ANSWERS REGRESS: " in recorded
+    assert body.startswith("Regressed question ids: Q01, Q05\n")
+    assert (
+        'The data repository\'s "Approved answers on private data" check must pass before merge.\n'
+        in body
+    )
+    if human == "true":
+        assert "--label new-model" in recorded
+        assert "data: add or identify acme/orbit (MODEL-113)" in recorded
+    else:
+        assert "--label" not in recorded
+        assert "data: refresh acme/orbit release evidence (MODEL-113)" in recorded
+
+
 def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> None:
     workflow = (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(
         encoding="utf-8"
