@@ -1993,8 +1993,14 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.approved_baseline,
                 args.summary,
             )
-        except (OSError, ValueError, KeyError, TypeError):
-            print("::error::Private recall inputs could not be validated.")
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            if str(exc) == "expected one report":
+                print(
+                    "::error::Private recall inputs could not be validated: "
+                    "expected one report."
+                )
+            else:
+                print("::error::Private recall inputs could not be validated.")
             return 1
         if args.step_output is not None:
             with args.step_output.open("a", encoding="utf-8") as handle:

@@ -2202,6 +2202,9 @@ def test_compare_approved_answers_rejects_two_report_files(tmp_path: Path, capsy
 
     code = _compare_approved(paths)
 
-    assert code == 1
-    assert "could not be validated" in capsys.readouterr().out
+    assert len(list(paths[0].glob("*.json"))) == 2
+    assert code != 0
+    assert capsys.readouterr().out == (
+        "::error::Private recall inputs could not be validated: expected one report.\n"
+    )
     assert not paths[3].exists()
