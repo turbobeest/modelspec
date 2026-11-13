@@ -2102,9 +2102,9 @@ _PUBLIC_NIGHTLY = """\
 
 | Layer | Status | Gate | Summary |
 | --- | --- | --- | --- |
-| data_fidelity | FAIL | yes | failures 2; mismatches 1; unreachable 1; undetermined 2. |
-| reference_agreement | FAIL | yes | failures 1; mismatches 0; unreachable 0; undetermined 1. |
-| freshness | PASS | yes | failures 0; mismatches 0; unreachable 0; undetermined 0. |
+| data_fidelity | FAIL | yes | failures 2; mismatches 1; unreachable 1; undetermined 2; over the undetermined limit: no. |
+| reference_agreement | FAIL | yes | failures 1; mismatches 0; unreachable 0; undetermined 1; over the undetermined limit: no. |
+| freshness | PASS | yes | failures 0; mismatches 0; unreachable 0; undetermined 0; over the undetermined limit: no. |
 """
 
 
@@ -2120,6 +2120,77 @@ def _assert_public_text(text: str) -> None:
     assert "http" not in text.lower()
     assert "fact:" not in text
     assert "evidence:" not in text
+
+
+def test_an_undetermined_share_failure_names_the_limit() -> None:
+    report = accuracy.AccuracyReport(
+        generated_at="2026-11-12T06:23:00Z",
+        profile="nightly",
+        snapshot=None,
+        layers=(accuracy.LayerResult(
+            "data_fidelity", "fail", True, "private summary share-sentinel",
+            {"verified": 4, "mismatch": 0, "unreachable": 0, "undetermined": 20},
+            {
+                "undetermined_share": 0.8,
+                "max_undetermined_share": 0.6,
+                "sample": [{"target": "fact:share-sentinel"}],
+            },
+        ),),
+    )
+
+    for text in (
+        accuracy.public_nightly_report(report),
+        accuracy.public_nightly_report(report.to_dict()),
+    ):
+        assert "| data_fidelity | FAIL | yes |" in text
+        assert "failures 0;" in text
+        assert "undetermined 20;" in text
+        assert "over the undetermined limit: yes" in text
+        assert "0.8" not in text
+        assert "0.6" not in text
+        assert "fact:share-sentinel" not in text
+        assert "share-sentinel" not in text
+
+
+def test_recall_fail_verdicts_are_not_called_failures() -> None:
+    passing = accuracy.AccuracyReport(
+        generated_at="2026-11-12T06:23:00Z",
+        profile="nightly",
+        snapshot=None,
+        layers=(accuracy.LayerResult(
+            "frozen_image_engine_recall", "pass", False, "All match the baseline",
+            {
+                "pass": 19, "partial": 0, "fail": 1,
+                "baseline_regressions": 0, "regressions": 0, "improvements": 0,
+            },
+            [{"id": "Q01", "private": "recall-sentinel"}],
+        ),),
+    )
+    differing = accuracy.AccuracyReport(
+        generated_at="2026-11-12T06:23:00Z",
+        profile="nightly",
+        snapshot=None,
+        layers=(accuracy.LayerResult(
+            "frozen_image_engine_recall", "report", False, "Two regressions",
+            {
+                "pass": 16, "partial": 1, "fail": 3,
+                "baseline_regressions": 0, "regressions": 2, "improvements": 1,
+            },
+            [{"id": "Q02"}],
+        ),),
+    )
+
+    passing_text = accuracy.public_nightly_report(passing)
+    differing_text = accuracy.public_nightly_report(differing.to_dict())
+
+    assert "| frozen_image_engine_recall | PASS | no |" in passing_text
+    assert "failures 1" not in passing_text
+    assert "verdicts that differ from the baseline: 0" in passing_text
+    assert "Q01" not in passing_text
+    assert "recall-sentinel" not in passing_text
+    assert "verdicts that differ from the baseline: 3" in differing_text
+    assert "failures 3" not in differing_text
+    assert "Q02" not in differing_text
 
 
 def test_a_hex_layer_name_is_printed_as_layer() -> None:
