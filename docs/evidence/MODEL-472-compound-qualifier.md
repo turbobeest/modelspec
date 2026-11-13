@@ -1,7 +1,7 @@
 # MODEL-472 compound qualifier
 
-Base `8bf26fd2dcbd450c112cbdb19a20d796d45c5823`. Branch `model-472-fix3`.
-The head is the commit that adds this note. Read it with
+Round 2 starts at `71b95a0824f2768c1fd0193c8f9bc045746c6d60`.
+The head is the commit that updates this note. Read it with
 `git log -1 --format=%H -- docs/evidence/MODEL-472-compound-qualifier.md`.
 
 Eight Arena rows on four cards were refused because the matcher found a
@@ -11,53 +11,78 @@ those cards sit inside a top 10. Counts only. No card values.
 ## What changed
 
 Ownership is `_reading_subject_matches` in `decision/verify.py`. A subject
-with exactly one compound parenthesis matches a claim name when the two full
-token sets are equal. A subset or a prefix does not match. The parenthesis
-is a comma- or space-separated list of at least two tokens. Each token is an
-effort word, `Thinking` with a context size, a context size such as `32K`,
-or an eight-digit date.
+with exactly one compound parenthesis matches a claim name when two parts
+agree. The name outside the parenthesis is an ordered token sequence. The
+qualifier inside it is a multiset: counts stay, order does not. A subset, a
+reordered version, or a repeated token does not match.
 
-`split_model_cell` does not strip that parenthesis, so its identity string
-still cannot express a reordered slug. It now returns the one effort word
-inside the compound parenthesis and keeps every token, including that word,
-in the identity. `Thinking 16K` is not an effort level. `(High)` alone still
-strips. A hyphenated slug still names no effort.
+A slug has no parenthesis. Normalisation is the same on both sides: `+`
+becomes ` plus `, case is folded, and every other run of non-alphanumeric
+characters becomes one space. The slug's cut is the first qualifier-class
+token after that. Qualifier-class tokens are an effort word (`minimal`,
+`low`, `medium`, `high`, `xhigh`, `max`), `thinking`, a context size such as
+`32k`, or an eight-digit date. Tokens before the cut are the name, in order.
+Tokens from the cut to the end are the qualifier multiset.
+
+A token does not cross the cut.
+
+- A date or `32k` on a slug ends the name. Version tokens after it stay in
+  the qualifier, so they cannot fill a version slot.
+  `acme-orbit-32k-4-5-20251101-high` does not match
+  `Acme Orbit 4.5 (High, 32K, 20251101)`.
+- A `32k` written outside the parenthesis stays in the ordered name. It is
+  not moved into the qualifier. `Acme Orbit 4.5 32K (High, 20251101)` does
+  not match `acme-orbit-4-5-20251101-high-32k`.
+- A version token after the cut stays in the qualifier.
+  `acme-orbit-4-20251101-high-32k-5` does not match
+  `Acme Orbit 4.5 (High, 32K, 20251101)`.
+
+`_colliding_compound_identities` uses that same identity. It was
+`_colliding_compound_token_sets`. Two compound rows with one identity are
+refused.
+
+`split_model_cell` does not strip a compound parenthesis, so its identity
+string still cannot express a reordered qualifier. It returns the one effort
+word inside the parenthesis and keeps every token, including that word, in
+the identity. `Thinking 16K` is not an effort level. `(High)` alone still
+strips. A hyphenated slug still names no effort. Sorting every name there
+would also own `Beta Alpha` for `Alpha Beta`. That case stays refused.
 
 `structured_name_effort` is unchanged. `(High)` still names `High`.
-`example-model-high` still names none.
+`example-model-high` still names none. An effort word followed by a comma
+still names none.
 
 `_diffs` does not treat a null claim effort as a contradiction when that
 compound effort stays in the identity and the reading did not state an
 effort column. A claim that names an effort still has to match it.
 
-`_verify_evidence_reading` refuses a claim when two compound readings share
-a token set that equals a claim name. The matcher returns the order that
-normalises to the stored string and does not see the other order.
-Confirmation would otherwise write that row.
+## Names that still compare equal
 
-## Why the other two functions were not the ownership change
+Case is folded. Punctuation collapses, as does every other non-alphanumeric
+run, so `4.5`, `4-5`, and `4 5` are one sequence. `+` and the word `plus`
+are one token. Qualifier order is free, both inside the parenthesis and
+after the slug's cut. `(High, 32K, 20251101)`, `(32K, 20251101, High)`, and
+`acme-orbit-4-5-20251101-high-32k` are one identity.
 
-`split_model_cell` cannot own a reordered token set unless every name is
-sorted. Sorting every name would also own `Beta Alpha` for `Alpha Beta`.
-That case stays refused. The function changed only so `_diffs` can read the
-effort word it already asks for.
+`acme-orbit-5-4-20251101-high-32k` against
+`Acme Orbit 4.5 (High, 32K, 20251101)` does not compare equal.
 
-`structured_name_effort` does not decide ownership. Returning `High` before
-a comma would make the writer refuse the row before verify. The stage-3
-gate in `scripts/refresh_leaderboards.py` (lines 872–878) treats a dataset
-effort the stored name does not spell as
-`dataset names an effort the stored name does not`.
-`_effort_spelled_by_stored_name` (lines 2642–2655) does not spell `high` on
-a slug whose last token is `32k`. `model-high-32k` stays unnamed.
+## Writer
 
-## Writer file
+`scripts/refresh_leaderboards.py` was not edited.
 
-`scripts/refresh_leaderboards.py` was not edited. The number write does not
-need it. Copying `high` onto a null card still needs those two spots and
-`_copy_matched_reading` (lines 764–772). That function writes effort from
-`observation.reading_effort` or from the stored slug. The stage-3 path does
-not set `reading_effort`, and the slug has no parenthesis, so the card
-effort stays null.
+A stored slug does not spell `high`. `_effort_spelled_by_stored_name`
+(lines 2642–2655) does not spell it when the last token is `32k`, and
+`_verifier_named_effort` (lines 2621–2628) finds no parenthesis on the slug.
+The card effort stays null for (a) and (c). Copying `high` onto those cards
+would still be the stage-3 gate at lines 872–878 and
+`_copy_matched_reading` at lines 764–772. This round does not change them.
+
+A stored id that is the display name itself is different. `split_model_cell`
+returns `high` for `(High, 32K, 20251101)`. `_verifier_named_effort` reads
+that, and `_copy_matched_reading` writes `effort: high` onto a null card.
+`check_score_only` accepts it: null may become the level the unchanged
+stored name already spells.
 
 ## Tests
 
@@ -65,78 +90,84 @@ Python 3.12.3, pytest 9.2.0, Git 2.43.0. Serial, `-q -p no:cacheprovider`,
 no `-n`. Exit codes read directly. No full local suite. The interpreter path
 is omitted.
 
-### Red, before the production change
+### Round 1, before the first production change
 
-Exit 1. 5 failed, 7 passed, in 0.73s.
+Exit 1. 5 failed, 7 passed, in 0.73s. The five failures were the compound
+effort, the High-32K row, a stated `high`, the Thinking-16K row, and two
+rows with one token set. The other seven passed on unchanged code.
+
+### Round 1, green
+
+`tests/test_arena_compound_qualifier.py`: exit 0, 12 passed in 0.45s.
+`tests/test_decision_verify.py`: exit 0, 457 passed in 2.74s.
+`tests/test_leaderboard_refresh.py`: exit 0, 141 passed in 11.45s.
+`tests/test_writer_isolation.py`: exit 0, 288 passed, 8 skipped, in 9.29s.
+
+### Round 2, red, before this production change
+
+Exit 1. 3 failed, 14 passed, in 0.52s.
 
 ```bash
 env PYTHONPATH=$PWD python -m pytest -q -p no:cacheprovider \
   tests/test_arena_compound_qualifier.py
 ```
 
-`test_a_compound_parenthesis_names_high_and_keeps_every_token`:
-`split_model_cell` effort was `None`, asserted `high`.
+`test_compound_refuses_a_reordered_version`:
+`_reading_subject_matches` returned True for
+`acme-orbit-5-4-20251101-high-32k`.
 
-`test_a_compound_high_row_is_the_one_the_verifier_reads`: one `RowFailure`.
-Unit expected the compound row's Arena score and found the bare sibling's.
-Interval, `n`, and score found `None` against the compound row.
+`test_compound_refuses_a_version_token_moved_after_the_qualifier`:
+returned True for `acme-orbit-4-20251101-high-32k-5`.
 
-`test_a_stated_high_effort_matches_the_compound_row`: the same bare sibling,
-plus effort expected `high` found `None`.
+`test_compound_refuses_a_repeated_token_collapsing`:
+returned True for `Acme Orbit 4.4 (High, 32K, 20251101)` against
+`acme-orbit-4-20251101-high-32k`.
 
-`test_a_thinking_budget_row_is_not_the_bare_sibling`: the bare sibling
-again. Unit, interval, `n`, and score found `None` against the thinking row.
+The other fourteen passed on that code, including (a), (b), and (c), and
+including the display-name effort write. That write was already what the
+writer did. This round records it.
 
-`test_two_rows_with_one_token_set_are_refused`: `failures` was empty.
-`values_changed` was 1. The reordered parenthesis normalises to the stored
-string, so the write succeeded.
+### Round 2, green
 
-The other seven tests passed on that unchanged code: a stated `max` effort,
-the bare stored name, a different thinking budget, a high name without the
-context size, a different parenthesis date, a reordered name with no
-compound parenthesis, and a single `(High)`.
+Same command. Exit 0. 17 passed in 0.56s.
 
-### Green
-
-Same command. Exit 0. 12 passed in 0.45s.
-
-Then, still serial:
+The five new tests: a reordered version is refused and the card is not
+written; a version token after the qualifier is refused and the card is not
+written; a repeated `4` does not collapse, in the direct call and on the
+refresh path; (a), (b), and (c) still own their rows; a stored display name
+writes `effort: high` and `check_score_only` accepts it.
 
 ```bash
 env PYTHONPATH=$PWD python -m pytest -q -p no:cacheprovider \
   tests/test_decision_verify.py
 ```
 
-Exit 0. 457 passed in 2.74s.
+Exit 0. 457 passed in 2.13s.
 
 ```bash
 env PYTHONPATH=$PWD python -m pytest -q -p no:cacheprovider \
   tests/test_leaderboard_refresh.py
 ```
 
-Exit 0. 141 passed in 11.45s.
+Exit 0. 141 passed in 11.31s.
 
 ```bash
 env PYTHONPATH=$PWD python -m pytest -q -p no:cacheprovider \
   tests/test_writer_isolation.py
 ```
 
-Exit 0. 288 passed, 8 skipped, in 9.29s.
+Exit 0. 288 passed, 8 skipped, in 9.19s.
 
-`tests/test_arena_compound_qualifier.py` had no row in
-`tests/shard_durations.json`. Measured coverage of the suite was 367/387,
-under the 0.95 gate in
-`test_shard_timings_cover_the_current_suite_and_browser_modules`. A JUnit
-run of this file alone sums to 0.141 seconds. That row is now in the
-durations file. The coverage test then passed, 1 in 0.29s.
+`tests/shard_durations.json` already has this file at 0.141 seconds. The
+0.95 coverage gate does not need a new row.
 
 ## Callers
 
 `_reading_subject_matches` is also called from `compare`,
 `_verify_evidence_reading`, `_llm_published_subject`, and the general
-`verify` loop. The new match applies only when the subject has exactly one
-compound parenthesis and its full token set equals a claim name. No name in
-`tests/test_decision_verify.py` changed result.
+`verify` loop. The compound match applies only when the subject has one
+compound parenthesis. `(Think)` is one token. `(High)` still takes the old
+split. No name in `tests/test_decision_verify.py` changed result.
 
 ## What was not observed
 

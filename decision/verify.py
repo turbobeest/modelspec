@@ -451,8 +451,33 @@ def _compound_effort_stays_in_identity(text: str) -> bool:
     return qualifier is not None and _effort_word_in_compound(qualifier) is not None
 
 
-def _name_tokens(text: str) -> frozenset[str]:
-    return frozenset(normalise_name(text.replace("+", " plus ")).split())
+def _ordered_tokens(text: str) -> tuple[str, ...]:
+    return tuple(normalise_name(text.replace("+", " plus ")).split())
+
+
+def _compound_identity(text: str) -> tuple[tuple[str, ...], tuple[str, ...]] | None:
+    """Ordered name tokens and the qualifier multiset, or None.
+
+    A compound parenthesis is the cut. Tokens outside it are the name, in
+    order, including a date or ``32k`` written there. Tokens inside it are the
+    qualifier. A slug has no parenthesis, so the cut is its first qualifier-class
+    token: an effort word, ``thinking``, a context size such as ``32k``, or an
+    eight-digit date. A token does not cross that cut. A version token after it
+    stays in the qualifier, and a date or ``32k`` ends the name instead of
+    filling a version slot.
+    """
+    qualifier = _compound_qualifier(text)
+    if qualifier is not None:
+        name = _ordered_tokens(_QUALIFIER.sub(" ", text, count=1))
+        qual = _ordered_tokens(qualifier)
+        if not name or not qual:
+            return None
+        return name, tuple(sorted(qual))
+    tokens = _ordered_tokens(text)
+    cut = next((i for i, token in enumerate(tokens) if _compound_token(token)), None)
+    if cut is None or cut == 0:
+        return None
+    return tokens[:cut], tuple(sorted(tokens[cut:]))
 
 
 def _published_subject(published: str, names: Sequence[str]) -> str | None:
@@ -6622,31 +6647,36 @@ def _reading_subject_matches(subject: str, names: Sequence[str], *, field: str |
     aliases = tuple(split_model_cell(name.replace("+", " plus "))[0] for name in names)
     if _published_subject(identity, aliases) is not None:
         return True
-    # A compound parenthesis matches only the full token set, never a subset.
+    # The name outside a compound parenthesis is ordered. The qualifier is a
+    # multiset. A subset, a reordered version, or a collapsed repeat does not match.
     if _compound_qualifier(subject) is None:
         return False
-    subject_tokens = _name_tokens(subject)
-    return any(subject_tokens == _name_tokens(name) for name in names)
+    subject_key = _compound_identity(subject)
+    if subject_key is None:
+        return False
+    return any(_compound_identity(name) == subject_key for name in names)
 
 
-def _colliding_compound_token_sets(
+def _colliding_compound_identities(
     readings: Sequence[Reading], names: Sequence[str],
-) -> set[frozenset[str]]:
-    """Token sets of two compound rows that both equal one claim name.
+) -> set[tuple[tuple[str, ...], tuple[str, ...]]]:
+    """Compound rows that share one identity with each other and a claim name.
 
-    One of them is not "the" row. The caller refuses the claim.
+    The identity is the ordered name plus the qualifier multiset, the same
+    comparison as ``_reading_subject_matches``. Two rows with that identity
+    are not one row. The caller refuses the claim.
     """
-    name_sets = {_name_tokens(name) for name in names}
-    counts: dict[frozenset[str], int] = {}
+    claim_keys = {key for name in names if (key := _compound_identity(name)) is not None}
+    counts: dict[tuple[tuple[str, ...], tuple[str, ...]], int] = {}
     for reading in readings:
         subject = reading.subject or ""
         if _compound_qualifier(subject) is None:
             continue
-        tokens = _name_tokens(subject)
-        if tokens not in name_sets:
+        key = _compound_identity(subject)
+        if key is None or key not in claim_keys:
             continue
-        counts[tokens] = counts.get(tokens, 0) + 1
-    return {tokens for tokens, count in counts.items() if count > 1}
+        counts[key] = counts.get(key, 0) + 1
+    return {key for key, count in counts.items() if count > 1}
 
 
 def compare(claim: Claim, readings: Sequence[Reading]) -> list[Diff]:
@@ -6777,7 +6807,7 @@ def _verify_evidence_reading(
                 except ExtractorError as exc:
                     reasons.append(f"extractor_error:{where}: {exc}")
                     continue
-                if _colliding_compound_token_sets(readings, claim.names):
+                if _colliding_compound_identities(readings, claim.names):
                     actor = actor or extractor.actor
                     diffs.append(Diff("model", claim.names[0], None))
                     continue

@@ -1,12 +1,16 @@
 """The verifier owns an Arena row whose display name has a compound qualifier.
 
 One board holds the bare sibling, the high-context row, and the thinking-budget
-row. Token-set equality is the whole match. A subset, a different date, or a
-second row with the same tokens is refused. Names and numbers are invented.
+row. The name outside the parenthesis is an ordered token sequence. The
+qualifier inside it is a multiset. A subset, a reordered version, a repeated
+token that collapses, a different date, or a second row with the same identity
+is refused. Names and numbers are invented.
 """
 
 from __future__ import annotations
 
+import json
+import shutil
 from pathlib import Path
 
 from decision import verify
@@ -60,6 +64,7 @@ def _run(
     effort: str | None = None,
     score: float = 1000.0,
     version: str = _BARE_ID,
+    snapshot: bool = False,
 ):
     """Refresh one invented Arena card through ``refresh.run``. No network.
 
@@ -80,7 +85,7 @@ version: {version}
 benchmarks:
   evidence:
   - benchmark_id: arena_elo_overall
-    model_id_as_evaluated: {evaluated}
+    model_id_as_evaluated: {json.dumps(evaluated)}
     score: {score}
     unit: Arena score (Elo scale)
     interval: [990.0, 1010.0]
@@ -134,6 +139,9 @@ benchmarks:
         lambda _fetch: refresh.readers.ArenaRevision(sha=_ARENA_NEW),
     )
     monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([board], []))
+    before = tmp_path / "before"
+    if snapshot:
+        shutil.copytree(root, before)
     report = refresh.run(
         observed_at="2026-11-11",
         dry_run=False,
@@ -142,6 +150,8 @@ benchmarks:
         model_ids=(_MODEL,),
         arena_latest=True,
     )
+    if snapshot:
+        return report, card, root, before
     return report, card, root
 
 
@@ -350,3 +360,108 @@ def test_a_single_effort_parenthesis_still_adopts_high(monkeypatch, tmp_path: Pa
     assert row["score"] == 1210.25
     assert row["effort"] == "high"
     assert _verification_log(root)["outcome"] == "verified"
+
+
+def test_compound_refuses_a_reordered_version(monkeypatch, tmp_path: Path) -> None:
+    """5-4 is not 4.5. The matcher can still find the row. The card is not written."""
+    stored = "acme-orbit-5-4-20251101-high-32k"
+    assert verify._reading_subject_matches(_HIGH, [stored]) is False
+    report, card, _root = _run(monkeypatch, tmp_path, evaluated=stored)
+
+    assert report.failures, "a reordered version was written"
+    row = _unchanged(card)
+    assert row["model_id_as_evaluated"] == stored
+
+
+def test_compound_refuses_a_version_token_moved_after_the_qualifier(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """A 5 after the qualifier is not the 5 in 4.5, and 32k is not a version token."""
+    stored = "acme-orbit-4-20251101-high-32k-5"
+    assert verify._reading_subject_matches(_HIGH, [stored]) is False
+    assert verify._reading_subject_matches(
+        _HIGH, ["acme-orbit-32k-4-5-20251101-high"],
+    ) is False
+    assert verify._reading_subject_matches(
+        "Acme Orbit 4.5 32K (High, 20251101)", [_HIGH_ID],
+    ) is False
+    report, card, _root = _run(monkeypatch, tmp_path, evaluated=stored)
+
+    assert report.failures, "a version token after the qualifier was written"
+    row = _unchanged(card)
+    assert row["model_id_as_evaluated"] == stored
+
+
+def test_compound_refuses_a_repeated_token_collapsing(monkeypatch, tmp_path: Path) -> None:
+    """4.4 keeps both fours. The slug with one 4 is a different name."""
+    subject = "Acme Orbit 4.4 (High, 32K, 20251101)"
+    stored = "acme-orbit-4-20251101-high-32k"
+    assert verify._reading_subject_matches(subject, [stored]) is False
+    rows = [
+        _dataset_row(subject, 1447.0, 36239, 12),
+        _dataset_row("Acme Orbit 4.4 (20251101)", 1366.0, 42962, 20),
+    ]
+    report, card, _root = _run(monkeypatch, tmp_path, evaluated=stored, dataset_rows=rows)
+
+    assert report.failures, "a repeated version token collapsed and was written"
+    row = _unchanged(card)
+    assert row["model_id_as_evaluated"] == stored
+
+
+def test_compound_still_owns_the_exact_row(monkeypatch, tmp_path: Path) -> None:
+    """(a), (b) and (c) still read the row round 1 accepted. Qualifier order is free."""
+    assert verify._reading_subject_matches(_HIGH, [_HIGH_ID]) is True
+    assert verify._reading_subject_matches(_THINK, [_THINK_ID]) is True
+    assert verify._reading_subject_matches(_BARE, [_BARE_ID]) is True
+    assert verify._reading_subject_matches(
+        "Acme Orbit 4.5 (32K, 20251101, High)", [_HIGH_ID],
+    ) is True
+
+    high, high_card, high_root = _run(monkeypatch, tmp_path / "a", evaluated=_HIGH_ID)
+    assert high.failures == [], high.failures
+    assert _evidence_row(high_card)["score"] == 1447.0
+    assert _evidence_row(high_card)["n"] == 36239
+    assert _verification_log(high_root)["outcome"] == "verified"
+
+    bare, bare_card, bare_root = _run(
+        monkeypatch, tmp_path / "b", evaluated=_BARE_ID, version=_BARE_ID,
+    )
+    assert bare.failures == [], bare.failures
+    assert _evidence_row(bare_card)["score"] == 1366.0
+    assert _evidence_row(bare_card)["n"] == 42962
+    assert _verification_log(bare_root)["outcome"] == "verified"
+
+    think, think_card, think_root = _run(
+        monkeypatch, tmp_path / "c", evaluated=_THINK_ID,
+    )
+    assert think.failures == [], think.failures
+    think_row = _evidence_row(think_card)
+    assert think_row["score"] == 1377.0
+    assert think_row["n"] == 35843
+    assert think_row["effort"] is None
+    assert _verification_log(think_root)["outcome"] == "verified"
+
+
+def test_display_name_as_stored_id_writes_the_named_effort(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """The stored id is the display name, and the card effort starts null.
+
+    The writer sets effort to high, the level that parenthesis names. The
+    score-only guard accepts that null-to-named-level change.
+    """
+    report, card, root, before = _run(
+        monkeypatch, tmp_path, evaluated=_HIGH, snapshot=True,
+    )
+
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["model_id_as_evaluated"] == _HIGH
+    assert row["score"] == 1447.0
+    assert row["n"] == 36239
+    assert row["interval"] == [1441.0, 1453.0]
+    assert row["effort"] == "high"
+    assert "36239" in row["configuration"]
+    assert _verification_log(root)["outcome"] == "verified"
+    guard = refresh.check_score_only(before, root)
+    assert guard.ok, guard.errors
