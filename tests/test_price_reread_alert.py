@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import date
@@ -272,6 +273,10 @@ gh() {{
     return 0
   fi
   if [ "$1" = issue ] && [ "$2" = list ]; then
+    if [ "{mode}" = list ]; then
+      echo 'HTTP 403 could not list' >&2
+      return 1
+    fi
     if [ -n "${{EXISTING_ISSUE:-}}" ]; then
       printf '%s\\n' "$EXISTING_ISSUE"
     fi
@@ -395,6 +400,29 @@ def test_a_label_failure_warns_and_leaves_the_alert_step_green(tmp_path: Path) -
     assert closed.returncode == 0, closed.stderr
     assert "::warning::" in closed.stdout
     assert any(call[:2] == ["issue", "comment"] for call in _calls(tmp_path))
+
+
+_GH_CALL = re.compile(r"(?<![\w./-])gh(?:\s|$)")
+
+
+def test_gh_steps_set_a_token_and_a_failed_list_opens_nothing(tmp_path: Path) -> None:
+    for job in _workflow()["jobs"].values():
+        for step in job.get("steps") or []:
+            if _GH_CALL.search(step.get("run") or ""):
+                assert (step.get("env") or {}).get("GH_TOKEN"), step.get("name")
+    upload = next(
+        step for step in _reread_steps()
+        if (step.get("with") or {}).get("name") == "price-reread-report"
+    )
+    assert upload["if"] == "always()"
+    assert upload["with"]["if-no-files-found"] == "warn"
+    result = _run_alert(tmp_path, existing="", mode="list")
+    assert result.returncode == 0, result.stderr
+    assert "::warning::Could not list open alert issues." in result.stdout
+    calls = _calls(tmp_path)
+    assert any(call[:2] == ["issue", "list"] for call in calls)
+    assert not any(call[:2] == ["issue", "create"] for call in calls)
+    assert not any(call[:2] == ["issue", "comment"] for call in calls)
 
 
 def test_workflow_pins_the_builder_fallback() -> None:
