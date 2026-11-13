@@ -3,7 +3,7 @@
 Base `618b0a8a34b778829b409e570eb63bc455072083` (`origin/main`, the merge of pull request 1066).
 Worktree `/home/turbobeest/dev/04-modelspec/worktrees/model-483-c`, branch `model-483-c`.
 
-The evidence commit is the one that adds this file. Read it with `git log -1 --format=%H -- docs/evidence/MODEL-483-C-fix.md`.
+This file's latest commit is `git log -1 --format=%H -- docs/evidence/MODEL-483-C-fix.md`.
 
 No workflow file changed. Nothing under `.github/private-writers/` changed. Worker source, wrangler config, switches, and secrets did not change. `decision/snapshot.py` did not change. Printing in `api/worker/vendor.py` and the git-failure path in `scripts/data_lag.py` did.
 
@@ -66,6 +66,8 @@ The pin now covers every step from the private fetch through the end of the job:
 ## Green
 
 Same interpreter, after the change, serial, no `-n`. Exit 0. 428 passed, 8 skipped in 14.21s. That run is the focused tests, the vendor tests, and `tests/test_writer_isolation.py`.
+
+`tests/test_vendor_private_log.py` is a new module. The suite requires a measured duration for at least 95 percent of test modules. The first CI shard run failed at 365/385. A junit run of this file alone is 0.181 seconds, recorded in `tests/shard_durations.json`. That is the only generated file this change adds a weight to.
 
 ```bash
 env PYTHONPATH=$PWD /home/turbobeest/dev/04-modelspec/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider \
