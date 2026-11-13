@@ -455,28 +455,44 @@ def _ordered_tokens(text: str) -> tuple[str, ...]:
     return tuple(normalise_name(text.replace("+", " plus ")).split())
 
 
+def _valid_date_token(token: str) -> bool:
+    """An eight-digit token that is a real calendar date, YYYYMMDD."""
+    if not re.fullmatch(r"\d{8}", token):
+        return False
+    try:
+        date(int(token[:4]), int(token[4:6]), int(token[6:]))
+    except ValueError:
+        return False
+    return True
+
+
 def _compound_identity(text: str) -> tuple[tuple[str, ...], tuple[str, ...]] | None:
     """Ordered name tokens and the qualifier multiset, or None.
 
-    A compound parenthesis is the cut. Tokens outside it are the name, in
-    order, including a date or ``32k`` written there. Tokens inside it are the
-    qualifier. A slug has no parenthesis, so the cut is its first qualifier-class
-    token: an effort word, ``thinking``, a context size such as ``32k``, or an
-    eight-digit date. A token does not cross that cut. A version token after it
-    stays in the qualifier, and a date or ``32k`` ends the name instead of
-    filling a version slot.
+    A display name has exactly one compound parenthesis. Tokens outside it are
+    the name, in order. Tokens inside it are the qualifier, as a multiset. The
+    parenthesis must hold exactly one valid calendar date.
+
+    A slug has no parenthesis. It must hold exactly one eight-digit token that
+    is a valid calendar date. The slug is cut at that date: tokens before it
+    are the name, in order. Tokens after it, plus the date, are the qualifier
+    multiset. An effort word, ``thinking``, a size or a non-date eight-digit
+    token before the date stays in the name.
     """
     qualifier = _compound_qualifier(text)
     if qualifier is not None:
         name = _ordered_tokens(_QUALIFIER.sub(" ", text, count=1))
         qual = _ordered_tokens(qualifier)
-        if not name or not qual:
+        if not name or sum(_valid_date_token(t) for t in qual) != 1:
             return None
         return name, tuple(sorted(qual))
-    tokens = _ordered_tokens(text)
-    cut = next((i for i, token in enumerate(tokens) if _compound_token(token)), None)
-    if cut is None or cut == 0:
+    if "(" in text or ")" in text:
         return None
+    tokens = _ordered_tokens(text)
+    dates = [i for i, token in enumerate(tokens) if _valid_date_token(token)]
+    if len(dates) != 1 or dates[0] == 0:
+        return None
+    cut = dates[0]
     return tokens[:cut], tuple(sorted(tokens[cut:]))
 
 

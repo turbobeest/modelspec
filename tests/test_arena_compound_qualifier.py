@@ -465,3 +465,90 @@ def test_display_name_as_stored_id_writes_the_named_effort(
     assert _verification_log(root)["outcome"] == "verified"
     guard = refresh.check_score_only(before, root)
     assert guard.ok, guard.errors
+
+
+# Round 3. Each pair carries the result measured on main for that pair
+# (hard-coded in the comments and asserts). This change only turns a main
+# refusal into a match for an exact compound row.
+
+
+def _assert_refused_and_unwritten(monkeypatch, tmp_path: Path, subject: str, stored: str) -> None:
+    # main measured: _reading_subject_matches is False for this pair.
+    assert verify._reading_subject_matches(subject, [stored]) is False
+    rows = [_dataset_row(subject, 1447.0, 36239, 12)]
+    report, card, _root = _run(monkeypatch, tmp_path, evaluated=stored, dataset_rows=rows)
+    assert report.failures, "another row's numbers were written"
+    row = _unchanged(card)
+    assert row["model_id_as_evaluated"] == stored
+
+
+def test_compound_refuses_an_effort_word_in_the_slug_name(monkeypatch, tmp_path: Path) -> None:
+    """Max is a name token in the slug. The display name keeps it outside the parenthesis."""
+    _assert_refused_and_unwritten(
+        monkeypatch,
+        tmp_path,
+        "Acme Orbit (Max, High, 32K, 20251101)",
+        "acme-orbit-max-20251101-high-32k",
+    )
+
+
+def test_compound_refuses_a_size_in_the_slug_name(monkeypatch, tmp_path: Path) -> None:
+    """32k before the date is part of the slug name, not the qualifier."""
+    _assert_refused_and_unwritten(
+        monkeypatch,
+        tmp_path,
+        "Acme Orbit (32K, High, 20251101)",
+        "acme-orbit-32k-20251101-high",
+    )
+
+
+def test_compound_refuses_a_second_eight_digit_token(monkeypatch, tmp_path: Path) -> None:
+    """12345678 is not a calendar date, so it stays in the slug name."""
+    _assert_refused_and_unwritten(
+        monkeypatch,
+        tmp_path,
+        "Acme Orbit (12345678, High, 32K, 20251101)",
+        "acme-orbit-12345678-20251101-high-32k",
+    )
+
+
+def test_compound_requires_exactly_one_valid_date() -> None:
+    subject = "Acme Orbit 4.5 (High, 32K, 20251101)"
+    # main measured False for each of these pairs.
+    assert verify._reading_subject_matches(subject, ["acme-orbit-4-5-high-32k"]) is False
+    assert verify._reading_subject_matches(
+        subject, ["acme-orbit-4-5-20251101-high-32k-20251102"],
+    ) is False
+    assert verify._reading_subject_matches(
+        subject, ["acme-orbit-4-5-20251101-20251102-high-32k"],
+    ) is False
+    assert verify._reading_subject_matches(
+        subject, ["acme-orbit-4-5-20251345-high-32k"],
+    ) is False
+    assert verify._reading_subject_matches(
+        "Acme Orbit 4.5 (High, 32K, 20251345)", ["acme-orbit-4-5-20251345-high-32k"],
+    ) is False
+    # A parenthesis with no date, or two parentheses, is not compound.
+    assert verify._reading_subject_matches(
+        "Acme Orbit 4.5 (High, 32K)", ["acme-orbit-4-5-20251101-high-32k"],
+    ) is False
+    assert verify._reading_subject_matches(
+        "Acme Orbit (4.5) (High, 32K, 20251101)", [_HIGH_ID],
+    ) is False
+    # main accepted this flattened pair through the older path. Still accepted.
+    assert verify._reading_subject_matches(
+        subject, ["acme-orbit-4-5-high-32k-20251101"],
+    ) is True
+    # The exact row is matched (main: False).
+    assert verify._reading_subject_matches(subject, [_HIGH_ID]) is True
+
+
+def test_compound_name_with_a_qualifier_word_matches_only_itself() -> None:
+    stored = "acme-thinking-2-20251101-high-32k"
+    # main measured False for both pairs.
+    assert verify._reading_subject_matches(
+        "Acme Thinking 2 (High, 32K, 20251101)", [stored],
+    ) is True
+    assert verify._reading_subject_matches(
+        "Acme 2 (Thinking, High, 32K, 20251101)", [stored],
+    ) is False

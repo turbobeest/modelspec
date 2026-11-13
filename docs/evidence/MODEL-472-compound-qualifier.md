@@ -16,26 +16,9 @@ agree. The name outside the parenthesis is an ordered token sequence. The
 qualifier inside it is a multiset: counts stay, order does not. A subset, a
 reordered version, or a repeated token does not match.
 
-A slug has no parenthesis. Normalisation is the same on both sides: `+`
-becomes ` plus `, case is folded, and every other run of non-alphanumeric
-characters becomes one space. The slug's cut is the first qualifier-class
-token after that. Qualifier-class tokens are an effort word (`minimal`,
-`low`, `medium`, `high`, `xhigh`, `max`), `thinking`, a context size such as
-`32k`, or an eight-digit date. Tokens before the cut are the name, in order.
-Tokens from the cut to the end are the qualifier multiset.
+A slug has no parenthesis. The compound fallback applies only when the slug holds exactly one eight-digit token that is a valid calendar date (`YYYYMMDD`, a real month and day) and the display name has exactly one compound parenthesis that holds exactly that same date. The slug is cut at that date: tokens before it are the ordered name; tokens after it, plus the date, are the qualifier multiset. On the display side, tokens outside the parenthesis are the ordered name and tokens inside are the qualifier multiset. The pair matches only when the ordered names are equal and the multisets are equal. A slug with no such date or with two or more, a parenthesis with no date or a different one, or a display name with more than one parenthesis: the fallback does not apply, and what `main` does for that pair still happens. An effort word, `thinking`, a size such as `32k`, or a non-date eight-digit token before the date is a name token, so it cannot cross into the qualifier (`acme-orbit-max-20251101-high-32k`, `acme-orbit-32k-20251101-high` and `acme-orbit-12345678-20251101-high-32k` do not match the rows `Acme Orbit (Max, High, 32K, 20251101)`, `Acme Orbit (32K, High, 20251101)` and `Acme Orbit (12345678, High, 32K, 20251101)`; `acme-thinking-2-20251101-high-32k` matches `Acme Thinking 2 (High, 32K, 20251101)` and not `Acme 2 (Thinking, High, 32K, 20251101)`). Normalisation is the same on both sides: `+` becomes ` plus `, case is folded, every other run of non-alphanumeric characters becomes one space.
 
-A token does not cross the cut.
-
-- A date or `32k` on a slug ends the name. Version tokens after it stay in
-  the qualifier, so they cannot fill a version slot.
-  `acme-orbit-32k-4-5-20251101-high` does not match
-  `Acme Orbit 4.5 (High, 32K, 20251101)`.
-- A `32k` written outside the parenthesis stays in the ordered name. It is
-  not moved into the qualifier. `Acme Orbit 4.5 32K (High, 20251101)` does
-  not match `acme-orbit-4-5-20251101-high-32k`.
-- A version token after the cut stays in the qualifier.
-  `acme-orbit-4-20251101-high-32k-5` does not match
-  `Acme Orbit 4.5 (High, 32K, 20251101)`.
+Known, not introduced here and not fixed here: a few pairs already compare equal on `main` through the older flatten path (`Acme Orbit Max (High, 32K, d)` against `Acme Orbit (Max, High, 32K, d)`, and `... Thinking (32K, d)` against `... (Thinking 32K, d)`). This change neither adds nor removes them. Every pair this change turns from refused to matched is an exact compound row.
 
 `_colliding_compound_identities` uses that same identity. It was
 `_colliding_compound_token_sets`. Two compound rows with one identity are
