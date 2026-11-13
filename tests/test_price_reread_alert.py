@@ -107,6 +107,26 @@ def test_json_keeps_the_whole_reason_and_markdown_keeps_the_trailing_count() -> 
     assert why.startswith("cited region not found.")
 
 
+def _why_cell(row: str) -> str:
+    protected = row.replace("\\|", "\x00")
+    cells = [part.strip().replace("\x00", "\\|") for part in protected.split("|")]
+    assert cells[0] == "" and cells[-1] == ""
+    assert len(cells) == 5
+    return cells[3]
+
+
+def test_middle_shortening_escapes_pipes_after_the_cut() -> None:
+    tail = "PIPE-TAIL-41823"
+    reason = ("|" * 400) + tail
+    fact = _fact("pipe/fact", ("pipe-source",), Status.UNREADABLE, reason)
+    body = price_reread.render_report(price_reread.Report(TODAY, facts=[fact]))
+    row = next(line for line in body.splitlines() if "`pipe/fact`" in line)
+    why = _why_cell(row)
+    assert tail in why
+    assert "…" in why
+    assert not why.split("…", 1)[1].startswith("|")
+
+
 def _markdown(*, alerts: int, diff: str, changes: int = 0) -> str:
     alert_rows = "\n".join(
         f"| `alert-{index}` | unreadable | a reason that is complete |"

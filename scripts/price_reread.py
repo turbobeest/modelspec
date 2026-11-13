@@ -1059,16 +1059,17 @@ def _show(value: Any, state: str | None = None, *, middle: bool = False) -> str:
     if state == "not_disclosed" and value is None:
         return "not disclosed"
     text = json.dumps(value, ensure_ascii=False) if not isinstance(value, str) else value
-    text = text.replace("|", "\\|").replace("\n", " ")
-    if len(text) <= _SHOW_LIMIT:
-        return text
-    if middle:
-        mark = "…"
-        keep = _SHOW_LIMIT - len(mark)
-        head = keep // 2
-        tail = keep - head
-        return text[:head] + mark + text[-tail:]
-    return text[:_SHOW_LIMIT - 3] + "…"
+    text = text.replace("\n", " ")
+    if len(text) > _SHOW_LIMIT:
+        if middle:
+            mark = "…"
+            keep = _SHOW_LIMIT - len(mark)
+            head = keep // 2
+            tail = keep - head
+            text = text[:head] + mark + text[-tail:]
+        else:
+            text = text[:_SHOW_LIMIT - 3] + "…"
+    return text.replace("|", "\\|")
 
 
 def render_report(report: Report) -> str:
