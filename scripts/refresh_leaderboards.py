@@ -832,15 +832,13 @@ def _plan_observations(
             continue
         raw = _value(board, match, evidence.get("unit"))
         old = float(evidence["score"])
+        new = _stored_score(raw, evidence)
         score_repair = False
         if _arena_reading_row(evidence):
-            new = round(float(raw), 2)
             score_repair = _score_is_precision_repair(old, new)
-        else:
-            new = raw
-            if readers.numbers_agree(old, evidence.get("unit"),
-                                     readers.parse_quantity(str(new), evidence.get("unit"))):
-                new = old
+        elif readers.numbers_agree(old, evidence.get("unit"),
+                                   readers.parse_quantity(str(new), evidence.get("unit"))):
+            new = old
         interval, interval_reason = _matched_interval(match, new)
         if interval_reason:
             failures.append(RowFailure(
@@ -1101,6 +1099,17 @@ def _evidence_template(
     return templates[0]
 
 
+def _stored_score(raw: float, row: Mapping[str, Any]) -> float:
+    """The score a card stores for this reading.
+
+    An Arena dataset-root row uses ``round(value, 2)``, the same rule as a
+    refresh. Every other row keeps the precision ``_value`` returned.
+    """
+    if _arena_reading_row(row):
+        return round(float(raw), 2)
+    return float(raw)
+
+
 def _new_evidence(
     *, root: Path, model_id: str, front: Mapping[str, Any], board: BoardReading,
 ) -> tuple[list[dict[str, Any]], list[RowFailure]]:
@@ -1117,12 +1126,14 @@ def _new_evidence(
                 "no unambiguous evidence metadata template for this registered board",
             ))
             continue
+        source_url = template["source_url"]
+        raw = _value(board, matched, str(template["unit"]))
         row = {
             "benchmark_id": benchmark_id,
             "model_id_as_evaluated": _subject(matched),
-            "score": _value(board, matched, str(template["unit"])),
+            "score": _stored_score(raw, {"benchmark_id": benchmark_id, "source_url": source_url}),
             "unit": template["unit"],
-            "source_url": template["source_url"],
+            "source_url": source_url,
             "source_kind": template["source_kind"],
             "evidence_date": _evidence_date(board, matched),
             "date_type": "evaluated",
