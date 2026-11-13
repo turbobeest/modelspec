@@ -182,3 +182,26 @@ def test_a_failing_git_prints_the_subcommand_and_the_exit_code(tmp_path, monkeyp
     assert marker not in captured.err
     assert captured.err == "git log failed with exit code 23\n"
     assert captured.out == ""
+
+
+def test_a_missing_git_prints_the_fixed_line_and_exits_non_zero(
+    tmp_path, monkeypatch, capsys,
+):
+    """OSError, the git binary missing, prints the fixed line and exits non-zero."""
+    marker = "git-missing-marker-483c"
+    private = tmp_path / "private"
+    private.mkdir()
+
+    def fake_run(cmd, **kwargs):
+        raise OSError(marker)
+
+    monkeypatch.setattr(data_lag.subprocess, "run", fake_run)
+    public = tmp_path / "public"
+    with pytest.raises(SystemExit) as caught:
+        data_lag.main(["--private", str(private), "--public", str(public), "--today", "2027-06-30"])
+
+    assert caught.value.code not in (0, None)
+    captured = capsys.readouterr()
+    assert captured.err == "git rev-list failed with exit code 127\n"
+    assert captured.out == ""
+    assert marker not in captured.err

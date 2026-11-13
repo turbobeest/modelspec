@@ -146,3 +146,59 @@ def test_a_private_system_exit_prints_the_category_and_not_the_marker(
     assert slug not in captured.out + captured.err
     assert "SystemExit" in captured.err
     assert slug in (tmp_path / "runner" / DETAIL_NAME).read_text(encoding="utf-8")
+
+
+def _exit_with(code):
+    def explode(*_args, **_kwargs):
+        raise SystemExit(code)
+
+    return explode
+
+
+@pytest.mark.parametrize("code,status", [(0, 0), (None, 0), (2, 2)])
+def test_a_private_system_exit_preserves_the_code(
+    code, status, tmp_path, monkeypatch, capsys,
+) -> None:
+    """An integer SystemExit code is returned as it is. None is 0. Success prints nothing."""
+    vendor = _vendor()
+    data, _slug = _private_fixture(tmp_path)
+    monkeypatch.setenv("RUNNER_TEMP", str(tmp_path / "runner"))
+    monkeypatch.setenv("MODELSPEC_SNAPSHOT_KEY", "fixture-key")
+    monkeypatch.setattr(vendor, "build", _exit_with(code))
+    monkeypatch.setattr(
+        sys, "argv", ["vendor.py", "--data-dir", str(data), "--out", str(tmp_path / "out")],
+    )
+
+    assert vendor.main() == status
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    if status == 0:
+        assert captured.err == ""
+    else:
+        assert captured.err == (
+            f"Worker bundle build failed: path={data}; category=SystemExit\n"
+        )
+
+
+def test_a_private_system_exit_message_prints_the_fixed_line(
+    tmp_path, monkeypatch, capsys,
+) -> None:
+    """A non-integer SystemExit exits 1. The fixed line is printed. The message is not."""
+    vendor = _vendor()
+    data, _slug = _private_fixture(tmp_path)
+    message = "a message holding a marker"
+    monkeypatch.setenv("RUNNER_TEMP", str(tmp_path / "runner"))
+    monkeypatch.setenv("MODELSPEC_SNAPSHOT_KEY", "fixture-key")
+    monkeypatch.setattr(vendor, "build", _exit_with(message))
+    monkeypatch.setattr(
+        sys, "argv", ["vendor.py", "--data-dir", str(data), "--out", str(tmp_path / "out")],
+    )
+
+    assert vendor.main() == 1
+
+    captured = capsys.readouterr()
+    assert message not in captured.out
+    assert message not in captured.err
+    assert captured.out == ""
+    assert "category=SystemExit" in captured.err

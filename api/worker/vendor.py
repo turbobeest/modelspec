@@ -490,13 +490,21 @@ def main() -> int:
     except SystemExit as error:
         if args.data_dir is None:
             raise
-        if isinstance(error.code, str) and error.code:
-            print(_stash_private_detail(error.code), file=sys.stderr)
-        print(
-            f"Worker bundle build failed: path={args.data_dir}; category=SystemExit",
-            file=sys.stderr,
-        )
-        return error.code if isinstance(error.code, int) and error.code else 1
+        code = error.code
+        if isinstance(code, int):
+            status = code
+        elif code is None:
+            status = 0
+        else:
+            status = 1
+        if status != 0:
+            if isinstance(code, str) and code:
+                print(_stash_private_detail(code), file=sys.stderr)
+            print(
+                f"Worker bundle build failed: path={args.data_dir}; category=SystemExit",
+                file=sys.stderr,
+            )
+        return status
     except Exception as error:
         if args.data_dir is None:
             traceback.print_exc()

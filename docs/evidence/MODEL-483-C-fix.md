@@ -57,6 +57,8 @@ With `--data-dir`, a coverage sentence on stdout or stderr keeps the three count
 
 After the wrap, the same test exits 23 with stderr exactly `git log failed with exit code 23` and empty stdout. The marker is in neither stream. A successful git call is unchanged. The publish step's redirect is unchanged.
 
+A private SystemExit returns an integer code unchanged and returns 0 for None, and any other value exits 1 on the fixed line with the message on neither stream; a missing git binary prints that same kind of fixed line and exits non-zero.
+
 ## Allow-list
 
 `test_a_changed_private_job_step_needs_a_review` was in the red run above. Sixteen cases. Dropping the publish redirect, `working-directory: modelspec-data` plus `git log`, and appending `git show`, `tail`, or `grep` returned no problem. A new upload step returned the nightly message (`this workflow runs...`) rather than `this job runs in a public repository against private data; a reviewer must check every output of a changed step`.
