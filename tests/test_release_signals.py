@@ -2122,10 +2122,7 @@ def test_a_regression_forces_a_draft_and_lists_the_question_ids(tmp_path: Path, 
     assert recorded.splitlines()[0].startswith("pr create --draft ")
     assert "ANSWERS REGRESS: " in recorded
     assert body.startswith("Regressed question ids: Q01, Q05\n")
-    assert (
-        'The data repository\'s "Approved answers on private data" check must pass before merge.\n'
-        in body
-    )
+    assert _REGRESS_CHECK_LINE in body
     if human == "true":
         assert "--label new-model" in recorded
         assert "data: add or identify acme/orbit (MODEL-113)" in recorded
@@ -2136,7 +2133,9 @@ def test_a_regression_forces_a_draft_and_lists_the_question_ids(tmp_path: Path, 
 
 _OPEN_PR_URL = "https://github.com/turbobeest/modelspec-data/pull/41"
 _REGRESS_CHECK_LINE = (
-    'The data repository\'s "Approved answers on private data" check must pass before merge.\n'
+    'The "Approved answers on private data" check does not start by itself on a pull request '
+    'opened by this workflow. Run it by dispatching "Private production-data recall" on this '
+    "branch (or close and reopen the pull request) and merge only when it passes.\n"
 )
 
 
