@@ -508,7 +508,29 @@ jobs:
             title_prefix=
           fi
           if [ "$PR_MODE" = open ]; then
-            gh pr comment "$EXISTING_PR_URL" --body-file "$body_file"
+            if [ "$REGRESSED" = true ]; then
+              if ! gh pr ready --undo "$EXISTING_PR_URL"; then
+                echo "::error::The signal branch is already pushed. Updating ${EXISTING_PR_URL} failed."
+                exit 1
+              fi
+              if ! title_json="$(gh pr view "$EXISTING_PR_URL" --json title)"; then
+                echo "::error::The signal branch is already pushed. Updating ${EXISTING_PR_URL} failed."
+                exit 1
+              fi
+              decision="$(printf '%s\n' "$title_json" | python -I -c 'import json,sys; title=json.load(sys.stdin)["title"]; prefix="ANSWERS REGRESS: "; print("keep" if title.startswith(prefix) else prefix + title)')"
+              if [ "$decision" != keep ]; then
+                if ! gh pr edit "$EXISTING_PR_URL" --title "$decision"; then
+                  echo "::error::The signal branch is already pushed. Updating ${EXISTING_PR_URL} failed."
+                  exit 1
+                fi
+              fi
+              if ! gh pr comment "$EXISTING_PR_URL" --body-file "$body_file"; then
+                echo "::error::The signal branch is already pushed. Updating ${EXISTING_PR_URL} failed."
+                exit 1
+              fi
+            else
+              gh pr comment "$EXISTING_PR_URL" --body-file "$body_file"
+            fi
             pr_url="$EXISTING_PR_URL"
           elif [ "$HUMAN" = true ]; then
             pr_url="$(gh pr create --draft --head "$BRANCH" --label new-model \
