@@ -836,6 +836,7 @@ def _plan_observations(
         hits: list[Mapping[str, Any]] = []
         spelled_effort: str | None = None
         adopted: str | None = None
+        pinned: Mapping[str, Any] | None = None
         if arena_board:
             hits = _normalised_name_hits(board, stored_name)
             spelled_effort = _effort_spelled_by_stored_name(stored_name)
@@ -845,8 +846,35 @@ def _plan_observations(
                     "two dataset rows normalise to the stored name",
                 ))
                 continue
-        match = _match(board, evidence)
-        if arena_board and len(hits) == 1 and match is hits[0]:
+            # No effort token in the stored name. One parenthetical row whose
+            # stem is that name, and a card effort already equal to it, is the
+            # same row. Two effort rows are never reduced to the card's level.
+            if spelled_effort is None and not hits:
+                parenthetical = _parenthetical_effort_rows(board, stored_name)
+                benchmark = str(evidence.get("benchmark_id"))
+                if len(parenthetical) > 1:
+                    failures.append(RowFailure(
+                        model_id, benchmark, board.source_url,
+                        "dataset has several effort rows for this name",
+                    ))
+                    continue
+                if len(parenthetical) == 1:
+                    only_row, level = parenthetical[0]
+                    if evidence.get("effort") in (None, ""):
+                        failures.append(RowFailure(
+                            model_id, benchmark, board.source_url,
+                            "dataset names an effort the stored name does not",
+                        ))
+                        continue
+                    if _card_effort_level(evidence.get("effort")) != level:
+                        failures.append(RowFailure(
+                            model_id, benchmark, board.source_url,
+                            "card effort differs from the dataset's only row",
+                        ))
+                        continue
+                    pinned = only_row
+        match = pinned if pinned is not None else _match(board, evidence)
+        if pinned is None and arena_board and len(hits) == 1 and match is hits[0]:
             subject = _subject(hits[0])
             dataset_effort = _canonical_structured_effort(subject)
             card_effort = evidence.get("effort")
@@ -869,7 +897,7 @@ def _plan_observations(
                 continue
             if card_effort in (None, "") and spelled_match:
                 adopted = spelled_match
-        elif arena_board and not hits and match is not None:
+        elif pinned is None and arena_board and not hits and match is not None:
             found = _canonical_structured_effort(_subject(match))
             if found and spelled_effort != found:
                 failures.append(RowFailure(
@@ -878,7 +906,8 @@ def _plan_observations(
                 ))
                 continue
         elif (
-            arena_board and not hits and match is None
+            pinned is None
+            and arena_board and not hits and match is None
             and _names_a_different_effort(board, stored_name, spelled_effort)
         ):
             failures.append(RowFailure(
@@ -1455,9 +1484,11 @@ def _skip_class(reason: str, diffs: Sequence[Diff] = (), outcome: str = "") -> s
     text = reason.lower()
     if "dataset names an effort the stored name does not" in text:
         return "effort"
+    if "card effort differs from the dataset's only row" in text:
+        return "effort"
     if "different effort" in text or "already a different level" in text:
         return "effort"
-    if "two dataset rows normalise" in text:
+    if "dataset has several effort rows" in text or "two dataset rows normalise" in text:
         return "no-unique-row"
     if "no unique row" in text:
         return "no-unique-row"
@@ -2629,6 +2660,11 @@ def _verifier_named_effort(model_id_as_evaluated: object) -> str | None:
 
 #: Tokens ``structured_name_effort`` reads. ``maximum`` and ``default`` are not in that set.
 _SPELLED_EFFORT = frozenset({"minimal", "low", "medium", "high", "xhigh", "max"})
+#: One parenthesis whose whole text is an effort level. A hyphen is not this.
+_PARENTHETICAL_EFFORT = re.compile(
+    r"\((minimal|low|medium|high|xhigh|max)\)",
+    re.IGNORECASE,
+)
 
 
 def _canonical_structured_effort(name: object) -> str | None:
@@ -2668,6 +2704,55 @@ def _parenthetical_effort_for_stored_name(stored: str, dataset_name: str) -> str
     if spelled and found and spelled == found:
         return spelled
     return None
+
+
+def _name_without_parenthetical_effort(name: str) -> tuple[str, str] | None:
+    """Normalised stem and canonical level, when ``name`` has one effort parenthesis.
+
+    A hyphenated token stays. A parenthesis that is not an effort level stays.
+    Two effort parentheses are not a stem this rule can use.
+    """
+    matches = list(_PARENTHETICAL_EFFORT.finditer(name))
+    if len(matches) != 1:
+        return None
+    level = split_model_cell(f"({matches[0].group(1)})")[1]
+    canonical = _canonical_structured_effort(name)
+    if level is None or canonical is None or level != canonical:
+        return None
+    stripped = f"{name[:matches[0].start()]} {name[matches[0].end():]}"
+    stem = readers.normalise_name(stripped)
+    if not stem:
+        return None
+    return stem, level
+
+
+def _parenthetical_effort_rows(
+    board: BoardReading, stored_name: str,
+) -> list[tuple[Mapping[str, Any], str]]:
+    """Rows on this board whose effort parenthesis, removed, is ``stored_name``.
+
+    The list is every such row. A caller that sees more than one refuses.
+    This function does not pick the card's level out of them.
+    """
+    wanted = readers.normalise_name(stored_name)
+    if not wanted:
+        return []
+    found: list[tuple[Mapping[str, Any], str]] = []
+    for row in board.rows:
+        parsed = _name_without_parenthetical_effort(_subject(row))
+        if parsed is None:
+            continue
+        stem, level = parsed
+        if stem == wanted:
+            found.append((row, level))
+    return found
+
+
+def _card_effort_level(value: object) -> str | None:
+    """The canonical effort already stored on the card, or None."""
+    if value in (None, ""):
+        return None
+    return split_model_cell(f"({value})")[1]
 
 
 def _effort_mismatch_reason(spelled: str | None) -> str:

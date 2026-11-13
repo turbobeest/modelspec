@@ -168,3 +168,98 @@ The two membership documents were equal: `changed` true, 1 added, 1 removed.
 - No edit under `.github/private-writers/`.
 - No run of `.github/private-writers/lineup-proposer.yml`.
 - Pull-request checks were not read at the time of this commit.
+
+## Hand-set effort, one renamed row
+
+Base `8bf26fd2dcbd450c112cbdb19a20d796d45c5823`. Branch `model-472-fix2`.
+The commit that adds this section is the change. Read it with
+`git log -1 --format=%H -- docs/evidence/MODEL-472-arena-effort-respelling.md`.
+
+A stored name with no effort token now matches one dataset row when that
+row's parenthetical effort, removed, normalises to the stored name, the
+parenthesis is an effort level, and the card's `effort` is already that
+level. The reading is written. `effort` and `model_id_as_evaluated` stay.
+The match is counted on that board only.
+
+Refusals, before a write: card `effort` null stays `dataset names an effort
+the stored name does not`; card `effort` at another level is `card effort
+differs from the dataset's only row`; two or more such rows, including when
+one equals the card, are `dataset has several effort rows for this name`.
+A parenthesis that is not an effort level, and a hyphenated dataset name,
+stay `no unique row`. A stored name that already spells an effort still uses
+the earlier rule. `check_score_only` is unchanged. A refresh of the accepted
+row passes it. Changing that row's `effort` still fails.
+
+### Tests
+
+Python 3.12.3, pytest 9.2.0, Git 2.43.0. Serial, `-q -p no:cacheprovider`,
+no `-n`. Exit codes read directly. No full local suite. The interpreter path
+is omitted.
+
+Red, before the production change. Exit 1. 6 failed, 4 passed, in 0.97s.
+The accepted row was `dataset names an effort the stored name does not`.
+One `(High)` row with card `max` was `no unique row for 'some-model'`.
+`(High)` and `(Max)` with card `high`, and the same rows with card `max`,
+were `dataset names an effort the stored name does not`, because the old
+match had already kept only the row at the card's level. Those rows with
+card `effort` null were `no unique row for 'some-model'`. The guard test
+stopped on that same refusal, so no refresh was written.
+
+```bash
+env PYTHONPATH=$PWD python -m pytest -q -p no:cacheprovider \
+  tests/test_leaderboard_refresh.py::test_a_hand_set_effort_matches_the_datasets_only_renamed_row \
+  tests/test_leaderboard_refresh.py::test_a_stored_slug_with_null_effort_is_left_for_a_person \
+  tests/test_leaderboard_refresh.py::test_a_hand_set_effort_that_differs_from_the_only_row_is_not_written \
+  tests/test_leaderboard_refresh.py::test_several_effort_rows_for_one_name_are_left_for_a_person \
+  tests/test_leaderboard_refresh.py::test_a_parenthesis_that_is_not_an_effort_is_not_written \
+  tests/test_leaderboard_refresh.py::test_a_hyphenated_dataset_name_is_not_the_hand_set_row \
+  tests/test_leaderboard_refresh.py::test_a_stored_slug_with_no_parenthesis_in_the_dataset_still_verifies \
+  tests/test_leaderboard_refresh.py::test_a_hand_set_effort_refresh_is_score_only_and_an_effort_change_still_fails
+```
+
+The four that passed on that run were the null-effort slug, a `(Preview)`
+parenthesis, a hyphenated dataset name, and one row with no parenthesis.
+
+Green, the same selector plus the earlier spelled-name tests. Exit 0.
+16 passed in 0.56s.
+
+```bash
+env PYTHONPATH=$PWD python -m pytest -q -p no:cacheprovider \
+  tests/test_leaderboard_refresh.py::test_a_hand_set_effort_matches_the_datasets_only_renamed_row \
+  tests/test_leaderboard_refresh.py::test_a_stored_slug_with_null_effort_is_left_for_a_person \
+  tests/test_leaderboard_refresh.py::test_a_hand_set_effort_that_differs_from_the_only_row_is_not_written \
+  tests/test_leaderboard_refresh.py::test_several_effort_rows_for_one_name_are_left_for_a_person \
+  tests/test_leaderboard_refresh.py::test_a_parenthesis_that_is_not_an_effort_is_not_written \
+  tests/test_leaderboard_refresh.py::test_a_hyphenated_dataset_name_is_not_the_hand_set_row \
+  tests/test_leaderboard_refresh.py::test_a_stored_slug_with_no_parenthesis_in_the_dataset_still_verifies \
+  tests/test_leaderboard_refresh.py::test_a_hand_set_effort_refresh_is_score_only_and_an_effort_change_still_fails \
+  tests/test_leaderboard_refresh.py::test_a_hyphenated_stored_name_adopts_the_parenthetical_effort \
+  tests/test_leaderboard_refresh.py::test_a_stored_name_without_the_effort_token_is_left_for_a_person \
+  tests/test_leaderboard_refresh.py::test_a_stored_name_that_spells_another_effort_is_not_written \
+  tests/test_leaderboard_refresh.py::test_two_dataset_rows_that_normalise_alike_are_not_written \
+  tests/test_leaderboard_refresh.py::test_a_card_effort_already_at_another_level_is_not_overwritten \
+  tests/test_leaderboard_refresh.py::test_a_parenthetical_effort_the_card_does_not_name_is_not_written
+```
+
+Focused files. Exit 0. 439 passed, 8 skipped, in 21.82s. The 8 skips were
+already in those files. Each skip reason was not listed.
+
+```bash
+env PYTHONPATH=$PWD python -m pytest -q -p no:cacheprovider \
+  tests/test_leaderboard_refresh.py tests/test_writer_isolation.py
+```
+
+Outcomes on invented names, through `refresh.run`:
+
+- One `(High)` row, card `high`: written. `effort` stays `high`. `model_id_as_evaluated` stays `some-model`. Verifier `verified`.
+- `(High)` and `(Max)`, card `high`: `dataset has several effort rows for this name`. Not written.
+- `(High)` and `(Max)`, card `max`: the same reason. Not written.
+- One `(High)` row, card `max`: `card effort differs from the dataset's only row`. Not written.
+- One row with no parenthesis: written. `effort` stays null. Verifier `verified`.
+
+### Not observed
+
+- No live Arena fetch and no refresh of the private catalogue.
+- No edit of `decision/verify.py`, the proposer, a workflow, the registry, or frozen data.
+- No change to `check_score_only`. The new refresh passes it; an `effort` edit on that row still fails.
+- Pull-request checks were not read at the time of this commit.

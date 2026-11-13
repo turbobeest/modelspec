@@ -2312,6 +2312,34 @@ benchmarks:
     )
 
 
+def _renamed_effort_row(
+    name: str, rating: float = 1210.25, *, lower: float = 1190.5,
+    upper: float = 1230.75, votes: int = 2222, rank: int = 3,
+) -> dict:
+    return {
+        "model_name": name,
+        "rating": rating,
+        "rating_lower": lower,
+        "rating_upper": upper,
+        "vote_count": votes,
+        "leaderboard_publish_date": "2026-11-02",
+        "rank": rank,
+    }
+
+
+def _some_model_high_board() -> list[dict]:
+    """One effort row for Some Model, plus rows that must not count as it."""
+    return [
+        _renamed_effort_row("Some Model (High)"),
+        _renamed_effort_row(
+            "Some Model (Preview)", 900.0, lower=880.0, upper=920.0, votes=111, rank=20,
+        ),
+        _renamed_effort_row(
+            "Other Model (Max)", 1400.0, lower=1380.0, upper=1420.0, votes=3333, rank=1,
+        ),
+    ]
+
+
 def _run_arena_effort_refresh(monkeypatch, tmp_path: Path, *, dataset_name: str,
                               evaluated: str, display: str,
                               dataset_rows: list[dict] | None = None,
@@ -2500,6 +2528,219 @@ def test_a_stored_name_without_the_effort_token_is_left_for_a_person(
     assert _evidence_row(card)["score"] == 1100.0
     assert _evidence_row(card)["effort"] is None
     assert _evidence_row(card)["model_id_as_evaluated"] == "Example Model"
+
+
+def test_a_hand_set_effort_matches_the_datasets_only_renamed_row(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """some-model with effort high is the only Some Model (High) row on the board."""
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="unused",
+        evaluated="some-model",
+        display="Some Model",
+        model="lab/some-model",
+        effort="high",
+        dataset_rows=_some_model_high_board(),
+    )
+
+    assert report.quarantined == [], report.quarantined
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["model_id_as_evaluated"] == "some-model"
+    assert row["effort"] == "high"
+    assert row["score"] == 1210.25
+    assert row["interval"] == [1190.5, 1230.75]
+    assert row["n"] == 2222
+    assert str(row["evidence_date"]) == "2026-11-02"
+    assert "1210.25" in row["configuration"]
+    assert "rank 3" in row["configuration"]
+    assert "900" not in row["configuration"]
+    log = _verification_log(root)
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
+
+
+def test_a_stored_slug_with_null_effort_is_left_for_a_person(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Some Model (High)",
+        evaluated="some-model",
+        display="Some Model",
+        model="lab/some-model",
+    )
+
+    assert report.quarantined == []
+    assert [row.reason for row in report.failures] == [
+        "dataset names an effort the stored name does not",
+    ]
+    assert _arena_skip_classes(report) == {"effort": 1}
+    row = _evidence_row(card)
+    assert row["score"] == 1100.0
+    assert row["effort"] is None
+    assert row["model_id_as_evaluated"] == "some-model"
+
+
+def test_a_hand_set_effort_that_differs_from_the_only_row_is_not_written(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """One (High) row and a card set to max. Another model's (Max) row does not count."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="unused",
+        evaluated="some-model",
+        display="Some Model",
+        model="lab/some-model",
+        effort="max",
+        dataset_rows=[
+            _renamed_effort_row("Some Model (High)"),
+            _renamed_effort_row(
+                "Other Model (Max)", 1400.0, lower=1380.0, upper=1420.0, votes=3333, rank=1,
+            ),
+        ],
+    )
+
+    assert report.quarantined == []
+    assert [row.reason for row in report.failures] == [
+        "card effort differs from the dataset's only row",
+    ]
+    assert _arena_skip_classes(report) == {"effort": 1}
+    row = _evidence_row(card)
+    assert row["score"] == 1100.0
+    assert row["effort"] == "max"
+    assert row["model_id_as_evaluated"] == "some-model"
+
+
+@pytest.mark.parametrize("card_effort", ["high", "max", None], ids=[
+    "card-high", "card-max", "card-null",
+])
+def test_several_effort_rows_for_one_name_are_left_for_a_person(
+    monkeypatch, tmp_path: Path, card_effort: str | None,
+) -> None:
+    """(High) and (Max) are a person's choice, even when the card names one of them."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="unused",
+        evaluated="some-model",
+        display="Some Model",
+        model="lab/some-model",
+        effort=card_effort,
+        dataset_rows=[
+            _renamed_effort_row("Some Model (High)"),
+            _renamed_effort_row(
+                "Some Model (Max)", 1400.0, lower=1380.0, upper=1420.0, votes=3333, rank=1,
+            ),
+        ],
+    )
+
+    assert report.quarantined == []
+    assert [row.reason for row in report.failures] == [
+        "dataset has several effort rows for this name",
+    ]
+    assert _arena_skip_classes(report) == {"no-unique-row": 1}
+    row = _evidence_row(card)
+    assert row["score"] == 1100.0
+    assert row["effort"] == card_effort
+    assert row["model_id_as_evaluated"] == "some-model"
+
+
+def test_a_parenthesis_that_is_not_an_effort_is_not_written(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Some Model (Preview)",
+        evaluated="some-model",
+        display="Some Model",
+        model="lab/some-model",
+        effort="high",
+    )
+
+    assert report.quarantined == []
+    assert any("no unique row" in row.reason for row in report.failures)
+    row = _evidence_row(card)
+    assert row["score"] == 1100.0
+    assert row["effort"] == "high"
+    assert row["model_id_as_evaluated"] == "some-model"
+
+
+def test_a_hyphenated_dataset_name_is_not_the_hand_set_row(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """A trailing hyphen token is not a parenthesis, so it is not this match."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="some-model-high",
+        evaluated="some-model",
+        display="Some Model",
+        model="lab/some-model",
+        effort="high",
+    )
+
+    assert report.quarantined == []
+    assert any("no unique row" in row.reason for row in report.failures)
+    row = _evidence_row(card)
+    assert row["score"] == 1100.0
+    assert row["effort"] == "high"
+    assert row["model_id_as_evaluated"] == "some-model"
+
+
+def test_a_stored_slug_with_no_parenthesis_in_the_dataset_still_verifies(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Some Model",
+        evaluated="some-model",
+        display="Some Model",
+        model="lab/some-model",
+    )
+
+    assert report.quarantined == [], report.quarantined
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["model_id_as_evaluated"] == "some-model"
+    assert row["effort"] is None
+    assert row["score"] == 1210.25
+    log = _verification_log(root)
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
+
+
+def test_a_hand_set_effort_refresh_is_score_only_and_an_effort_change_still_fails(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """The guard already allows this refresh. Changing the stored effort still fails."""
+    before = tmp_path / "before"
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="unused",
+        evaluated="some-model",
+        display="Some Model",
+        model="lab/some-model",
+        effort="high",
+        snapshot=before,
+        dataset_rows=_some_model_high_board(),
+    )
+
+    assert report.failures == [], report.failures
+    assert report.quarantined == [], report.quarantined
+    row = _evidence_row(card)
+    assert row["model_id_as_evaluated"] == "some-model"
+    assert row["effort"] == "high"
+    assert row["score"] == 1210.25
+    assert refresh.check_score_only(before, root).ok
+    mutated = tmp_path / "effort-changed"
+    shutil.copytree(root, mutated)
+    written = mutated / "models" / "lab" / "model.md"
+    text = written.read_text(encoding="utf-8")
+    assert text.count("effort: high") == 1
+    written.write_text(text.replace("effort: high", "effort: max", 1), encoding="utf-8")
+    refused = refresh.check_score_only(root, mutated)
+    assert not refused.ok
+    assert refused.errors == ("non-score card data changed: models/lab/model.md",)
 
 
 def test_a_stored_name_that_spells_another_effort_is_not_written(
