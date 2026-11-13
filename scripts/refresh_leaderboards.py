@@ -1969,12 +1969,16 @@ def render_report(report: RefreshReport) -> str:
                 f"| {board} | {result['rows_rewritten']} | {result['rows_reconfirmed']} | "
                 f"{result['rows_left']} | {skipped_cell} |"
             )
+    lines.extend(_dates_a_person_must_rewrite(report.failures))
     lines.extend(["", "## Score changes", "", audit_markdown(report.changes)])
-    if report.failures:
+    other_failures = [
+        row for row in report.failures if row.reason != _DATE_THE_WRITER_CANNOT_RETELL
+    ]
+    if other_failures:
         lines.extend(["", "## Failures", "",
                       "| Model | Benchmark | Source | Why |", "|---|---|---|---|"])
         lines.extend(f"| `{row.model_id}` | `{row.benchmark}` | {row.source} | {row.reason} |"
-                     for row in report.failures)
+                     for row in other_failures)
     if report.quarantined:
         lines.extend(["", "## Quarantined", "",
                       "| Model | Facet | Source | Why |", "|---|---|---|---|"])
@@ -2043,6 +2047,42 @@ def _board_tables(lines: list[str]) -> list[list[str]]:
     return tables
 
 
+def _dates_a_person_must_rewrite(failures: Sequence[RowFailure]) -> list[str]:
+    """Rows whose sentence states a date this writer will not retell."""
+    rows = [row for row in failures if row.reason == _DATE_THE_WRITER_CANNOT_RETELL]
+    if not rows:
+        return []
+    noun = "row" if len(rows) == 1 else "rows"
+    lines = [
+        "",
+        "## Dates the writer cannot retell",
+        "",
+        f"{len(rows)} {noun}.",
+        "These rows need a person to rewrite the sentence; they will not refresh until then.",
+        "",
+        "| Card | Benchmark |",
+        "|---|---|",
+    ]
+    lines.extend(f"| `{row.model_id}` | `{row.benchmark}` |" for row in rows)
+    return lines
+
+
+def _section_block(lines: list[str], heading: str) -> list[str]:
+    """The heading and the lines under it, up to the next heading."""
+    try:
+        start = lines.index(heading)
+    except ValueError:
+        return []
+    block = [heading]
+    for line in lines[start + 1:]:
+        if line.startswith("## "):
+            break
+        block.append(line)
+    while len(block) > 1 and block[-1] == "":
+        block.pop()
+    return block
+
+
 def _table_in_section(lines: list[str], heading: str) -> list[str]:
     try:
         start = lines.index(heading)
@@ -2075,6 +2115,7 @@ def _truncate_pull_request_body(body: str, limit: int, pr_url_budget: int) -> st
         if line.startswith("Arena rows whose source is not the dataset root:")
     ), "")
     boards = _board_tables(lines)
+    retell = _section_block(lines, "## Dates the writer cannot retell")
     failure_table = _table_in_section(lines, "## Failures")
     failure_header, failure_rows = (
         (failure_table[:2], failure_table[2:]) if len(failure_table) >= 2 else (failure_table, [])
@@ -2093,6 +2134,8 @@ def _truncate_pull_request_body(body: str, limit: int, pr_url_budget: int) -> st
                 parts.extend(["", line] if parts else [line])
         for table in boards:
             parts.extend(["", *table] if parts else list(table))
+        if retell:
+            parts.extend(["", *retell] if parts else list(retell))
         if failures or omitted_failures:
             block = ["## Failures", "", *failure_header, *failures]
             parts.extend(["", *block] if parts else block)
@@ -2145,8 +2188,8 @@ def fit_pull_request_body(
     Each ``${PR_URL}`` is measured as ``pr_url_budget`` characters, so filling
     in the pull request URL cannot push a fitted body over the limit. A body
     that does not fit keeps the opening line, the Arena revision line, the
-    rows-left line, the no-board line, the off-root line, and both per-board
-    tables in full.
+    rows-left line, the no-board line, the off-root line, both per-board
+    tables, and the dates-the-writer-cannot-retell section in full.
     Score-change rows are cut first, then failure rows, each on a row
     boundary. A count line names the rows left out and the run's
     ``leaderboard-refresh-report`` artifact.

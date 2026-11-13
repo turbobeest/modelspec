@@ -2072,6 +2072,44 @@ def test_fitted_body_stays_within_the_limit_after_the_pull_request_url_expands()
     assert "leaderboard-refresh-report" in filled
 
 
+def test_dates_the_writer_cannot_retell_are_listed_for_a_person() -> None:
+    """Those refusals have their own heading, count, and card list, including over the limit."""
+    report = _refresh_report(changes=40, failures=1)
+    report.failures.extend([
+        refresh.RowFailure(
+            "lab/stale-a", "arena_elo_overall", "https://example.test/arena",
+            refresh._DATE_THE_WRITER_CANNOT_RETELL,
+        ),
+        refresh.RowFailure(
+            "lab/stale-b", "arena_elo_code", "https://example.test/arena",
+            refresh._DATE_THE_WRITER_CANNOT_RETELL,
+        ),
+    ])
+    rendered = refresh.render_report(report)
+    heading = "## Dates the writer cannot retell"
+    sentence = (
+        "These rows need a person to rewrite the sentence; they will not refresh until then."
+    )
+    section = rendered.split(heading, 1)[1].split("\n## ", 1)[0]
+    assert "2 rows." in section
+    assert sentence in section
+    assert "| `lab/stale-a` | `arena_elo_overall` |" in section
+    assert "| `lab/stale-b` | `arena_elo_code` |" in section
+    failures = rendered.split("## Failures", 1)[1]
+    assert "lab/stale-a" not in failures
+    assert "lab/stale-b" not in failures
+    assert "`lab/f0`" in failures
+
+    fitted = refresh.fit_pull_request_body(_weekly_pull_request_body(report), limit=2_500)
+    assert len(fitted) <= 2_500
+    fitted_section = fitted.split(heading, 1)[1].split("\n## ", 1)[0]
+    assert "2 rows." in fitted_section
+    assert sentence in fitted_section
+    assert fitted.count("`lab/stale-a`") == 1
+    assert fitted.count("`lab/stale-b`") == 1
+    assert "`lab/f0`" in fitted
+
+
 def test_large_refresh_uploads_the_report_before_a_body_edit_can_fail() -> None:
     workflow = yaml.safe_load(
         (Path(__file__).parents[1] / ".github" / "private-writers" /
