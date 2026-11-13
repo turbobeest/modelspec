@@ -462,6 +462,10 @@ def _assert_unread_continues(result: dict, root: Path) -> None:
 @pytest.mark.parametrize("shape", [
     "off-host-redirect",
     "same-host-other-repository",
+    "query",
+    "fragment",
+    "non-default-port",
+    "userinfo",
     "id-names-another-repository",
     "model-id-names-another-repository",
     "no-id",
@@ -485,6 +489,14 @@ def test_a_read_that_is_not_this_repository_metadata_is_unread(
         final_url = f"https://other.example/api/models/{ORG}/orbit-9"
     elif shape == "same-host-other-repository":
         final_url = "https://huggingface.co/api/models/other-lab/not-this"
+    elif shape == "query":
+        final_url = f"https://huggingface.co/api/models/{ORG}/orbit-9?x=1"
+    elif shape == "fragment":
+        final_url = f"https://huggingface.co/api/models/{ORG}/orbit-9#frag"
+    elif shape == "non-default-port":
+        final_url = f"https://huggingface.co:8443/api/models/{ORG}/orbit-9"
+    elif shape == "userinfo":
+        final_url = f"https://user@huggingface.co/api/models/{ORG}/orbit-9"
     elif shape == "id-names-another-repository":
         metadata["id"] = "other-lab/not-this"
     elif shape == "model-id-names-another-repository":
@@ -573,3 +585,55 @@ def test_absent_or_null_tags_with_a_pipeline_tag_stay_a_valid_read(
     assert result["status"] == "new"
     assert result["model_id"] == "acme/orbit-9"
     assert result.get("reason") is None
+
+
+@pytest.mark.parametrize(
+    ("label", "pipeline_tag"),
+    [
+        ("list", ["text-generation"]),
+        ("dict", {"name": "text-generation"}),
+        ("number", 1),
+        ("false", False),
+    ],
+)
+def test_a_present_non_string_pipeline_tag_is_unread(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, label: str, pipeline_tag: object,
+) -> None:
+    """A present pipeline tag that is not a string is not a decision.
+
+    The body also carries an out-of-scope tag. The watcher would ignore the
+    odd pipeline tag and end the signal from that tag. This read does not.
+    """
+    metadata: dict[str, object] = {
+        "id": f"{ORG}/orbit-9",
+        "pipeline_tag": pipeline_tag,
+        "tags": ["text-to-image"],
+    }
+    result, seen = _run(
+        monkeypatch, tmp_path, _signal("Orbit 9", "orbit-9"), metadata,
+    )
+
+    _assert_unread_continues(result, tmp_path)
+    assert _meta("orbit-9") in seen, label
+
+
+@pytest.mark.parametrize("pipeline_tag", ["absent", "null"])
+def test_absent_or_null_pipeline_tag_with_a_tag_list_stays_a_valid_read(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, pipeline_tag: str,
+) -> None:
+    """Missing or null ``pipeline_tag`` is a decision from the tag list.
+
+    The watcher does the same. A present value that is not a string is unread.
+    """
+    metadata: dict[str, object] = {"id": f"{ORG}/canvas-1", "tags": ["text-to-image"]}
+    if pipeline_tag == "null":
+        metadata["pipeline_tag"] = None
+    result, seen = _run(
+        monkeypatch, tmp_path, _signal("Canvas 1", "canvas-1"), metadata,
+    )
+
+    assert result["status"] == "out_of_scope"
+    assert result["reason"] == "text-to-image"
+    assert "hub_metadata" not in result
+    assert seen == [_meta("canvas-1")]
+    assert not (tmp_path / "models" / "acme" / "canvas-1.md").exists()

@@ -429,18 +429,26 @@ def hub_metadata_url(org: str, repo: str) -> str:
 
 
 def _hub_final_url_matches(final_url: str, org: str, repo: str) -> bool:
-    """True when the fetch landed on this repository's models API object.
+    """True when the fetch landed on exactly this repository's models API object.
 
-    The host is ``huggingface.co`` over https. The path is
-    ``/api/models/<org>/<repo>``. Org and repo compare case-insensitively.
-    One trailing slash is allowed. Another host, or another repository on
-    this host, is not this read.
+    The scheme is https. The host is ``huggingface.co``, with no userinfo and
+    no port other than 443. The path is ``/api/models/<org>/<repo>``. Org and
+    repo compare case-insensitively. One trailing slash is allowed. A query
+    string or a fragment is a different URL. Another host, or another
+    repository on this host, is not this read.
     """
     try:
         parsed = urlsplit(final_url)
+        port = parsed.port
     except ValueError:
         return False
     if parsed.scheme != "https" or (parsed.hostname or "").casefold() != "huggingface.co":
+        return False
+    if parsed.username is not None or parsed.password is not None:
+        return False
+    if parsed.query or parsed.fragment:
+        return False
+    if port is not None and port != 443:
         return False
     parts = parsed.path.split("/")
     if parts[-1:] == [""]:
@@ -477,6 +485,10 @@ def _hub_row_readable(row: Mapping) -> bool:
     watcher would ignore that value and still decide; this read does not,
     because the value is not the repository's tag list.
 
+    A present ``pipeline_tag`` that is not null and not a string is unread
+    the same way. Absent or null, beside a valid tag list, stays a valid
+    read. The watcher would ignore the odd value and decide from the tags.
+
     A JSON object with neither a pipeline tag nor a tag-list entry is an
     empty read, not a decision. Licence-only or other non-empty tag lists
     are a decision even when no pipeline tag is set.
@@ -486,6 +498,8 @@ def _hub_row_readable(row: Mapping) -> bool:
         if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
             return False
     pipeline = row.get("pipeline_tag")
+    if "pipeline_tag" in row and pipeline is not None and not isinstance(pipeline, str):
+        return False
     if isinstance(pipeline, str) and pipeline.strip():
         return True
     tags = row.get("tags")
