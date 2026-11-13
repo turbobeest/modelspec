@@ -1042,12 +1042,34 @@ def retain_only(store: CopyStore, root: Path, report: Report) -> int:
 # --- the report ---------------------------------------------------------------------------------
 
 
-def _show(value: Any, state: str | None = None) -> str:
+_SHOW_LIMIT = 120
+#: GitHub rejects a pull request body at 65,536 characters.
+PR_BODY_LIMIT = 60_000
+REPORT_ARTIFACT = "price-reread-report"
+ALERT_SOURCE_ROWS = 40
+_KEEP_FIRST = ("Changed values", "Needs a person", "Not re-read", "Source diffs")
+_SECTION_KIND = {
+    "Changed values": "change",
+    "Needs a person": "alert",
+    "Not re-read": "not-reread",
+}
+
+
+def _show(value: Any, state: str | None = None, *, middle: bool = False) -> str:
     if state == "not_disclosed" and value is None:
         return "not disclosed"
     text = json.dumps(value, ensure_ascii=False) if not isinstance(value, str) else value
-    text = text.replace("|", "\\|").replace("\n", " ")
-    return text if len(text) <= 120 else text[:117] + "…"
+    text = text.replace("\n", " ")
+    if len(text) > _SHOW_LIMIT:
+        if middle:
+            mark = "…"
+            keep = _SHOW_LIMIT - len(mark)
+            head = keep // 2
+            tail = keep - head
+            text = text[:head] + mark + text[-tail:]
+        else:
+            text = text[:_SHOW_LIMIT - 3] + "…"
+    return text.replace("|", "\\|")
 
 
 def render_report(report: Report) -> str:
@@ -1079,7 +1101,7 @@ def render_report(report: Report) -> str:
                 "The readers could not re-read these, so nothing was written for them.", "",
                 "| Fact | Status | Why |", "|---|---|---|"]
         for f in report.alerts:
-            out.append(f"| `{f.fact_id}` | {f.status.value} | {_show(f.reason)} |")
+            out.append(f"| `{f.fact_id}` | {f.status.value} | {_show(f.reason, middle=True)} |")
         out.append("")
     if report.diffs:
         out += ["### Source diffs", ""]
@@ -1098,6 +1120,134 @@ def render_report(report: Report) -> str:
         out += [f"| {why} | {n} |" for why, n in not_reread.most_common()]
         out.append("")
     return "\n".join(out)
+
+
+def _split_price_report(body: str) -> tuple[str, str, list[tuple[str, str]]]:
+    """Prefix, header, and each ``###`` section of a price re-read report."""
+    lines = body.splitlines()
+    heading = next(
+        (index for index, line in enumerate(lines) if line.startswith("## Price and plan re-read")),
+        None,
+    )
+    if heading is None:
+        return body, "", []
+    prefix = "\n".join(lines[:heading]).strip("\n")
+    rest = lines[heading:]
+    starts = [index for index, line in enumerate(rest) if line.startswith("### ")]
+    if not starts:
+        return prefix, "\n".join(rest).strip("\n"), []
+    header = "\n".join(rest[:starts[0]]).strip("\n")
+    sections: list[tuple[str, str]] = []
+    for index, start in enumerate(starts):
+        end = starts[index + 1] if index + 1 < len(starts) else len(rest)
+        title = rest[start][4:].strip()
+        sections.append((title, "\n".join(rest[start:end]).strip("\n")))
+    return prefix, header, sections
+
+
+def _data_rows(chunk: str) -> list[str]:
+    rows = [line for line in chunk.splitlines() if line.startswith("|")]
+    if len(rows) >= 2 and re.fullmatch(r"\|[-:| ]+\|", rows[1]):
+        return rows[2:]
+    return rows
+
+
+def _left_out(count: int, kind: str, artifact: str) -> str:
+    subject = f"1 {kind} row was left out" if count == 1 else f"{count} {kind} rows were left out"
+    return f"{subject}. The full report is in the run's {artifact} artifact."
+
+
+def _omission(title: str, chunk: str, artifact: str) -> str:
+    if title == "Source diffs":
+        return f"Source diffs were left out. The full report is in the run's {artifact} artifact."
+    return _left_out(len(_data_rows(chunk)), _SECTION_KIND.get(title, "report"), artifact)
+
+
+def _assemble(
+    prefix: str, header: str, sections: list[tuple[str, str]], kept: set[str], artifact: str,
+) -> str:
+    parts = [part for part in (prefix, header) if part]
+    for title, chunk in sections:
+        parts.append(chunk if title in kept else _omission(title, chunk, artifact))
+    return "\n\n".join(parts) + "\n"
+
+
+def fit_pull_request_body(
+    body: str, *, limit: int = PR_BODY_LIMIT, artifact: str = REPORT_ARTIFACT,
+) -> str:
+    """Return ``body`` when it fits in ``limit`` characters.
+
+    A body that does not fit keeps the report header and any section that
+    fits whole. A table that does not fit is left out entirely, with a line
+    naming how many rows were left out and the ``artifact`` that holds the
+    full report. Source diffs follow the same rule.
+    """
+    if len(body) <= limit:
+        return body
+    prefix, header, sections = _split_price_report(body)
+    if not header and not sections:
+        return f"The report was left out. The full report is in the run's {artifact} artifact.\n"
+    by_title = {title: chunk for title, chunk in sections}
+    priority = [(title, by_title[title]) for title in _KEEP_FIRST if title in by_title]
+    seen = {title for title, _chunk in priority}
+    priority += [(title, chunk) for title, chunk in sections if title not in seen]
+    kept: set[str] = set()
+    for title, _chunk in priority:
+        trial = kept | {title}
+        if len(_assemble(prefix, header, sections, trial, artifact)) <= limit:
+            kept = trial
+    fitted = _assemble(prefix, header, sections, kept, artifact)
+    if len(fitted) <= limit:
+        return fitted
+    if prefix:
+        fitted = _assemble("", header, sections, kept, artifact)
+        if len(fitted) <= limit:
+            return fitted
+    return f"The report was left out. The full report is in the run's {artifact} artifact.\n"
+
+
+def alert_comment(
+    payload: Mapping[str, Any], run_url: str, *,
+    artifact: str = REPORT_ARTIFACT, row_limit: int = ALERT_SOURCE_ROWS,
+) -> str:
+    """Short issue comment: run URL, header counts, and counts by source."""
+    counts = payload["counts"]
+    fact_count = len(payload.get("alerts") or [])
+    noun = "alert fact" if fact_count == 1 else "alert facts"
+    lines = [
+        f"Run: {run_url}",
+        "",
+        "| " + " | ".join(str(key) for key in counts) + " |",
+        "|" + "---|" * len(counts),
+        "| " + " | ".join(str(counts[key]) for key in counts) + " |",
+        "",
+        f"{fact_count} {noun}; a fact with several sources is counted under each.",
+        "",
+        "| Source | Status | Fact-source pairs |",
+        "|---|---|---|",
+    ]
+    groups: Counter[tuple[str, str]] = Counter()
+    for alert in payload.get("alerts") or []:
+        status = str(alert.get("status") or "")
+        sources = [str(source) for source in (alert.get("sources") or [])] or ["(none)"]
+        for source_id in sources:
+            groups[(source_id, status)] += 1
+    ranked = sorted(groups.items(), key=lambda item: (-item[1], item[0][0], item[0][1]))
+    for (source_id, status), count in ranked[:row_limit]:
+        # Python 3.11 rejects a backslash inside an f-string expression.
+        shown = source_id.replace("|", "\\|")
+        lines.append(f"| `{shown}` | {status} | {count} |")
+    left = len(ranked) - min(len(ranked), row_limit)
+    lines.append("")
+    if left == 1:
+        lines.append(f"1 source row was left out. The full report is in the run's {artifact} artifact.")
+    elif left:
+        lines.append(
+            f"{left} source rows were left out. The full report is in the run's {artifact} artifact."
+        )
+    else:
+        lines.append(f"The full report is in the run's {artifact} artifact.")
+    return "\n".join(lines) + "\n"
 
 
 def main(argv: list[str] | None = None) -> int:

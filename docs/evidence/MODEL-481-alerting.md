@@ -1,0 +1,134 @@
+# MODEL-481 alerting
+
+Base `a2e029b53004a9d7575d84fde05d6c378fafd8fa` on `model-481-alert`.
+The head SHA is the commit that adds this file.
+
+Environment: Python 3.14.4, pytest 9.1.1, PyYAML 6.0.3. Tests ran serially with `env PYTHONPATH=$PWD` and `/Users/terbeest/dev/modelspec/.venv/bin/python`. No network.
+
+## Red, then green
+
+These eight tests in `tests/test_price_reread_alert.py` ran against the unchanged tree.
+
+- `test_alert_comment_counts_sources_without_cutting_a_row`
+- `test_json_keeps_the_whole_reason_and_markdown_keeps_the_trailing_count`
+- `test_pull_request_body_under_the_limit_is_unchanged`
+- `test_pull_request_body_keeps_a_complete_table_or_leaves_it_out`
+- `test_the_reread_job_uploads_the_report_and_can_label_issues`
+- `test_alert_issue_step_labels_create_and_an_existing_issue` with no existing issue
+- `test_alert_issue_step_labels_create_and_an_existing_issue` with issue 17
+- `test_a_label_failure_warns_and_leaves_the_alert_step_green`
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_price_reread_alert.py
+```
+
+Exit 1. 8 failed in 0.51s.
+
+`alert_comment` and `fit_pull_request_body` were missing, so four tests raised `AttributeError`. The workflow test raised `StopIteration` because no artifact was named `price-reread-report`. The Markdown Why cell for a long unreadable reason ended at 120 characters and dropped `41823 characters of text`. The three shell tests exited 1 because the alert step still contained `${{ github.server_url }}` and `${{ github.repository }}` inside `run:`.
+
+After the script and workflow edits, the same command exited 0. 8 passed in 2.41s.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_writer_isolation.py tests/test_writer_artifacts.py tests/test_engine_pin.py
+```
+
+Exit 0. 423 passed in 14.20s.
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_price_reread.py tests/test_price_reread_fallback.py tests/test_price_reread_alert.py
+```
+
+Exit 0. 258 passed in 4.57s.
+
+## What changed
+
+The price re-read workflow source is `.github/private-writers/price-reread.yml`. The public stub `.github/workflows/price-reread.yml` is unchanged. The private data repository installs its own byte-identical copy. This commit does not change `modelspec-data`.
+
+`fit_pull_request_body` in `scripts/price_reread.py` returns a body unchanged when it is at most 60,000 characters. Over that cap it keeps the report header, then each whole section that fits, preferring Changed values, then Needs a person, then Not re-read, then Source diffs. A section that does not fit is replaced by one line. A table line names how many rows were left out. The source-diff line says the diffs were left out. Both lines name the `price-reread-report` artifact. The fitter was copied here. `scripts/refresh_leaderboards.py` stays as it is. That fitter counts leaderboard failure rows and a pull-request URL placeholder, and that file is outside this change.
+
+The alert Markdown Why cell still stops at 120 characters. It now keeps the start and the end, so a trailing page-size count stays in the cell. Old and new value cells still cut at the end. `report.json` still stores the full reason.
+
+The reread job uploads `report.md` and `report.json` as `price-reread-report` with `if: always()`, retention 35 days, and `if-no-files-found: error`, after "Re-read every page once". The change pull request and the reconfirmation pull request both use a fitted body. The reconfirmation body is written to `reconfirm-body.md` and leaves `report.md` whole for the artifact.
+
+The alert issue is created with label `alert`. An open issue with the same title gets `gh issue edit --add-label alert`. If the label is missing, the step runs `gh label create alert`. A create or edit failure prints `::warning::` and the step exits 0. Stderr that contains `already exists` is success and prints no warning. If listing open issues fails, the step does not open a second issue. "Fail a run with alerts" is unchanged and still exits 1 when the alert count is not 0. The job permissions stay `contents: write`, `pull-requests: write`, `issues: write`, and `actions: read`.
+
+`.github/private-writers/rendered-reread.yml` is unchanged. Its shape differs.
+
+- Alerts go through `python -I .github/scripts/rendered_reread.py --sync-alerts`. That script lives in the data checkout. This repository has no shell step that pastes a markdown report onto an issue.
+- The pull-request body is a short static template written to `rendered-pr-body.md`. The workflow has no `head -c`.
+- The job uploads `report.json` as `rendered-reread-ledger` and source copies as `rendered-reread-copies`. There is no markdown report artifact.
+- The job already has `issues: write`.
+
+## CI collection
+
+The first push, `6c5a164bc1e961d999dc4479602ce3ef04a25a06`, failed "pytest perf and collection" and pytest shards 5 through 8. Collection on Python 3.11 reported `SyntaxError: f-string expression part cannot include a backslash` at the source cell in `alert_comment`. The escape now happens before the f-string.
+
+```sh
+/Users/terbeest/.local/bin/python3.11 -m py_compile scripts/price_reread.py
+```
+
+Exit 0. The same three price re-read test files then passed again, 258 in 4.45s.
+
+The next CI run collected. Shard 5 failed `test_shard_timings_cover_the_current_suite_and_browser_modules` because `tests/test_price_reread_alert.py` had no row in `tests/shard_durations.json`. The eight testcase times in a local JUnit file sum to 1.857 seconds, and that row is now in the durations file. Shard 8 failed the three alert shell tests because they called `/Users/terbeest/dev/modelspec/.venv/bin/python`. They now call `sys.executable`. Those eight tests and the timing test then passed, 9 in 2.23s.
+
+## Not observed
+
+The full pytest suite, a live price-reread run, and GitHub's response to the label and issue calls.
+
+## Round 2
+
+Review fixes on the same branch after `8eeecb64`. `origin/main` was merged first. That merge brought MODEL-477 (`317778b4`). Six review commits follow the merge. This note is the commit after those six.
+
+Environment: Python 3.14.4, pytest 9.1.1, PyYAML 6.0.3. Tests ran serially with `env PYTHONPATH=$PWD` and `/Users/terbeest/dev/modelspec/.venv/bin/python`. No network.
+
+### Builder failure
+
+`test_workflow_pins_the_builder_fallback`, `test_alert_survives_a_builder_import_error`, `test_alert_survives_a_report_without_counts`, and both cases of `test_pull_request_bodies_survive_a_fitter_error` failed before the workflow change. The alert step had no fallback sentence. An import error exited 1 with stderr `ImportError: cannot import name alert_comment` and wrote no issue. A report without `counts` exited 1 with `KeyError: 'counts'`. Each pull-request body step exited 1 with `FileNotFoundError` when `report.md` was missing.
+
+After the change, `tests/test_price_reread_alert.py` passed 13 in 3.76s. `tests/test_writer_isolation.py` passed 296 in 9.74s.
+
+### Fact-source pairs
+
+`test_alert_comment_counts_sources_without_cutting_a_row` failed because the by-source header was still `| Source | Status | Facts |`.
+
+The header is now `Fact-source pairs`. The line above that table is `1 alert fact; a fact with several sources is counted under each.` when there is one alert fact, and `alert facts` when there are more. The same file then passed 13 in 3.39s.
+
+### Refused label
+
+`test_a_refused_label_retries_the_issue_without_one` failed. The warnings were `Could not create the alert label.` and `Could not open the alert issue.` The text `HTTP 403 rate limit` was not in either warning.
+
+A real label failure now puts gh's stderr in the `::warning::`. A labelled `gh issue create` that fails is retried once without `--label`. `tests/test_price_reread_alert.py` and `tests/test_writer_isolation.py` then passed 310 in 12.99s.
+
+### Pipes
+
+`test_middle_shortening_escapes_pipes_after_the_cut` failed. A reason of 400 pipes plus `PIPE-TAIL-41823` rendered a row of 6 cells, and the tail was outside the Why cell.
+
+`_show` cuts to 120 characters and then escapes `|`. `tests/test_price_reread_alert.py` and `tests/test_price_reread.py` passed 112 in 5.50s.
+
+### Missing report upload
+
+`test_the_reread_job_uploads_the_report_and_can_label_issues` failed because `if-no-files-found` on the `always()` report upload was `error`. It is now `warn`. The alert file and writer isolation then passed 311 in 12.71s.
+
+### Token, upload, and list failure
+
+`test_gh_steps_set_a_token_and_a_failed_list_opens_nothing` passed on the first run. Every step whose script calls `gh` already set `GH_TOKEN`. A failed `gh issue list` already warned `Could not list open alert issues.` and did not create or comment. The report upload was already `warn`. The alert file then passed 16 in 4.08s.
+
+### Final check before this note
+
+```sh
+env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider tests/test_price_reread_alert.py tests/test_writer_isolation.py
+```
+
+Exit 0. 312 passed in 13.15s.
+
+### Install
+
+The installed workflow imports `alert_comment` and `fit_pull_request_body` from the engine at the data repository's `.engine-pin`. The pin must move to this merge in the same change that installs the workflow copy. Only `.github/private-writers/price-reread.yml` needs installing. The rendered re-read's alert sync lives in the private repository and is not changed here.
+
+`tests/shard_durations.json` gained one row in `8eeecb64`, `tests/test_price_reread_alert.py` at 1.857 seconds. The shard timing check had failed because that file had no measured duration. This round does not change that file.
+
+Fail a run with alerts is unchanged. This round does not change what counts as an alert.
+
+### Not observed this round
+
+The full pytest suite, a live price-reread run, and GitHub's response to the label and issue calls. CI is checked after the push.

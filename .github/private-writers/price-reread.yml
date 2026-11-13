@@ -491,6 +491,16 @@ jobs:
           fi
           python -I -m scripts.price_reread "${args[@]}" > /dev/null
           cat "$RUNNER_TEMP/report.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload the price re-read report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: price-reread-report
+          path: |
+            ${{ runner.temp }}/report.md
+            ${{ runner.temp }}/report.json
+          retention-days: 35
+          if-no-files-found: warn
       - name: Count changes and alerts
         id: result
         run: |
@@ -512,13 +522,30 @@ jobs:
           if-no-files-found: ignore
       - name: Prepare the pull-request body
         if: inputs.dry_run != true && steps.result.outputs.changes != '0'
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          {
-            echo 'The weekly re-read found values that no longer match their pages. Each new value below was read by the verifier'"'"'s deterministic readers from a fresh copy of the page, and the verifier confirmed it. Both of those keys are code in this repository, so check the source diff before merging. This pull request is never auto-merged.'
-            echo
-            # A pull-request body holds at most 65,536 characters.
-            head -c 60000 "$RUNNER_TEMP/report.md"
-          } > "$RUNNER_TEMP/pr-body.md"
+          if ! python -I - "$RUNNER_TEMP/report.md" "$RUNNER_TEMP/pr-body.md" <<'PY' 2>"$RUNNER_TEMP/pr-body.err"
+          import sys
+          from pathlib import Path
+          from scripts.price_reread import fit_pull_request_body
+
+          report_path, body_path = sys.argv[1:]
+          report = Path(report_path).read_text(encoding="utf-8")
+          opening = (
+              "The weekly re-read found values that no longer match their pages. "
+              "Each new value below was read by the verifier's deterministic readers "
+              "from a fresh copy of the page, and the verifier confirmed it. Both of "
+              "those keys are code in this repository, so check the source diff before "
+              "merging. This pull request is never auto-merged.\n\n"
+          )
+          Path(body_path).write_text(fit_pull_request_body(opening + report), encoding="utf-8")
+          PY
+          then
+            last="$(sed -n '$p' "$RUNNER_TEMP/pr-body.err" | tr -d '\r')"
+            echo "::warning::${last}"
+            printf 'Run: %s\n\nprice-reread-report\n' "$RUN_URL" > "$RUNNER_TEMP/pr-body.md"
+          fi
       - name: Open the re-read pull request
         if: inputs.dry_run != true && steps.result.outputs.changes != '0'
         uses: peter-evans/create-pull-request@v7
@@ -546,6 +573,25 @@ jobs:
           # whose registered source is cite-only. Anything else fails.
           python -I .github/scripts/price_reread_guard.py --report "$RUNNER_TEMP/report.json"
           echo "log_only=true" >> "$GITHUB_OUTPUT"
+      - name: Fit the reconfirmation pull-request body
+        if: steps.reconfirm.outputs.log_only == 'true'
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if ! python -I - "$RUNNER_TEMP/report.md" "$RUNNER_TEMP/reconfirm-body.md" <<'PY' 2>"$RUNNER_TEMP/reconfirm-body.err"
+          import sys
+          from pathlib import Path
+          from scripts.price_reread import fit_pull_request_body
+
+          report_path, body_path = sys.argv[1:]
+          report = Path(report_path).read_text(encoding="utf-8")
+          Path(body_path).write_text(fit_pull_request_body(report), encoding="utf-8")
+          PY
+          then
+            last="$(sed -n '$p' "$RUNNER_TEMP/reconfirm-body.err" | tr -d '\r')"
+            echo "::warning::${last}"
+            printf 'Run: %s\n\nprice-reread-report\n' "$RUN_URL" > "$RUNNER_TEMP/reconfirm-body.md"
+          fi
       - name: Open the reconfirmation pull request
         if: steps.reconfirm.outputs.log_only == 'true'
         uses: peter-evans/create-pull-request@v7
@@ -564,26 +610,55 @@ jobs:
 
             Co-Authored-By: Codex (GPT-6.1 Sol) <noreply@openai.com>
           title: 'data: reconfirm prices and plans (MODEL-217)'
-          body-path: ${{ runner.temp }}/report.md
+          body-path: ${{ runner.temp }}/reconfirm-body.md
           path: data
       - name: Open or update the alert issue
         if: inputs.dry_run != true && steps.result.outputs.alerts != '0'
         env:
           GH_TOKEN: ${{ github.token }}
           TITLE: Price and plan re-read needs a person
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          {
-            echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-            echo
-            head -c 60000 "$RUNNER_TEMP/report.md"
-          } > "$RUNNER_TEMP/issue-body.md"
-          # One open issue collects every week's alerts.
-          number="$(gh issue list --repo "${{ github.repository }}" --state open --limit 100 \
-            --json number,title --jq '.[] | select(.title == env.TITLE) | .number' | head -n 1)"
-          if [ -n "$number" ]; then
-            gh issue comment "$number" --repo "${{ github.repository }}" --body-file "$RUNNER_TEMP/issue-body.md"
+          set -euo pipefail
+          if ! python -I - "$RUNNER_TEMP/report.json" "$RUNNER_TEMP/issue-body.md" "$RUN_URL" <<'PY' 2>"$RUNNER_TEMP/alert-build.err"
+          import json
+          import sys
+          from pathlib import Path
+          from scripts.price_reread import alert_comment
+
+          report_path, body_path, run_url = sys.argv[1:]
+          payload = json.loads(Path(report_path).read_text(encoding="utf-8"))
+          Path(body_path).write_text(alert_comment(payload, run_url), encoding="utf-8")
+          PY
+          then
+            last="$(sed -n '$p' "$RUNNER_TEMP/alert-build.err" | tr -d '\r')"
+            echo "::warning::${last}"
+            printf 'Run: %s\n\nthe alert summary could not be built\n\nprice-reread-report\n' "$RUN_URL" > "$RUNNER_TEMP/issue-body.md"
+          fi
+          if ! gh label create alert --repo "$REPO" --color B60205 --description "A scheduled re-read needs a person" >"$RUNNER_TEMP/label-create.txt" 2>&1; then
+            if grep -q "already exists" "$RUNNER_TEMP/label-create.txt"; then
+              true
+            else
+              detail="$(tr '\n' ' ' < "$RUNNER_TEMP/label-create.txt" | tr -d '\r')"
+              echo "::warning::${detail}"
+            fi
+          fi
+          number=""
+          if ! number="$(gh issue list --repo "$REPO" --state open --limit 100 --json number,title --jq 'first(.[] | select(.title == env.TITLE) | .number) // empty')"; then
+            echo "::warning::Could not list open alert issues."
+          elif [ -n "$number" ]; then
+            gh issue comment "$number" --repo "$REPO" --body-file "$RUNNER_TEMP/issue-body.md" || echo "::warning::Could not comment on the alert issue."
+            gh issue edit "$number" --repo "$REPO" --add-label alert || echo "::warning::Could not add the alert label."
           else
-            gh issue create --repo "${{ github.repository }}" --title "$TITLE" --body-file "$RUNNER_TEMP/issue-body.md"
+            if ! gh issue create --repo "$REPO" --title "$TITLE" --label alert --body-file "$RUNNER_TEMP/issue-body.md" >"$RUNNER_TEMP/issue-create.txt" 2>&1; then
+              detail="$(tr '\n' ' ' < "$RUNNER_TEMP/issue-create.txt" | tr -d '\r')"
+              echo "::warning::${detail}"
+              if ! gh issue create --repo "$REPO" --title "$TITLE" --body-file "$RUNNER_TEMP/issue-body.md" >"$RUNNER_TEMP/issue-create-plain.txt" 2>&1; then
+                detail="$(tr '\n' ' ' < "$RUNNER_TEMP/issue-create-plain.txt" | tr -d '\r')"
+                echo "::warning::${detail}"
+              fi
+            fi
           fi
       - name: Fail a run with alerts
         if: steps.result.outputs.alerts != '0'
