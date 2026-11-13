@@ -17,7 +17,8 @@ from urllib.parse import urlsplit
 import yaml
 
 from release_signals.contract import ReleaseSignal
-from release_signals.watch import Catalogue, Registry, Seen, SourceRun, signal_id
+from release_signals.scope import derivative_reason, out_of_scope_reason, tag_scope
+from release_signals.watch import Catalogue, Registry, Seen, Source, SourceRun, signal_id
 
 PROVIDERS = {
     "qwen": "alibaba-qwen-team", "alibaba": "alibaba-qwen-team",
@@ -156,6 +157,73 @@ def draft_card(signal: ReleaseSignal, evidence: list[dict]) -> dict:
     }
 
 
+def _optional_text(row: dict, field: str) -> str | None:
+    if field not in row or row[field] is None:
+        return None
+    value = row[field]
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"replay {field} must be a string")
+    return value
+
+
+def _optional_tags(row: dict) -> tuple[str, ...]:
+    if "tags" not in row or row["tags"] is None:
+        return ()
+    value = row["tags"]
+    if not isinstance(value, list) or any(not isinstance(tag, str) for tag in value):
+        raise ValueError("replay tags must be a list of strings")
+    return tuple(value)
+
+
+def _optional_bases(row: dict) -> tuple[str, ...]:
+    if "base_models" not in row or row["base_models"] is None:
+        return ()
+    value = row["base_models"]
+    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+        raise ValueError("replay base_models must be a list of strings")
+    return tuple(value)
+
+
+def _observation(run: SourceRun, seen: Seen) -> dict:
+    """One source row for the run report. Hub fields are omitted when absent."""
+    evidence = {
+        "source_id": run.source.id, "source_key": seen.key,
+        "model_name": seen.model_name, "provider": seen.provider, "url": seen.url,
+        "created": seen.created.isoformat() if seen.created else None,
+        "confidence": run.source.confidence,
+    }
+    if seen.pipeline_tag:
+        evidence["pipeline_tag"] = seen.pipeline_tag
+    if seen.tags:
+        evidence["tags"] = list(seen.tags)
+    if seen.base_model:
+        evidence["base_model"] = seen.base_model
+    if len(seen.base_models) > 1:
+        evidence["base_models"] = list(seen.base_models)
+    return evidence
+
+
+def _hub_scope_reason(seen: Seen, source: Source) -> str | None:
+    """Tag first, then the name rules, then another organisation's base model.
+
+    Page and OpenRouter rows have no hub tags. Pending signals without tags
+    still meet the name rules in process.
+    """
+    if source.kind != "huggingface":
+        return None
+    decision = tag_scope(seen.pipeline_tag, seen.tags)
+    reason = (
+        decision.reason if decision.decided
+        else out_of_scope_reason(seen.provider, seen.model_name)
+    )
+    if reason:
+        return reason
+    bases: str | tuple[str, ...] | None = (
+        seen.base_models if seen.base_models else seen.base_model
+    )
+    return derivative_reason(seen.key, bases)
+
+
 def filter_releases(
     runs: Iterable[SourceRun], now: datetime, *, catalogue: Catalogue | None = None,
 ) -> dict:
@@ -169,14 +237,11 @@ def filter_releases(
         if run.status != "ok":
             continue
         for seen in sorted(run.new, key=lambda row: row.key):
-            evidence = {
-                "source_id": run.source.id, "source_key": seen.key,
-                "model_name": seen.model_name, "provider": seen.provider, "url": seen.url,
-                "created": seen.created.isoformat() if seen.created else None,
-                "confidence": run.source.confidence,
-            }
+            evidence = _observation(run, seen)
             observations.append(evidence)
             reason = rejection_reason(seen.provider, seen.model_name, source_url=seen.url)
+            if reason is None:
+                reason = _hub_scope_reason(seen, run.source)
             if reason is None and card_identity(seen.provider, seen.model_name) in carded:
                 reason = "already carded (normalized release or alias)"
             if reason:
@@ -231,6 +296,10 @@ def replay_reports(paths: Sequence[Path], registry: Registry) -> tuple[list[Sour
                     key=row["source_key"], model_name=row["model_name"],
                     provider=row["provider"], url=row["url"],
                     created=datetime.fromisoformat(row["created"]) if row["created"] else None,
+                    pipeline_tag=_optional_text(row, "pipeline_tag"),
+                    tags=_optional_tags(row),
+                    base_model=_optional_text(row, "base_model"),
+                    base_models=_optional_bases(row),
                 ))
             if seen:
                 runs.append(SourceRun(source, "ok", new=tuple(seen), listed=len(seen)))

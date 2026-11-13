@@ -212,7 +212,7 @@ def test_cli_drops_non_model_items_but_keeps_distinct_releases(tmp_path, monkeyp
 
 
 @pytest.mark.parametrize("name", [
-    "ERNIE-5-Docs", "Pixtral-Docs", "ocr-doc", "client-embed-1", "guide-7b",
+    "ERNIE-5-Docs", "Pixtral-Docs", "Orbit-Doc", "client-embed-1", "guide-7b",
     "Example-LM", "agent-sdk-model-7b",
 ])
 def test_huggingface_model_names_with_artifact_tokens_stay_discoveries(
@@ -420,9 +420,31 @@ def test_public_issue_replay_keeps_each_newly_carded_release_once(tmp_path, monk
     original = json.loads(Path(
         "docs/evidence/g2-ios/MODEL-432-discovery-inputs.json",
     ).read_text())
-    assert len(retained) == 160
+    assert len(retained) == 138
     assert rejected == {
+        "watch:alibaba-qwen-team:qwen-image-2-1-turbo",
+        "watch:black-forest-labs:flux-3-image-klein",
+        "watch:black-forest-labs:flux-3-image-klein-base",
+        "watch:black-forest-labs:flux-3-image-klein-comfy",
+        "watch:black-forest-labs:flux-3-image-klein-pup",
         "watch:ibm:ensemble-forecasting-with-ibm-granite-time-series",
+        "watch:ibm:granite-timeseries-ensemble-r1",
+        "watch:mistral:timestral-123m",
+        "watch:mistral:timestral-209m",
+        "watch:mistral:timestral-28m",
+        "watch:mistral:timestral-5m",
+        "watch:nvidia:cosmos3-nano-libero10-sdg-export-d",
+        "watch:nvidia:cosmos3-nano-libero10-sdg-export-d-half",
+        "watch:nvidia:cosmos3-nano-libero10-sdg-export-d2",
+        "watch:nvidia:cosmos3-nano-libero10-sdg-export-d5",
+        "watch:nvidia:cosmos3-nano-libero10-sdg-export-r",
+        "watch:nvidia:cosmos3-nano-libero10-sdg-export-s-all",
+        "watch:nvidia:cosmos3-nano-libero10-sdg-export-s-best",
+        "watch:nvidia:cosmos3-nano-libero10-sdg-export-s-worst",
+        "watch:nvidia:cosmos3-nano-libero10-sdg-export-s2",
+        "watch:nvidia:cosmos3-nano-libero10-sdg-export-s5-2",
+        "watch:nvidia:cosmos3-nano-libero10-sdg-export-s5-all",
+        "watch:nvidia:gr00t-n1-7-appletoplate-cosine40k-checkpoint-15000",
         "watch:nvidia:muse-spark-open-816b-a42b-dflash2",
         "watch:openbmb:minicpm-v-4-7-1b-dspark",
         "watch:openbmb:minicpm-v-4-7-35b-a3b-dspark",
@@ -607,3 +629,81 @@ def test_recall_refuses_shallow_catalogue_and_writing_into_catalogue(tmp_path):
                             "--report", str(card)])
     assert error.value.code == 2
     assert card.read_bytes() == original
+
+
+def test_huggingface_filter_drops_out_of_scope_tags_derivatives_and_untagged_names() -> None:
+    source = next(item for item in load_registry().sources if item.kind == "huggingface")
+    rows = [
+        {"key": "acme-lab/walker", "name": "walker", "pipeline_tag": "robotics"},
+        {"key": "acme-lab/pong", "name": "pong", "pipeline_tag": "reinforcement-learning"},
+        {"key": "acme-lab/arm", "name": "acme-robotics-arm"},
+        {
+            "key": "acme-lab/orbit-9", "name": "orbit-9",
+            "pipeline_tag": "text-generation", "base_model": "other-lab/Orbit-1",
+        },
+        {
+            "key": "acme-lab/orbit-1-sparse", "name": "orbit-1-sparse",
+            "pipeline_tag": "text-generation", "base_model": "other-lab/Orbit-1",
+        },
+        {
+            "key": "acme-lab/orbit-1-graph", "name": "orbit-1-graph",
+            "pipeline_tag": "graph-other", "base_model": "other-lab/Orbit-1",
+        },
+        {
+            "key": "acme-lab/orbit-8", "name": "orbit-8",
+            "pipeline_tag": "text-generation", "base_model": "acme-lab/Orbit-1",
+        },
+        {"key": "acme-lab/orbit-7", "name": "orbit-7", "pipeline_tag": "text-generation"},
+        {
+            "key": "acme-lab/orbit-6", "name": "acme-robotics-arm-6",
+            "pipeline_tag": "text-generation",
+        },
+        {
+            "key": "acme-lab/orbit-5", "name": "acme-robotics-arm-5",
+            "pipeline_tag": "graph-ml",
+        },
+        {
+            "key": "acme-lab/speech", "name": "speech",
+            "tags": ("automatic-speech-recognition",),
+        },
+        {
+            "key": "acme-lab/orbit-4", "name": "orbit-4",
+            "tags": ("text-generation", "robotics"),
+        },
+        {
+            "key": "acme-lab/audio-box", "name": "audio-box",
+            "tags": ("audio",),
+        },
+    ]
+    seen = tuple(
+        Seen(
+            row["key"], row["name"], "acme", f"https://huggingface.co/{row['key']}",
+            pipeline_tag=row.get("pipeline_tag"),
+            tags=tuple(row.get("tags") or ()),
+            base_model=row.get("base_model"),
+        )
+        for row in rows
+    )
+    result = filter_releases([SourceRun(source, "ok", new=seen)], NOW)
+    assert {signal.model_name for signal in result["signals"]} == {
+        "orbit-9", "orbit-8", "orbit-7", "orbit-4", "audio-box",
+        "acme-robotics-arm-6", "acme-robotics-arm-5",
+    }
+    reasons = {row["model_name"]: row["reason"] for row in result["rejected"]}
+    assert reasons == {
+        "walker": "robotics",
+        "pong": "reinforcement-learning",
+        "acme-robotics-arm": "robotics or embodied checkpoint",
+        "orbit-1-sparse": "derivative of other-lab/Orbit-1",
+        "orbit-1-graph": "derivative of other-lab/Orbit-1",
+        "speech": "automatic-speech-recognition",
+    }
+    text = release_watch.summary({"observed_at": NOW.isoformat(), "sources": [],
+                                  "discoveries": [], "posted": None, **result})
+    assert "robotics: 1" in text
+    assert "reinforcement-learning: 1" in text
+    assert "- derivative: 2" in text
+    assert "- derivative of " not in text
+    assert "- built on another lab's base: 1" in text
+    assert "Unknown pipeline tags kept in scope: `graph-ml`." in text
+    assert "graph-other" not in text
