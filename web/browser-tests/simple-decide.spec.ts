@@ -62,15 +62,30 @@ test("a keyboard job pick changes the request, focuses the verdict and carries t
 
 for (const state of ["?template=coding-balanced&source=old", "?source=old#s=preserved-state"]) {
   test(`old board links retain query and hash: ${state}`, async ({ page, baseURL }) => {
-    // decide.html redirects before its module loads. The details board can
-    // replaceState its own hash before the load event page.goto waits for, so
-    // arm the assertion first and record the redirect's URL.
+    // decide.html redirects to /decide/details/ with the old query and hash
+    // before its module loads. Read that exact URL when the redirect commits.
+    // page.goto waits for load; the path and query below are the URL after that.
+    // Both gates off (neither VITE_HUMAN_GATE_ENABLED nor VITE_VISIT_GATE_ENABLED
+    // is "true"): gateStatus starts false, so the opening board's replaceState
+    // publishes its own #s= and keeps the query. That write can land before or
+    // just after load, so require a #s= hash and not the redirect's original hash.
+    // Either gate on: gateStatus stays null until verification, so that rewrite
+    // does not run. Require the redirect's hash as well as the path and query.
     if (!baseURL) throw new Error("The decide suite requires baseURL");
     const expected = `${new URL(baseURL).origin}/decide/details/${state}`;
-    await Promise.all([
-      expect(page).toHaveURL(expected),
-      page.goto(`/decide/${state}`),
-    ]);
+    const redirect = new URL(expected);
+    const bothGatesOff = process.env.VITE_HUMAN_GATE_ENABLED !== "true" && process.env.VITE_VISIT_GATE_ENABLED !== "true";
+    const committed = page.waitForURL(expected, { waitUntil: "commit" });
+    await page.goto(`/decide/${state}`);
+    await committed;
+    const loaded = new URL(page.url());
+    expect(loaded.pathname, "pathname after load").toBe("/decide/details/");
+    expect(loaded.search, "query after load").toBe(redirect.search);
+    if (bothGatesOff) {
+      await page.waitForURL((url) => url.pathname === "/decide/details/" && url.search === redirect.search && url.hash.startsWith("#s="));
+    } else {
+      expect(loaded.hash, "a gate is on: the redirect hash is still there after load").toBe(redirect.hash);
+    }
     await expect(page.getByText("Example: Everyday help. Pick a job if this isn't yours.", { exact: true })).toHaveCount(0);
   });
 }
