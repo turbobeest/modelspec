@@ -2108,7 +2108,7 @@ def test_compare_approved_answers_regresses_when_pass_turns_partial(
 
     code = _compare_approved(paths)
 
-    assert code == 0
+    assert code == 1
     lines = capsys.readouterr().out.splitlines()
     assert lines[1] == "partial: 1; question ids: Q01"
     assert lines[-1] == "Regression question ids: Q01"
@@ -2124,7 +2124,7 @@ def test_compare_approved_answers_regresses_when_partial_turns_fail(
 
     code = _compare_approved(paths)
 
-    assert code == 0
+    assert code == 1
     lines = capsys.readouterr().out.splitlines()
     assert lines[2] == "fail: 1; question ids: Q05"
     assert lines[-1] == "Regression question ids: Q05"
@@ -2139,7 +2139,7 @@ def test_compare_approved_answers_regresses_when_the_proposed_baseline_drops(
 
     code = _compare_approved(paths)
 
-    assert code == 0
+    assert code == 1
     assert capsys.readouterr().out.splitlines()[-1] == "Regression question ids: Q03"
 
 
@@ -2154,6 +2154,20 @@ def test_compare_approved_answers_rejects_a_missing_question(
     assert code == 1
     assert capsys.readouterr().out == "::error::Private recall inputs could not be validated.\n"
     assert not paths[3].exists()
+
+
+def test_compare_approved_answers_exits_nonzero_without_a_step_output(
+    tmp_path: Path, capsys,
+) -> None:
+    report = _approved_verdicts(Q01="partial")
+    approved = _approved_verdicts()
+    paths = _approved_fixture(tmp_path, report, approved, approved)
+
+    code = _compare_approved(paths)
+
+    assert code == 1
+    assert capsys.readouterr().out.splitlines()[-1] == "Regression question ids: Q01"
+    assert not (tmp_path / "step-output").exists()
 
 
 def test_compare_approved_answers_records_a_regression_and_exits_zero(

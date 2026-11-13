@@ -2000,7 +2000,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             with args.step_output.open("a", encoding="utf-8") as handle:
                 handle.write(f"regressed={'true' if regressions else 'false'}\n")
                 handle.write(f"regression_ids={', '.join(regressions)}\n")
-        return 0
+            return 0
+        return 1 if regressions else 0
     if args.update_recall_baseline and args.check_recall_approval:
         parser.error("choose only one maintenance operation")
     if args.update_recall_baseline:
