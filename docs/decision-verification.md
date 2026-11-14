@@ -112,7 +112,10 @@ Unknown sentences cannot supply a grant, a condition, or a prohibition for
 another sentence. The reader has no prose windows or grantor slots. The numeric
 monthly-user agreement rule is retained as a full match of the entire cited
 region, ending in a period. A contextual example or hypothetical is unread.
-It does not infer an unbounded cap or fine-tuning rights from silence. Source-kind
+This exact-sentence reader does not infer an unbounded cap or fine-tuning rights
+from silence; the reading rule for `licence.user_cap` below, which gives
+`unbounded` for a provider's terms read in full with no threshold, is a
+different rule (MODEL-490). Source-kind
 checks still apply. The offline seed derivation command is
 in `docs/evidence/g2-ios/MODEL-390-engine-sentence-seeds.py`.
 
