@@ -281,17 +281,24 @@ A failure to post never changes the recall job's own result: neither status job 
 dependency of `recall`. A missing status is visible as a red `status-pending` or
 `status-final` job.
 
-### Endings the workflow cannot handle
+### Endings: cancelled runs, and what is left pending
 
-- The whole run cancelled before `status-final` starts (a newer dispatch on the same ref, by
-  the workflow's concurrency group, or a person cancelling): `always()` may still start the
-  final job on a cancelled run, but this was not seen. If it does not, the status stays
-  `pending` on that commit. A newer run on the same commit posts its own `pending` and final
-  status; a newer commit has its own status.
-- `status-final` failing to post (the API refused, a runner outage): the status stays
-  `pending`.
+- The workflow has `concurrency: recall-private-${{ github.ref }}` with
+  `cancel-in-progress: true`. `always()` makes `status-final` run on a cancelled run too, so a
+  run cancelled by a newer dispatch on the same branch posts `error` on its own commit.
+- If the newer run is on the same commit, that `error` can land after the newer run's
+  `pending` and shows red until the newer run's final status overwrites it. If the older job
+  is delayed past the newer run's end, `error` can be the last state on a commit whose check
+  passed. The remedy is one more dispatch of the workflow on that branch. No ordering gives a
+  `success` that the commit's own run did not earn.
+- Only a cancel by hand or a runner outage during `status-final` leaves `pending`. That
+  blocks the pull request; it does not pass it.
+- `status-final` failing to post (the API refused) also leaves the earlier status, and the
+  job is red.
 - `status-pending` posting after `status-final` cannot happen: the final job needs it.
-- GitHub losing the run altogether (an outage): `pending` stays.
+- A pull request opened by a person gets the check run from `pull_request` and no dispatch.
+  If a dispatch is also run on its branch, the status and the check run share the name and
+  both then count.
 
 ### Permissions
 
@@ -327,11 +334,10 @@ check.
 
 ### What only a real run proves
 
-- That `statuses: write` on the repository token is enough to post on that commit.
-- That the status shows in `gh pr checks` on a writer-opened pull request.
-- That a required check named "Approved answers on private data" is satisfied by the status.
-  The branch-protection proposal depends on this and it is still to be seen on a runner.
-- That `always()` starts `status-final` after a cancelled run.
+- That the repository token can post the status.
+- That it shows in `gh pr checks` on a writer-opened pull request.
+- That it satisfies a required check of that name. The branch-protection proposal depends on
+  this and it is still to be seen on a runner.
 
 ### What was checked by hand
 
