@@ -1160,6 +1160,26 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None,
         ]
         take(group, pool)
 
+    # A reviewer's clause-4 note keeps a member whatever its group's quota
+    # says. The selection above runs as before, a noted model competing for
+    # and taking a seat; this adds back only a noted model the quota cut. Live
+    # proposals only; the approved path is unchanged. A retired model never
+    # comes back: sunset cards are archived above. Seats past the quota are
+    # counted apart from the over-quota top 10.
+    reviewer_past_quota = {name: 0 for name in GROUP_ORDER}
+    if data_dir is not None:
+        for model_id, entry in sorted(by_model.items()):
+            if 4 not in entry["clauses"] or entry["card"]["status"] == "sunset":
+                continue
+            if model_id in selected_set:
+                continue
+            group = entry["group"]
+            filled = sum(1 for mid in selected if by_model[mid]["group"] == group)
+            if group in QUOTA and filled >= QUOTA[group]:
+                reviewer_past_quota[group] = reviewer_past_quota.get(group, 0) + 1
+            selected.append(model_id)
+            selected_set.add(model_id)
+
     models = []
     for model_id in selected:
         entry = by_model[model_id]
@@ -1341,6 +1361,10 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None,
         counts["over_quota_top10"] = sum(over_quota_by_group.values())
         counts["over_quota_top10_by_group"] = {
             group: count for group, count in over_quota_by_group.items() if count
+        }
+        counts["reviewer_additions_past_quota"] = sum(reviewer_past_quota.values())
+        counts["reviewer_additions_past_quota_by_group"] = {
+            group: count for group, count in reviewer_past_quota.items() if count
         }
     return {
         "schema_version": 1,
