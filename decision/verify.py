@@ -947,6 +947,8 @@ class OfferingPriceExtractor:
         price_col = _band_price_column(headers, wanted) if band_table else None
         current_subject: str | None = None
         readings: list[Reading] = []
+        #: The readings taken from a Type column, one per printed row of that type.
+        typed: list[tuple[Any, Reading]] = []
 
         for row in rows[1:]:
             if len(row) != len(headers):
@@ -985,28 +987,22 @@ class OfferingPriceExtractor:
             # the value in the first price column.
             type_i = next((i for i, header in enumerate(headers) if header == "type"), None)
             if type_i is not None:
-                kind = normalise_name(row[type_i])
                 batch_table = any("batch" in header or "flex" in header for header in headers)
                 has_cache_hit = any(
-                    len(other) == len(headers) and normalise_name(other[type_i]) == "cache hit"
+                    len(other) == len(headers) and _is_cache_row(other[type_i])
                     for other in rows[1:]
                 )
-                expected = {
-                    "input": "input", "output": "output",
-                    "cached_input": "cache hit" if has_cache_hit else "input",
-                    "batch_input": "input" if batch_table else "batch input",
-                    "batch_output": "output" if batch_table else "batch output",
-                }[wanted]
-                matches = (
-                    kind.startswith(expected)
-                    or (wanted.endswith("output") and "output" in kind)
-                )
-                if matches:
+                # A label that equals or extends the type and names no other kind
+                # (MODEL-481): "Output" is never "Batch Output", "Input (text, image)"
+                # is an input row.
+                if _row_fits(row[type_i], _row_kinds(wanted, batch_table, has_cache_hit)):
                     price_columns = [i for i, header in enumerate(headers)
                                      if "price" in header and i != type_i]
                     if wanted == "cached_input":
                         cached = [i for i in price_columns if "cached" in headers[i]]
-                        price_columns = cached or price_columns
+                        # With no cache row, only a cached column on the Input row
+                        # prices it; the plain Input price is never its cell (MODEL-481).
+                        price_columns = cached or (price_columns if has_cache_hit else [])
                     elif price_columns:
                         uncached = [i for i in price_columns if "cached" not in headers[i]]
                         price_columns = uncached or price_columns
@@ -1016,6 +1012,9 @@ class OfferingPriceExtractor:
                     )
                     if value:
                         readings.append(Reading(subject, value, claim.unit))
+                        context = tuple(cell for i, cell in enumerate(row)
+                                        if i and i != type_i and i not in price_columns)
+                        typed.append(((normalise_name(subject), context), readings[-1]))
 
             # AWS-style tables encode each price kind in its column header.
             # On a band-tiered table that scan hits the range column first.
@@ -1031,15 +1030,207 @@ class OfferingPriceExtractor:
                     "batch_input": ("input tokens batch", "input tokens (batch"),
                     "batch_output": ("output tokens batch", "output tokens (batch"),
                 }[wanted]
+                # Every header that names this kind and no other is read; their cells
+                # must agree (MODEL-481).
+                cells = []
                 for i, header in enumerate(headers):
                     flat = header.replace("price per 1m ", "")
                     if any(term.replace(" ", "") in flat.replace(" ", "") for term in terms):
                         if wanted in {"input", "output"} and "batch" in header:
                             continue
-                        readings.append(Reading(subject, row[i], claim.unit))
-                        break
+                        if _header_fits(header, wanted):
+                            cells.append((subject, Reading(subject, row[i], claim.unit)))
+                if cells:
+                    _agree(cells)
+                    readings.append(cells[0][1])
+        _agree(typed)
         return (readings or _peak_price_tables(claim, rows, wanted)
                 or _grouped_header_tables(claim, text, wanted))
+
+    def nothing_for_kind(self, claim: Claim, text: str) -> str | None:
+        """What a ``not_disclosed`` price's region reads for its kind (MODEL-481).
+
+        ``"nothing"``: the region read, the claim model's row is on it (another price
+        kind of that model reads as a number) and no cell reads for the claimed kind.
+        ``"unavailable"``: the same, and a cell for the kind says it is not available.
+        ``None``: anything else, including a table that did not read, a model that is
+        not on it, or a value that does read. This claims nothing about the price.
+        """
+        wanted = self._wanted(claim.field)
+        if wanted == claim.field or wanted not in _PRICE_KINDS:
+            return None
+        try:
+            if self.extract(claim, text):
+                return None
+        except ExtractorError:
+            return None
+        for other in sorted(_PRICE_KINDS - {wanted}):
+            sibling = replace(claim, field=f"offering.price.{other}")
+            try:
+                readings = self.extract(sibling, text)
+            except ExtractorError:
+                continue
+            if any(reading.subject and _published_subject(reading.subject, claim.names)
+                   and parse_quantity(str(reading.value), claim.unit) is not None
+                   for reading in readings):
+                return "unavailable" if self._unavailable_cell(claim, text, wanted) else "nothing"
+        return None
+
+    def _unavailable_cell(self, claim: Claim, text: str, wanted: str) -> bool:
+        """Whether a cell the reader would read for ``wanted`` says "not available"."""
+        rows = [[part.strip() for part in re.split(r" ?\| ?", line)]
+                for line in text.splitlines() if "|" in line]
+        if len(rows) < 2:
+            return False
+        headers = [normalise_name(cell) for cell in rows[0]]
+        type_i = next((i for i, header in enumerate(headers) if header == "type"), None)
+        batch_table = any("batch" in header or "flex" in header for header in headers)
+        has_cache_hit = type_i is not None and any(
+            len(other) == len(headers) and _is_cache_row(other[type_i])
+            for other in rows[1:])
+        current: str | None = None
+        for row in rows[1:]:
+            if len(row) != len(headers):
+                continue
+            if row[0]:
+                current = row[0]
+            if not current or not _published_subject(current, claim.names):
+                continue
+            if type_i is not None:
+                required = _row_kinds(wanted, batch_table, has_cache_hit)
+                price = [i for i, header in enumerate(headers) if "price" in header and i != type_i]
+                if wanted == "cached_input" and not has_cache_hit:
+                    price = [i for i in price if "cached" in headers[i]]
+                if _row_fits(row[type_i], required) and price \
+                        and all(_UNAVAILABLE.fullmatch(normalise_name(row[i])) for i in price):
+                    return True
+            else:
+                term = "batch" if wanted.startswith("batch_") else (
+                    "cache" if wanted == "cached_input" else wanted)
+                if any(term in header and _UNAVAILABLE.fullmatch(normalise_name(row[i]))
+                       for i, header in enumerate(headers)):
+                    return True
+        return False
+
+
+_PRICE_KINDS = frozenset({"input", "output", "cached_input", "batch_input", "batch_output"})
+#: A cell that states the price is not available.
+_UNAVAILABLE = re.compile(r"n a|na|not available|unavailable|not applicable|not supported")
+#: Words that name a price kind in a row type or a column header. A label fits a wanted
+#: kind when it names that kind and no other (MODEL-481). Other words are free.
+_KIND_WORDS: dict[str, frozenset[str]] = {
+    "input": frozenset({"input", "inputs", "prompt"}),
+    "output": frozenset({"output", "outputs", "response", "completion"}),
+    "batch": frozenset({"batch", "flex", "priority"}),
+    "cache": frozenset({"cache", "cached", "caching"}),
+    "write": frozenset({"write", "writes"}),
+    "read": frozenset({"read", "reads"}),
+}
+
+
+def _kinds_named(label: str) -> frozenset[str]:
+    tokens = set(normalise_name(label).split())
+    return frozenset(kind for kind, words in _KIND_WORDS.items() if tokens & words)
+
+
+def _is_cache_row(label: str) -> bool:
+    """A cached-read row: names cache (and may name read or input), never write or miss.
+
+    ``Cache hit``, ``Cache read``, ``Cache Hit / Cache read``, ``Cached input`` and
+    ``Prompt caching`` fit; ``Cache write`` and ``Cache miss`` do not (MODEL-481).
+    """
+    tokens = set(normalise_name(label).split())
+    named = _kinds_named(label)
+    return ("cache" in named and named <= {"cache", "read", "input"} and "miss" not in tokens
+            and bool(tokens & {"hit", "read", "reads"} or "input" in named))
+
+
+def _row_kinds(wanted: str, batch_table: bool, has_cache_hit: bool) -> tuple[frozenset[str], str | None]:
+    """The kinds a Type-column row label must name for ``wanted``, and a word it needs."""
+    if wanted == "cached_input":
+        return (frozenset({"cache"}), "*") if has_cache_hit else (frozenset({"input"}), None)
+    kind = "input" if wanted.endswith("input") else "output"
+    if wanted.startswith("batch_") and not batch_table:
+        return frozenset({"batch", kind}), None
+    return frozenset({kind}), None
+
+
+def _row_fits(label: str, required: tuple[frozenset[str], str | None]) -> bool:
+    """A label equals or extends the expected type and names no other kind."""
+    kinds, word = required
+    if word == "*":
+        return _is_cache_row(label)
+    return _kinds_named(label) == kinds and (
+        word is None or word in normalise_name(label).split())
+
+
+#: Header-scan kinds per wanted: the kinds a header must name, and those it may also name.
+_HEADER_KINDS: dict[str, tuple[frozenset[str], frozenset[str]]] = {
+    "input": (frozenset({"input"}), frozenset()),
+    "output": (frozenset({"output"}), frozenset()),
+    "cached_input": (frozenset({"cache", "read"}), frozenset({"input"})),
+    "batch_input": (frozenset({"input", "batch"}), frozenset()),
+    "batch_output": (frozenset({"output", "batch"}), frozenset()),
+}
+
+
+def _header_fits(header: str, wanted: str) -> bool:
+    must, may = _HEADER_KINDS[wanted]
+    named = _kinds_named(header)
+    return must <= named <= must | may
+
+
+def _amount(reading: Reading) -> Any:
+    quantity = parse_quantity(str(reading.value), reading.unit)
+    return quantity.number if quantity is not None else str(reading.value).strip()
+
+
+def _agree(readings: Sequence[tuple[Any, Reading]]) -> None:
+    """Raise unless the readings under one key are the same amount.
+
+    ``verify`` passes when any one reading matches, so two different cells for one
+    fact would pass on the wrong one. A key is the model plus the row's other
+    non-price cells (a region column keeps its own rows apart).
+    """
+    seen: dict[Any, Reading] = {}
+    for key, reading in readings:
+        if key in seen and _amount(seen[key]) != _amount(reading):
+            raise ExtractorError(
+                f"the page prints {reading.subject!r} with cells that disagree for one "
+                f"price kind: {seen[key].value!r} and {reading.value!r}")
+        seen.setdefault(key, reading)
+
+
+def read_not_disclosed(claim: Claim, regions: Regions) -> tuple[str, tuple[str, ...]] | None:
+    """What the cited regions of a ``not_disclosed`` price read for it, or ``None``.
+
+    ``("nothing", where)`` when every cited region read and none has a cell for the
+    kind; ``("unavailable", where)`` when one says it is not available. ``where`` is
+    ``source#region`` for each region read. ``None`` for a region that did not
+    resolve, a page the price reader does not accept, or a model that is not on the
+    table: the caller keeps the outcome it had. This confirms nothing (MODEL-481).
+    """
+    if claim.value is not None or not claim.field.startswith("offering.price."):
+        return None
+    reader = OfferingPriceExtractor()
+    where: list[str] = []
+    unavailable = False
+    for source in claim.sources:
+        for region_id in source.cited_regions:
+            text = regions.text(source.source_id, source.snapshot_ref, region_id)
+            if text is None:
+                return None
+            text = MetricPriceTable.outside(text)
+            if not reader.accepts(text):
+                return None
+            verdict = reader.nothing_for_kind(claim, text)
+            if verdict is None:
+                return None
+            unavailable = unavailable or verdict == "unavailable"
+            where.append(f"{source.source_id}#{region_id}")
+    if not where:
+        return None
+    return ("unavailable" if unavailable else "nothing", tuple(where))
 
 
 #: A price cell: a dollar amount, however the unit after it is written.

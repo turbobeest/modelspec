@@ -21,6 +21,10 @@ Each fact ends in one status:
 - ``unreadable``: the page fetched but the reader no longer understands it: the
   cited region is gone, no reader accepts the page, or the subject is not found.
 - ``unreachable``: the page did not fetch.
+- ``not_disclosed_no_value``: a price filed ``not_disclosed`` whose cited region read and has
+  no value for that kind. It claims nothing: not unchanged, not an alert, nothing written
+  (MODEL-481). A number read is ``needs_review`` (``disclosed: page now states a value``);
+  an explicit not-available cell is ``needs_review`` too.
 - ``not_reread``: out of this job's reach. A rendered browser was not enabled,
   the retained copy is a text projection that needs re-registering before an
   HTML re-read, the value is still quarantined, or an LLM reader last verified it
@@ -99,6 +103,7 @@ from decision.verify import (
     normalise_name,
     parse_quantity,
     split_model_cell,
+    read_not_disclosed,
     verify,
 )
 
@@ -136,6 +141,8 @@ class Status(StrEnum):
     UNREADABLE = "unreadable"
     UNREACHABLE = "unreachable"
     NOT_REREAD = "not_reread"
+    #: A ``not_disclosed`` price whose page read and has no value for it: claims nothing.
+    NOT_DISCLOSED_NO_VALUE = "not_disclosed_no_value"
 
 
 ALERTS = frozenset({Status.NEEDS_REVIEW, Status.UNREADABLE, Status.UNREACHABLE})
@@ -225,7 +232,8 @@ class Report:
     def counts(self) -> dict[str, int]:
         counts = Counter(f.status.value for f in self.facts)
         return {s.value: counts.get(s.value, 0) for s in Status
-                if s is not Status.CITED or counts.get(s.value, 0)}
+                if s not in (Status.CITED, Status.NOT_DISCLOSED_NO_VALUE)
+                or counts.get(s.value, 0)}
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -237,6 +245,9 @@ class Report:
             "reconfirmed": [f.fact_id for f in self.facts if f.status is Status.UNCHANGED],
             "cited": [f.to_dict() for f in self.facts if f.status is Status.CITED],
             "alerts": [f.to_dict() for f in self.alerts],
+            "not_disclosed_no_value": [
+                {"fact": f.fact_id, "sources": list(f.source_ids), "read": f.reason}
+                for f in self.facts if f.status is Status.NOT_DISCLOSED_NO_VALUE],
             "not_reread": dict(Counter(
                 f.reason or "" for f in self.facts if f.status is Status.NOT_REREAD)),
             "sources": {sid: {"url": s.url, "outcome": s.outcome, "copy": s.copy_ref,
@@ -715,6 +726,17 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
                        reason=f"cited region not found in the new copy: {result.reason}"
                        f"{_page_size(regions, claim)}")
     if result.outcome == "skipped":
+        # A price filed not_disclosed whose region read and shows no cell for the kind
+        # claims nothing and is not a failure (MODEL-481). Nothing is written.
+        if fact["state"] == "not_disclosed" and (
+                seen := read_not_disclosed(claim, regions)) is not None:
+            verdict, where = seen
+            if verdict == "unavailable":
+                return replace(base, status=Status.NEEDS_REVIEW,
+                               reason="the page states this price is not available (a person "
+                               "may re-file it as not_offered); read " + ", ".join(where))
+            return replace(base, status=Status.NOT_DISCLOSED_NO_VALUE,
+                           reason="read " + ", ".join(where) + "; no value for this kind")
         return replace(base, status=Status.UNREADABLE,
                        reason=f"no reader accepts the new copy: {result.reason}"
                        f"{_page_size(regions, claim)}")
@@ -722,6 +744,10 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
     proposal = _propose(claim, regions, today)
     confirmed = proposal.values
     diff = _diff_text(result)
+    # A price filed not_disclosed that a reader now reads is a disclosure a person
+    # confirms; nothing is written (MODEL-481).
+    disclosed = ("disclosed: page now states a value; "
+                 if fact["state"] == "not_disclosed" and fact.get("value") is None else "")
     if not proposal.read_any:
         return replace(base, status=Status.UNREADABLE,
                        reason=f"the readers find no value for {claim.names[0]!r}: {diff}")
@@ -748,7 +774,7 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
         # A value the page did not state is new, not changed: a person confirms the
         # page now states it, and it is not a label for something else (MODEL-235).
         return replace(base, status=Status.NEEDS_REVIEW,
-                       reason=f"was {fact['state']}; a reader now reads "
+                       reason=f"{disclosed}was {fact['state']}; a reader now reads "
                        f"{json.dumps(confirmed[0])}: {diff}")
     if len(confirmed) > 1:
         why = "several new values verify, among them " + ", ".join(map(json.dumps, confirmed))
@@ -757,7 +783,7 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
     else:
         why = "no single new value verifies"
     return replace(base, status=Status.NEEDS_REVIEW,
-                   reason=f"{why}{proposal.cap_note}; {diff}")
+                   reason=f"{disclosed}{why}{proposal.cap_note}; {diff}")
 
 
 def _page_size(regions: StoredRegions, claim: Claim) -> str:
@@ -1052,6 +1078,7 @@ _SECTION_KIND = {
     "Changed values": "change",
     "Needs a person": "alert",
     "Not re-read": "not-reread",
+    "Not disclosed, nothing to read": "not-disclosed",
 }
 
 
@@ -1102,6 +1129,14 @@ def render_report(report: Report) -> str:
                 "| Fact | Status | Why |", "|---|---|---|"]
         for f in report.alerts:
             out.append(f"| `{f.fact_id}` | {f.status.value} | {_show(f.reason, middle=True)} |")
+        out.append("")
+    quiet = [f for f in report.facts if f.status is Status.NOT_DISCLOSED_NO_VALUE]
+    if quiet:
+        out += ["### Not disclosed, nothing to read", "",
+                "These facts are filed not disclosed and their page read with no value for "
+                "the kind. Nothing is claimed or written; spot-check the regions.", "",
+                "| Fact | Read |", "|---|---|"]
+        out += [f"| `{f.fact_id}` | {_show(f.reason, middle=True)} |" for f in quiet]
         out.append("")
     if report.diffs:
         out += ["### Source diffs", ""]
