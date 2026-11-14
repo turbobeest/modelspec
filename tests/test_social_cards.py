@@ -622,6 +622,8 @@ def test_a_cleared_retry_is_visible(
 def test_a_cleared_retry_stays_a_warning_under_the_repository_pytest_configuration(
     tmp_path: Path,
 ) -> None:
+    """Loads the repository's pyproject.toml explicitly; conftest.py files are not loaded for a
+    probe outside the tree, so a warnings filter added in a conftest.py is not covered here."""
     _skip_without_playwright()
     probe = tmp_path / "test_probe.py"
     probe.write_text(
@@ -631,12 +633,13 @@ def test_a_cleared_retry_stays_a_warning_under_the_repository_pytest_configurati
         encoding="utf-8",
     )
     result = subprocess.run(
-        [sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-q", "-rw",
-         "--rootdir", str(ROOT), str(probe)],
+        [sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-rw",
+         "-c", str(ROOT / "pyproject.toml"), "--rootdir", str(ROOT), str(probe)],
         cwd=ROOT, capture_output=True, text=True,
         env={**os.environ, "PYTHONPATH": str(ROOT), "MODELSPEC_TEST_FAIL_SCREENSHOTS": "1"},
     )
     assert result.returncode == 0, result.stdout + result.stderr
+    assert "configfile: pyproject.toml" in result.stdout
     assert "1 passed" in result.stdout
     assert "RendererRetried" in result.stdout
 
