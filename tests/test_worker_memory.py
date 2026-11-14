@@ -394,12 +394,17 @@ sys.exit(result.returncode)
 ''')
     node.chmod(0o755)
     stub = '''npm() { return 0; }
-uv() { printf '%s\\n' "$*" >> deployed; }
 '''
+    # The production deploy runs `uv` inside scripts/deploy_retry.py, a child
+    # process, so the stand-in must be an executable and not a shell function.
+    uv = binaries / "uv"
+    uv.write_text("#!/bin/sh\nprintf '%s\\n' \"$*\" >> deployed\n")
+    uv.chmod(0o755)
     result = subprocess.run(
         ["bash", "-e", "-c", stub + gate["run"] + "\n" + deploy["run"]],
         cwd=tmp_path, capture_output=True, text=True,
         env=os.environ | {"RUNNER_TEMP": str(tmp_path), "GITHUB_SHA": "fixture",
+                          "GITHUB_WORKSPACE": str(ROOT),
                           "PATH": str(binaries) + os.pathsep + os.environ["PATH"],
                           "REAL_NODE": real_node, "ASSESS_MODULE": str(ROOT / "api/worker/measure_memory.cjs"),
                           "CURRENT_MIB": str(current), "SUCCESSOR_MIB": str(successor)},

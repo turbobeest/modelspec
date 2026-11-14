@@ -801,7 +801,7 @@ _PRIVATE_JOB_TAILS = {
         ),
         (
             ('name', 'Deploy'),
-            ('run_sha256', '65400d86de8051fa07d870529fbafee01ee5d4f727fb9c2898e3b0d347e7d95c'),
+            ('run_sha256', '7f11d5c0c55ecb882b03689fff2fa39be23c2ce7b721e128ff91570521f39e61'),
             ('working-directory', 'api/worker'),
         ),
         (
@@ -1247,7 +1247,7 @@ _STEP_PINS = {
     ("rank-api.yml", "deploy-staging"):
         "3f56082ba0e87ec558d3012580e64873e84bb79422c9cbbb2ab4122df1486f00",
     ("rank-api.yml", "deploy"):
-        "06d88e49c7cee954429559d6b242671eb1e1fa7843dd9e2aab00aaf036465e35",
+        "ee6da731e3bd7be04b85f2961302ec6b03745873f9fc6f0989cd3fa4b2b34b52",
 }
 _FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
 _DOCKER_PIN = re.compile(r"^docker://[^@\s]+@sha256:[0-9a-f]{64}$")

@@ -18,7 +18,9 @@ def test_access_reference_deploy_command_matches_workflow():
     workflow = yaml.safe_load((REPO_ROOT / ".github/workflows/rank-api.yml").read_text())
     deploy = next(step["run"] for step in workflow["jobs"]["deploy"]["steps"]
                   if step.get("name") == "Deploy")
-    assert commands == [deploy.strip()]
+    # MODEL-487: the step runs the documented command inside the retry wrapper.
+    wrapper = 'python3 "$GITHUB_WORKSPACE/scripts/deploy_retry.py" -- '
+    assert [wrapper + command for command in commands] == [deploy.strip()]
     assert "TIER_POLICY:" not in commands[0]
 
 
