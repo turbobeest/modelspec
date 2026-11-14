@@ -24,7 +24,7 @@ from tests.test_leaderboard_refresh import FINANCE_CARDS, FIXTURES, _finance_rep
 OBSERVED = "2026-11-14"
 PINNED = "a" * 40
 CDN = "https://us.aws.cdn.hf.co/repos/xx/file.parquet"
-TBENCH = "https://www.tbench.ai/leaderboard/terminal-bench/4.0"
+TBENCH = refresh.TBENCH_URL
 FINBENCH_PAGE = gzip.decompress((FIXTURES / "finbenchmark_2026-09-29.html.gz").read_bytes())
 
 
@@ -89,8 +89,8 @@ def test_redirect_to_root_fails_the_board_and_files_nothing(monkeypatch, tmp_pat
 
 
 def test_other_boards_in_the_run_are_unaffected(monkeypatch, tmp_path):
-    final = "https://www.tbench.ai/"
-    _install(monkeypatch, {TBENCH: (308, final), final: (200, b"<html>4.1</html>"),
+    final = "https://www.tbench.ai/leaderboard/terminal-bench/4.2"
+    _install(monkeypatch, {TBENCH: (308, final), final: (200, b"<html>4.2</html>"),
                            refresh.FINBENCH_URL: (200, FINBENCH_PAGE)})
     readings, failures = _collect(tmp_path, skip_arena=True)
     assert [r.key for r in readings] == ["finbenchmark"]

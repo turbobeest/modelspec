@@ -3409,6 +3409,15 @@ class RedirectedRead(ValueError):
         self.final = final
 
 
+class BoardVersionMismatch(ValueError):
+    """The board's own name is not the version the declaration expects (MODEL-493-F)."""
+
+    def __init__(self, expected: str, found: str) -> None:
+        super().__init__(f"board_version: expected {expected}, found {found}")
+        self.expected = expected
+        self.found = found
+
+
 def _is_hf_cdn_host(final: str) -> bool:
     parts = urllib.parse.urlsplit(final)
     host = parts.hostname or ""
@@ -3440,7 +3449,7 @@ def accept_scale_pro_final(requested: str, final: str) -> bool:
 
 def _reason(exc: BaseException) -> str:
     """The failure text for a board read: a redirect is its own class."""
-    if isinstance(exc, RedirectedRead):
+    if isinstance(exc, (RedirectedRead, BoardVersionMismatch)):
         return str(exc)
     return f"{type(exc).__name__}: {exc}"
 
@@ -3507,8 +3516,61 @@ def _reading_from_projection(
     )
 
 
-def _project_tbench(html: str, *, url: str, page_ref: str, observed_at: str) -> bytes:
+#: The Terminal-Bench board the declaration reads: the page's own name and title
+#: (MODEL-493-F). A page that changes version at this address fails the board.
+TBENCH_URL = "https://www.tbench.ai/"
+TBENCH_NAME = "4-1-0"
+TBENCH_TITLE = "Terminal-Bench 4.1"
+
+
+def _check_tbench_board(payload: str, expected_name: str, expected_title: str
+                        ) -> tuple[int, int, Mapping[str, Any]]:
+    """The binding rule: the page holds exactly one ``"leaderboard"`` object, it
+    carries the expected name (and title when it has one), and the projected rows
+    are the single ``"rows"`` list that is a direct key of the same enclosing
+    object as that leaderboard (on the real page, ``state.data`` holds both).
+
+    Returns the enclosing object's span and value; raises ``BoardVersionMismatch``
+    for no leaderboard, several, a wrong name or title, or no enclosing object.
+    """
+    expected = f"name {expected_name} (title {expected_title})"
+    decoder = json.JSONDecoder()
+    found: list[tuple[Mapping[str, Any], int, int, int]] = []
+    position = 0
+    while True:
+        try:
+            key = payload.index('"leaderboard":', position)
+        except ValueError:
+            break
+        start = key + len('"leaderboard":')
+        value, end = decoder.raw_decode(payload, start)
+        if isinstance(value, Mapping):
+            found.append((value, key, start, end))
+        position = start
+    if len(found) != 1:
+        raise BoardVersionMismatch(
+            expected, f"{len(found)} leaderboard objects" if found else "no leaderboard object")
+    board, key, _, end = found[0]
+    if board.get("name") != expected_name or board.get("title", expected_title) != expected_title:
+        raise BoardVersionMismatch(
+            expected, f"name {board.get('name')!r} (title {board.get('title')!r})")
+    open_at = payload.rfind("{", 0, key + 1)
+    while open_at >= 0:
+        try:
+            parent, parent_end = decoder.raw_decode(payload, open_at)
+        except ValueError:
+            parent = None
+        if isinstance(parent, Mapping) and parent_end >= end and parent.get("leaderboard") == board:
+            return open_at, parent_end, parent
+        open_at = payload.rfind("{", 0, open_at)
+    raise BoardVersionMismatch(expected, "no object enclosing the leaderboard")
+
+
+def _project_tbench(html: str, *, url: str, page_ref: str, observed_at: str,
+                    expected_name: str = TBENCH_NAME,
+                    expected_title: str = TBENCH_TITLE) -> bytes:
     payload = readers._rsc_payload(html)
+    parent_start, parent_end, parent = _check_tbench_board(payload, expected_name, expected_title)
     lists: list[list[dict[str, Any]]] = []
     position = 0
     while True:
@@ -3519,10 +3581,25 @@ def _project_tbench(html: str, *, url: str, page_ref: str, observed_at: str) -> 
         value, _ = json.JSONDecoder().raw_decode(payload, start)
         if (isinstance(value, list) and value and isinstance(value[0], Mapping)
                 and {"metadata", "metrics"} <= set(value[0])):
+            if not (parent_start <= start < parent_end and parent.get("rows") == value):
+                raise BoardVersionMismatch(
+                    f"rows in the object that holds the board named {expected_name}",
+                    "rows elsewhere")
             lists.append(value)
         position = start + 1
     if len(lists) != 1:
-        raise ValueError(f"Terminal-Bench: expected one leaderboard row list, got {len(lists)}")
+        raise BoardVersionMismatch(
+            f"one row list beside the board named {expected_name}", f"{len(lists)} row lists")
+    # Rows belong to the identity by id too: when the identity has an ``id``, every
+    # row must carry a ``leaderboard_id`` equal to it. A row with none is a mismatch
+    # (all rows on the live page carry it).
+    board_id = parent["leaderboard"].get("id")
+    if board_id is not None:
+        for entry in lists[0]:
+            if entry.get("leaderboard_id") != board_id:
+                raise BoardVersionMismatch(
+                    f"every row with leaderboard_id {board_id!r}",
+                    f"a row with leaderboard_id {entry.get('leaderboard_id')!r}")
     rows = []
     for entry in lists[0]:
         metadata, metrics = entry["metadata"], entry["metrics"]
@@ -3888,10 +3965,15 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
         except Exception as exc:
             failures.append(RowFailure("*", f"mteb:{key}", url, _reason(exc)))
 
-    terminal_url = "https://www.tbench.ai/leaderboard/terminal-bench/4.0"
-    collect("terminal-bench", "model-143-evidence-terminal-bench-4-0-json",
-            ("terminal_bench_v4_0",), terminal_url, terminal_url,
-            lambda body, **kw: _project_tbench(body.decode(), **kw), "accuracy")
+    # Terminal-Bench 4.1 is its own benchmark, read at the address that serves it. The
+    # 4.0 declaration is retired: its address redirects here and its rows are marked
+    # not_published_since. The board-name check is what fails if this page changes
+    # version (MODEL-493-F); never re-point this id at another version.
+    collect("terminal-bench-4-1", "model-493-evidence-terminal-bench-4-1-json",
+            ("terminal_bench_v4_1",), TBENCH_URL, TBENCH_URL,
+            lambda body, **kw: _project_tbench(
+                body.decode(), expected_name=TBENCH_NAME, expected_title=TBENCH_TITLE, **kw),
+            "accuracy", card_urls=(TBENCH_URL,))
 
     frontier_data = "https://cognition.com/data/frontiercode-leaderboard/data.json"
     collect("frontiercode", "model-160-frontiercode", ("frontiercode_v1_1",),
