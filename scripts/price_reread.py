@@ -11,11 +11,7 @@ Each fact ends in one status:
 
 - ``unchanged``: the recorded value verifies against the new copy. With
   ``--write`` that verification is logged with today's date, so the value's age
-  restarts; the offering file is not touched. A price filed ``not_disclosed`` is
-  ``unchanged`` with the reason ``still not disclosed`` when the same read shows the
-  table, the model's row, another price on that row and no column for that kind
-  (MODEL-481); when the page now states it, the fact is ``needs_review`` with
-  ``disclosed: page now states a value``.
+  restarts; the offering file is not touched.
 - ``needs_review``: the value no longer verifies. The reason carries what the
   readers propose instead, if anything: one new value, several, a list or flag,
   or free text read only from a whole-page region. The job never writes a
@@ -25,6 +21,10 @@ Each fact ends in one status:
 - ``unreadable``: the page fetched but the reader no longer understands it: the
   cited region is gone, no reader accepts the page, or the subject is not found.
 - ``unreachable``: the page did not fetch.
+- ``not_disclosed_no_value``: a price filed ``not_disclosed`` whose cited region read and has
+  no value for that kind. It claims nothing: not unchanged, not an alert, nothing written
+  (MODEL-481). A number read is ``needs_review`` (``disclosed: page now states a value``);
+  an explicit not-available cell is ``needs_review`` too.
 - ``not_reread``: out of this job's reach. A rendered browser was not enabled,
   the retained copy is a text projection that needs re-registering before an
   HTML re-read, the value is still quarantined, or an LLM reader last verified it
@@ -103,7 +103,7 @@ from decision.verify import (
     normalise_name,
     parse_quantity,
     split_model_cell,
-    undisclosed_confirmation,
+    read_not_disclosed,
     verify,
 )
 
@@ -141,6 +141,8 @@ class Status(StrEnum):
     UNREADABLE = "unreadable"
     UNREACHABLE = "unreachable"
     NOT_REREAD = "not_reread"
+    #: A ``not_disclosed`` price whose page read and has no value for it: claims nothing.
+    NOT_DISCLOSED_NO_VALUE = "not_disclosed_no_value"
 
 
 ALERTS = frozenset({Status.NEEDS_REVIEW, Status.UNREADABLE, Status.UNREACHABLE})
@@ -230,7 +232,8 @@ class Report:
     def counts(self) -> dict[str, int]:
         counts = Counter(f.status.value for f in self.facts)
         return {s.value: counts.get(s.value, 0) for s in Status
-                if s is not Status.CITED or counts.get(s.value, 0)}
+                if s not in (Status.CITED, Status.NOT_DISCLOSED_NO_VALUE)
+                or counts.get(s.value, 0)}
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -242,6 +245,9 @@ class Report:
             "reconfirmed": [f.fact_id for f in self.facts if f.status is Status.UNCHANGED],
             "cited": [f.to_dict() for f in self.facts if f.status is Status.CITED],
             "alerts": [f.to_dict() for f in self.alerts],
+            "not_disclosed_no_value": [
+                {"fact": f.fact_id, "sources": list(f.source_ids), "read": f.reason}
+                for f in self.facts if f.status is Status.NOT_DISCLOSED_NO_VALUE],
             "not_reread": dict(Counter(
                 f.reason or "" for f in self.facts if f.status is Status.NOT_REREAD)),
             "sources": {sid: {"url": s.url, "outcome": s.outcome, "copy": s.copy_ref,
@@ -720,13 +726,17 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
                        reason=f"cited region not found in the new copy: {result.reason}"
                        f"{_page_size(regions, claim)}")
     if result.outcome == "skipped":
-        # A price filed not_disclosed is confirmed only when this same read shows the
-        # table, the model's row and another price on it, and no column for the kind
-        # (MODEL-481). A page that did not read stays unreadable.
+        # A price filed not_disclosed whose region read and shows no cell for the kind
+        # claims nothing and is not a failure (MODEL-481). Nothing is written.
         if fact["state"] == "not_disclosed" and (
-                confirmation := undisclosed_confirmation(claim, regions, today)) is not None:
-            return replace(base, status=Status.UNCHANGED, verification=confirmation,
-                           reason="still not disclosed")
+                seen := read_not_disclosed(claim, regions)) is not None:
+            verdict, where = seen
+            if verdict == "unavailable":
+                return replace(base, status=Status.NEEDS_REVIEW,
+                               reason="the page states this price is not available (a person "
+                               "may re-file it as not_offered); read " + ", ".join(where))
+            return replace(base, status=Status.NOT_DISCLOSED_NO_VALUE,
+                           reason="read " + ", ".join(where) + "; no value for this kind")
         return replace(base, status=Status.UNREADABLE,
                        reason=f"no reader accepts the new copy: {result.reason}"
                        f"{_page_size(regions, claim)}")
@@ -1068,6 +1078,7 @@ _SECTION_KIND = {
     "Changed values": "change",
     "Needs a person": "alert",
     "Not re-read": "not-reread",
+    "Not disclosed, nothing to read": "not-disclosed",
 }
 
 
@@ -1118,6 +1129,14 @@ def render_report(report: Report) -> str:
                 "| Fact | Status | Why |", "|---|---|---|"]
         for f in report.alerts:
             out.append(f"| `{f.fact_id}` | {f.status.value} | {_show(f.reason, middle=True)} |")
+        out.append("")
+    quiet = [f for f in report.facts if f.status is Status.NOT_DISCLOSED_NO_VALUE]
+    if quiet:
+        out += ["### Not disclosed, nothing to read", "",
+                "These facts are filed not disclosed and their page read with no value for "
+                "the kind. Nothing is claimed or written; spot-check the regions.", "",
+                "| Fact | Read |", "|---|---|"]
+        out += [f"| `{f.fact_id}` | {_show(f.reason, middle=True)} |" for f in quiet]
         out.append("")
     if report.diffs:
         out += ["### Source diffs", ""]

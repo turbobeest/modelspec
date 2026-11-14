@@ -87,6 +87,22 @@ SECOND_TABLE_HAS_BATCH = f"""<html><body><table>
 </table></body></html>"""
 
 
+ASYNC_COLUMN = f"""<html><body><table>
+<tr><th>Model</th><th>Pricing (1M Tokens)</th><th>Asynchronous (1M Tokens)</th></tr>
+<tr><td>{ALPHA}</td><td>Input: $4 Output: $20</td><td>Input: $2 Output: $10</td></tr>
+</table></body></html>"""
+FOOTNOTE = NO_BATCH.replace("</table>", "</table><p>Batch API requests are billed at 50% off.</p>")
+CACHING_COLUMN = f"""<html><body><table>
+<tr><th>Model</th><th>Pricing (1M Tokens)</th><th>Prompt caching (1M Tokens)</th></tr>
+<tr><td>{ALPHA}</td><td>Input: $4 Output: $20</td><td>Cached Input: $0.40</td></tr>
+</table></body></html>"""
+FIRST_TABLE_ONLY = f"""<html><body><table>
+<tr><th>Model</th><th>Pricing (1M Tokens)</th><th>Flex</th><th>Priority</th></tr>
+<tr><td>Acme Gamma Global</td><td>Input: $1 Output: $5</td><td>N/A</td><td>N/A</td></tr>
+<tr><td>{ALPHA}</td><td>Input: $4 Output: $20</td><td>N/A</td><td>N/A</td></tr>
+</table></body></html>"""
+
+
 class Fetcher:
     def __init__(self, body: bytes | None) -> None:
         self.body = body
@@ -151,64 +167,86 @@ def result(report: price_reread.Report, kind: str) -> price_reread.FactResult:
 
 # --- fault 1: a price filed not_disclosed ---------------------------------------------------------
 
+NEUTRAL = Status.NOT_DISCLOSED_NO_VALUE
 
-def test_a_table_with_no_batch_column_and_the_models_row_confirms_not_disclosed(tmp_path) -> None:
+
+def untouched(root: Path) -> dict[Path, bytes]:
+    return {p: p.read_bytes() for p in root.rglob("*") if p.is_file()}
+
+
+def assert_claims_nothing(report: price_reread.Report, fact: price_reread.FactResult,
+                          root: Path, before: dict[Path, bytes]) -> None:
+    assert fact.status is NEUTRAL
+    assert fact.verification is None
+    assert fact not in report.alerts and fact not in report.changes
+    assert report.counts()["not_disclosed_no_value"] >= 1
+    after = untouched(root)
+    changed = {p.name for p in before if after[p] != before[p]}
+    assert changed <= {"log.jsonl"}  # only another fact's dated reconfirmation
+    latest = VerificationLog(root / "verification").latest()[("fact", fact.fact_id)]
+    assert latest.date == date(2026, 11, 6)
+
+
+def test_nothing_to_read_for_a_not_disclosed_price_is_neutral_and_writes_nothing(
+        tmp_path) -> None:
     estate = build(tmp_path, NO_BATCH, [("input", "known", 4.0),
                                         ("batch_input", "not_disclosed", None),
                                         ("batch_output", "not_disclosed", None)])
     root, _ = estate
+    before = untouched(root)
     report = reread(estate, NO_BATCH, write=True)
 
     for kind in ("batch_input", "batch_output"):
-        confirmed = result(report, kind)
-        assert confirmed.status is Status.UNCHANGED
-        assert confirmed.reason == "still not disclosed"
-        assert confirmed.verification is not None
-        assert confirmed in report.facts and confirmed not in report.alerts
-    assert report.counts()["unchanged"] == 3 and report.counts()["unreadable"] == 0
-    assert report.alerts == []
-    latest = VerificationLog(root / "verification").latest()
-    undisclosed = latest[("fact", f"{SUBJECT}#offering.price.batch_input")]
-    assert undisclosed.date == TODAY and undisclosed.outcome == "verified"
-    assert undisclosed.target.value_hash == value_hash(None)
+        assert_claims_nothing(report, result(report, kind), root, before)
+        assert "example-pricing#page" in result(report, kind).reason
+    assert result(report, "input").status is Status.UNCHANGED
+    counts = report.counts()
+    assert counts["unchanged"] == 1 and counts["unreadable"] == 0
+    assert counts["not_disclosed_no_value"] == 2 and report.alerts == []
+    body = price_reread.render_report(report)
+    assert "### Not disclosed, nothing to read" in body
+    assert "example-pricing#page" in body
+    assert report.to_dict()["not_disclosed_no_value"][0]["sources"] == ["example-pricing"]
+    assert len(price_reread.alert_comment(report.to_dict(), "https://run.example/1")
+               .split("| Source |")[1].splitlines()) == 4  # header rule, no source rows
 
 
 def test_a_batch_value_now_stated_on_the_row_is_a_disclosed_alert_and_writes_nothing(
         tmp_path) -> None:
     estate = build(tmp_path, NO_BATCH, [("batch_input", "not_disclosed", None)])
     root, _ = estate
-    files = {p: p.read_bytes() for p in root.rglob("*") if p.is_file()}
+    files = untouched(root)
 
     report = reread(estate, WITH_BATCH_VALUE, write=True)
 
     stated = result(report, "batch_input")
     assert stated.status is Status.NEEDS_REVIEW and stated in report.alerts
     assert stated.reason.startswith("disclosed: page now states a value")
-    assert stated.new_value in (None, 2, 2.0) and stated.old_value is None
     assert report.changes == []
-    assert {p: p.read_bytes() for p in root.rglob("*") if p.is_file()} == files
+    assert untouched(root) == files
 
 
-def test_an_explicit_not_available_cell_is_not_confirmed_for_not_disclosed(tmp_path) -> None:
-    """The page states the price is unavailable; that is ``not_offered``, not undisclosed."""
+def test_an_explicit_not_available_cell_is_reviewed_without_the_disclosed_prefix(
+        tmp_path) -> None:
     estate = build(tmp_path, WITH_BATCH_NA, [("batch_input", "not_disclosed", None)])
+    root, _ = estate
+    before = untouched(root)
     report = reread(estate, WITH_BATCH_NA)
     stated = result(report, "batch_input")
-    assert stated.status is Status.UNREADABLE and stated in report.alerts
+    assert stated.status is Status.NEEDS_REVIEW and stated in report.alerts
+    assert "not available" in stated.reason and "not_offered" in stated.reason
+    assert not stated.reason.startswith("disclosed")
+    assert untouched(root) == before
 
 
 def test_not_offered_with_an_explicit_not_available_cell_keeps_todays_outcome(tmp_path) -> None:
-    """A ``not_offered`` fact is re-read like any filed fact. Only ``not_disclosed`` gained a
-    confirmation, so the same page still reads unreadable for it."""
     estate = build(tmp_path, WITH_BATCH_NA, [("batch_input", "not_offered", None)])
-    report = reread(estate, WITH_BATCH_NA)
-    assert result(report, "batch_input").status is Status.UNREADABLE
+    assert result(reread(estate, WITH_BATCH_NA), "batch_input").status is Status.UNREADABLE
 
 
-def test_not_offered_without_the_column_is_not_confirmed(tmp_path) -> None:
+def test_not_offered_without_the_column_keeps_todays_outcome(tmp_path) -> None:
     estate = build(tmp_path, NO_BATCH, [("batch_input", "not_offered", None)])
-    report = reread(estate, NO_BATCH)
-    assert result(report, "batch_input").status is Status.UNREADABLE
+    assert result(reread(estate, NO_BATCH), "batch_input").status is Status.UNREADABLE
 
 
 def test_an_unknown_fact_is_not_re_read(tmp_path) -> None:
@@ -220,29 +258,38 @@ def test_an_unknown_fact_is_not_re_read(tmp_path) -> None:
     assert price_reread.tracked_facts(root) == []
 
 
-@pytest.mark.parametrize("page", [OTHER_MODEL_ONLY, LOOSER_NAME_ONLY],
-                         ids=["row-missing", "row-of-a-looser-name"])
-def test_a_missing_model_row_never_confirms(tmp_path, page: str) -> None:
-    estate = build(tmp_path, NO_BATCH, [("batch_input", "not_disclosed", None)])
-    report = reread(estate, page)
-    assert result(report, "batch_input").status is Status.UNREADABLE
-
-
-@pytest.mark.parametrize("page", [NO_TABLE, ONE_LINE_TABLE, ROW_WITHOUT_PRICES,
-                                  SECOND_TABLE_HAS_BATCH],
-                         ids=["no-table", "no-header-row", "no-other-price-on-the-row",
-                              "model-also-in-a-table-with-a-batch-column"])
-def test_a_table_that_did_not_read_never_confirms(tmp_path, page: str) -> None:
+@pytest.mark.parametrize("page", [OTHER_MODEL_ONLY, LOOSER_NAME_ONLY, NO_TABLE, ONE_LINE_TABLE,
+                                  ROW_WITHOUT_PRICES],
+                         ids=["row-missing", "row-of-a-looser-name", "no-table",
+                              "no-header-row", "no-other-price-on-the-row"])
+def test_a_page_that_did_not_read_stays_unreadable(tmp_path, page: str) -> None:
     estate = build(tmp_path, NO_BATCH, [("batch_input", "not_disclosed", None)])
     report = reread(estate, page)
     unread = result(report, "batch_input")
     assert unread.status is Status.UNREADABLE and unread in report.alerts
 
 
-def test_a_page_that_did_not_fetch_is_unreachable_not_confirmed(tmp_path) -> None:
+@pytest.mark.parametrize("page,kind", [
+    (ASYNC_COLUMN, "batch_input"), (FOOTNOTE, "batch_input"),
+    (CACHING_COLUMN, "cached_input"), (SECOND_TABLE_HAS_BATCH, "batch_input"),
+    (FIRST_TABLE_ONLY, "batch_input")],
+    ids=["asynchronous-column", "footnote-sentence", "prompt-caching-column",
+         "second-table", "partial-render"])
+def test_the_wrong_confirmations_of_round_one_claim_nothing(tmp_path, page: str, kind: str
+                                                            ) -> None:
+    estate = build(tmp_path, NO_BATCH, [(kind, "not_disclosed", None)])
+    root, _ = estate
+    before = untouched(root)
+    report = reread(estate, page)
+    fact = result(report, kind)
+    assert fact.status is not Status.UNCHANGED and fact.verification is None
+    assert fact.status in {NEUTRAL, Status.NEEDS_REVIEW}
+    assert untouched(root) == before
+
+
+def test_a_page_that_did_not_fetch_is_unreachable(tmp_path) -> None:
     estate = build(tmp_path, NO_BATCH, [("batch_input", "not_disclosed", None)])
-    report = reread(estate, None)
-    assert result(report, "batch_input").status is Status.UNREACHABLE
+    assert result(reread(estate, None), "batch_input").status is Status.UNREACHABLE
 
 
 def test_a_known_batch_price_whose_column_is_gone_stays_unreadable(tmp_path) -> None:
@@ -311,7 +358,40 @@ def test_a_row_printed_twice_with_different_cells_is_unreadable(tmp_path) -> Non
     assert "disagree" in twice.reason
 
 
-def test_the_vertex_reader_matches_the_row_type_exactly() -> None:
+EXTENDED = vertex(
+    first(BETA, "Input (text, image, video, audio)", "$5.00"),
+    more("Text output (response and reasoning)", "$25.00"),
+    more("Batch input (text)", "$2.50"),
+    more("Batch output (text)", "$12.50"),
+    more("Cache hit", "$0.50"))
+
+
+@pytest.mark.parametrize("kind,filed", [("input", 5.0), ("output", 25.0),
+                                        ("batch_input", 2.5), ("batch_output", 12.5),
+                                        ("cached_input", 0.5)])
+def test_a_label_that_extends_the_type_reads_its_own_kind(tmp_path, kind: str,
+                                                          filed: float) -> None:
+    estate = build(tmp_path, EXTENDED, [(kind, "known", filed)], names=(BETA,))
+    assert result(reread(estate, EXTENDED), kind).status is Status.UNCHANGED
+
+
+@pytest.mark.parametrize("kind,other", [("input", 25.0), ("output", 5.0),
+                                        ("batch_input", 5.0), ("batch_output", 25.0)])
+def test_an_extended_label_never_reads_another_kinds_row(tmp_path, kind: str,
+                                                         other: float) -> None:
+    estate = build(tmp_path, EXTENDED, [(kind, "known", other)], names=(BETA,))
+    assert result(reread(estate, EXTENDED), kind).status is Status.NEEDS_REVIEW
+
+
+def test_two_extended_rows_that_disagree_are_unreadable(tmp_path) -> None:
+    page = vertex(first(BETA, "Input (text)", "$5.00"), more("Input (audio)", "$9.00"),
+                  more("Output", "$25.00"))
+    estate = build(tmp_path, page, [("input", "known", 5.0)], names=(BETA,))
+    twice = result(reread(estate, page), "input")
+    assert twice.status is Status.UNREADABLE and "disagree" in twice.reason
+
+
+def test_the_vertex_reader_returns_one_cell_for_one_kind() -> None:
     claim = Claim(
         target=TargetRef(kind="fact", id="x#offering.price.output"), subject=SUBJECT,
         names=(BETA,), field="offering.price.output", label="Output", value=25.0,
@@ -322,3 +402,38 @@ def test_the_vertex_reader_matches_the_row_type_exactly() -> None:
             "Acme Beta | Input | $5.00\n| Output | $25.00\n| Batch Output | $12.50\n")
     readings = OfferingPriceExtractor().extract(claim, text)
     assert [r.value for r in readings] == ["$25.00"]
+
+
+# --- the column-header scan: a header that names the kind and no other ---------------------------
+
+
+def scan(*cells: str, headers: str) -> str:
+    head = "".join(f"<th>{h}</th>" for h in headers.split("|"))
+    body = "".join(f"<td>{c}</td>" for c in cells)
+    return f"<html><body><table><tr>{head}</tr><tr>{body}</tr></table></body></html>"
+
+
+SCAN_HEADERS = ("Model|Cache write input tokens|Cache read input tokens|Input tokens|"
+                "Output tokens|Input tokens batch")
+SCAN = scan(BETA, "$6", "$0.50", "$5", "$25", "$2.50", headers=SCAN_HEADERS)
+
+
+@pytest.mark.parametrize("kind,filed", [("input", 5.0), ("output", 25.0),
+                                        ("cached_input", 0.5), ("batch_input", 2.5)])
+def test_the_header_scan_reads_only_the_header_that_names_the_kind(tmp_path, kind: str,
+                                                                    filed: float) -> None:
+    estate = build(tmp_path, SCAN, [(kind, "known", filed)], names=(BETA,))
+    assert result(reread(estate, SCAN), kind).status is Status.UNCHANGED
+
+
+def test_the_header_scan_never_takes_a_cache_write_column_for_input(tmp_path) -> None:
+    estate = build(tmp_path, SCAN, [("input", "known", 6.0)], names=(BETA,))
+    assert result(reread(estate, SCAN), "input").status is Status.NEEDS_REVIEW
+
+
+def test_two_headers_for_one_kind_with_different_cells_are_unreadable(tmp_path) -> None:
+    page = scan(BETA, "$5", "$4", "$25", headers="Model|Input tokens|Input tokens (reserved)|"
+                "Output tokens")
+    estate = build(tmp_path, page, [("input", "known", 5.0)], names=(BETA,))
+    twice = result(reread(estate, page), "input")
+    assert twice.status is Status.UNREADABLE and "disagree" in twice.reason
