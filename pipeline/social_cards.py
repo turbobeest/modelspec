@@ -8,6 +8,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import warnings
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -455,6 +456,11 @@ h1{{font-size:64px;line-height:78px;letter-spacing:-2.7px;margin:68px 0 22px;wid
 
 RENDERER = ROOT / "web" / "scripts" / "render-social-cards.mjs"
 _OUTPUT_TAIL = 4000
+RETRY_MARKER = "screenshot attempt"
+
+
+class RendererRetried(UserWarning):
+    """The renderer exited 0 but a screenshot attempt failed and was retried."""
 
 
 class RendererFailed(subprocess.CalledProcessError):
@@ -483,6 +489,14 @@ def _render_jobs(jobs: list[dict[str, str]]) -> list[dict[str, object]]:
             print(run.stderr, end="", file=sys.stderr)
         if run.returncode:
             raise RendererFailed(run.returncode, run.args, run.stdout, run.stderr)
+        attempts = [line for line in run.stderr.splitlines() if line.startswith(RETRY_MARKER)]
+        if attempts:
+            warnings.warn(
+                "social card renderer cleared a failed screenshot by retrying:\n"
+                + "\n".join(attempts)[-_OUTPUT_TAIL:],
+                RendererRetried,
+                stacklevel=2,
+            )
         return json.loads(report.read_text(encoding="utf-8"))
 
 

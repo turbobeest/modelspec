@@ -8,19 +8,24 @@ if (!manifest) throw new Error("usage: render-social-cards.mjs MANIFEST.json");
 
 // Chromium sometimes answers Page.captureScreenshot with "Unable to capture
 // screenshot" after the page has loaded and its fonts are ready (MODEL-492).
-// The page is fine, so only the capture is retried: at most two more attempts,
-// and every failed attempt is printed.
+// The page is fine, so only that error is retried, at most twice more. Every
+// failed attempt is printed on a line starting with the marker below, which
+// pipeline/social_cards.py reads to report a cleared retry.
 const SCREENSHOT_EXTRA_ATTEMPTS = 2;
+const RETRYABLE = "Unable to capture screenshot";
+// Test hook: MODELSPEC_TEST_FAIL_SCREENSHOTS="COUNT" or "COUNT:MESSAGE" fails
+// the first COUNT attempts of each screenshot with MESSAGE.
+const [injectCount = "0", ...injectMessage] = (process.env.MODELSPEC_TEST_FAIL_SCREENSHOTS ?? "").split(":");
 async function screenshotWithRetry(page, options) {
   for (let attempt = 1; ; attempt += 1) {
     try {
-      if (process.env.MODELSPEC_TEST_FAIL_SCREENSHOTS && attempt <= Number(process.env.MODELSPEC_TEST_FAIL_SCREENSHOTS)) {
-        throw new Error("page.screenshot: injected failure");
+      if (attempt <= Number(injectCount)) {
+        throw new Error(injectMessage.join(":") || `page.screenshot: Protocol error (Page.captureScreenshot): ${RETRYABLE} (injected)`);
       }
       return await page.screenshot(options);
     } catch (error) {
       console.error(`screenshot attempt ${attempt} of ${SCREENSHOT_EXTRA_ATTEMPTS + 1} failed for ${options.path}: ${error.message}`);
-      if (attempt > SCREENSHOT_EXTRA_ATTEMPTS) throw error;
+      if (attempt > SCREENSHOT_EXTRA_ATTEMPTS || !error.message.includes(RETRYABLE)) throw error;
     }
   }
 }

@@ -46,6 +46,21 @@ now and then is not established: it did not fail in local loops.
   raised message; an injected screenshot failure (`MODELSPEC_TEST_FAIL_SCREENSHOTS`)
   passes with two failures and fails with three, printing each attempt.
 
+## Seeing a cleared retry
+
+A retry that succeeds is no longer silent. The script prints each failed
+attempt on a line starting `screenshot attempt`; when it still exits 0, the
+Python side writes those lines to its own stderr and raises a
+`RendererRetried` warning carrying them. Look for it in the "warnings summary"
+of the pytest shard that runs `tests/test_social_cards.py` (shard 2/8 today)
+and in the site build log. Only the error text `Unable to capture screenshot`
+is retried; any other screenshot error fails on the first attempt.
+
+State: 50 clean hosted runs show the change breaks nothing. They do not show
+that a retry clears a real refusal. The first real warning in CI will be that
+evidence. The pytest configuration has no `filterwarnings` entry, so warnings
+are not errors and nothing needed changing.
+
 ## Loop counts
 
 - Local, before the fix: 50 plain runs, 0 failures; 52 runs with four loops at
