@@ -450,7 +450,14 @@ jobs:
         # which vendor.py generates from tiers.json. It is not a --var: since
         # Pricing v2 the compact JSON exceeds Cloudflare's 5.1 kB text-var cap
         # (code 10054). Deploy replaces vars, so an old TIER_POLICY var is gone.
-        run: uv run --project . pywrangler deploy --var "BUILD_COMMIT:${GITHUB_SHA}"
+        # MODEL-487: scripts/deploy_retry.py runs the same command, retries it
+        # up to three attempts in all only when Cloudflare's API fails in a way
+        # that says nothing about the Worker (code 10013, or a malformed
+        # response), and prints a fixed line per retry. The last attempt's
+        # output prints as it did before; earlier attempts' output is not
+        # printed. A red deploy ends with one fixed ::error:: line naming the
+        # failure class, which the deploy-alert job reads.
+        run: python3 "$GITHUB_WORKSPACE/scripts/deploy_retry.py" -- uv run --project . pywrangler deploy --var "BUILD_COMMIT:${GITHUB_SHA}"
 
       - name: Sync the decision snapshot verification key
         # After Deploy, never before: Cloudflare refuses a secret edit while the
@@ -669,3 +676,64 @@ jobs:
         # No API key is available. When ACCESS_ENFORCED is on, the script
         # records "skipped: keyless under enforcement" and exits 0.
         run: python3 .github/scripts/check_decide_latency.py --host "$RANK_HOST"
+
+  deploy-alert:
+    # MODEL-487. A deploy that ends red on main leaves production on the
+    # previous commit, and nothing else reads this workflow. This job opens or
+    # updates ONE public issue labelled alert, and closes it on the next green
+    # deploy. It reads only needs.deploy.result: never the deploy job's outputs,
+    # and it has no checkout of, or token for, the private data. It writes four
+    # fixed fields (scripts/deploy_alert.py). Its only permission is issues:write.
+    name: Alert on the rank Worker deploy
+    needs: deploy
+    if: always() && github.ref == 'refs/heads/main' && (needs.deploy.result == 'failure' || needs.deploy.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      issues: write
+    concurrency:
+      group: rank-api-deploy-alert
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Open or update the alert issue
+        if: needs.deploy.result == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT: ${{ github.sha }}
+          WORKFLOW: ${{ github.workflow }}
+        run: |
+          set -euo pipefail
+          python3 scripts/deploy_alert.py --workflow "$WORKFLOW" --run-url "$RUN_URL" \
+            --commit "$COMMIT" --repo "$GH_REPO" --run-id "$RUN_ID" --output alert.md
+          gh label create alert --color B60205 \
+            --description "Read by the orchestrator heartbeat" --force
+          number=$(gh issue list --label alert --state open \
+            --search 'in:title "Rank Worker deploy failed"' --json number,title \
+            --jq '[.[] | select(.title == "Rank Worker deploy failed")][0].number // empty')
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body-file alert.md
+          else
+            gh issue create --title "Rank Worker deploy failed" --label alert --body-file alert.md
+          fi
+
+      - name: Close the alert after a green deploy
+        if: needs.deploy.result == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          gh issue list --label alert --state open \
+            --search 'in:title "Rank Worker deploy failed"' --json number,title \
+            --jq '.[] | select(.title == "Rank Worker deploy failed") | .number' |
+          while read -r number; do
+            gh issue close "$number" --comment "Green again: $RUN_URL"
+          done
