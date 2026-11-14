@@ -4100,3 +4100,27 @@ def test_the_matharena_index_marks_only_retired_competitions() -> None:
     assert refresh.readers.matharena_deprecated(index, "overall--arxivmath") is False
     with pytest.raises(ValueError, match="no competition"):
         refresh.readers.matharena_deprecated(index, "aime--aime_2099")
+
+
+def test_refresh_report_files_carry_no_pull_request_placeholder(tmp_path: Path) -> None:
+    change = refresh.ScoreChange(
+        card="example/invented-model", model_id="invented-model", model="Invented Model", benchmark="invented_bench",
+        old_value=41.5, new_value=43.0, source="https://example.test/board",
+        observed_date="2026-01-02",
+    )
+    report = refresh.RefreshReport(changes=[change])
+    markdown = refresh.render_report(report)
+    refresh.write_report_json(tmp_path / "report.json", report)
+    refresh.write_audit(tmp_path / "audit.json", report.changes)
+    report_json = (tmp_path / "report.json").read_text(encoding="utf-8")
+    audit_json = (tmp_path / "audit.json").read_text(encoding="utf-8")
+
+    for text in (markdown, report_json, audit_json):
+        assert "${PR_URL}" not in text
+    for row in (json.loads(report_json)["changes"][0], json.loads(audit_json)[0]):
+        assert "pr" in row
+        assert row["pr"] is None
+    table = [line for line in markdown.splitlines() if line.startswith("| ")
+             and ("Old value" in line or "invented_bench" in line)]
+    assert len(table) == 2
+    assert table[0].count("|") == table[1].count("|") == 7
