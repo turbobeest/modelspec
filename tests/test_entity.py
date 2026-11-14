@@ -51,6 +51,27 @@ def surfaces(data: landing.LandingData) -> dict[str, str]:
     }
 
 
+_REVISED_SENTENCE = (
+    "ModelSpec is an analysis of alternatives for AI models: it decides which "
+    "models fit a job from your requirements, sourced benchmarks, and real costs, "
+    "and shows its work."
+)
+
+
+def test_the_registry_carries_the_tagline_the_router_line_and_the_revised_sentence() -> None:
+    assert entity.TAGLINE == "Which model, and why."
+    assert entity.ROUTER_LINE == "Evidence-backed logic that powers complex model routing."
+    assert entity.ONE_SENTENCE == _REVISED_SENTENCE
+    assert (entity.TITLE, entity.SHORT, entity.DISAMBIGUATION, entity.ALIASES, entity.SAME_AS) == (
+        "ModelSpec — an analysis of alternatives for AI models",
+        "An analysis of alternatives for AI models: which models fit a job, and why.",
+        "ModelSpec at modelspec.dev is not OpenAI's Model Spec, the CNCF ModelPack "
+        "model-spec, or the Python package named modelspec.",
+        ("ModelSpec", "modelspec.dev", "Model Spec"),
+        ("https://github.com/turbobeest/modelspec",),
+    )
+
+
 def test_the_landing_says_the_sentence_in_its_meta_and_its_lead(surfaces: dict[str, str]) -> None:
     for name in ("landing", "landing holding"):
         page = surfaces[name]
@@ -59,6 +80,17 @@ def test_the_landing_says_the_sentence_in_its_meta_and_its_lead(surfaces: dict[s
         assert _meta(page, "property", "og:description").startswith(entity.ONE_SENTENCE)
         lead = re.search(r'<p class="close">(.*?)</p>', page, re.S)
         assert lead and _visible(lead.group(1)).strip().startswith(entity.ONE_SENTENCE), name
+
+
+def test_the_landing_shows_the_tagline_then_the_router_line_then_the_lead(
+        surfaces: dict[str, str]) -> None:
+    for name in ("landing", "landing holding"):
+        page = surfaces[name]
+        assert len(re.findall(r"<h1\b", page)) == 1, name
+        paragraphs = [_visible(item) for item in re.findall(r"<p\b[^>]*>(.*?)</p>", page, re.S)]
+        assert paragraphs[0] == entity.TAGLINE, name
+        assert paragraphs[1] == entity.ROUTER_LINE, name
+        assert paragraphs[2].startswith(entity.ONE_SENTENCE), name
 
 
 def test_the_method_page_opens_with_the_sentence_then_the_disambiguation(surfaces: dict[str, str]) -> None:
@@ -78,6 +110,8 @@ def test_the_brand_page_quotes_the_sentence_and_the_boilerplate(surfaces: dict[s
 def test_agent_files_open_with_the_sentence_and_the_disambiguation(surfaces: dict[str, str], name: str) -> None:
     assert f"{entity.ONE_SENTENCE} {entity.DISAMBIGUATION}" in surfaces[name]
     assert brand.POSITIONING.startswith(entity.ONE_SENTENCE)
+    opening = surfaces[name]
+    assert opening.index(entity.TAGLINE) < opening.index(entity.ROUTER_LINE) < opening.index(entity.ONE_SENTENCE)
 
 
 def test_the_mcp_card_carries_the_short_form() -> None:
@@ -94,6 +128,12 @@ def test_the_readme_opens_with_the_sentence() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     prose = next(line for line in readme.splitlines() if line.startswith("ModelSpec "))
     assert prose.startswith(entity.ONE_SENTENCE)
+
+
+def test_the_retired_cost_tail_is_superseded_and_misses_the_revised_sentence() -> None:
+    retired = "sourced benchmarks and real cost"
+    assert retired in entity.SUPERSEDED
+    assert retired.casefold() not in entity.ONE_SENTENCE.casefold()
 
 
 def test_no_superseded_one_liner_survives_on_any_surface(surfaces: dict[str, str]) -> None:
@@ -132,7 +172,7 @@ def test_claims_say_only_what_the_service_does_today() -> None:
 
 
 def test_linked_keeps_the_visible_text_and_refuses_a_missing_phrase() -> None:
-    out = entity.linked(entity.ONE_SENTENCE, {"real cost": "/cost", "shows its work": "/method/"})
+    out = entity.linked(entity.ONE_SENTENCE, {"real costs": "/cost", "shows its work": "/method/"})
     assert out.count("<a ") == 2
     assert _visible(out) == entity.ONE_SENTENCE
     with pytest.raises(ValueError, match="must occur exactly once"):

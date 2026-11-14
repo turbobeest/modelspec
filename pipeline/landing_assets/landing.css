@@ -201,6 +201,23 @@ nav > a:not(.button) {
   color: var(--yellow);
   margin-bottom: -8px;
 }
+.hero .identity {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hero .strapline,
+.hero .subline {
+  margin: 0;
+  font-family: "JetBrains Mono", monospace;
+  letter-spacing: 0.02em;
+}
+.hero .strapline {
+  font-size: 17px;
+}
+.hero .subline {
+  font-size: 15px;
+}
 .close a,
 .agents p a {
   color: inherit;
@@ -749,6 +766,15 @@ footer a {
     min-height: 72px;
     margin: 0;
     font-size: 17px;
+  }
+  .hero .identity {
+    min-width: 0;
+  }
+  .hero .strapline {
+    font-size: 14px;
+  }
+  .hero .subline {
+    font-size: 13px;
   }
   .close {
     font-size: 18px;

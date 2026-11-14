@@ -18,7 +18,7 @@ This folder holds only the engineering contracts: what the site emits, and what 
 
 1. **One sentence, everywhere.** The canonical description of ModelSpec is generated from one entity registry (MODEL-252), never typed into a page:
 
-   > ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work.
+   > ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks, and real costs, and shows its work.
 
 2. **No fresh data on a keyless page.** Answer engines can quote the method and worked examples computed from the frozen public image. Each example is dated and labelled as a delayed image. Current answers come only from the decision board (people) and the keyed API and MCP server (machines).
 3. **Claims must be true over HTTP.** A page doesn't claim a capability the service doesn't have today. In particular, nothing claims x402 payment while `X402_ENABLED` is false.

@@ -71,7 +71,7 @@ def llms_txt(*, site: str, base: str, build: exporter.Build,
     return (
         f"# {site}\n\n"
         f"> {base}\n\n"
-        f"{brand.POSITIONING}\n\n"
+        f"{brand.agent_opening()}\n\n"
         f"Decision data on AI models and benchmarks, served online. "
         f"Built {build.built_at} from commit {build.commit[:12]}. "
         f"Null means not researched.\n\n"

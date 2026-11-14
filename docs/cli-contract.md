@@ -4,7 +4,7 @@ MODEL-307. `modelspec-dev` 1.0.0 is a thin keyed client for the hosted API.
 The command is `modelspec`. Version 0.2.0 was yanked. Release publication is
 an operator step after review; this repository does not publish to PyPI.
 
-ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work.
+ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks, and real costs, and shows its work.
 
 There are three ways in: this CLI, [remote MCP](https://api.modelspec.dev/mcp),
 and the [HTTP API](https://api.modelspec.dev/v1/decide).
