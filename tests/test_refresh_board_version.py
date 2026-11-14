@@ -19,34 +19,42 @@ OBSERVED = "2026-11-14"
 OLD_ADDRESS = "https://www.tbench.ai/leaderboard/terminal-bench/4.0"
 SOURCE_ID = "model-493-evidence-terminal-bench-4-1-json"
 BENCHMARK = "terminal_bench_v4_1"
-ROWS = [
-    {"metadata": {"model_display": {"label": "Alpha One"}, "reasoning_effort": "high",
-                  "agent_display": {"label": "Harness A"}, "date": "2026-10-01"},
-     "metrics": {"accuracy": 41.5}},
-    {"metadata": {"model_display": "Beta Two", "reasoning_effort": None,
-                  "agent_display": "Harness B", "date": "2026-10-02"},
-     "metrics": {"accuracy": 12.25}},
-]
+BOARD_ID = "11111111-aaaa-bbbb-cccc-000000000041"
+OTHER_ID = "11111111-aaaa-bbbb-cccc-000000000042"
+NAMED = {"id": BOARD_ID, "name": "4-1-0", "title": "Terminal-Bench 4.1"}
+OTHER = {"id": OTHER_ID, "name": "4-2-0", "title": "Terminal-Bench 4.2"}
+
+
+def _row(model, effort, agent, accuracy, date, board_id=BOARD_ID):
+    return {"id": f"row-{model}", "leaderboard_id": board_id, "rank": 1,
+            "metadata": {"model_display": {"label": model}, "reasoning_effort": effort,
+                         "agent_display": {"label": agent}, "date": date},
+            "metrics": {"accuracy": accuracy}}
+
+
+ROWS = [_row("Alpha One", "high", "Harness A", 41.5, "2026-10-01"),
+        _row("Beta Two", None, "Harness B", 12.25, "2026-10-02")]
+OTHER_ROWS = [_row("Gamma", "low", "Harness C", 99.0, "2026-11-01", OTHER_ID)]
+
+
+def _wrap(*datas: dict) -> bytes:
+    """The page as the real one carries it: Next.js push chunks, escaped, joined into one
+    text. The first holds the element array ``["$","$L1e",null,{"state":{"queries":[{"state":
+    {"data":{...}}}]}}]`` (one query per ``data`` given); the second holds a React prop whose
+    ``"leaderboard"`` key is a list of strings, as on the real page."""
+    element = ["$", "$L1e", None, {"state": {"mutations": [], "queries": [
+        {"dehydratedAt": 1794662329782, "state": {"data": data}} for data in datas]}}]
+    prop = ["$", "$L32", None, {"leaderboard": ["a", "b", "c"], "children": ["Resolution rate"]}]
+    chunks = [f"1d:{json.dumps(element, separators=(',', ':'))}\n",
+              f"31:{json.dumps(prop, separators=(',', ':'))}\n"]
+    pushes = "".join(
+        f'<script>self.__next_f.push([1,"{json.dumps(c)[1:-1]}"])</script>' for c in chunks)
+    return f"<html>{pushes}</html>".encode()
 
 
 def _page(leaderboard=None, *, rows=ROWS, key: str = "leaderboard") -> bytes:
-    """An invented page: React payload chunks carrying one leaderboard object and its rows."""
-    board = {"name": "4-1-0", "title": "Terminal-Bench 4.1"} if leaderboard is None else leaderboard
-    payload = "7:" + json.dumps({"state": {"data": {key: board, "rows": rows}}}, separators=(",", ":"))
-    chunk = json.dumps(payload)[1:-1]
-    return f'<html><script>self.__next_f.push([1,"{chunk}"])</script></html>'.encode()
-
-
-def _wrap(obj: dict) -> bytes:
-    payload = "7:" + json.dumps(obj, separators=(",", ":"))
-    chunk = json.dumps(payload)[1:-1]
-    return f'<html><script>self.__next_f.push([1,"{chunk}"])</script></html>'.encode()
-
-
-NAMED = {"name": "4-1-0", "title": "Terminal-Bench 4.1"}
-OTHER = {"name": "4-2-0", "title": "Terminal-Bench 4.2"}
-OTHER_ROWS = [{"metadata": {"model_display": "Gamma", "date": "2026-11-01"},
-               "metrics": {"accuracy": 99.0}}]
+    board = NAMED if leaderboard is None else leaderboard
+    return _wrap({key: board, "rows": rows})
 
 
 def _project(body: bytes, **kwargs) -> dict:
@@ -121,11 +129,11 @@ def _data(board, rows=ROWS, **more) -> dict:
 ])
 def test_only_one_board_with_its_own_rows_passes(payload):
     with pytest.raises(refresh.BoardVersionMismatch):
-        _project(_wrap({"state": {"data": payload}}))
+        _project(_wrap(payload))
 
 
 def test_the_single_well_formed_board_with_sibling_rows_projects():
-    body = _wrap({"state": {"data": _data(NAMED, ROWS, extra=1)}, "x": [1]})
+    body = _wrap(_data(NAMED, ROWS, extra=1))
     assert [r["model"] for r in _project(body)["rows"]] == ["Alpha One", "Beta Two"]
 
 
@@ -136,7 +144,7 @@ def test_a_second_board_named_for_another_version_files_nothing(monkeypatch, tmp
         before = card.read_bytes()
         parts = {"a": _data(NAMED), "b": _data(OTHER, OTHER_ROWS)}
         report, _ = _run(monkeypatch, sub, root,
-                         _wrap({"state": {k: {"data": parts[k]} for k in order}}))
+                         _wrap(*[parts[k] for k in order]))
         reasons = [f.reason for f in _on_board(report.failures)]
         assert len(reasons) == 1 and reasons[0].startswith(MISMATCH)
         assert card.read_bytes() == before
@@ -281,16 +289,12 @@ def test_with_no_4_1_row_on_any_card_nothing_is_filed_and_no_failure(monkeypatch
 
 # ── the update path narrows by the stored ``effort:`` key ───────────────────
 
-TWO = [
-    {"metadata": {"model_display": "Alpha One", "reasoning_effort": "high", "agent_display": "H",
-                  "date": "2026-10-01"}, "metrics": {"accuracy": 41.5}},
-    {"metadata": {"model_display": "Alpha One", "reasoning_effort": "low", "agent_display": "H",
-                  "date": "2026-10-01"}, "metrics": {"accuracy": 20.5}},
-]
+TWO = [_row("Alpha One", "high", "H", 41.5, "2026-10-01"),
+       _row("Alpha One", "low", "H", 20.5, "2026-10-01")]
 
 
 def _two_page() -> bytes:
-    return _wrap({"state": {"data": _data(NAMED, TWO)}})
+    return _wrap(_data(NAMED, TWO))
 
 
 def test_a_stored_effort_selects_exactly_that_page_row(monkeypatch, tmp_path):
@@ -307,3 +311,40 @@ def test_a_stored_row_with_no_effort_and_no_equal_score_is_left_alone(monkeypatc
     report, _ = _run(monkeypatch, tmp_path, root, _two_page())
     assert card.read_bytes() == before
     assert report.changes == [] and report.reconfirmed == []
+
+
+# ── the real page's shape, and the id binding ───────────────────────────────
+
+def test_the_fixture_has_the_real_nesting_and_a_second_leaderboard_key_that_is_a_list():
+    text = refresh.readers._rsc_payload(_wrap(_data(NAMED)).decode())
+    assert '"queries":[{"dehydratedAt":' in text and '"leaderboard":["a","b","c"]' in text
+    assert text.count('"leaderboard":') == 2
+    assert [r["model"] for r in _project(_wrap(_data(NAMED)))["rows"]] == ["Alpha One", "Beta Two"]
+
+
+def test_every_row_carries_the_identitys_id_in_the_fixture():
+    assert {row["leaderboard_id"] for row in ROWS} == {NAMED["id"]}
+
+
+@pytest.mark.parametrize("bad", [OTHER_ID, None])
+def test_a_row_with_another_or_no_leaderboard_id_fails(bad):
+    rows = [ROWS[0], {**ROWS[1], "leaderboard_id": bad}]
+    if bad is None:
+        del rows[1]["leaderboard_id"]
+    with pytest.raises(refresh.BoardVersionMismatch, match="leaderboard_id"):
+        _project(_wrap(_data(NAMED, rows)))
+
+
+def test_a_row_of_another_id_files_nothing(monkeypatch, tmp_path):
+    root, card = _repo(tmp_path, with_row=True)
+    before = card.read_bytes()
+    rows = [ROWS[0], {**ROWS[1], "leaderboard_id": OTHER_ID}]
+    report, _ = _run(monkeypatch, tmp_path, root, _wrap(_data(NAMED, rows)))
+    reasons = [f.reason for f in _on_board(report.failures)]
+    assert len(reasons) == 1 and reasons[0].startswith(MISMATCH)
+    assert card.read_bytes() == before and report.changes == []
+
+
+def test_an_identity_with_no_id_does_not_bind_by_id():
+    board = {"name": "4-1-0", "title": "Terminal-Bench 4.1"}
+    assert len(_project(_wrap(_data(board)))["rows"]) == 2

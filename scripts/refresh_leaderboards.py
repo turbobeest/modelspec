@@ -3590,6 +3590,16 @@ def _project_tbench(html: str, *, url: str, page_ref: str, observed_at: str,
     if len(lists) != 1:
         raise BoardVersionMismatch(
             f"one row list beside the board named {expected_name}", f"{len(lists)} row lists")
+    # Rows belong to the identity by id too: when the identity has an ``id``, every
+    # row must carry a ``leaderboard_id`` equal to it. A row with none is a mismatch
+    # (all rows on the live page carry it).
+    board_id = parent["leaderboard"].get("id")
+    if board_id is not None:
+        for entry in lists[0]:
+            if entry.get("leaderboard_id") != board_id:
+                raise BoardVersionMismatch(
+                    f"every row with leaderboard_id {board_id!r}",
+                    f"a row with leaderboard_id {entry.get('leaderboard_id')!r}")
     rows = []
     for entry in lists[0]:
         metadata, metrics = entry["metadata"], entry["metrics"]

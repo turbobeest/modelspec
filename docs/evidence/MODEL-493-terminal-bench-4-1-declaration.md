@@ -42,7 +42,9 @@ key on the page is a React prop whose value is a list, not an identity.
 The rule: the page holds exactly one `"leaderboard"` identity object, it
 carries the expected name (and the expected title when it has one), and the
 projected rows are the single `"rows"` list that is a direct key of the same
-enclosing object as that identity. Otherwise the check raises
+enclosing object as that identity. When the identity has an `id`, every projected row must also carry a
+`leaderboard_id` equal to it; a row with no `leaderboard_id` counts as a
+mismatch, because every row on the live page carries one. Otherwise the check raises
 `BoardVersionMismatch`, whose text is
 
     board_version: expected name 4-1-0 (title Terminal-Bench 4.1), found <what the page says>
