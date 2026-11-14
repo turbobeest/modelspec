@@ -947,6 +947,8 @@ class OfferingPriceExtractor:
         price_col = _band_price_column(headers, wanted) if band_table else None
         current_subject: str | None = None
         readings: list[Reading] = []
+        #: The readings taken from a Type column, one per printed row of that type.
+        typed: list[Reading] = []
 
         for row in rows[1:]:
             if len(row) != len(headers):
@@ -997,11 +999,9 @@ class OfferingPriceExtractor:
                     "batch_input": "input" if batch_table else "batch input",
                     "batch_output": "output" if batch_table else "batch output",
                 }[wanted]
-                matches = (
-                    kind.startswith(expected)
-                    or (wanted.endswith("output") and "output" in kind)
-                )
-                if matches:
+                # One row type per fact (MODEL-481): "output" is the Output row and
+                # "batch output" the Batch Output row, never a row that contains it.
+                if kind == expected:
                     price_columns = [i for i, header in enumerate(headers)
                                      if "price" in header and i != type_i]
                     if wanted == "cached_input":
@@ -1016,6 +1016,7 @@ class OfferingPriceExtractor:
                     )
                     if value:
                         readings.append(Reading(subject, value, claim.unit))
+                        typed.append(readings[-1])
 
             # AWS-style tables encode each price kind in its column header.
             # On a band-tiered table that scan hits the range column first.
@@ -1038,8 +1039,112 @@ class OfferingPriceExtractor:
                             continue
                         readings.append(Reading(subject, row[i], claim.unit))
                         break
+        _agree(typed)
         return (readings or _peak_price_tables(claim, rows, wanted)
                 or _grouped_header_tables(claim, text, wanted))
+
+    def absence_evidence(self, claim: Claim, text: str) -> str | None:
+        """What this region shows when it has no cell for the claim's price kind, or ``None``.
+
+        Only a table counts, and only when the same read shows all of: a header row
+        and rows of that header's width; the claim model's row, found by the exact
+        subject match ``extract`` uses; a dollar amount on that row; another price
+        kind of that model read by ``extract`` as a number; and no column, row type
+        or label for the claimed kind. A table that did not read, a model that is
+        not on it, a model that also appears in a table of another width, and a
+        column that is present but empty all return ``None``: they prove nothing.
+        """
+        wanted = self._wanted(claim.field)
+        if wanted == claim.field or wanted not in _PRICE_KINDS:
+            return None
+        try:
+            if self.extract(claim, text):
+                return None
+        except ExtractorError:
+            return None
+        rows = [[part.strip() for part in re.split(r" ?\| ?", line)]
+                for line in text.splitlines() if "|" in line]
+        if len(rows) < 2:
+            return None
+        headers = [normalise_name(cell) for cell in rows[0]]
+        if len(headers) < 2 or "type" in headers:
+            return None
+        batch = wanted.startswith("batch_")
+        # A header that names the kind means the column exists: its cell is empty or
+        # says not available, which is a different statement from "no column".
+        term = "batch" if batch else wanted.split("_")[-1] if wanted != "cached_input" else "cache"
+        if any(re.search(rf"\b{term}", header) for header in headers):
+            return None
+        if batch and any(re.search(r"\bbatch\b", normalise_name(cell))
+                         for row in rows for cell in row):
+            return None
+        own: list[list[str]] = []
+        current: str | None = None
+        for row in rows[1:]:
+            if row[0]:
+                current = row[0]
+            if not current or not _published_subject(current, claim.names):
+                continue
+            if len(row) != len(headers):
+                return None
+            own.append(row)
+        if not own or not any(_PRICE_CELL.search(cell) for row in own for cell in row):
+            return None
+        for other in sorted(_PRICE_KINDS - {wanted}):
+            sibling = replace(claim, field=f"offering.price.{other}")
+            try:
+                readings = self.extract(sibling, text)
+            except ExtractorError:
+                continue
+            if any(reading.subject and _published_subject(reading.subject, claim.names)
+                   and parse_quantity(str(reading.value), claim.unit) is not None
+                   for reading in readings):
+                return f"the model's row prices {other} and the table has no {wanted} column"
+        return None
+
+
+_PRICE_KINDS = frozenset({"input", "output", "cached_input", "batch_input", "batch_output"})
+
+
+def _agree(readings: Sequence[Reading]) -> None:
+    """Raise unless every reading of one subject is the same amount.
+
+    A row printed twice must print one price. ``verify`` passes when any one reading
+    matches, so two different cells for one fact would pass on the wrong one.
+    """
+    seen: dict[str, tuple[Any, Reading]] = {}
+    for reading in readings:
+        quantity = parse_quantity(str(reading.value), reading.unit)
+        amount = quantity.number if quantity is not None else str(reading.value)
+        key = normalise_name(reading.subject or "")
+        if key in seen and seen[key][0] != amount:
+            raise ExtractorError(
+                f"the page prints {reading.subject!r} twice with cells that disagree: "
+                f"{seen[key][1].value!r} and {reading.value!r}")
+        seen.setdefault(key, (amount, reading))
+
+
+def undisclosed_confirmation(claim: Claim, regions: Regions, today: date) -> Verification | None:
+    """A verification that a ``not_disclosed`` price is still not stated, or ``None``.
+
+    Every cited region must have read; one region has to show the table, the model's
+    row and another price on it (``OfferingPriceExtractor.absence_evidence``). Anything
+    less returns ``None`` and the caller keeps its own outcome (MODEL-481).
+    """
+    if claim.value is not None or not claim.field.startswith("offering.price."):
+        return None
+    reader = OfferingPriceExtractor()
+    shown = False
+    for source in claim.sources:
+        for region_id in source.cited_regions:
+            text = regions.text(source.source_id, source.snapshot_ref, region_id)
+            if text is None:
+                return None
+            if reader.absence_evidence(claim, MetricPriceTable.outside(text)):
+                shown = True
+    if not shown or not _independent(claim, reader.actor, today):
+        return None
+    return _verification(claim, reader.actor, "verified", today)
 
 
 #: A price cell: a dollar amount, however the unit after it is written.

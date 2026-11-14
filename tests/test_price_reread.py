@@ -1321,7 +1321,8 @@ def test_a_value_the_page_did_not_state_is_reviewed_not_written(estate) -> None:
 
     result = by_id(report)[LARGE_OUTPUT]
     assert result.status is Status.NEEDS_REVIEW
-    assert result.reason.startswith("was not_disclosed; a reader now reads 15:")
+    assert result.reason.startswith("disclosed: page now states a value; was not_disclosed; "
+                                    "a reader now reads 15:")
     assert (root / API_FILE).read_text() == before
 
 

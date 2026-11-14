@@ -11,7 +11,11 @@ Each fact ends in one status:
 
 - ``unchanged``: the recorded value verifies against the new copy. With
   ``--write`` that verification is logged with today's date, so the value's age
-  restarts; the offering file is not touched.
+  restarts; the offering file is not touched. A price filed ``not_disclosed`` is
+  ``unchanged`` with the reason ``still not disclosed`` when the same read shows the
+  table, the model's row, another price on that row and no column for that kind
+  (MODEL-481); when the page now states it, the fact is ``needs_review`` with
+  ``disclosed: page now states a value``.
 - ``needs_review``: the value no longer verifies. The reason carries what the
   readers propose instead, if anything: one new value, several, a list or flag,
   or free text read only from a whole-page region. The job never writes a
@@ -99,6 +103,7 @@ from decision.verify import (
     normalise_name,
     parse_quantity,
     split_model_cell,
+    undisclosed_confirmation,
     verify,
 )
 
@@ -715,6 +720,13 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
                        reason=f"cited region not found in the new copy: {result.reason}"
                        f"{_page_size(regions, claim)}")
     if result.outcome == "skipped":
+        # A price filed not_disclosed is confirmed only when this same read shows the
+        # table, the model's row and another price on it, and no column for the kind
+        # (MODEL-481). A page that did not read stays unreadable.
+        if fact["state"] == "not_disclosed" and (
+                confirmation := undisclosed_confirmation(claim, regions, today)) is not None:
+            return replace(base, status=Status.UNCHANGED, verification=confirmation,
+                           reason="still not disclosed")
         return replace(base, status=Status.UNREADABLE,
                        reason=f"no reader accepts the new copy: {result.reason}"
                        f"{_page_size(regions, claim)}")
@@ -722,6 +734,10 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
     proposal = _propose(claim, regions, today)
     confirmed = proposal.values
     diff = _diff_text(result)
+    # A price filed not_disclosed that a reader now reads is a disclosure a person
+    # confirms; nothing is written (MODEL-481).
+    disclosed = ("disclosed: page now states a value; "
+                 if fact["state"] == "not_disclosed" and fact.get("value") is None else "")
     if not proposal.read_any:
         return replace(base, status=Status.UNREADABLE,
                        reason=f"the readers find no value for {claim.names[0]!r}: {diff}")
@@ -748,7 +764,7 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
         # A value the page did not state is new, not changed: a person confirms the
         # page now states it, and it is not a label for something else (MODEL-235).
         return replace(base, status=Status.NEEDS_REVIEW,
-                       reason=f"was {fact['state']}; a reader now reads "
+                       reason=f"{disclosed}was {fact['state']}; a reader now reads "
                        f"{json.dumps(confirmed[0])}: {diff}")
     if len(confirmed) > 1:
         why = "several new values verify, among them " + ", ".join(map(json.dumps, confirmed))
@@ -757,7 +773,7 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
     else:
         why = "no single new value verifies"
     return replace(base, status=Status.NEEDS_REVIEW,
-                   reason=f"{why}{proposal.cap_note}; {diff}")
+                   reason=f"{disclosed}{why}{proposal.cap_note}; {diff}")
 
 
 def _page_size(regions: StoredRegions, claim: Claim) -> str:
