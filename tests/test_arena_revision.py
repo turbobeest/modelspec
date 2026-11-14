@@ -23,7 +23,7 @@ REFRESH_ENTRYPOINTS = ("scripts.refresh_leaderboards", "scripts.process_release_
 
 
 def test_resolver_reads_a_40_hex_dataset_sha() -> None:
-    def fetch(url: str) -> bytes:
+    def fetch(url: str, **_declared) -> bytes:
         assert url == API
         return json.dumps({
             "sha": NEW,
@@ -53,7 +53,7 @@ def test_resolver_falls_back_on_a_malformed_response(body: bytes) -> None:
 
 
 def test_resolver_falls_back_on_a_network_error() -> None:
-    def fetch(_url: str) -> bytes:
+    def fetch(_url: str, **_declared) -> bytes:
         raise OSError("offline")
 
     got = refresh.readers.resolve_arena_revision(fetch)
@@ -65,7 +65,7 @@ def test_resolver_falls_back_on_a_network_error() -> None:
 
 
 def test_flag_off_does_not_ask_the_dataset_api(monkeypatch: pytest.MonkeyPatch) -> None:
-    def fetch(_url: str) -> bytes:
+    def fetch(_url: str, **_declared) -> bytes:
         raise AssertionError("dataset API was called")
 
     monkeypatch.setattr(refresh, "_fetch", fetch)
@@ -194,7 +194,7 @@ def test_collect_without_a_revision_stays_on_the_pin(
 ) -> None:
     fetched: list[str] = []
 
-    def fetch(url: str) -> bytes:
+    def fetch(url: str, **_declared) -> bytes:
         fetched.append(url)
         raise OSError("stop")
 
@@ -615,7 +615,7 @@ def test_latest_mode_reads_all_seven_configs_at_one_revision(
     fetched: list[str] = []
     projected: list[str] = []
 
-    def fetch(url: str) -> bytes:
+    def fetch(url: str, **_declared) -> bytes:
         fetched.append(url)
         if url == API:
             return json.dumps({"sha": NEW}).encode()
@@ -792,7 +792,7 @@ def test_latest_resolver_error_writes_no_arena_rows(
     fetched: list[str] = []
     projected: list[str] = []
 
-    def fetch(url: str) -> bytes:
+    def fetch(url: str, **_declared) -> bytes:
         fetched.append(url)
         if url == API:
             raise OSError("offline")
@@ -825,7 +825,7 @@ def test_latest_missing_config_writes_no_arena_rows(
     fetched: list[str] = []
     projected: list[str] = []
 
-    def fetch(url: str) -> bytes:
+    def fetch(url: str, **_declared) -> bytes:
         fetched.append(url)
         if url == API:
             return json.dumps({"sha": NEW}).encode()
@@ -868,7 +868,7 @@ def test_latest_config_timeout_writes_no_arena_rows(
     fetched: list[str] = []
     projected: list[str] = []
 
-    def fetch(url: str) -> bytes:
+    def fetch(url: str, **_declared) -> bytes:
         fetched.append(url)
         if url == API:
             return json.dumps({"sha": NEW}).encode()
@@ -904,7 +904,7 @@ def test_pinned_mode_keeps_the_arena_configs_it_could_read(
     fetched: list[str] = []
     projected: list[str] = []
 
-    def fetch(url: str) -> bytes:
+    def fetch(url: str, **_declared) -> bytes:
         fetched.append(url)
         if "/document/" in url:
             raise OSError("missing")
@@ -1125,7 +1125,7 @@ def test_one_arena_config_error_leaves_the_other_boards(
     })
     (root / "verification").mkdir()
 
-    def fetch(url: str) -> bytes:
+    def fetch(url: str, **_declared) -> bytes:
         if url == API:
             return json.dumps({"sha": NEW}).encode()
         if "leaderboard-dataset/resolve/" in url:

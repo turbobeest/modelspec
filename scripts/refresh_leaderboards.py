@@ -27,6 +27,7 @@ import math
 import os
 import re
 import tempfile
+import urllib.parse
 import urllib.request
 import zipfile
 from collections.abc import Callable, Iterable, Mapping, Sequence
@@ -3386,12 +3387,76 @@ def write_report_json(path: Path, report: RefreshReport) -> None:
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
-def _fetch(url: str) -> bytes:
+class RedirectedRead(ValueError):
+    """A board read ended on another address than the one it asked for (MODEL-493)."""
+
+    def __init__(self, requested: str, final: str) -> None:
+        super().__init__(f"redirected: declared {requested}, final {final}")
+        self.requested = requested
+        self.final = final
+
+
+def _is_hf_cdn_host(final: str) -> bool:
+    parts = urllib.parse.urlsplit(final)
+    host = parts.hostname or ""
+    return parts.scheme == "https" and (host == "hf.co" or host.endswith(".hf.co"))
+
+
+_ARENA_PINNED = re.compile(
+    r"^https://huggingface\.co/datasets/lmarena-ai/leaderboard-dataset/resolve/[0-9a-f]{40}/"
+)
+
+
+def accept_arena_cdn(requested: str, final: str) -> bool:
+    """Declared exception 1. A commit-pinned Arena file on huggingface.co is
+    served from a Hugging Face CDN host (``*.hf.co``, https only). That redirect
+    resolves the file at the pinned commit; it does not change the board. An
+    unpinned address names a moving branch, so it gets no exception."""
+    return _ARENA_PINNED.match(requested) is not None and _is_hf_cdn_host(final)
+
+
+#: Where the declared Scale SWE-bench Pro address ends (MODEL-493-B: the same
+#: board, compared 2026-11-14).
+SCALE_PRO_FINAL = "https://labs.scale.com/leaderboard/swe_bench_pro"
+
+
+def accept_scale_pro_final(requested: str, final: str) -> bool:
+    """Declared exception 2. Exactly one expected final address for one request."""
+    return requested == readers.SCALE_URL and final == SCALE_PRO_FINAL
+
+
+def _reason(exc: BaseException) -> str:
+    """The failure text for a board read: a redirect is its own class."""
+    if isinstance(exc, RedirectedRead):
+        return str(exc)
+    return f"{type(exc).__name__}: {exc}"
+
+
+def _fetch_arena(url: str) -> bytes:
+    """The one read that declares the Arena exception."""
+    return _fetch(url, accept_final=accept_arena_cdn)
+
+
+def _fetch_scale_pro(url: str) -> bytes:
+    """The one read that declares the Scale SWE-bench Pro exception."""
+    return _fetch(url, accept_final=accept_scale_pro_final)
+
+
+def _fetch(url: str, *, accept_final: Callable[[str, str], bool] | None = None) -> bytes:
+    """Read a live board. The read must end on the address it asked for.
+
+    ``accept_final(requested, final)`` is the only way to declare another final
+    address; there are two, ``accept_arena_cdn`` and ``accept_scale_pro_final``.
+    A cite-only address or hop is refused first, by ``open_retained_source``.
+    """
     from decision.retention import open_retained_source
 
     require_allowed_source(url)
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with open_retained_source(request, timeout=180) as response:
+        final = response.geturl()
+        if final != url and not (accept_final is not None and accept_final(url, final)):
+            raise RedirectedRead(url, final)
         return response.read()
 
 
@@ -3621,10 +3686,11 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
 
     def collect(key: str, source_id: str, benchmarks: Iterable[str], source_url: str,
                 fetch_url: str, projector: Callable[..., bytes], value_field: str,
-                *, fraction: bool = False, card_urls: Iterable[str] = ()) -> None:
+                *, fraction: bool = False, card_urls: Iterable[str] = (),
+                read: Callable[[str], bytes] | None = None) -> None:
         try:
             require_allowed_source(fetch_url, benchmarks)
-            raw = _fetch(fetch_url)
+            raw = (read or _fetch)(fetch_url)
             raw_ref = store.put(raw, source_url=fetch_url)
             projected = projector(raw, url=source_url, page_ref=f"{raw_ref} {fetch_url}",
                                   observed_at=observed_at)
@@ -3635,7 +3701,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
             ))
         except Exception as exc:  # one failed board must not hide all other board results
             failures.append(RowFailure("*", ",".join(sorted(benchmarks)), source_url,
-                                       f"{type(exc).__name__}: {exc}"))
+                                       _reason(exc)))
 
     # Arena: the CC BY 4.0 Hugging Face dataset, at one revision for every config.
     def arena_source_id(config: str) -> str:
@@ -3649,11 +3715,11 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
         for config in sorted({config for config, _ in ARENA_BOARDS.values()}):
             fetch_url = readers.arena_parquet_url(config, at)
             try:
-                raw = _fetch(fetch_url)
+                raw = _fetch_arena(fetch_url)
                 raw_ref = store.put(raw, source_url=fetch_url)
             except Exception as exc:
                 missed.append(RowFailure(
-                    "*", f"arena:{config}", fetch_url, f"{type(exc).__name__}: {exc}",
+                    "*", f"arena:{config}", fetch_url, _reason(exc),
                 ))
                 continue
             kept[config] = (raw, raw_ref, fetch_url)
@@ -3683,7 +3749,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
                     ))
                 except Exception as exc:
                     error = RowFailure(
-                        "*", f"arena:{config}", fetch_url, f"{type(exc).__name__}: {exc}",
+                        "*", f"arena:{config}", fetch_url, _reason(exc),
                     )
                     break
             if error is None:
@@ -3751,7 +3817,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
                 ))
     except Exception as exc:
         failures.append(RowFailure("*", "epoch", readers.EPOCH_ZIP,
-                                   f"{type(exc).__name__}: {exc}"))
+                                   _reason(exc)))
 
     # MathArena: MIT-licensed code, CC BY-SA 4.0 datasets; the site asks only to be
     # cited (checked 2026-09-29). Its index marks retired competitions, and a row's
@@ -3766,7 +3832,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
         index_ref = store.put(index, source_url=readers.MATHARENA_INDEX)
     except Exception as exc:
         failures.append(RowFailure("*", "matharena", readers.MATHARENA_INDEX,
-                                   f"{type(exc).__name__}: {exc}"))
+                                   _reason(exc)))
     else:
         for key, (source_id, benchmark, url) in matharena.items():
             def project(body: bytes, *, url: str, page_ref: str, observed_at: str,
@@ -3791,7 +3857,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
             ))
     except Exception as exc:
         failures.append(RowFailure("*", "metr", readers.METR_URL,
-                                   f"{type(exc).__name__}: {exc}"))
+                                   _reason(exc)))
 
     for key, url, source_id, columns, unit in MTEB_BOARDS:
         try:
@@ -3807,7 +3873,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
                     card_urls=(url,), row_template={**MTEB_ROW, "unit": unit},
                 ))
         except Exception as exc:
-            failures.append(RowFailure("*", f"mteb:{key}", url, f"{type(exc).__name__}: {exc}"))
+            failures.append(RowFailure("*", f"mteb:{key}", url, _reason(exc)))
 
     terminal_url = "https://www.tbench.ai/leaderboard/terminal-bench/4.0"
     collect("terminal-bench", "model-143-evidence-terminal-bench-4-0-json",
@@ -3836,7 +3902,8 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
             lambda body, **kw: readers.project_scale(body.decode(), read_date=observed_at,
                                                       **{k: v for k, v in kw.items()
                                                          if k != "observed_at"}),
-            "resolve_rate", card_urls=(readers.SCALE_URL, "https://labs.scale.com/leaderboard/swe_bench_pro"))
+            "resolve_rate", card_urls=(readers.SCALE_URL, "https://labs.scale.com/leaderboard/swe_bench_pro"),
+            read=_fetch_scale_pro)
     collect("scale-hle", "model-143-evidence-scale-hle-json", ("hle",), HLE_URL,
             HLE_URL, lambda body, **kw: _project_scale_hle(body.decode(), **kw), "accuracy")
     collect("cursorbench", "model-160-cursorbench", ("cursorbench_4",), readers.CURSOR_URL,
@@ -3867,7 +3934,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
             ))
     except Exception as exc:
         failures.append(RowFailure("*", "swebench", readers.SWEBENCH_URL,
-                                   f"{type(exc).__name__}: {exc}"))
+                                   _reason(exc)))
 
     # Vending-Bench data lives in a JS chunk named by its HTML shell.
     try:
@@ -3892,7 +3959,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
             raise ValueError("Vending-Bench data chunk not found")
     except Exception as exc:
         failures.append(RowFailure("*", "vending_bench_2", readers.VENDING_URL,
-                                   f"{type(exc).__name__}: {exc}"))
+                                   _reason(exc)))
 
     for tau_url in sorted(tau_urls):
         slug = re.search(r"/submissions/([^/]+)/", tau_url).group(1)
