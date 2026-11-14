@@ -152,3 +152,82 @@ jobs:
             --report-dir "$RUNNER_TEMP/private-recall" \
             --baseline reports/recall/baseline.json \
             --summary "$GITHUB_STEP_SUMMARY" "${args[@]}"
+  # MODEL-476: GitHub does not count the check run of a workflow_dispatch run in a pull
+  # request's checks, but a commit status posted through the REST API counts. These two
+  # jobs run only for workflow_dispatch and are the only jobs here that may write
+  # commit statuses. The recall job above runs code from the branch under test and holds
+  # no write permission. A job-level `permissions` block replaces the workflow-level one,
+  # so these jobs hold nothing else (no `contents`). They have no checkout, no `uses:`, no
+  # secret, and read their inputs only through `env:`.
+  status-pending:
+    name: Report the started check as a commit status
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      statuses: write
+    steps:
+      - name: Post the pending status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          CONTEXT: Approved answers on private data
+        run: |
+          set -euo pipefail
+          : "${SHA:?}" "${REPO:?}" "${RUN_ID:?}" "${CONTEXT:?}"
+          gh api --method POST "repos/$REPO/statuses/$SHA" \
+            -f state=pending \
+            -f context="$CONTEXT" \
+            -f description='Started by a writer workflow on this branch head; the run is in progress.' \
+            -f target_url="$GITHUB_SERVER_URL/$REPO/actions/runs/$RUN_ID"
+  status-final:
+    name: Report the recall result as a commit status
+    needs: [status-pending, recall]
+    if: always() && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      statuses: write
+    steps:
+      - name: Post the final status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          CONTEXT: Approved answers on private data
+          RECALL_RESULT: ${{ needs.recall.result }}
+        run: |
+          set -euo pipefail
+          : "${SHA:?}" "${REPO:?}" "${RUN_ID:?}" "${CONTEXT:?}"
+          # Only an exact "success" is a success. Every other value, including an empty or
+          # unknown one, is an error or a failure; a status is never left pending.
+          case "${RECALL_RESULT:-}" in
+            success)
+              state=success
+              description='The approved answers hold on private data.'
+              ;;
+            failure)
+              state=failure
+              description='The approved answers did not hold on private data, or the run failed.'
+              ;;
+            cancelled)
+              state=error
+              description='The recall run was cancelled before it finished.'
+              ;;
+            skipped)
+              state=error
+              description='The recall run was skipped and did not finish.'
+              ;;
+            *)
+              state=error
+              description='The recall result could not be read.'
+              ;;
+          esac
+          gh api --method POST "repos/$REPO/statuses/$SHA" \
+            -f state="$state" \
+            -f context="$CONTEXT" \
+            -f description="$description" \
+            -f target_url="$GITHUB_SERVER_URL/$REPO/actions/runs/$RUN_ID"

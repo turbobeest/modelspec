@@ -234,3 +234,112 @@ One pull request in `turbobeest/modelspec-data`:
    leg's branch reaches the dispatch job.
 5. Do not add a personal access token or change a workflow permission when it fails: the
    fallback comment already says how to run the check by hand.
+
+## Round three: a dispatched run reports its result as a commit status
+
+### Measurement
+
+On 2026-11-13, for a pull request head whose only recall run came from `workflow_dispatch`,
+the commit carried the check suite and the check run, but the commit's `statusCheckRollup`
+was null, `gh pr checks` said "no checks reported" and the pull request's check list was
+empty. GitHub does not count a check run from a `workflow_dispatch` run in a pull request's
+checks. With the check required on `main`, a writer-opened pull request would wait forever.
+On 2026-11-14 a commit status posted through the REST API
+(`POST /repos/{owner}/{repo}/statuses/{sha}` with a `context`) did appear in the commit's
+rollup next to check runs. So a dispatched recall run posts a commit status.
+
+### The new jobs in `recall-private.yml`
+
+Two small jobs, both only for `workflow_dispatch`. `pull_request` and `schedule` runs skip
+both, because there the check run itself is what counts. The `context` of every status is
+"Approved answers on private data", exactly the recall job's check name, and `target_url` is
+the run's URL.
+
+| Job | `permissions` | `needs` | `if` | Inputs (all through `env:`) |
+| --- | --- | --- | --- | --- |
+| `recall` (unchanged) | none of its own: inherits the workflow's `contents: read` | none | none | unchanged |
+| `status-pending` | `statuses: write` and nothing else | none | `github.event_name == 'workflow_dispatch'` | `github.token`, `github.sha`, `github.repository`, `github.run_id`, the fixed context |
+| `status-final` | `statuses: write` and nothing else | `status-pending`, `recall` | `always() && github.event_name == 'workflow_dispatch'` | the same, plus `needs.recall.result` |
+
+Each status job has one step, a fixed `gh api` call, no checkout, no `uses:`, no secret, no
+`${{ }}` in `run:`, no `continue-on-error`. `status-pending` starts at once, in parallel
+with `recall`, and posts `pending`. `status-final` waits for both jobs (so the final status
+always lands after the pending one) and posts the true result.
+
+### Recall result against the status posted
+
+| Recall job result | Status posted |
+| --- | --- |
+| `success` | `success` |
+| `failure` (including the 20-minute timeout) | `failure` |
+| `cancelled` | `error` |
+| `skipped` | `error` |
+| empty, unset or any other value | `error` |
+| the status job itself fails (API refused, input missing) | the job turns red; no new status is posted, so the previous one stands: `pending` when the final job failed, or none when the pending job failed |
+
+A failure to post never changes the recall job's own result: neither status job is a
+dependency of `recall`. A missing status is visible as a red `status-pending` or
+`status-final` job.
+
+### Endings the workflow cannot handle
+
+- The whole run cancelled before `status-final` starts (a newer dispatch on the same ref, by
+  the workflow's concurrency group, or a person cancelling): `always()` may still start the
+  final job on a cancelled run, but this was not seen. If it does not, the status stays
+  `pending` on that commit. A newer run on the same commit posts its own `pending` and final
+  status; a newer commit has its own status.
+- `status-final` failing to post (the API refused, a runner outage): the status stays
+  `pending`.
+- `status-pending` posting after `status-final` cannot happen: the final job needs it.
+- GitHub losing the run altogether (an outage): `pending` stays.
+
+### Permissions
+
+The workflow-level block stays `contents: read`. A job-level `permissions` block replaces the
+workflow-level one, so each status job holds `statuses: write` and nothing else, not even
+`contents`. The recall job checks out and runs code from the branch under test and holds no
+write permission; its steps are unchanged (a test pins their names and order). No other job
+in any private-writer file holds `statuses: write`.
+
+### A branch can change this very file
+
+The workflow file that runs on `workflow_dispatch` is the copy on the dispatched ref. A
+branch that changes `recall-private.yml` could post any status. This design does not rely on
+the branch's copy being unmodified. It relies on who can push: the writers' own branches
+(`data/...`, `research/...`, `admission/...`, `curation/benchmarks/...`) are written by
+workflows whose `add-paths` list data files only, and pushing any branch in the private
+repository needs write access to that repository, which also lets that person post a commit
+status with their own token. The recall job's mirror step compares the branch's workflow
+copies with public `main` and fails on a difference, but that step runs in the recall job,
+which the same branch could change: it catches mistakes, not an attacker with push access.
+The protection that counts against such a change is review of the workflow diff in the pull
+request.
+
+### Install order
+
+`recall-private.yml` is the twelfth changed file. In ONE data pull request: move
+`.engine-pin` to a commit of public `main` that contains this merge, and copy
+`.github/private-writers/recall-private.yml` byte for byte to
+`.github/workflows/recall-private.yml` (with the eleven writer copies from the earlier round
+when they are still not installed). From the moment this merges, the data repository's mirror
+step fails until the copy is installed. Merge only when no data pull request is waiting on its
+check.
+
+### What only a real run proves
+
+- That `statuses: write` on the repository token is enough to post on that commit.
+- That the status shows in `gh pr checks` on a writer-opened pull request.
+- That a required check named "Approved answers on private data" is satisfied by the status.
+  The branch-protection proposal depends on this and it is still to be seen on a runner.
+- That `always()` starts `status-final` after a cancelled run.
+
+### What was checked by hand
+
+`actionlint` is not installed on the build host. The YAML was read as the runner would:
+`needs.recall.result` is available in `jobs.<id>.steps[*].env` of a job that lists `recall` in
+`needs`, and takes the values `success`, `failure`, `cancelled`, `skipped`; `always()` is
+allowed in a job-level `if`; `github.token`, `github.sha`, `github.repository` and
+`github.run_id` are available in `env:`; `GITHUB_SERVER_URL` is a default variable; `gh api`
+needs no checkout; `gh api` exits non-zero on an HTTP error, and `set -e` carries that out of
+the step. `shellcheck -s bash` passes on both scripts (a test runs it when installed), and
+`tests/test_recall_status.py` runs both scripts against a stub `gh`.
