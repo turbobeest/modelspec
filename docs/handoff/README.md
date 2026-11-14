@@ -63,16 +63,21 @@ Learned expensively during 2026-09-09/10.
     registered page of the model offers weights. Required evidence: the section
     of the lab's terms that licenses a hosted service, and each of the model's
     registered pages, read and found to offer no weights. Cite those pages. It
-    does not allow a guess for a lab whose terms were not read, nor
-    `closed_weights` for a lab that offers some models' weights unless that
-    model's own page was read and offers none. A page not read is not an
+    does not allow a guess for a lab whose terms were not read. It applies only
+    to a lab whose terms license only a hosted service: for a lab that publishes
+    weights for any model, this rule does not apply, and such a model needs its
+    own evidence under the existing reading rule. A page not read is not an
     absence: leave the fact as it is.
 13. **User cap when a provider's terms state none** (MODEL-490, decided by the
     owner, 2026-11-14). `licence.user_cap` is `unbounded`, as the facet
     definition says, when the provider's commercial terms were read in full and
-    set no user, seat or monthly-active-user threshold. Cite the terms page. It
-    does not allow `unbounded` when the terms mention a cap, a tier limit or
-    "contact sales above N", or when the terms page was not read in full.
+    set no user, seat or monthly-active-user threshold. Cite the terms page.
+    "Read in full" covers the provider's commercial terms themselves; documents
+    the terms incorporate are read too when they are registered sources. When
+    they are not registered, the fact is filed on the commercial terms alone and
+    its citation says so. It does not allow `unbounded` when the terms mention a
+    cap, a tier limit or "contact sales above N", or when the commercial terms
+    were not read in full.
 14. **Rules 12 and 13 on a cite-only source.** On a cite-only source the fact is
     filed as a cited fact, with the pages and the date they were read, and
     carries no machine verification: the engine returns `cited` and logs no
