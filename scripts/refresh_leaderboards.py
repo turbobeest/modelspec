@@ -1706,6 +1706,17 @@ def _class_from_verifier_diffs(diffs: Sequence[Diff]) -> str:
     return "verifier"
 
 
+def _count_refused(summary: dict[str, Any], failures: Iterable[RowFailure]) -> None:
+    """Add each refused row to the board's ``rows_skipped``, by ``_skip_class``.
+
+    Counts only. The key is absent for a board with no refused row, so a clean
+    board's summary is unchanged. The reason text stays in the private report."""
+    for failure in failures:
+        classes = summary.setdefault("rows_skipped", {})
+        kind = _skip_class(failure.reason)
+        classes[kind] = classes.get(kind, 0) + 1
+
+
 def _skip_class(reason: str, diffs: Sequence[Diff] = (), outcome: str = "") -> str:
     if outcome == "unowned" and not diffs:
         return "not-owned"
@@ -2111,6 +2122,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                         )
                         report.failures.extend(failures)
                         summary["failures"].extend(failure.reason for failure in failures)
+                        _count_refused(summary, failures)
                         if additions:
                             models_read.add(model_id)
                             pending_additions.setdefault(path, []).extend(additions)
@@ -2128,6 +2140,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                 )
                 report.failures.extend(failures)
                 summary["failures"].extend(failure.reason for failure in failures)
+                _count_refused(summary, failures)
                 report.not_published.extend(marks)
                 for mark in marks:
                     if mark.kind != "newly_marked":
@@ -2152,6 +2165,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                         )
                         report.failures.append(failure)
                         summary["failures"].append(failure.reason)
+                        _count_refused(summary, [failure])
                         continue
                     new["evidence_date"] = observation.evidence_date
                     new["observed_at"] = observed_at
@@ -2487,6 +2501,17 @@ def render_report(report: RefreshReport) -> str:
                 f"| {board} | {result['rows_rewritten']} | {result['rows_reconfirmed']} | "
                 f"{result['rows_left']} | {skipped_cell} |"
             )
+    refused = [
+        (board, result["rows_skipped"])
+        for board, result in sorted(report.boards.items())
+        if "rows_rewritten" not in result and result.get("rows_skipped")
+    ]
+    if refused:
+        lines.extend(["", "| Board | Skipped |", "|---|---|"])
+        lines.extend(
+            f"| {board} | " + ", ".join(f"{name} {count}" for name, count in sorted(skipped.items())) + " |"
+            for board, skipped in refused
+        )
     lines.extend(_dates_a_person_must_rewrite(report.failures))
     lines.extend(["", "## Score changes", "", audit_markdown(report.changes)])
     publication = _publication_lines(report)

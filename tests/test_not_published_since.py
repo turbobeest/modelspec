@@ -641,7 +641,10 @@ def test_not_published_since_is_not_named_in_the_workflow_log() -> None:
 
 
 def test_missing_value_key_marks_nothing() -> None:
-    """A row whose value key is absent is a re-shaped read, not an empty cell."""
+    """On an undeclared (generic JSON) board a missing value key is not an empty cell.
+
+    A declared board is different: see
+    ``test_missing_value_key_on_a_declared_board_is_treated_as_empty``."""
     observations, failures, marks = plan([{"model": "Orbit 9"}, *SCORED])
 
     assert observations == []
@@ -674,7 +677,7 @@ def test_one_scored_neighbour_is_not_enough() -> None:
     assert [failure.reason for failure in failures] == [FEW_SCORED]
 
 
-def test_mostly_empty_board_marks_nothing() -> None:
+def test_sparse_board_marks_when_complete() -> None:
     """MODEL-482-C: a mostly empty board is the normal state, not a reason to refuse.
 
     The half rule is gone: 3 scored of 10 other rows marks, as do 5, 6 and 10.
@@ -953,3 +956,81 @@ def test_refused_mark_reasons_are_distinct_from_no_unique_row() -> None:
     _o, failures, _m = plan([{"model": "Harbor 2", "score": 70}])
     assert [failure.reason for failure in failures] == ["no unique row for 'Orbit 9'"]
     assert refresh._skip_class(failures[0].reason) == "no-unique-row"
+
+
+def test_missing_value_key_on_a_declared_board_is_treated_as_empty(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """On a declared board the projection drops an empty value and the reader restores it.
+
+    The row has no value key in the projection, and is marked when the other rules
+    hold (three scored neighbours, every tracked row present, two tracked rows)."""
+    projected = json.loads(matharena_table(real_shape_rows()))
+    orbit = next(row for row in projected["rows"] if row["model"] == "Orbit 9")
+    assert "accuracy" not in orbit
+
+    root, cache, card = real_shape_card(tmp_path / "holds")
+    report = run_matharena(monkeypatch, root, cache, real_shape_rows())
+    assert report.failures == []
+    assert evidence_rows(card)["Orbit 9"]["not_published_since"] == OBSERVED
+
+    # The same dropped value does not mark when a rule fails: two scored neighbours.
+    few = [("Orbit 9", None), ("Orbit 8", None), ("Rival 1", 71.0), ("Rival 2", 72.0)]
+    root, cache, card = setup_repo(tmp_path / "few", card_text(extra=("Orbit 8",)))
+    before = card.read_bytes()
+    report = run_matharena(monkeypatch, root, cache, few)
+    assert card.read_bytes() == before
+    assert report.not_published == []
+    assert FEW_SCORED in {failure.reason for failure in report.failures}
+
+    # And when a tracked row is missing from the read.
+    root, cache, card = real_shape_card(tmp_path / "missing")
+    board = [(name, value) for name, value in real_shape_rows() if name != "Quill 2"]
+    report = run_matharena(monkeypatch, root, cache, board)
+    assert report.not_published == []
+    assert "not_published_since" not in card.read_text(encoding="utf-8")
+
+
+def test_a_refused_empty_cell_is_counted_in_the_board_summary(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """A MathArena-shaped board counts refused rows by class, as the Arena summary does."""
+    root, cache, card = setup_repo(tmp_path, card_text())
+    report = run_matharena(monkeypatch, root, cache, real_shape_rows())
+
+    assert [failure.reason for failure in report.failures] == [SINGLE_TRACKED]
+    assert report.boards["matharena"]["rows_skipped"] == {"empty-cell-not-marked": 1}
+
+    markdown = refresh.render_report(report)
+    assert "empty-cell-not-marked 1" in markdown
+    out = tmp_path / "report.json"
+    refresh.write_report_json(out, report)
+    assert json.loads(out.read_text())["boards"]["matharena"]["rows_skipped"] == {
+        "empty-cell-not-marked": 1,
+    }
+    # The summary line names counts only; the card id stays in the Failures table.
+    summary_line = next(line for line in markdown.splitlines() if "empty-cell-not-marked 1" in line)
+    assert "lab/orbit" not in summary_line and "Orbit" not in summary_line
+
+
+def test_a_matharena_row_with_another_cell_count_is_dropped_without_a_report(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Known limit: ``project_matharena`` skips a row whose cells differ from the header's.
+
+    Nothing reports it: no failure, no count. Pinned as it is today; the projector
+    is not changed (MODEL-482-D)."""
+    table = (
+        "<table><thead><tr><th>Rank</th><th>Model Name</th><th>Provider</th>"
+        "<th>Accuracy (± 95% CI)</th></tr></thead><tbody>"
+        '<tr><td>1</td><td class="model-name"><a>Orbit 9</a></td><td>Lab</td>'
+        '<td data-predicted="no">N/A</td></tr>'
+        '<tr><td>2</td><td class="model-name"><a>Odd 1</a></td>'
+        '<td data-predicted="no">80.00% ± 1.00%</td></tr>'
+        "</tbody></table>"
+    )
+    body = refresh.readers.project_matharena(
+        json.dumps({"table": table}).encode(),
+        url=SOURCE_URL, page_ref="sha256:" + "b" * 64, read_date=OBSERVED,
+    )
+    assert [row["model"] for row in json.loads(body)["rows"]] == ["Orbit 9"]
