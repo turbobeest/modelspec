@@ -139,6 +139,12 @@ def test_intermediate_cite_only_hop_is_refused_before_following(
     _assert_no_source_text(tmp_path)
 
 
+# The ``leaderboards`` collector is not in this list. For a live board an ordinary redirect is
+# itself a failure unless the board declares its final address (MODEL-493-B).
+@pytest.mark.parametrize("collector", [
+    "pdf", "board", "rendered", "data", "local-json", "local-text", "hardware", "existing",
+    "finance", "evidence", "oll",
+], indirect=True)
 def test_ordinary_redirect_chain_preserves_collection(tmp_path, monkeypatch, collector):
     read, url, body, timeout = collector
     calls, intermediate, final = _redirect_transport(monkeypatch, url, body, restricted=False)
@@ -146,6 +152,16 @@ def test_ordinary_redirect_chain_preserves_collection(tmp_path, monkeypatch, col
     assert calls == [(url, timeout), (intermediate, timeout), (final, timeout)]
     assert SENTINEL in repr(result) or any(
         SENTINEL.encode() in path.read_bytes() for path in tmp_path.rglob("*") if path.is_file())
+
+
+def test_live_board_ordinary_redirect_is_a_named_failure(tmp_path, monkeypatch):
+    body = json.dumps({"excerpt": SENTINEL}).encode()
+    calls, _, final = _redirect_transport(monkeypatch, URL, body, restricted=False)
+    with pytest.raises(refresh_leaderboards.RedirectedRead) as error:
+        refresh_leaderboards._fetch(URL)
+    assert (error.value.requested, error.value.final) == (URL, final)
+    assert URL in str(error.value) and final in str(error.value)
+    _assert_no_source_text(tmp_path)
 
 
 def test_board_redirect_cannot_retain_a_new_projection_hash(tmp_path, monkeypatch):

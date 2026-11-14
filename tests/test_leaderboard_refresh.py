@@ -1739,7 +1739,7 @@ def _replay_finbenchmark(monkeypatch) -> None:
 
     page = gzip.decompress((FIXTURES / "finbenchmark_2026-09-29.html.gz").read_bytes())
 
-    def fetch(url: str) -> bytes:
+    def fetch(url: str, **_declared) -> bytes:
         if url == refresh.FINBENCH_URL:
             return page
         raise OSError(f"offline replay: {url}")
@@ -1902,7 +1902,7 @@ def test_weekly_refresh_collects_mteb_subboards(monkeypatch, tmp_path: Path) -> 
     urls = {url for _, url, _, _, _ in refresh.MTEB_BOARDS}
     fetched = []
 
-    def fetch(url):
+    def fetch(url, **_declared):
         if url not in urls:
             raise ValueError("board outside this fixture")
         fetched.append(url)
@@ -1952,7 +1952,7 @@ def _replay_matharena(monkeypatch) -> None:
     pages[refresh.readers.MATHARENA_INDEX] = gzip.decompress(
         (FIXTURES / "matharena_index_2026-09-29.html.gz").read_bytes())
 
-    def fetch(url: str) -> bytes:
+    def fetch(url: str, **_declared) -> bytes:
         if url in pages:
             return pages[url]
         raise OSError(f"offline replay: {url}")
