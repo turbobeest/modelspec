@@ -30,8 +30,9 @@ was widened.
 declaration is `BoardReading.explicit_empty_cells`, default off, set from
 `UNPUBLISHED_CELL_BOARDS`, which names the MathArena boards and no other.
 A mark is written only when that same read parsed the table, exactly one
-row matches the stored name, the value key is present on that row with a
-value of None (a missing key is a re-shaped read, not an empty cell), at
+row matches the stored name, the value key is None on that row (on a
+declared board a value the projector dropped is restored as None, so a
+missing key and an empty cell are the same there), at
 least three other rows carry a number, the board has at least two tracked
 card rows, and every tracked card row of the board is present in the same
 read (the completeness rule below). The written day is the run's observation day. It is quoted so
@@ -43,7 +44,9 @@ These reads mark nothing and stay the existing failure:
 - the board has no numeric value or fewer than three scored neighbours
 - a tracked row of the board is missing from the read, or the board has a
   single tracked row
-- the value key is missing on the matched row
+- the value key is missing on the matched row of a generic JSON board that
+  is not declared (on a declared board a missing key is read as empty; the
+  floor, the completeness rule and the two-tracked-rows rule decide)
 - the board is not declared
 - the stored name matches no row
 - the stored name matches several rows, including when one cell is empty
@@ -152,8 +155,9 @@ the stored day stays.
 (g) Two rows match the stored name and one cell is empty: `no unique row`,
 no key, including when the other row's score agrees with the stored score.
 
-(h) The value key is missing: `no unique row`, no key. The board is
-undeclared, fewer than three scored neighbours, a tracked row missing, a
+(h) The value key is missing on an undeclared board: `no unique row`, no
+key (on a declared board it is read as empty and the other rules decide).
+The board is undeclared, fewer than three scored neighbours, a tracked row missing, a
 single tracked row: no key, each with its own reason (below). 3 of 10, 5 of
 10, 6 of 10 and all scored: marked, when the read is complete.
 
@@ -200,6 +204,12 @@ against is a page change that empties the cells while keeping every tracked
 row present and three other rows numeric. That read marks. The report lists
 every newly marked row, and a person reads it before the refresh merges.
 
+The reviewer's caveat, stated plainly. When the tracked models sit at the top
+of the page, a cut-off read (a page that stopped part way down) can keep every
+tracked row, because the rows it lost are further down. Then rule (c) is
+satisfied and nothing else detects the cut. Only the 3-number floor and a
+person reading the report stand between that partial read and a mark.
+
 The weakest read that still marks: two or more tracked rows, all present once
 each, three other rows numeric, and the row's own cell empty. That is
 acceptable because the mark is reversible (a later value removes it, the
@@ -211,7 +221,25 @@ On the recorded 2026-09-29 pages the `<tr` count is the row count plus one
 there is one table. A row is dropped only when its cell count differs from the
 header's, which the recorded pages do not have. A live page with about 50
 `<tr` against 24 rows was not re-read here and is not explained by these
-fixtures.
+fixtures. Read from `project_matharena`, not from the page: the projector
+keeps a row only when its cell count equals the header's, and `continue`s past
+any other row with no failure and no count. A second row per model (for
+example a detail row with a different cell count), a `tfoot`, or a row with a
+`colspan` would raise the `<tr` count and be skipped that way; 24 models with
+one such extra row each plus the header is 49, near 50. That is a guess, not
+an observation. Only table 0 is read, so a second table adds no rows.
+
+Known limit: a data row skipped for its cell count is reported nowhere. It
+becomes a row that is absent from the read, which for a tracked row blocks
+every mark on the board through rule (c) and surfaces as a missing tracked
+row; for an untracked row it is silent and harmless. The projector is not
+changed here, and `test_a_matharena_row_with_another_cell_count_is_dropped_without_a_report`
+pins today's behaviour.
+
+The report counts refused rows on every non-Arena board by class, as the
+Arena summary does (`rows_skipped` in `report.json`, a Skipped column in the
+markdown). The workflow log gains only board names and class counts; the card
+ids stay in the Failures table of the private report.
 
 ## Not observed
 
