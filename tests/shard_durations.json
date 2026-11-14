@@ -284,6 +284,7 @@
   "tests/test_reader_regressions.py": 0.302,
   "tests/test_reader_table_boundaries.py": 0.01,
   "tests/test_recall_dispatch.py": 3.611,
+  "tests/test_recall_status.py": 1.5,
   "tests/test_redact_json.py": 0.005,
   "tests/test_reference_access.py": 0.015,
   "tests/test_reference_agent_entry.py": 0.004,
