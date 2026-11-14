@@ -32,7 +32,7 @@ ROWS = [
 def _page(leaderboard=None, *, rows=ROWS, key: str = "leaderboard") -> bytes:
     """An invented page: React payload chunks carrying one leaderboard object and its rows."""
     board = {"name": "4-1-0", "title": "Terminal-Bench 4.1"} if leaderboard is None else leaderboard
-    payload = "7:" + json.dumps({"query": {key: {**board, "rows": rows}}}, separators=(",", ":"))
+    payload = "7:" + json.dumps({"state": {"data": {key: board, "rows": rows}}}, separators=(",", ":"))
     chunk = json.dumps(payload)[1:-1]
     return f'<html><script>self.__next_f.push([1,"{chunk}"])</script></html>'.encode()
 
@@ -93,33 +93,50 @@ def test_a_payload_with_no_leaderboard_object_fails():
 MISMATCH = "board_version"
 
 
+def _data(board, rows=ROWS, **more) -> dict:
+    """The page's own shape: ``leaderboard`` and ``rows`` are siblings under one object."""
+    return {"leaderboard": board, "rows": rows, **more}
+
+
 @pytest.mark.parametrize("payload", [
-    {"a": {"leaderboard": NAMED}, "b": {"leaderboard": {**OTHER, "rows": OTHER_ROWS}}},
-    {"b": {"leaderboard": {**OTHER, "rows": OTHER_ROWS}}, "a": {"leaderboard": NAMED}},
-    {"a": {"leaderboard": {**NAMED, "rows": ROWS}}, "b": {"leaderboard": {**OTHER, "rows": OTHER_ROWS}}},
+    # a 4.1 identity elsewhere, a 4.2 board with its rows: both orders
+    {"a": {"leaderboard": NAMED}, "b": _data(OTHER, OTHER_ROWS)},
+    {"b": _data(OTHER, OTHER_ROWS), "a": {"leaderboard": NAMED}},
+    # the name on an identity with no rows of its own, rows beside another board
+    {"a": {"leaderboard": NAMED}, "b": {"leaderboard": OTHER, "rows": ROWS}},
+    {"a": {"leaderboard": NAMED, "rows": []}, "b": {"rows": ROWS}},
+    # two identities both named 4.1
+    {"a": _data(NAMED), "b": _data(NAMED)},
     {"a": {"leaderboard": NAMED}, "b": {"leaderboard": NAMED}, "rows": ROWS},
-    {"leaderboard": {**NAMED, "rows": ROWS}, "other": {"leaderboard": {**NAMED, "rows": ROWS}}},
-    {"leaderboard": NAMED, "rows": ROWS},
+    # a second rows list anywhere
+    _data(NAMED, ROWS, other={"rows": OTHER_ROWS}),
+    # rows inside the identity, not beside it
+    {"leaderboard": {**NAMED, "rows": ROWS}},
+    # no identity, or no enclosing sibling rows
     {"rows": ROWS},
+    {"leaderboard": NAMED, "x": {"rows": ROWS}},
+    # wrong name, wrong title
+    _data(OTHER),
+    _data({"name": "4-1-0", "title": "Terminal-Bench 4.2"}),
 ])
 def test_only_one_board_with_its_own_rows_passes(payload):
     with pytest.raises(refresh.BoardVersionMismatch):
-        _project(_wrap(payload))
+        _project(_wrap({"state": {"data": payload}}))
 
 
-def test_the_single_well_formed_board_with_rows_inside_it_projects():
-    rows = _project(_wrap({"leaderboard": {**NAMED, "rows": ROWS}, "x": 1}))["rows"]
-    assert [r["model"] for r in rows] == ["Alpha One", "Beta Two"]
+def test_the_single_well_formed_board_with_sibling_rows_projects():
+    body = _wrap({"state": {"data": _data(NAMED, ROWS, extra=1)}, "x": [1]})
+    assert [r["model"] for r in _project(body)["rows"]] == ["Alpha One", "Beta Two"]
 
 
 def test_a_second_board_named_for_another_version_files_nothing(monkeypatch, tmp_path):
     for order in (("a", "b"), ("b", "a")):
-        root, card = _repo(tmp_path / "-".join(order), with_row=True)
+        sub = tmp_path / "-".join(order)
+        root, card = _repo(sub, with_row=True)
         before = card.read_bytes()
-        parts = {"a": {"leaderboard": {**NAMED, "rows": ROWS}},
-                 "b": {"leaderboard": {**OTHER, "rows": OTHER_ROWS}}}
-        report, _ = _run(monkeypatch, tmp_path / "-".join(order), root,
-                         _wrap({k: parts[k] for k in order}))
+        parts = {"a": _data(NAMED), "b": _data(OTHER, OTHER_ROWS)}
+        report, _ = _run(monkeypatch, sub, root,
+                         _wrap({"state": {k: {"data": parts[k]} for k in order}}))
         reasons = [f.reason for f in _on_board(report.failures)]
         assert len(reasons) == 1 and reasons[0].startswith(MISMATCH)
         assert card.read_bytes() == before
@@ -273,7 +290,7 @@ TWO = [
 
 
 def _two_page() -> bytes:
-    return _wrap({"leaderboard": {**NAMED, "rows": TWO}})
+    return _wrap({"state": {"data": _data(NAMED, TWO)}})
 
 
 def test_a_stored_effort_selects_exactly_that_page_row(monkeypatch, tmp_path):

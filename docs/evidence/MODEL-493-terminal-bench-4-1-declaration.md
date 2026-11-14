@@ -31,16 +31,25 @@ and the first rows.
 ## The board-name check
 
 `_project_tbench` runs `_check_tbench_board` on the bytes it was given, before
-any row is projected. The page payload must hold exactly one `"leaderboard"`
-object; it must carry the expected `name` and, if it has one, the expected
-`title`; and the rows that are projected must sit inside that same object.
-Otherwise the check raises `BoardVersionMismatch`, whose text is
+any row is projected.
+
+The page's shape (read from the live page on 2026-11-14): the React payload
+carries one dehydrated query whose `data` object holds the `leaderboard`
+identity object (with `name` `4-1-0` and `title` `Terminal-Bench 4.1`) and,
+as its sibling key, the one `rows` list of the board. A second `leaderboard`
+key on the page is a React prop whose value is a list, not an identity.
+
+The rule: the page holds exactly one `"leaderboard"` identity object, it
+carries the expected name (and the expected title when it has one), and the
+projected rows are the single `"rows"` list that is a direct key of the same
+enclosing object as that identity. Otherwise the check raises
+`BoardVersionMismatch`, whose text is
 
     board_version: expected name 4-1-0 (title Terminal-Bench 4.1), found <what the page says>
 
 The same failure covers a missing name, a page with no leaderboard object, a
-page with more than one (even if one of them is named correctly), and rows that
-sit outside the named object. It reaches the report the way
+page with more than one (even if one of them is named correctly), a second row
+list anywhere, and rows that are not beside the named identity. It reaches the report the way
 `redirected` does: a `RowFailure` for the board, with nothing filed (no
 observation, no row change, `observed_at` does not move, `not_published_since`
 is neither set nor removed). Other boards in the run are unaffected.
