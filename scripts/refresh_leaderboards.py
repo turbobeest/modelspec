@@ -3523,39 +3523,40 @@ TBENCH_NAME = "4-1-0"
 TBENCH_TITLE = "Terminal-Bench 4.1"
 
 
-def _check_tbench_board(payload: str, expected_name: str, expected_title: str) -> None:
-    """Fail unless a ``"leaderboard"`` object in the payload names the expected version.
+def _check_tbench_board(payload: str, expected_name: str, expected_title: str) -> tuple[int, int]:
+    """Bind the page's own name to the rows that are projected; return the object's span.
 
-    The name is the witness; the title is a second one, compared when the object
-    carries it. A missing name, no leaderboard object, or no object that matches
-    raises ``BoardVersionMismatch`` with the expected and the found value.
+    Raises ``BoardVersionMismatch`` unless the payload holds exactly one
+    ``"leaderboard"`` object and it carries the expected name (and the expected
+    title, when it has one). The caller must then take rows from inside the span.
     """
     expected = f"name {expected_name} (title {expected_title})"
-    boards: list[Mapping[str, Any]] = []
+    found: list[tuple[Mapping[str, Any], int, int]] = []
     position = 0
     while True:
         try:
             start = payload.index('"leaderboard":', position) + len('"leaderboard":')
         except ValueError:
             break
-        value, _ = json.JSONDecoder().raw_decode(payload, start)
+        value, end = json.JSONDecoder().raw_decode(payload, start)
         if isinstance(value, Mapping):
-            boards.append(value)
+            found.append((value, start, end))
         position = start + 1
-    for board in boards:
-        if board.get("name") == expected_name and board.get("title", expected_title) == expected_title:
-            return
-    found = "; ".join(
-        f"name {board.get('name')!r} (title {board.get('title')!r})" for board in boards
-    ) or "no leaderboard object"
-    raise BoardVersionMismatch(expected, found)
+    if len(found) != 1:
+        raise BoardVersionMismatch(
+            expected, f"{len(found)} leaderboard objects" if found else "no leaderboard object")
+    board, start, end = found[0]
+    if board.get("name") != expected_name or board.get("title", expected_title) != expected_title:
+        raise BoardVersionMismatch(
+            expected, f"name {board.get('name')!r} (title {board.get('title')!r})")
+    return start, end
 
 
 def _project_tbench(html: str, *, url: str, page_ref: str, observed_at: str,
                     expected_name: str = TBENCH_NAME,
                     expected_title: str = TBENCH_TITLE) -> bytes:
     payload = readers._rsc_payload(html)
-    _check_tbench_board(payload, expected_name, expected_title)
+    board_start, board_end = _check_tbench_board(payload, expected_name, expected_title)
     lists: list[list[dict[str, Any]]] = []
     position = 0
     while True:
@@ -3566,6 +3567,9 @@ def _project_tbench(html: str, *, url: str, page_ref: str, observed_at: str,
         value, _ = json.JSONDecoder().raw_decode(payload, start)
         if (isinstance(value, list) and value and isinstance(value[0], Mapping)
                 and {"metadata", "metrics"} <= set(value[0])):
+            if not board_start <= start < board_end:
+                raise BoardVersionMismatch(
+                    f"rows inside the board named {expected_name}", "rows outside that board")
             lists.append(value)
         position = start + 1
     if len(lists) != 1:

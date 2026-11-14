@@ -31,21 +31,28 @@ and the first rows.
 ## The board-name check
 
 `_project_tbench` runs `_check_tbench_board` on the bytes it was given, before
-any row is projected. It finds every `"leaderboard"` object in the page payload.
-The check passes when one of them has a `name` equal to the expected name and,
-if it carries a `title`, a title equal to the expected one. Otherwise it raises
-`BoardVersionMismatch`, whose text is
+any row is projected. The page payload must hold exactly one `"leaderboard"`
+object; it must carry the expected `name` and, if it has one, the expected
+`title`; and the rows that are projected must sit inside that same object.
+Otherwise the check raises `BoardVersionMismatch`, whose text is
 
     board_version: expected name 4-1-0 (title Terminal-Bench 4.1), found <what the page says>
 
-The same failure covers a missing name, a page with no leaderboard object, and
-a page with several where none matches. It reaches the report the way
+The same failure covers a missing name, a page with no leaderboard object, a
+page with more than one (even if one of them is named correctly), and rows that
+sit outside the named object. It reaches the report the way
 `redirected` does: a `RowFailure` for the board, with nothing filed (no
 observation, no row change, `observed_at` does not move, `not_published_since`
 is neither set nor removed). Other boards in the run are unaffected.
 
 `scripts/data_trust/sample.py` calls the same projector without arguments; the
-expected name defaults to the declared one, so it gets the check too.
+expected name defaults to the declared one, so it gets the check too. A page of
+another version makes that sample read "unreadable", because the mismatch is a
+`ValueError` the sampler already catches.
+
+The update path narrows a page's rows by effort only when the stored row has an
+`effort:` key (or spells the effort in its name), so the first 4.1 rows must be
+filed with `effort:`.
 
 ## What a `board_version` failure means
 

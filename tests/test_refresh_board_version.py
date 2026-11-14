@@ -32,9 +32,21 @@ ROWS = [
 def _page(leaderboard=None, *, rows=ROWS, key: str = "leaderboard") -> bytes:
     """An invented page: React payload chunks carrying one leaderboard object and its rows."""
     board = {"name": "4-1-0", "title": "Terminal-Bench 4.1"} if leaderboard is None else leaderboard
-    payload = "7:" + json.dumps({"query": {key: board, "rows": rows}}, separators=(",", ":"))
+    payload = "7:" + json.dumps({"query": {key: {**board, "rows": rows}}}, separators=(",", ":"))
     chunk = json.dumps(payload)[1:-1]
     return f'<html><script>self.__next_f.push([1,"{chunk}"])</script></html>'.encode()
+
+
+def _wrap(obj: dict) -> bytes:
+    payload = "7:" + json.dumps(obj, separators=(",", ":"))
+    chunk = json.dumps(payload)[1:-1]
+    return f'<html><script>self.__next_f.push([1,"{chunk}"])</script></html>'.encode()
+
+
+NAMED = {"name": "4-1-0", "title": "Terminal-Bench 4.1"}
+OTHER = {"name": "4-2-0", "title": "Terminal-Bench 4.2"}
+OTHER_ROWS = [{"metadata": {"model_display": "Gamma", "date": "2026-11-01"},
+               "metrics": {"accuracy": 99.0}}]
 
 
 def _project(body: bytes, **kwargs) -> dict:
@@ -78,14 +90,40 @@ def test_a_payload_with_no_leaderboard_object_fails():
         _project(_page(key="other"))
 
 
-def test_one_of_several_boards_may_match_but_none_matching_fails():
-    body = _page().decode().replace(
-        '\\"rows\\"', '\\"leaderboard\\":{\\"name\\":\\"4-0-0\\"},\\"rows\\"')
-    assert _project(body.encode())["rows"]
-    other = _page({"name": "4-0-0", "title": "Terminal-Bench 4.0"}).decode().replace(
-        '\\"rows\\"', '\\"leaderboard\\":{\\"name\\":\\"3-0-0\\"},\\"rows\\"')
-    with pytest.raises(refresh.BoardVersionMismatch, match="'4-0-0'.*'3-0-0'"):
-        _project(other.encode())
+MISMATCH = "board_version"
+
+
+@pytest.mark.parametrize("payload", [
+    {"a": {"leaderboard": NAMED}, "b": {"leaderboard": {**OTHER, "rows": OTHER_ROWS}}},
+    {"b": {"leaderboard": {**OTHER, "rows": OTHER_ROWS}}, "a": {"leaderboard": NAMED}},
+    {"a": {"leaderboard": {**NAMED, "rows": ROWS}}, "b": {"leaderboard": {**OTHER, "rows": OTHER_ROWS}}},
+    {"a": {"leaderboard": NAMED}, "b": {"leaderboard": NAMED}, "rows": ROWS},
+    {"leaderboard": {**NAMED, "rows": ROWS}, "other": {"leaderboard": {**NAMED, "rows": ROWS}}},
+    {"leaderboard": NAMED, "rows": ROWS},
+    {"rows": ROWS},
+])
+def test_only_one_board_with_its_own_rows_passes(payload):
+    with pytest.raises(refresh.BoardVersionMismatch):
+        _project(_wrap(payload))
+
+
+def test_the_single_well_formed_board_with_rows_inside_it_projects():
+    rows = _project(_wrap({"leaderboard": {**NAMED, "rows": ROWS}, "x": 1}))["rows"]
+    assert [r["model"] for r in rows] == ["Alpha One", "Beta Two"]
+
+
+def test_a_second_board_named_for_another_version_files_nothing(monkeypatch, tmp_path):
+    for order in (("a", "b"), ("b", "a")):
+        root, card = _repo(tmp_path / "-".join(order), with_row=True)
+        before = card.read_bytes()
+        parts = {"a": {"leaderboard": {**NAMED, "rows": ROWS}},
+                 "b": {"leaderboard": {**OTHER, "rows": OTHER_ROWS}}}
+        report, _ = _run(monkeypatch, tmp_path / "-".join(order), root,
+                         _wrap({k: parts[k] for k in order}))
+        reasons = [f.reason for f in _on_board(report.failures)]
+        assert len(reasons) == 1 and reasons[0].startswith(MISMATCH)
+        assert card.read_bytes() == before
+        assert report.changes == [] and not (root / "verification" / "log.jsonl").exists()
 
 
 def test_the_check_runs_before_any_row_is_projected():
@@ -96,7 +134,8 @@ def test_the_check_runs_before_any_row_is_projected():
 
 # ── a repository with an invented card for the board ────────────────────────
 
-def _repo(tmp_path: Path, *, with_row: bool) -> tuple[Path, Path]:
+def _repo(tmp_path: Path, *, with_row: bool, row_effort: str | None = "high",
+          score: float = 40.0) -> tuple[Path, Path]:
     root = tmp_path / "repo"
     (root / "models" / "lab").mkdir(parents=True)
     (root / "registry").mkdir()
@@ -108,10 +147,10 @@ def _repo(tmp_path: Path, *, with_row: bool) -> tuple[Path, Path]:
         f"- id: {SOURCE_ID}\n  volatility: live\n  url: {refresh.TBENCH_URL}\n  fetch: http\n"
         "  normaliser: text-default\n  cited_regions:\n  - id: rows\n    locator:\n"
         "      kind: page\n      value: ''\n", encoding="utf-8")
+    effort_line = f"effort: {row_effort}\n    " if row_effort else ""
     row = f"""  - benchmark_id: {BENCHMARK}
     model_id_as_evaluated: Alpha One
-    reasoning_effort: high
-    score: 40.0
+    {effort_line}score: {score}
     unit: percent
     source_url: {refresh.TBENCH_URL}
     source_kind: benchmark_author
@@ -221,3 +260,33 @@ def test_with_no_4_1_row_on_any_card_nothing_is_filed_and_no_failure(monkeypatch
     assert card.read_bytes() == before
     assert report.changes == [] and report.added == 0
     assert not (root / "verification" / "log.jsonl").exists()
+
+
+# ── the update path narrows by the stored ``effort:`` key ───────────────────
+
+TWO = [
+    {"metadata": {"model_display": "Alpha One", "reasoning_effort": "high", "agent_display": "H",
+                  "date": "2026-10-01"}, "metrics": {"accuracy": 41.5}},
+    {"metadata": {"model_display": "Alpha One", "reasoning_effort": "low", "agent_display": "H",
+                  "date": "2026-10-01"}, "metrics": {"accuracy": 20.5}},
+]
+
+
+def _two_page() -> bytes:
+    return _wrap({"leaderboard": {**NAMED, "rows": TWO}})
+
+
+def test_a_stored_effort_selects_exactly_that_page_row(monkeypatch, tmp_path):
+    root, card = _repo(tmp_path, with_row=True, row_effort="high")
+    report, _ = _run(monkeypatch, tmp_path, root, _two_page())
+    assert not _on_board(report.failures)
+    assert refresh._front(card)["benchmarks"]["evidence"][0]["score"] == 41.5
+    assert report.boards["terminal-bench-4-1"]["values_changed"] == 1
+
+
+def test_a_stored_row_with_no_effort_and_no_equal_score_is_left_alone(monkeypatch, tmp_path):
+    root, card = _repo(tmp_path, with_row=True, row_effort=None, score=33.0)
+    before = card.read_bytes()
+    report, _ = _run(monkeypatch, tmp_path, root, _two_page())
+    assert card.read_bytes() == before
+    assert report.changes == [] and report.reconfirmed == []
