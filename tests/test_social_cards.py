@@ -550,3 +550,42 @@ def test_blog_fixture_is_readable_at_phone_and_desktop_with_a_social_card(
     for viewport, values in checks.items():
         assert all(values.values()), (viewport, values)
     assert _png_size(tree / "blog" / SLUG / "r1" / "og-card.png") == (1200, 630)
+
+
+def test_renderer_failure_message_carries_the_script_stderr(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stand_in = tmp_path / "stand-in.mjs"
+    stand_in.write_text(
+        'console.error("page.screenshot: stand-in protocol error"); process.exit(3);\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(social_cards, "RENDERER", stand_in)
+    with pytest.raises(subprocess.CalledProcessError) as raised:
+        social_cards._render_jobs([])
+    assert raised.value.returncode == 3
+    assert "page.screenshot: stand-in protocol error" in str(raised.value)
+
+
+@pytest.mark.parametrize("injected, extra_attempts_pass", [(2, True), (3, False)])
+def test_a_failed_screenshot_is_retried_twice_and_each_failure_is_printed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+    injected: int, extra_attempts_pass: bool,
+) -> None:
+    if not (ROOT / "web" / "node_modules" / "playwright").is_dir():
+        if os.environ.get("CI"):
+            pytest.fail("social card rendering requires npm ci in web/")
+        pytest.skip("social card rendering requires npm ci in web/")
+    monkeypatch.setenv("MODELSPEC_TEST_FAIL_SCREENSHOTS", str(injected))
+    source = tmp_path / "card.html"
+    source.write_text("<html><body>card</body></html>", encoding="utf-8")
+    jobs = [{"source": str(source), "output": str(tmp_path / "card.png")}]
+    if extra_attempts_pass:
+        social_cards._render_jobs(jobs)
+        assert (tmp_path / "card.png").is_file()
+    else:
+        with pytest.raises(subprocess.CalledProcessError) as raised:
+            social_cards._render_jobs(jobs)
+        assert "page.screenshot: injected failure" in str(raised.value)
+    printed = capsys.readouterr().err
+    assert printed.count("screenshot attempt") == injected

@@ -6,6 +6,25 @@ const manifest = process.argv[2];
 const reportPath = process.argv[3];
 if (!manifest) throw new Error("usage: render-social-cards.mjs MANIFEST.json");
 
+// Chromium sometimes answers Page.captureScreenshot with "Unable to capture
+// screenshot" after the page has loaded and its fonts are ready (MODEL-492).
+// The page is fine, so only the capture is retried: at most two more attempts,
+// and every failed attempt is printed.
+const SCREENSHOT_EXTRA_ATTEMPTS = 2;
+async function screenshotWithRetry(page, options) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      if (process.env.MODELSPEC_TEST_FAIL_SCREENSHOTS && attempt <= Number(process.env.MODELSPEC_TEST_FAIL_SCREENSHOTS)) {
+        throw new Error("page.screenshot: injected failure");
+      }
+      return await page.screenshot(options);
+    } catch (error) {
+      console.error(`screenshot attempt ${attempt} of ${SCREENSHOT_EXTRA_ATTEMPTS + 1} failed for ${options.path}: ${error.message}`);
+      if (attempt > SCREENSHOT_EXTRA_ATTEMPTS) throw error;
+    }
+  }
+}
+
 const jobs = JSON.parse(await readFile(manifest, "utf8"));
 const browser = await chromium.launch({ headless: true });
 try {
@@ -78,7 +97,7 @@ try {
       };
       return { frame, blocks, text, details };
     }));
-    await page.screenshot({ path: job.output, type: "png" });
+    await screenshotWithRetry(page, { path: job.output, type: "png" });
   }
   if (reportPath) await writeFile(reportPath, JSON.stringify(reports));
 } finally {
