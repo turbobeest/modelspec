@@ -18,7 +18,7 @@ one verdict per pair.
 and adds no information to the world: `commercial_use` is `withheld` or
 `unspecified` on all 1,339 cards today, and this file repeats that faithfully.
 The determinations themselves are in the private enrichment layer, permanently
-(`docs/business/decision-record.md` §2.2, mirrored in `schema/enrichment.py`),
+(`docs/history/2026-09-16-business-model-decisions.md` §2.2, mirrored in `schema/enrichment.py`),
 are not read by this module, and must never be written into this export. What
 makes the paid tier different is a second store the Worker reads at runtime —
 see `docs/policy-check-api.md` — not a richer copy of this file.

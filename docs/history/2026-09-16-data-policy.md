@@ -1,7 +1,12 @@
 # What has to be published, and how fresh
 
+> **Historical, 2026-09-16. Not current policy.** The current entry is
+> [`AGENTS.md`](../../AGENTS.md); open work is in Linear. This file records the
+> reasoning behind the revenue model, not its present state — much of it has
+> since shipped and some of it changed.
+
 > **Resolved 2026-09-16.** The decision is
-> [`decision-record.md`](decision-record.md) — a variant of option B below,
+> [`2026-09-16-business-model-decisions.md`](2026-09-16-business-model-decisions.md) — a variant of option B below,
 > split by field type rather than by a single delay. This file is kept as the
 > reasoning that produced it.
 
@@ -135,7 +140,7 @@ intact. A flat 30-day delay is not.
 
 1. **Publish the construct forever**, including `api/ranking/engine.py`, the
    floors, and `_basis`. The neutrality claim in section 5 of
-   [`BUSINESS_CONTEXT.md`](BUSINESS_CONTEXT.md) requires the **method** to be
+   [`2026-09-16-business-context.md`](2026-09-16-business-context.md) requires the **method** to be
    auditable. It does not require the data to be free. Keeping the method open
    is what makes "unbiased" machine-checkable rather than marketing.
 2. **Keep publishing the corpus**, undelayed, until there is a paying customer
@@ -173,4 +178,4 @@ changed without Jamie.
 
 | Date | Decision | Rationale |
 |---|---|---|
-| 2026-09-16 | **B, refined.** 90-day delayed public export; the split is by field type, not one global clock; policy determinations never publish | [`decision-record.md`](decision-record.md) §2 |
+| 2026-09-16 | **B, refined.** 90-day delayed public export; the split is by field type, not one global clock; policy determinations never publish | [`2026-09-16-business-model-decisions.md`](2026-09-16-business-model-decisions.md) §2 |

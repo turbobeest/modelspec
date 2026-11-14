@@ -11,6 +11,11 @@ current entry is [`AGENTS.md`](../../AGENTS.md) and open work is in Linear.
 | [`mvp-remainder.md`](mvp-remainder.md) | MODEL-5/7/30/34 as the MVP closed. |
 | [`post-mvp-loop.md`](post-mvp-loop.md) | The retired Grok Build autonomous loop prompt. |
 | [`offline-cli-contract.md`](offline-cli-contract.md) | The offline CLI contract retired by MODEL-307; still served by `python -m cli.modelspec.legacy`. |
+| [`2026-09-16-business-model-decisions.md`](2026-09-16-business-model-decisions.md) | The 2026-09-16 revenue-model decisions: no relicensing, enrichment never committed to git, the field-type split, the 90-day public export, the 10/day free tier beside an unlimited sandbox, x402 at a real price, DPF free on a keyed origin. |
+| [`2026-09-16-data-policy.md`](2026-09-16-data-policy.md) | Why open source constrains licence terms and not publication or freshness, and why a 30-day delay collided with `STALE_AFTER_DAYS`. |
+| [`2026-09-16-repo-audit.md`](2026-09-16-repo-audit.md) | The business plan measured against the tree: `commercial_use` on 8 of 1,339 cards, `data_residency` on 0, benchgraph coverage at 164 of 1,112 pages. |
+| [`2026-09-16-revenue-backlog.md`](2026-09-16-revenue-backlog.md) | The `REV-n` proposals that became MODEL-68 through MODEL-80. |
+| [`2026-09-16-business-context.md`](2026-09-16-business-context.md) | Jamie's strategy handoff of 2026-09-16, verbatim: goals, positioning, moats, exit. |
 
 ## Decisions that used to sit in the entry files
 

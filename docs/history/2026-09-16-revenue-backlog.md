@@ -1,7 +1,12 @@
 # Revenue backlog
 
-**Proposed 2026-09-16.** Derived from [`BUSINESS_CONTEXT.md`](BUSINESS_CONTEXT.md),
-measured against the tree in [`repo-audit-2026-09-16.md`](repo-audit-2026-09-16.md),
+> **Historical, 2026-09-16. Not current policy.** The current entry is
+> [`AGENTS.md`](../../AGENTS.md); open work is in Linear. This file records the
+> reasoning behind the revenue model, not its present state — much of it has
+> since shipped and some of it changed.
+
+**Proposed 2026-09-16.** Derived from [`2026-09-16-business-context.md`](2026-09-16-business-context.md),
+measured against the tree in [`2026-09-16-repo-audit.md`](2026-09-16-repo-audit.md),
 and constrained by [`../agent-commerce-assessment.md`](../agent-commerce-assessment.md).
 
 These are **proposals, not Linear tickets**. `REV-n` are working ids so the docs
@@ -32,7 +37,7 @@ something, then the paid surface. Not the other way round.
 ## Gate 0 — decisions before any of this is built
 
 > **DEC-1 and DEC-2 were decided on 2026-09-16.**
-> See [`decision-record.md`](decision-record.md): the endpoint ships (§7.5) and
+> See [`2026-09-16-business-model-decisions.md`](2026-09-16-business-model-decisions.md): the endpoint ships (§7.5) and
 > publication tiering is settled (§2, §3). DEC-3 is still open. The two entries
 > below are kept for the reasoning; the recommendations in them were taken.
 
@@ -40,7 +45,7 @@ something, then the paid surface. Not the other way round.
 
 **Jamie only. Blocks REV-6 (hosted), REV-8 (priced) and anything with a price.**
 
-[`BUSINESS_CONTEXT.md`](BUSINESS_CONTEXT.md) §11 says ship hosted `recommend` in
+[`2026-09-16-business-context.md`](2026-09-16-business-context.md) §11 says ship hosted `recommend` in
 30 days. `CLAUDE.md`, `AGENTS.md`, `docs/handoff/current.md` and
 `docs/handoff/post-mvp-loop.md` all say do not start MODEL-3 or MODEL-6, resting
 on an assessment that set an explicit evidence bar for charging at all.
@@ -58,7 +63,7 @@ credibility, and is the assessment's own advice.
 
 ### DEC-2 — Publication tiering
 
-Option A, B or C in [`data-policy.md`](data-policy.md). Blocks `REV-7`'s hosted
+Option A, B or C in [`2026-09-16-data-policy.md`](2026-09-16-data-policy.md). Blocks `REV-7`'s hosted
 half and any data-licensing conversation. **Recommendation: A now, B on evidence
 of demand, not C.**
 
@@ -199,7 +204,7 @@ succeed".
 
 **Done when:** the consent flow is legible to a human reading the terminal, the
 schema is documented in the CLI contract, opting out is one command, and a
-privacy note in `docs/business/` states exactly what leaves the machine.
+privacy note in `docs/` states exactly what leaves the machine.
 
 ### REV-10 — Receipts, and a savings method that survives a customer checking it
 

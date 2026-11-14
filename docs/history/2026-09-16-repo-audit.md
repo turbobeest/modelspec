@@ -1,6 +1,11 @@
 # The business context, measured against the repository
 
-**2026-09-16.** [`BUSINESS_CONTEXT.md`](BUSINESS_CONTEXT.md) carries a strategy
+> **Historical, 2026-09-16. Not current policy.** The current entry is
+> [`AGENTS.md`](../../AGENTS.md); open work is in Linear. This file records the
+> reasoning behind the revenue model, not its present state — much of it has
+> since shipped and some of it changed.
+
+**2026-09-16.** [`2026-09-16-business-context.md`](2026-09-16-business-context.md) carries a strategy
 conversation held in claude.ai. Its own header says the live-site figures are a
 snapshot and to *"check the actual codebase before relying on it"*. This file is
 that check, run against `origin/main` `8cdde5f`. Every number below was measured
@@ -42,7 +47,7 @@ written for — but no instrument reaches a copy already distributed.
 
 **Consequence for strategy:** the section 9 licensing proposal ("graph data free
 but delayed") is available for *future* data, not for the corpus as it stands.
-Plan on that basis. [`data-policy.md`](data-policy.md) works through what remains
+Plan on that basis. [`2026-09-16-data-policy.md`](2026-09-16-data-policy.md) works through what remains
 open.
 
 ### 2. Benchgraph's "7 active, 1,097 unassessed, 0 models reporting" is stale
@@ -110,7 +115,7 @@ says a snapshot older than 30 days is served with a warning, and
 `--require-fresh` fails on it.
 
 This is a direct, mechanical constraint on the "delay the free data by a month"
-option in section 9. Worked through in [`data-policy.md`](data-policy.md).
+option in section 9. Worked through in [`2026-09-16-data-policy.md`](2026-09-16-data-policy.md).
 
 ### 5. Two of the plan's 30-day items are repo-flagged "do not start"
 
@@ -126,7 +131,7 @@ hardware throughput is measured rather than predicted (MODEL-22)"*.
 
 **This is a live contradiction between two documents the project treats as
 current, and it is Jamie's to resolve, not an agent's.** Recorded as the first
-open decision in [`revenue-backlog.md`](revenue-backlog.md). Until it is
+open decision in [`2026-09-16-revenue-backlog.md`](2026-09-16-revenue-backlog.md). Until it is
 resolved, MODEL-3 and MODEL-6 stay do-not-start.
 
 ### 6. CLA sign-off covers 10 of 50 commits — and it does not matter yet

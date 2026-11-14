@@ -143,7 +143,7 @@ applies. The DCO is best understood as this plus an explicit, auditable, per-com
 
 ## The requirement no standard instrument met, and what was done about it
 
-The 2026-09-16 business adjudication (`docs/business/decision-record.md`, §2) establishes an
+The 2026-09-16 business adjudication (`docs/history/2026-09-16-business-model-decisions.md`, §2) establishes an
 enrichment layer: policy determinations are researched, **never committed to git**, and served
 through a paid API. It therefore asked that the contributor grant cover a contribution the
 project never publishes and instead serves commercially.

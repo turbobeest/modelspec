@@ -1,9 +1,14 @@
 # Business model: decision record
 
+> **Historical, 2026-09-16. Not current policy.** The current entry is
+> [`AGENTS.md`](../../AGENTS.md); open work is in Linear. This file records the
+> reasoning behind the revenue model, not its present state — much of it has
+> since shipped and some of it changed.
+
 **Decided by Jamie, 2026-09-16**, in session with Claude Code. This supersedes
-the open questions in [`data-policy.md`](data-policy.md) and Gate 0 of
-[`revenue-backlog.md`](revenue-backlog.md). Where
-[`BUSINESS_CONTEXT.md`](BUSINESS_CONTEXT.md) differs, this file is newer.
+the open questions in [`2026-09-16-data-policy.md`](2026-09-16-data-policy.md) and Gate 0 of
+[`2026-09-16-revenue-backlog.md`](2026-09-16-revenue-backlog.md). Where
+[`2026-09-16-business-context.md`](2026-09-16-business-context.md) differs, this file is newer.
 
 Operator: **Sparks & Sawdust LLC**, which also owns Dark Product Factories.
 

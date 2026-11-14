@@ -4,7 +4,7 @@
 repository's export (`/api/policy/catalogue.json`). The other is the
 determinations — `commercial_use` per model and `data_residency` per platform —
 which are the paid product and are **never** in this repository, at any age, by
-any route (`docs/business/decision-record.md` §2.2, §2.3). A Worker cannot read
+any route (`docs/history/2026-09-16-business-model-decisions.md` §2.2, §2.3). A Worker cannot read
 a private git repository, so they are staged into Workers KV and the Worker
 reads KV. This script is the only thing that writes them.
 

@@ -70,7 +70,7 @@ residency check is `undetermined` rather than waved through.
 ## The free tier
 
 The endpoint is free. The determinations are not
-(`docs/business/decision-record.md` §3.2). A request with no entitlement to the
+(`docs/history/2026-09-16-business-model-decisions.md` §3.2). A request with no entitlement to the
 determination store is answered from the public export alone, and the response
 says so in `determinations` — tier, what was read, and what each undetermined
 check would have been answered by. The difference is legible on every row:
