@@ -175,7 +175,8 @@ class ScoreChange:
             "new_value": self.new_value,
             "source": self.source,
             "observed_date": self.observed_date,
-            "pr": "${PR_URL}",
+            # The workflow sets this once a pull request exists.
+            "pr": None,
         }
 
 
@@ -3356,12 +3357,12 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
 
 def audit_markdown(changes: Sequence[ScoreChange]) -> str:
     lines = [
-        "| Model | Benchmark | Old value | New value | Source | Observed date | PR |",
-        "|---|---|---:|---:|---|---|---|",
+        "| Model | Benchmark | Old value | New value | Source | Observed date |",
+        "|---|---|---:|---:|---|---|",
     ]
     lines.extend(
         f"| `{c.model_id}` | `{c.benchmark}` | {c.old_value:g} | {c.new_value:g} | "
-        f"[{c.source}]({c.source}) | {c.observed_date} | ${{PR_URL}} |"
+        f"[{c.source}]({c.source}) | {c.observed_date} |"
         for c in changes
     )
     return "\n".join(lines)
