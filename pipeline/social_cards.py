@@ -453,17 +453,36 @@ h1{{font-size:64px;line-height:78px;letter-spacing:-2.7px;margin:68px 0 22px;wid
 {template_style}</style></head><body><div class="brand" data-content-block>{mark}<b>Model<span>Spec</span></b></div><h1 class="{card.headline_class}" data-content-block>{card.headline}</h1>{card.content.replace('class="tie-line"', 'class="tie-line" data-content-block').replace('class="plot"', 'class="plot" data-content-block').replace('class="facets"', 'class="facets" data-content-block')}</body></html>'''
 
 
+RENDERER = ROOT / "web" / "scripts" / "render-social-cards.mjs"
+_OUTPUT_TAIL = 4000
+
+
+class RendererFailed(subprocess.CalledProcessError):
+    """The node renderer exited non-zero; the message carries what it printed."""
+
+    def __str__(self) -> str:
+        parts = [super().__str__()]
+        for name, text in (("stderr", self.stderr), ("stdout", self.stdout)):
+            if text and text.strip():
+                parts.append(f"{name} (last {_OUTPUT_TAIL} characters):\n{text.strip()[-_OUTPUT_TAIL:]}")
+        return "\n".join(parts)
+
+
 def _render_jobs(jobs: list[dict[str, str]]) -> list[dict[str, object]]:
     with tempfile.TemporaryDirectory(prefix="modelspec-social-cards-") as directory:
         manifest = Path(directory) / "manifest.json"
         report = Path(directory) / "layout.json"
         manifest.write_text(json.dumps(jobs), encoding="utf-8")
-        subprocess.run(
-            ["node", str(ROOT / "web" / "scripts" / "render-social-cards.mjs"),
-             str(manifest), str(report)],
+        run = subprocess.run(
+            ["node", str(RENDERER), str(manifest), str(report)],
             cwd=ROOT,
-            check=True,
+            capture_output=True,
+            text=True,
         )
+        if run.stderr:
+            print(run.stderr, end="", file=sys.stderr)
+        if run.returncode:
+            raise RendererFailed(run.returncode, run.args, run.stdout, run.stderr)
         return json.loads(report.read_text(encoding="utf-8"))
 
 
