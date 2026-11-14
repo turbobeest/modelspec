@@ -3753,7 +3753,7 @@ def test_a_date_inside_an_id_backticks_or_a_url_is_written(
     assert "2024-08-06" in sentence
 
 
-def test_an_unchanged_publish_date_leaves_the_configuration_sentence_alone(
+def test_an_unchanged_publish_date_retells_only_the_read_day(
     monkeypatch, tmp_path: Path,
 ) -> None:
     sentence = (
@@ -3782,7 +3782,10 @@ def test_an_unchanged_publish_date_leaves_the_configuration_sentence_alone(
 
     assert report.failures == [], report.failures
     assert report.changes == []
-    assert _evidence_row(card)["configuration"] == sentence
+    # The read day beside the publish date is this run's day (MODEL-486-B). Nothing else moves.
+    assert _evidence_row(card)["configuration"] == sentence.replace(
+        "read 2026-09-24. Rank", "read 2026-11-11. Rank",
+    )
     summary = report.boards["arena:text"]
     assert summary["rows_reconfirmed"] == 1
 

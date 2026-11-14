@@ -694,10 +694,11 @@ def _snapshot_removal_is_the_reading(before: str, after: str) -> bool:
 def _settle_configuration_dates(
     original: str, text: str, *, new_publish: str | None, new_observed: str,
 ) -> str:
-    """Retell a read date beside a changed publish date, or drop the snapshot sentence.
+    """Retell a read date beside the quoted publish date, or drop the snapshot sentence.
 
-    When the quoted publish date is unchanged, ``text`` is returned as received.
-    When it changed, ``read <date>`` immediately after that date becomes this
+    When the quoted publish date is unchanged, only ``read <date>`` beside it
+    becomes this run's observed date; the rest of ``text`` is returned as
+    received. When it changed, ``read <date>`` immediately after that date becomes this
     run's observed date, and the sentence that says the live board still shows
     this snapshot is removed. A standalone ISO date that is neither the new
     publish date nor the observed date is refused. A date inside an id, a
@@ -705,6 +706,12 @@ def _settle_configuration_dates(
     """
     quoted = set(_PUBLISH_QUOTE.findall(original))
     if not (new_publish and quoted and any(day != new_publish for day in quoted)):
+        if quoted:
+            # The publish date is unchanged. A read day beside it is still this
+            # run's reading, so retell it; nothing else in the text moves.
+            return _READ_BESIDE_PUBLISH.sub(
+                lambda match: f"{match.group(1)}{new_observed}", text,
+            )
         return text
     text = _READ_BESIDE_PUBLISH.sub(lambda match: f"{match.group(1)}{new_observed}", text)
     text = _without_exact_snapshot_sentence(text)
@@ -1626,9 +1633,14 @@ def _version_names_other_revision(version: object, revision: str) -> bool:
 
 
 def _configuration_without_observed(value: object) -> object:
-    """The configuration with the date inside each ``Observed <date>`` removed."""
+    """The configuration with the date inside each ``Observed <date>`` removed.
+
+    The day in ``read <date>`` beside the quoted publish date is removed too:
+    it is the day of this reading, not part of what was read.
+    """
     if not isinstance(value, str):
         return value
+    value = _READ_BESIDE_PUBLISH.sub(lambda match: match.group(1), value)
     return _OBSERVED_QUOTE.sub(
         lambda match: match.group(0).replace(match.group(1), ""), value,
     )
