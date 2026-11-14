@@ -29,10 +29,8 @@ FALLBACK_TEXT = (
     'Run it by dispatching "Private production-data recall" on this branch (or close and '
     "reopen the pull request) and merge only when it passes."
 )
-STARTED_TEXT = (
-    'The "Approved answers on private data" check was started on this branch by the '
-    "workflow run that opened this pull request. Merge only when it passes."
-)
+# MODEL-476-D: the dispatched run posts a `pending` status at once, so no writer comments "started".
+RELEASE_SIGNAL_SUFFIX = r"(initial|[0-9]{1,3})"
 
 # Every job's permissions as they were before MODEL-476. The new job is the only addition.
 BEFORE = {
@@ -138,11 +136,13 @@ SPEC = {
     },
     "release-signals": {
         "needs": ["process"],
-        "pattern": r"^data/release-signal-[A-Za-z0-9._-]{1,150}-[0-9]{1,3}$",
+        "pattern": rf"^data/release-signal-[A-Za-z0-9._-]{{1,150}}-{RELEASE_SIGNAL_SUFFIX}$",
         "branches": " ".join(f"${{{{ needs.process.outputs.branch_{i} }}}}" for i in range(10)),
-        "valid": ["data/release-signal-anthropic.claude-5-0", "data/release-signal-a_b-7"],
+        "valid": ["data/release-signal-anthropic.claude-5-0", "data/release-signal-a_b-7",
+                  "data/release-signal-a-initial"],
         "invalid": ["data/release-signal-a-b", "data/release-signal-a/b-0",
-                    "data/release-signal-a;id-0", "main", "data/release-signal-a-0x"],
+                    "data/release-signal-a;id-0", "main", "data/release-signal-a-0x",
+                    "data/release-signal-a-Initial", "data/release-signal-a-initial-"],
     },
     "rendered-reread": {
         "needs": ["reread"],
@@ -209,7 +209,11 @@ def test_only_the_dispatch_job_holds_actions_write(name: str) -> None:
         if (job.get("permissions") or {}).get("actions") == "write"
     ]
     assert holders == [JOB]
-    assert _dispatch(name)["permissions"] == {"actions": "write", "pull-requests": "write"}
+    # `contents: read` lets `gh pr comment <branch>` find the pull request (MODEL-476-D); the job still
+    # checks out nothing and runs nothing from a branch.
+    assert _dispatch(name)["permissions"] == {
+        "actions": "write", "contents": "read", "pull-requests": "write",
+    }
     text = (WRITERS / f"{name}.yml").read_text(encoding="utf-8")
     assert text.count("actions: write") == 1
     assert "write-all" not in text
@@ -244,8 +248,7 @@ def test_the_branch_name_arrives_through_env_and_never_through_an_expression_in_
     assert env["GH_REPO"] == "${{ github.repository }}"
     assert env["RECALL_WORKFLOW"] == RECALL_FILE
     assert env["FALLBACK_MESSAGE"] == FALLBACK_TEXT
-    # Daily research re-dispatches on every push to main, so it says so once, in the body.
-    assert env["STARTED_MESSAGE"] == ("" if name == "daily-research" else STARTED_TEXT)
+    assert env["STARTED_MESSAGE"] == ""
     assert set(env) == {
         "GH_TOKEN", "GH_REPO", "RECALL_WORKFLOW", "BRANCH_PATTERN", "BRANCHES", "FALLBACK_MESSAGE",
         "STARTED_MESSAGE",
@@ -326,14 +329,11 @@ def _run(name: str, tmp_path: Path, branches: str, *, fail_dispatch: bool = Fals
 
 
 @pytest.mark.parametrize("name", NAMES)
-def test_a_valid_branch_is_dispatched_once_on_the_recall_workflow_and_announced(name: str, tmp_path: Path) -> None:
+def test_a_valid_branch_is_dispatched_once_on_the_recall_workflow_and_no_comment_is_attempted(name: str, tmp_path: Path) -> None:
     branch = SPEC[name]["valid"][0]
     result, calls = _run(name, tmp_path, branch)
     assert result.returncode == 0, result.stderr
-    expected = [f"workflow run {RECALL_FILE} --ref {branch}"]
-    if name != "daily-research":
-        expected.append(f"pr comment {branch} --body {STARTED_TEXT}")
-    assert calls == expected
+    assert calls == [f"workflow run {RECALL_FILE} --ref {branch}"]
 
 
 @pytest.mark.parametrize("name", NAMES)
@@ -381,12 +381,74 @@ def test_a_failed_dispatch_posts_the_fallback_and_fails_only_this_job(name: str,
 
 
 @pytest.mark.parametrize("name", NAMES)
-def test_a_failed_comment_is_a_warning_not_a_lost_pull_request(name: str, tmp_path: Path) -> None:
+def test_a_failed_comment_after_a_failed_dispatch_is_a_warning_and_the_step_still_fails(
+    name: str, tmp_path: Path,
+) -> None:
     branch = SPEC[name]["valid"][0]
-    result, calls = _run(name, tmp_path, branch, fail_comment=True)
-    assert result.returncode == 0
-    assert calls[0] == f"workflow run {RECALL_FILE} --ref {branch}"
-    assert ("::warning::" in result.stdout) == (name != "daily-research")
+    result, calls = _run(name, tmp_path, branch, fail_dispatch=True, fail_comment=True)
+    assert result.returncode != 0
+    assert calls == [
+        f"workflow run {RECALL_FILE} --ref {branch}",
+        f"pr comment {branch} --body {FALLBACK_TEXT}",
+    ]
+    assert "could not be posted either" in result.stdout
+
+
+@pytest.mark.parametrize("name", NAMES)
+def test_the_dispatch_job_holds_contents_read_and_has_no_started_comment(name: str) -> None:
+    job = _dispatch(name)
+    assert job["permissions"] == {"actions": "write", "contents": "read", "pull-requests": "write"}
+    assert not any("uses" in step for step in job["steps"])
+    assert not any("checkout" in str(item) for item in _walk(job))
+    env = _step(name)["env"]
+    assert env["STARTED_MESSAGE"] == ""
+    assert env["FALLBACK_MESSAGE"] == FALLBACK_TEXT
+
+
+def _release_signal_patterns() -> tuple[str, str]:
+    document = _load("release-signals")
+    steps = document["jobs"]["process"]["steps"]
+    naming = next(s for s in steps if s.get("id") == "recall_branch")
+    found = re.findall(r"^pattern='(\^data/release-signal-[^']+\$)'$", naming["run"], re.M)
+    assert len(found) == 1, naming["run"]
+    return found[0], _step("release-signals")["env"]["BRANCH_PATTERN"]
+
+
+def test_the_two_release_signal_branch_patterns_are_the_same_text() -> None:
+    naming, dispatch = _release_signal_patterns()
+    assert naming == dispatch == r"^data/release-signal-[A-Za-z0-9._-]{1,150}-(initial|[0-9]{1,3})$"
+
+
+def test_the_release_signal_patterns_accept_first_attempts_and_refuse_everything_else(tmp_path: Path) -> None:
+    base = "data/release-signal-watch-acme-model-x"
+    accepted = [f"{base}-initial", f"{base}-1", f"{base}-12", f"{base}-123"]
+    refused = [
+        f"{base}-1234", f"{base}-Initial", f"{base}-initial-", f"{base}-first", f"{base}",
+        "data/release-signal-a..b-1", "data/release-signal-" + "a" * 151 + "-1",
+        "data/release-signal--", "main",
+    ]
+    for index, (pattern, where) in enumerate(zip(_release_signal_patterns(), ("naming", "dispatch"))):
+        compiled = re.compile(pattern)
+        for branch in accepted:
+            assert compiled.match(branch), (where, branch)
+        for branch in refused:
+            # The two-dot refusal and the 200-character cap are separate tests in the shell, not in the regex.
+            if ".." in branch:
+                continue
+            assert not compiled.match(branch), (where, branch)
+    # Through the shell of the dispatch step: the `..` refusal and the length cap hold too.
+    for index, branch in enumerate(accepted):
+        case = tmp_path / f"ok{index}"
+        case.mkdir()
+        result, calls = _run("release-signals", case, branch)
+        assert result.returncode == 0, (branch, result.stderr)
+        assert calls == [f"workflow run {RECALL_FILE} --ref {branch}"]
+    for index, branch in enumerate(refused):
+        case = tmp_path / f"no{index}"
+        case.mkdir()
+        result, calls = _run("release-signals", case, branch)
+        assert result.returncode != 0, branch
+        assert calls == [], branch
 
 
 def test_a_pattern_with_option_like_or_shell_text_is_refused_for_every_writer(tmp_path: Path) -> None:
@@ -423,6 +485,9 @@ def test_the_release_signal_branch_is_checked_in_the_matrix_job_before_it_become
     assert steps.index(step) == steps.index(next(s for s in steps if s.get("id") == "pr")) + 1
     for branch, ok in (
         ("data/release-signal-acme.orbit-1", True),
+        ("data/release-signal-acme.orbit-initial", True),
+        ("data/release-signal-acme.orbit-1234", False),
+        ("data/release-signal-acme.orbit-Initial", False),
         ("main", False),
         ("data/release-signal-x;id-1", False),
         ("-data/release-signal-x-1", False),

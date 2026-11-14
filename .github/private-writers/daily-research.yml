@@ -275,7 +275,10 @@ jobs:
     # MODEL-476: a pull request opened with the repository token starts no pull_request
     # workflow, so this job starts the recall check on the branch. It alone holds
     # the actions write permission. It has no checkout, runs no script from a working tree, and its
-    # only input is the pattern-checked branch name from the writer job's output.
+    # only input is the pattern-checked branch name from the writer job's output. The read access to
+    # repository contents is there only so that `gh pr comment <branch>` can find the pull request
+    # (the fallback comment cannot post without it); the job still checks out nothing and runs
+    # no code from a branch. The "started" comment is gone: the dispatched run posts a pending status.
     name: Start the recall check on the pull request branch
     needs: sync
     if: ${{ !cancelled() && needs.sync.outputs.pr_branch != '' }}
@@ -284,6 +287,7 @@ jobs:
     continue-on-error: true
     permissions:
       actions: write
+      contents: read
       pull-requests: write
     steps:
       - name: Dispatch the recall workflow on the pull request branch

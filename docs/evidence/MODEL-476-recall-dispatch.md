@@ -33,7 +33,7 @@ dispatch). The fallback text exists only in that job.
 | `lineup-proposer.yml` | `propose` | `recall-dispatch` | `^data/lineup-proposal$` |
 | `model-week.yml` | `draft` | `recall-dispatch` | `^data/model-week$` |
 | `price-reread.yml` | `reread` (two pull requests) | `recall-dispatch` | `^data/weekly-price-(reread\|reconfirm)$` |
-| `release-signals.yml` | `process` (matrix) | `recall-dispatch` | `^data/release-signal-[A-Za-z0-9._-]{1,150}-[0-9]{1,3}$` |
+| `release-signals.yml` | `process` (matrix) | `recall-dispatch` | `^data/release-signal-[A-Za-z0-9._-]{1,150}-(initial|[0-9]{1,3})$` (see MODEL-476-D below) |
 | `rendered-reread.yml` | `reread` | `recall-dispatch` | `^data/weekly-rendered-reread$` |
 | `speed-probe.yml` | `probe` | `recall-dispatch` | `^data/speed-pilot-[0-9]{1,20}$` |
 
@@ -349,3 +349,45 @@ allowed in a job-level `if`; `github.token`, `github.sha`, `github.repository` a
 needs no checkout; `gh api` exits non-zero on an HTTP error, and `set -e` carries that out of
 the step. `shellcheck -s bash` passes on both scripts (a test runs it when installed), and
 `tests/test_recall_status.py` runs both scripts against a stub `gh`.
+
+## MODEL-476-D: two defects found on a real release-signals run
+
+### As measured (release-signals, 2026-11-14, six draft pull requests opened)
+
+1. One pull request got no check. Five branches ended in an attempt number and were
+   dispatched; the sixth was a first attempt and ended in `-initial`. The writer builds the branch
+   as `data/release-signal-<signal id>-<recheck day>`, where the recheck day is `1`, `7` or `30`
+   (the signals service accepts no other day) or, for a first attempt, the word `initial`
+   (`recheck_day=... or 'initial'`). Both the naming step and the dispatch job accepted only
+   `-[0-9]{1,3}`, so every first attempt, which is every newly seen release signal, got no check.
+2. The pull request comment never posted. Every `gh pr comment <branch>` in the dispatch job
+   failed with `Resource not accessible by integration (repository.defaultBranchRef)`: the
+   job held `actions: write` and `pull-requests: write` only, and finding a pull request by branch
+   needs read access to repository contents. The same job text is in all eleven writers, so
+   neither the "started" comment nor the fallback comment could post.
+
+### The fix
+
+- `release-signals.yml`, both places (the step "Name the pushed branch for the recall dispatch" and
+  `BRANCH_PATTERN`): the suffix is `initial` or one to three digits, nothing else:
+  `^data/release-signal-[A-Za-z0-9._-]{1,150}-(initial|[0-9]{1,3})$`. The length cap and the `..`
+  refusal stay. In the naming step the pattern sits in a quoted `pattern=` variable, because the
+  isolation guard in `tests/test_writer_isolation.py` reads an unquoted `|` in a run line as a pipe. A test fails if the two pattern texts drift apart.
+- All eleven writers, dispatch job: `contents: read` is added to its permissions
+  (`actions: write`, `contents: read`, `pull-requests: write`). The job still has no checkout and no
+  `uses:` step and runs nothing from a branch; the job comment says so. The pinned-permissions test
+  was updated to the new exact set.
+- All eleven writers: `STARTED_MESSAGE` is the empty string. The dispatched run posts a `pending`
+  status on the pull request at once, so a comment on every run would be noise on long-lived pull
+  requests. The fallback comment is unchanged. release-signals also posts the fallback from its
+  `recall_branch` step, by pull request URL; that step runs in the `process` job, whose permissions
+  (`contents: write`, `pull-requests: write`) allow it to post, so it is unchanged. daily-research
+  posts its fallback from the `sync` job, which holds the same two permissions.
+
+### What a real run must show after the install
+
+- A first-attempt release-signal pull request (branch ending `-initial`) lists the "Approved answers
+  on private data" status.
+- No "check was started" comment on any writer-opened pull request.
+- The fallback comment posts when a dispatch fails. Only a failure can show this; until one
+  happens it is verified by the stub tests only.
