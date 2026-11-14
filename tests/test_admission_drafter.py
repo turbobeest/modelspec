@@ -680,3 +680,12 @@ def test_cli_manifest_contains_only_source_metadata(tmp_path, monkeypatch, capsy
         assert datetime.fromisoformat(source['retrieved_at']).tzinfo is not None
     assert '32K tokens' not in manifest.read_text()
     assert '32K tokens' not in report.read_text()
+
+
+def test_the_drafters_own_lineup_entry_is_not_a_reviewer_addition(tmp_path):
+    from scripts import premier_live
+    root = catalogue(tmp_path)
+    packet = draft(tmp_path, root, pages(), small_registry("model.class"))
+    entry = packet.to_dict()["lineup_entry"]
+    assert entry is not None
+    assert premier_live.reviewer_clauses_from([entry]) == {}

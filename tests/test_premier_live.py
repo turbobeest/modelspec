@@ -245,7 +245,7 @@ def test_live_retires_models_and_preserves_only_explicit_reviewer_additions(tmp_
     write_card(root, "lab/reviewed")
     write_card(root, "lab/packet")
     baseline = {"models": [
-        {"model_id": "lab/reviewed", "clauses": [{"clause": 4, "reason": "Jamie added it."}]},
+        {"model_id": "lab/reviewed", "clauses": [{"clause": 4, "reason": "Reviewer addition. Jamie added it."}]},
         {"model_id": "lab/packet", "clauses": [
             {"clause": 4, "reason": "Admission packet for human review"},
         ]},
@@ -960,3 +960,55 @@ def test_the_regenerated_proposal_carries_the_note_forward(tmp_path):
     write_yaml(root / "premier/slice-1.yaml", proposed)
     again = premier_slice1.build(data_dir=root, as_of=TODAY)
     assert "lab/reviewed" in _ids(again)
+
+
+# MODEL-488 fix round: a positive marker, and seats counted as before.
+@pytest.mark.parametrize("note,kept", [
+    ("Reviewer addition. Decided on 2026-11-14.", True),
+    ("   Reviewer addition. Decided on 2026-11-14.", True),
+    ("Admission packet for human review", False),
+    ("Kept by reviewer", False),
+    ("Decided on 2026-11-14. Reviewer addition. Kept.", False),
+    ("reviewer addition. lower case", False),
+])
+def test_only_a_note_starting_with_the_marker_protects(tmp_path, note, kept):
+    document = premier_slice1.build(
+        data_dir=_overfull_with_reviewed(tmp_path, note=note), as_of=TODAY)
+    assert ("lab/reviewed" in _ids(document)) is kept
+    assert document["counts"]["reviewer_additions_past_quota"] == int(kept)
+
+
+def test_the_marker_is_read_from_a_reason_too(tmp_path):
+    root = _overfull_with_reviewed(tmp_path, note=None)
+    write_yaml(root / "premier/slice-1.yaml", {"models": [{
+        "model_id": "lab/reviewed",
+        "clauses": [{"clause": 4, "reason": "Reviewer addition. By reason field."}]}]})
+    assert "lab/reviewed" in _ids(premier_slice1.build(data_dir=root, as_of=TODAY))
+
+
+def _under_quota_with_competitor(tmp_path, monkeypatch, note):
+    monkeypatch.setitem(premier_slice1.QUOTA, "frontier-generation", 2)
+    root = catalogue(tmp_path)
+    write_card(root, "lab/top", rows=[evidence("lab/top", BENCH, 90)])
+    write_card(root, "lab/reviewed", release="2026-08-10")
+    write_card(root, "lab/recent", release="2026-08-15")
+    if note:
+        _with_reviewer_note(root, "lab/reviewed", note)
+    return root
+
+
+def test_a_noted_model_still_takes_its_seat_inside_the_quota(tmp_path, monkeypatch):
+    # Hand-built expectation, checked once against origin/main's script: a
+    # noted model competes for the last seat as before, so the newer clause 2
+    # model does not get one more seat than before.
+    root = _under_quota_with_competitor(tmp_path, monkeypatch, _REVIEWER_NOTE)
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert _ids(document) == {"lab/top", "lab/reviewed"}
+    assert document["counts"]["reviewer_additions_past_quota"] == 0
+    assert document["counts"]["reviewer_additions_past_quota_by_group"] == {}
+
+
+def test_without_a_note_the_same_group_is_unchanged(tmp_path, monkeypatch):
+    root = _under_quota_with_competitor(tmp_path / "x", monkeypatch, None)
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert _ids(document) == {"lab/top", "lab/recent"}

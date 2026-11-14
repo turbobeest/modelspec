@@ -48,6 +48,27 @@ def _guaranteed_verified(
     return all(check(index, index.fact(model_id, facet).record_id) for facet in facets)
 
 
+REVIEWER_MARKER = "Reviewer addition."
+
+
+def reviewer_clauses_from(rows) -> dict:
+    """Clause-4 entries a reviewer wrote: the text starts with the marker.
+
+    Anything else, including the admission drafter's placeholder, is not one.
+    """
+    found = {}
+    for row in rows:
+        clauses = [
+            clause for clause in row.get("clauses", [])
+            if clause.get("clause") == 4
+            and (clause.get("note") or clause.get("reason") or "")
+            .strip().startswith(REVIEWER_MARKER)
+        ]
+        if clauses:
+            found[row["model_id"]] = clauses
+    return found
+
+
 def load_inputs(root: Path, as_of: date) -> dict:
     """Adapt admitted records without writing a snapshot or changing the lineup."""
     from scripts.premier_slice1 import (
@@ -208,16 +229,7 @@ def load_inputs(root: Path, as_of: date) -> dict:
 
     slice2 = yaml.safe_load((root / "premier/inputs/slice-2.yaml").read_text())
     current = yaml.safe_load((root / "premier/slice-1.yaml").read_text())
-    reviewer_clauses = {}
-    for row in current.get("models", []):
-        clauses = [
-            clause for clause in row.get("clauses", [])
-            if clause.get("clause") == 4
-            and (reason := (clause.get("note") or clause.get("reason") or "").strip())
-            and reason != "Admission packet for human review"
-        ]
-        if clauses:
-            reviewer_clauses[row["model_id"]] = clauses
+    reviewer_clauses = reviewer_clauses_from(current.get("models", []))
     return {
         "cards": cards,
         "boards": sorted(boards.values(), key=lambda board: board["id"]),

@@ -1047,11 +1047,7 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None,
     for model_id, entry in by_model.items():
         if entry["card"]["status"] == "sunset":
             continue
-        # A live proposal seats reviewer additions after every quota fill, so
-        # one never takes a quota seat from another model.
-        reviewer_after_quota = data_dir is not None and 1 not in entry["clauses"]
-        if (entry["group"] in grouped
-                and (1 in entry["clauses"] or (4 in entry["clauses"] and not reviewer_after_quota))):
+        if entry["group"] in grouped and (1 in entry["clauses"] or 4 in entry["clauses"]):
             grouped[entry["group"]].append(model_id)
     for model_ids in grouped.values():
         model_ids.sort(key=sort_key)
@@ -1165,9 +1161,11 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None,
         take(group, pool)
 
     # A reviewer's clause-4 note keeps a member whatever its group's quota
-    # says. Live proposals only; the approved path is unchanged. A retired
-    # model never comes back: sunset cards are archived above. Seats past the
-    # quota are counted apart from the over-quota top 10.
+    # says. The selection above runs as before, a noted model competing for
+    # and taking a seat; this adds back only a noted model the quota cut. Live
+    # proposals only; the approved path is unchanged. A retired model never
+    # comes back: sunset cards are archived above. Seats past the quota are
+    # counted apart from the over-quota top 10.
     reviewer_past_quota = {name: 0 for name in GROUP_ORDER}
     if data_dir is not None:
         for model_id, entry in sorted(by_model.items()):

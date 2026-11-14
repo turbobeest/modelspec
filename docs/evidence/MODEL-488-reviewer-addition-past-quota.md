@@ -26,9 +26,14 @@ its group's quota says.
   `counts.reviewer_additions_past_quota_by_group`, apart from
   `over_quota_top10`. A reviewer addition that fits inside its quota is not
   counted.
-- A note that is empty, or the admission placeholder text "Admission packet for
-  human review", does not protect (the filter in `scripts/premier_live.py` is
-  unchanged).
+- A clause-4 entry counts as a reviewer addition only when its note (or
+  reason) starts with "Reviewer addition." after stripping. Anything else does
+  not protect, including the admission drafter placeholder; a test feeds the
+  drafter's own lineup entry to the loader (`reviewer_clauses_from` in
+  `scripts/premier_live.py`).
+- Seats are chosen as before, a noted model competing for and taking a seat.
+  Only a noted model the quota cut is added back, so a group under its quota
+  admits no more models than before.
 - A retired (sunset) model is not brought back. It stays in `archived`.
 - The proposal carries the clause-4 note forward on the row, so the next
   proposal reads it again and keeps the model.
