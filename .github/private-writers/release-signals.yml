@@ -566,7 +566,8 @@ jobs:
           FALLBACK_MESSAGE: 'The "Approved answers on private data" check could not be started automatically. Run it by dispatching "Private production-data recall" on this branch (or close and reopen the pull request) and merge only when it passes.'
         run: |
           branch="${BRANCH:-}"
-          if [[ "$branch" =~ ^data/release-signal-[A-Za-z0-9._-]{1,150}-[0-9]{1,3}$ ]] && [[ "$branch" != *..* ]]; then
+          pattern='^data/release-signal-[A-Za-z0-9._-]{1,150}-(initial|[0-9]{1,3})$'
+          if [[ "$branch" =~ $pattern ]] && [[ "$branch" != *..* ]]; then
             echo "branch=$branch" >> "$GITHUB_OUTPUT"
           else
             # The dispatch job never sees this name, so say here that the check was not started.
@@ -675,7 +676,10 @@ jobs:
     # MODEL-476: a pull request opened with the repository token starts no pull_request
     # workflow, so this job starts the recall check on the branch. It alone holds
     # the actions write permission. It has no checkout, runs no script from a working tree, and its
-    # only input is the pattern-checked branch name from the writer job's output.
+    # only input is the pattern-checked branch name from the writer job's output. The read access to
+    # repository contents is there only so that `gh pr comment <branch>` can find the pull request
+    # (the fallback comment cannot post without it); the job still checks out nothing and runs
+    # no code from a branch. The "started" comment is gone: the dispatched run posts a pending status.
     name: Start the recall check on the pull request branch
     needs: process
     if: ${{ !cancelled() && needs.process.result != 'skipped' }}
@@ -684,6 +688,7 @@ jobs:
     continue-on-error: true
     permissions:
       actions: write
+      contents: read
       pull-requests: write
     steps:
       - name: Dispatch the recall workflow on the pull request branch
@@ -691,9 +696,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RECALL_WORKFLOW: recall-private.yml
-          BRANCH_PATTERN: '^data/release-signal-[A-Za-z0-9._-]{1,150}-[0-9]{1,3}$'
+          BRANCH_PATTERN: '^data/release-signal-[A-Za-z0-9._-]{1,150}-(initial|[0-9]{1,3})$'
           BRANCHES: ${{ needs.process.outputs.branch_0 }} ${{ needs.process.outputs.branch_1 }} ${{ needs.process.outputs.branch_2 }} ${{ needs.process.outputs.branch_3 }} ${{ needs.process.outputs.branch_4 }} ${{ needs.process.outputs.branch_5 }} ${{ needs.process.outputs.branch_6 }} ${{ needs.process.outputs.branch_7 }} ${{ needs.process.outputs.branch_8 }} ${{ needs.process.outputs.branch_9 }}
-          STARTED_MESSAGE: 'The "Approved answers on private data" check was started on this branch by the workflow run that opened this pull request. Merge only when it passes.'
+          STARTED_MESSAGE: ''
           FALLBACK_MESSAGE: 'The "Approved answers on private data" check could not be started automatically. Run it by dispatching "Private production-data recall" on this branch (or close and reopen the pull request) and merge only when it passes.'
         run: |
           set -u
