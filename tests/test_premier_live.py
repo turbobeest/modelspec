@@ -870,3 +870,93 @@ def test_mixed_publish_dates_names_the_arena_board_and_the_counts():
         "arena-text: 2 at 2026-09-13, 1 at 2026-10-01"
     )
     assert premier_slice1.mixed_publish_dates(other) is None
+
+
+# MODEL-488: a reviewer's clause-4 note keeps a member past a full group quota.
+_REVIEWER_NOTE = "Reviewer addition. Decided on 2026-11-14: named in an approved answer."
+
+
+def _with_reviewer_note(root, model_id, note=_REVIEWER_NOTE):
+    write_yaml(root / "premier/slice-1.yaml", {"models": [
+        {"model_id": model_id, "clauses": [{"clause": 4, "note": note}]},
+    ]})
+
+
+def _overfull_with_reviewed(tmp_path, note=_REVIEWER_NOTE, **card):
+    root = _overfull_frontier(tmp_path)
+    write_card(root, "lab/reviewed", release="2026-08-10", **card)
+    if note is not None:
+        _with_reviewer_note(root, "lab/reviewed", note)
+    return root
+
+
+def test_a_reviewer_addition_is_kept_past_a_full_quota(tmp_path):
+    document = premier_slice1.build(data_dir=_overfull_with_reviewed(tmp_path), as_of=TODAY)
+    assert _ids(document) == _TOP10 | {"lab/reviewed"}
+    row = next(r for r in document["models"] if r["model_id"] == "lab/reviewed")
+    assert row["slice1_group"] == "frontier-generation"
+    assert {"clause": 4, "note": _REVIEWER_NOTE} in row["clauses"]
+    assert document["counts"]["reviewer_additions_past_quota"] == 1
+    assert document["counts"]["reviewer_additions_past_quota_by_group"] == {
+        "frontier-generation": 1}
+    assert document["counts"]["over_quota_top10"] == 3
+    assert "lab/reviewed" not in {r["model_id"] for r in document["near_misses"]}
+    changes = premier_slice1.membership_diff(document, {"models": []})
+    reviewed = next(r for r in changes["added"] if r["model_id"] == "lab/reviewed")
+    assert any(c["clause"] == 4 and c["note"] == _REVIEWER_NOTE for c in reviewed["clauses"])
+
+
+def test_a_reviewer_addition_takes_no_seat_from_another_model(tmp_path, monkeypatch):
+    monkeypatch.setattr(premier_slice1, "KEEP_EVERY_CURRENT_TOP10", False)
+    without = premier_slice1.build(
+        data_dir=_overfull_with_reviewed(tmp_path / "a", note=None), as_of=TODAY)
+    with_note = premier_slice1.build(
+        data_dir=_overfull_with_reviewed(tmp_path / "b"), as_of=TODAY)
+    assert _ids(with_note) == _ids(without) | {"lab/reviewed"}
+    assert with_note["counts"]["reviewer_additions_past_quota"] == 1
+
+
+def test_the_same_model_without_the_note_is_cut(tmp_path):
+    document = premier_slice1.build(
+        data_dir=_overfull_with_reviewed(tmp_path, note=None), as_of=TODAY)
+    assert "lab/reviewed" not in _ids(document)
+    assert document["counts"]["reviewer_additions_past_quota"] == 0
+    reasons = {r["model_id"]: r["why"] for r in document["near_misses"]}
+    assert "not needed to fill a quota" in reasons["lab/reviewed"]
+
+
+@pytest.mark.parametrize("note", ["", "   ", "Admission packet for human review"])
+def test_an_empty_or_placeholder_note_does_not_protect(tmp_path, note):
+    document = premier_slice1.build(
+        data_dir=_overfull_with_reviewed(tmp_path, note=note), as_of=TODAY)
+    assert "lab/reviewed" not in _ids(document)
+    assert document["counts"]["reviewer_additions_past_quota"] == 0
+
+
+def test_a_retired_model_with_a_note_stays_retired(tmp_path):
+    root = _overfull_with_reviewed(tmp_path, status="sunset")
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert "lab/reviewed" not in _ids(document)
+    assert document["counts"]["reviewer_additions_past_quota"] == 0
+
+
+def test_a_reviewer_addition_under_quota_is_not_counted_past_quota(tmp_path):
+    root = catalogue(tmp_path)
+    write_card(root, "lab/reviewed")
+    _with_reviewer_note(root, "lab/reviewed")
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert _ids(document) == {"lab/reviewed"}
+    assert document["counts"]["reviewer_additions_past_quota"] == 0
+
+
+def test_the_regenerated_proposal_carries_the_note_forward(tmp_path):
+    root = _overfull_with_reviewed(tmp_path)
+    result, output, diff = _propose(root)
+    assert result.returncode in (0, 1), result.stderr
+    proposed = yaml.safe_load(output.read_text())
+    row = next(r for r in proposed["models"] if r["model_id"] == "lab/reviewed")
+    assert {"clause": 4, "note": _REVIEWER_NOTE} in row["clauses"]
+    assert proposed["counts"]["reviewer_additions_past_quota"] == 1
+    write_yaml(root / "premier/slice-1.yaml", proposed)
+    again = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert "lab/reviewed" in _ids(again)

@@ -1047,7 +1047,11 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None,
     for model_id, entry in by_model.items():
         if entry["card"]["status"] == "sunset":
             continue
-        if entry["group"] in grouped and (1 in entry["clauses"] or 4 in entry["clauses"]):
+        # A live proposal seats reviewer additions after every quota fill, so
+        # one never takes a quota seat from another model.
+        reviewer_after_quota = data_dir is not None and 1 not in entry["clauses"]
+        if (entry["group"] in grouped
+                and (1 in entry["clauses"] or (4 in entry["clauses"] and not reviewer_after_quota))):
             grouped[entry["group"]].append(model_id)
     for model_ids in grouped.values():
         model_ids.sort(key=sort_key)
@@ -1159,6 +1163,24 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None,
             model_id for model_id in clause3_only if bucket_for(cards[model_id], set()) == group
         ]
         take(group, pool)
+
+    # A reviewer's clause-4 note keeps a member whatever its group's quota
+    # says. Live proposals only; the approved path is unchanged. A retired
+    # model never comes back: sunset cards are archived above. Seats past the
+    # quota are counted apart from the over-quota top 10.
+    reviewer_past_quota = {name: 0 for name in GROUP_ORDER}
+    if data_dir is not None:
+        for model_id, entry in sorted(by_model.items()):
+            if 4 not in entry["clauses"] or entry["card"]["status"] == "sunset":
+                continue
+            if model_id in selected_set:
+                continue
+            group = entry["group"]
+            filled = sum(1 for mid in selected if by_model[mid]["group"] == group)
+            if group in QUOTA and filled >= QUOTA[group]:
+                reviewer_past_quota[group] = reviewer_past_quota.get(group, 0) + 1
+            selected.append(model_id)
+            selected_set.add(model_id)
 
     models = []
     for model_id in selected:
@@ -1341,6 +1363,10 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None,
         counts["over_quota_top10"] = sum(over_quota_by_group.values())
         counts["over_quota_top10_by_group"] = {
             group: count for group, count in over_quota_by_group.items() if count
+        }
+        counts["reviewer_additions_past_quota"] = sum(reviewer_past_quota.values())
+        counts["reviewer_additions_past_quota_by_group"] = {
+            group: count for group, count in reviewer_past_quota.items() if count
         }
     return {
         "schema_version": 1,
