@@ -989,7 +989,7 @@ class OfferingPriceExtractor:
             if type_i is not None:
                 batch_table = any("batch" in header or "flex" in header for header in headers)
                 has_cache_hit = any(
-                    len(other) == len(headers) and normalise_name(other[type_i]) == "cache hit"
+                    len(other) == len(headers) and _is_cache_row(other[type_i])
                     for other in rows[1:]
                 )
                 # A label that equals or extends the type and names no other kind
@@ -1000,7 +1000,9 @@ class OfferingPriceExtractor:
                                      if "price" in header and i != type_i]
                     if wanted == "cached_input":
                         cached = [i for i in price_columns if "cached" in headers[i]]
-                        price_columns = cached or price_columns
+                        # With no cache row, only a cached column on the Input row
+                        # prices it; the plain Input price is never its cell (MODEL-481).
+                        price_columns = cached or (price_columns if has_cache_hit else [])
                     elif price_columns:
                         uncached = [i for i in price_columns if "cached" not in headers[i]]
                         price_columns = uncached or price_columns
@@ -1084,7 +1086,7 @@ class OfferingPriceExtractor:
         type_i = next((i for i, header in enumerate(headers) if header == "type"), None)
         batch_table = any("batch" in header or "flex" in header for header in headers)
         has_cache_hit = type_i is not None and any(
-            len(other) == len(headers) and normalise_name(other[type_i]) == "cache hit"
+            len(other) == len(headers) and _is_cache_row(other[type_i])
             for other in rows[1:])
         current: str | None = None
         for row in rows[1:]:
@@ -1131,10 +1133,22 @@ def _kinds_named(label: str) -> frozenset[str]:
     return frozenset(kind for kind, words in _KIND_WORDS.items() if tokens & words)
 
 
+def _is_cache_row(label: str) -> bool:
+    """A cached-read row: names cache (and may name read or input), never write or miss.
+
+    ``Cache hit``, ``Cache read``, ``Cache Hit / Cache read``, ``Cached input`` and
+    ``Prompt caching`` fit; ``Cache write`` and ``Cache miss`` do not (MODEL-481).
+    """
+    tokens = set(normalise_name(label).split())
+    named = _kinds_named(label)
+    return ("cache" in named and named <= {"cache", "read", "input"} and "miss" not in tokens
+            and bool(tokens & {"hit", "read", "reads"} or "input" in named))
+
+
 def _row_kinds(wanted: str, batch_table: bool, has_cache_hit: bool) -> tuple[frozenset[str], str | None]:
     """The kinds a Type-column row label must name for ``wanted``, and a word it needs."""
     if wanted == "cached_input":
-        return (frozenset({"cache"}), "hit") if has_cache_hit else (frozenset({"input"}), None)
+        return (frozenset({"cache"}), "*") if has_cache_hit else (frozenset({"input"}), None)
     kind = "input" if wanted.endswith("input") else "output"
     if wanted.startswith("batch_") and not batch_table:
         return frozenset({"batch", kind}), None
@@ -1144,6 +1158,8 @@ def _row_kinds(wanted: str, batch_table: bool, has_cache_hit: bool) -> tuple[fro
 def _row_fits(label: str, required: tuple[frozenset[str], str | None]) -> bool:
     """A label equals or extends the expected type and names no other kind."""
     kinds, word = required
+    if word == "*":
+        return _is_cache_row(label)
     return _kinds_named(label) == kinds and (
         word is None or word in normalise_name(label).split())
 

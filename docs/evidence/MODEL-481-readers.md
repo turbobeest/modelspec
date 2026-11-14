@@ -64,10 +64,27 @@ that name a kind:
 
 A label must name exactly the kinds its wanted kind needs: `input` {input}; `output`
 {output}; `batch_input` {batch, input} (or {input} on a table whose columns are already
-batch or flex); `batch_output` likewise; `cached_input` {cache} with the word `hit`, or
-{input} when the table has no `Cache hit` row. Several rows that fit must print the same
+batch or flex); `batch_output` likewise. Several rows that fit must print the same
 amount (rows with a different region or other label cell are kept apart), otherwise the
 reader raises and the fact is `unreadable` with a reason saying the cells disagree.
+
+`cached_input` (round 3): a row is the cached-read row when it names cache, may also name
+read or input, names neither write nor miss, and says hit, read or input:
+
+| Label | Names | Cached-read row? |
+| --- | --- | --- |
+| Cache hit | cache | yes |
+| Cache read | cache, read | yes |
+| Cache Hit / Cache read | cache, read | yes |
+| Cached input | cache, input | yes |
+| Prompt caching | cache, input (`prompt` is an input word) | yes |
+| Cache write, Cache write input | cache, write | no: a write is not a read |
+| Cache miss | cache | no |
+| Input (text) | input | no: the plain Input row |
+
+When a cached-read row exists, `cached_input` reads that row. When none exists it reads
+only a cached column on the Input row, and nothing otherwise: it never reads the plain
+Input price (`main` did, which was a wrong cell).
 
 The column-header scan (an AWS-style table with one column per kind) was the same
 pattern: a header containing `input tokens` counted, so `Cache write input tokens`

@@ -437,3 +437,44 @@ def test_two_headers_for_one_kind_with_different_cells_are_unreadable(tmp_path) 
     estate = build(tmp_path, page, [("input", "known", 5.0)], names=(BETA,))
     twice = result(reread(estate, page), "input")
     assert twice.status is Status.UNREADABLE and "disagree" in twice.reason
+
+
+# --- cached input never reads the plain input price ---------------------------------------------
+
+
+def with_cache(label: str | None) -> str:
+    rows = [first(BETA, "Input (text)", "$5.00"), more("Output", "$25.00")]
+    if label:
+        rows.append(more(label, "$0.50"))
+    return vertex(*rows)
+
+
+@pytest.mark.parametrize("label", ["Cache hit", "Cache read", "Cache Hit / Cache read",
+                                   "Cached input", "Prompt caching"])
+def test_cached_input_reads_the_cache_rows_own_price(tmp_path, label: str) -> None:
+    page = with_cache(label)
+    own = build(tmp_path / "own", page, [("cached_input", "known", 0.5)], names=(BETA,))
+    assert result(reread(own, page), "cached_input").status is Status.UNCHANGED
+    plain = build(tmp_path / "plain", page, [("cached_input", "known", 5.0)], names=(BETA,))
+    assert result(reread(plain, page), "cached_input").status is Status.NEEDS_REVIEW
+
+
+@pytest.mark.parametrize("label", [None, "Cache write", "Cache write input", "Cache miss"])
+def test_cached_input_with_no_cache_row_reads_nothing(tmp_path, label: str | None) -> None:
+    page = with_cache(label)
+    known = build(tmp_path / "known", page, [("cached_input", "known", 5.0)], names=(BETA,))
+    gone = result(reread(known, page), "cached_input")
+    assert gone.status is Status.UNREADABLE and gone in reread(known, page).alerts
+    undisclosed = build(tmp_path / "nd", page, [("cached_input", "not_disclosed", None)],
+                        names=(BETA,))
+    report = reread(undisclosed, page)
+    assert result(report, "cached_input").status is NEUTRAL
+
+
+def test_a_cached_column_on_the_input_row_still_prices_cached_input(tmp_path) -> None:
+    page = ("<html><body><table><tr><th>Model</th><th>Type</th><th>Price (/1M tokens)</th>"
+            "<th>Cached price (/1M tokens)</th></tr>"
+            f"<tr><td>{BETA}</td><td>Input</td><td>$5.00</td><td>$0.50</td></tr>"
+            "<tr><td></td><td>Output</td><td>$25.00</td><td>N/A</td></tr></table></body></html>")
+    estate = build(tmp_path, page, [("cached_input", "known", 0.5)], names=(BETA,))
+    assert result(reread(estate, page), "cached_input").status is Status.UNCHANGED
