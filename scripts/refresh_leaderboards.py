@@ -3571,11 +3571,11 @@ def _reading_from_projection(
 
 #: The Terminal-Bench board the declaration reads: the page's own name and title
 #: (MODEL-493-F). A page that changes version at this address fails the board.
-#: Boards whose first row for a card is held: a release-signals run (add_missing for a
-#: new model) files nothing on them, because a first row moves the capability ranking
-#: and the owner is told first. The explicit add run passes ``release_held_boards=True``.
-#: Remove this hold once the first 4.1 rows are filed with the owner told (MODEL-493).
-FIRST_ROW_BOARDS_HELD = frozenset({"terminal-bench-4-1"})
+#: Boards whose first row for a card is held: an ``add_missing`` run (a release signal for
+#: a new model) files nothing on them unless the caller passes ``release_held_boards=True``.
+#: Held boards: none since 2026-11-17, MODEL-493; add a board here to hold its first rows
+#: until the owner is told.
+FIRST_ROW_BOARDS_HELD: frozenset[str] = frozenset()
 TBENCH_URL = "https://www.tbench.ai/"
 TBENCH_NAME = "4-1-0"
 TBENCH_TITLE = "Terminal-Bench 4.1"
