@@ -336,6 +336,11 @@ questions:
         sources:
           - url: https://epoch.ai/data/benchmark_data.zip
             read: "2026-09-24"
+      - model_id: anthropic/claude-fable-5-2
+        reason: Epoch GPQA Diamond 0.9388 at max effort, tying Opus 5.
+        sources:
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-11-17"
       - model_id: anthropic/claude-fable-5
         reason: FrontierMath Tier 4 v2 mean 0.902 at max effort. Not a GPQA leader in this download.
         sources:
