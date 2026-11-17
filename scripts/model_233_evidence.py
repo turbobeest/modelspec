@@ -500,7 +500,7 @@ def _with_board_names(refresh) -> None:
             if agent:
                 row["harness"] = "unregistered"
                 row["configuration"] = (
-                    f"{board.source_url} row read {board.observed_at}: agent {agent}"
+                    f"tbench.ai leaderboard row read {board.observed_at}: agent {agent}"
                     + (f", reasoning effort {effort}" if effort else "") + ".")
         return rows, failures
 
