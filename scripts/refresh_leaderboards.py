@@ -46,6 +46,7 @@ from decision.model import (
     VerificationActor,
     evidence_verification_value,
 )
+from decision import verify
 from decision.sources import CopyStore, load_sources
 from decision.units import UNITS, unit_id
 from decision.verify import (
@@ -1521,7 +1522,14 @@ def _new_evidence(
             ).model_dump(mode="json")],
         }
         if board.effort_basis is not None:
-            row["effort"] = readers._effort(matched)
+            effort = readers._effort(matched)
+            if effort not in verify.EFFORT_LEVELS:
+                failures.append(RowFailure(
+                    model_id, benchmark_id, board.source_url,
+                    f"board row states no known reasoning effort ({effort!r})",
+                ))
+                continue
+            row["effort"] = effort
             row["configuration"] = _agent_configuration(board, matched, row["effort"])
         row["id"] = evidence_id(model_id, row)
         rows.append(row)
@@ -2072,6 +2080,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         source_cache: Path | None = None,
         model_ids: Iterable[str] | None = None,
         add_missing: bool = False,
+        release_held_boards: bool = False,
         arena_latest: bool | None = None) -> RefreshReport:
     date.fromisoformat(observed_at)
     latest = arena_revision_setting(arena_latest)
@@ -2172,7 +2181,8 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                 rows = (fronts[model_id].get("benchmarks") or {}).get("evidence") or []
                 relevant = [row for row in rows if _row_is_tracked(board, row)]
                 if not relevant:
-                    if add_missing:
+                    if add_missing and (release_held_boards
+                                        or board.key not in FIRST_ROW_BOARDS_HELD):
                         additions, failures = _new_evidence(
                             root=root, model_id=model_id, front=fronts[model_id], board=board,
                         )
@@ -3561,6 +3571,11 @@ def _reading_from_projection(
 
 #: The Terminal-Bench board the declaration reads: the page's own name and title
 #: (MODEL-493-F). A page that changes version at this address fails the board.
+#: Boards whose first row for a card is held: a release-signals run (add_missing for a
+#: new model) files nothing on them, because a first row moves the capability ranking
+#: and the owner is told first. The explicit add run passes ``release_held_boards=True``.
+#: Remove this hold once the first 4.1 rows are filed with the owner told (MODEL-493).
+FIRST_ROW_BOARDS_HELD = frozenset({"terminal-bench-4-1"})
 TBENCH_URL = "https://www.tbench.ai/"
 TBENCH_NAME = "4-1-0"
 TBENCH_TITLE = "Terminal-Bench 4.1"

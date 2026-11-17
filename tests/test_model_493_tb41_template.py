@@ -124,3 +124,12 @@ def test_board_names_without_claude_match_an_anthropic_card(tmp_path):
     assert not failures and [(r["effort"], r["score"]) for r in filed] == [("max", 33.0)]
     other = _board(rows, key="other", effort_basis=None, row_template=None)
     assert refresh._matching_new_row(other, front) is None
+
+
+def test_unknown_board_effort_is_refused(tmp_path):
+    front = _card()
+    for effort in ("none", None):
+        rows, failures = _new(_board([_row("Model X", effort)]), front, tmp_path)
+        assert rows == [] and len(failures) == 1
+        assert "no known reasoning effort" in failures[0].reason
+

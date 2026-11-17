@@ -515,7 +515,8 @@ def boards(model_ids: list[str]) -> None:
     refresh_leaderboards._front = functools.cache(refresh_leaderboards._front)
     _with_board_names(refresh_leaderboards)
     report = refresh_leaderboards.run(observed_at=READ_DATE, dry_run=False,
-                                      model_ids=model_ids, add_missing=True)
+                                      model_ids=model_ids, add_missing=True,
+                                      release_held_boards=True)
     print(refresh_leaderboards.render_report(report))
     print(f"added {report.added}; re-confirmed {len(report.reconfirmed)}; "
           f"changed {len(report.changes)}; quarantined {len(report.quarantined)}")

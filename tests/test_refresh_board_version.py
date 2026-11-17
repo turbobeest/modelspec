@@ -197,7 +197,7 @@ def _repo(tmp_path: Path, *, with_row: bool, row_effort: str | None = "high",
     return root, card
 
 
-def _run(monkeypatch, tmp_path, root, page: bytes):
+def _run(monkeypatch, tmp_path, root, page: bytes, **options):
     seen: list[str] = []
 
     def fetch(url: str, **_declared) -> bytes:
@@ -207,8 +207,8 @@ def _run(monkeypatch, tmp_path, root, page: bytes):
         raise OSError(f"offline: {url}")
 
     monkeypatch.setattr(refresh, "_fetch", fetch)
-    report = refresh.run(observed_at=OBSERVED, dry_run=False, root=root,
-                         source_cache=tmp_path / "copies")
+    report = refresh.run(observed_at=OBSERVED, dry_run=options.pop("dry_run", False), root=root,
+                         source_cache=tmp_path / "copies", **options)
     return report, seen
 
 
@@ -270,8 +270,18 @@ def test_the_old_address_is_never_read(monkeypatch, tmp_path):
 
 
 def test_the_script_declares_no_4_0_board():
+    # No board is declared for 4.0: no ``collect`` call names it as a benchmark, and the
+    # 4.0 address is absent. The card id ``terminal_bench_v4_0`` may appear elsewhere,
+    # as the ``effort_basis`` that reads the effort a card's own 4.0 rows state.
+    import ast
     source = (Path(refresh.__file__)).read_text(encoding="utf-8")
-    assert "terminal-bench/4.0" not in source and '"terminal_bench_v4_0"' not in source
+    assert "terminal-bench/4.0" not in source
+    declared = {
+        node.value for call in ast.walk(ast.parse(source)) if isinstance(call, ast.Call)
+        and getattr(call.func, "id", None) == "collect" and len(call.args) > 2
+        for node in ast.walk(call.args[2]) if isinstance(node, ast.Constant)
+    }
+    assert declared and "terminal_bench_v4_0" not in declared
 
 
 # ── (f) 4.1 declared, no 4.1 row on any card ────────────────────────────────
@@ -285,6 +295,26 @@ def test_with_no_4_1_row_on_any_card_nothing_is_filed_and_no_failure(monkeypatch
     assert card.read_bytes() == before
     assert report.changes == [] and report.added == 0
     assert not (root / "verification" / "log.jsonl").exists()
+
+
+# ── the first 4.1 row is held for a release-signals run ─────────────────────
+
+def _first_row_repo(tmp_path):
+    root, card = _repo(tmp_path, with_row=False)
+    card.write_text(card.read_text(encoding="utf-8").replace(
+        "model_id: lab/alpha\n", "model_id: lab/alpha\ndisplay_name: Alpha One\n", 1),
+        encoding="utf-8")
+    return root
+
+
+def test_add_missing_files_no_first_4_1_row_while_the_hold_is_on(monkeypatch, tmp_path):
+    held, _ = _run(monkeypatch, tmp_path / "a", _first_row_repo(tmp_path / "a"), _page(),
+                   dry_run=True, add_missing=True, model_ids=["lab/alpha"])
+    assert held.added == 0
+    released, _ = _run(monkeypatch, tmp_path / "b", _first_row_repo(tmp_path / "b"), _page(),
+                       dry_run=True, add_missing=True, model_ids=["lab/alpha"],
+                       release_held_boards=True)
+    assert released.added == 1
 
 
 # ── the update path narrows by the stored ``effort:`` key ───────────────────
