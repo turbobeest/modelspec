@@ -437,6 +437,18 @@ BOARD_NAMES: dict[str, dict[str, str | None]] = {
     "anthropic/claude-opus-5-5": {"claude-opus-5-5_max": "max"},
     "openai/gpt-6-sol": {"gpt-6-sol-max": None},
     "openai/gpt-6-luna": {"gpt-6-luna-max": None},
+    # MODEL-496. Exact names only: Epoch's ``_max`` row, and Terminal-Bench 4.1's bare
+    # "Fable 5.2", which states no effort. The general matcher still requires "Claude".
+    "anthropic/claude-fable-5-2": {"claude-fable-5-2_max": "max", "Fable 5.2": None},
+}
+
+#: Board names that are never mapped to a model, even where the general matcher would
+#: read them as that model. Epoch's ``-fallback`` is a different configuration (a
+#: fallback route), and Arena's xHigh is a different effort from the ``max`` rows.
+BOARD_REFUSED: dict[str, frozenset[str]] = {
+    "anthropic/claude-fable-5-2": frozenset({
+        "claude-fable-5-2-fallback_max", "Claude Fable 5.2 (xHigh)",
+    }),
 }
 
 
@@ -454,8 +466,9 @@ def _with_board_names(refresh) -> None:
 
     def matching(board, front):
         found = match(board, front)
+        refused = BOARD_REFUSED.get(str(front.get("model_id")), frozenset())
         if found is not None:
-            return found
+            return None if refresh._subject(found) in refused else found
         names = BOARD_NAMES.get(str(front.get("model_id")), {})
         hits = [row for row in board.rows if refresh._subject(row) in names]
         return hits[0] if len(hits) == 1 else None
