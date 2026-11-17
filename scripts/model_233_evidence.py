@@ -496,7 +496,9 @@ def _with_board_names(refresh) -> None:
                 effort = refresh.readers._effort(source)
             if effort:
                 row["effort"] = effort
-            agent = source.get("agent") if source is not None else None
+            # The agent and its wording belong to the Terminal-Bench boards only.
+            agent = (source.get("agent")
+                     if source is not None and board.key.startswith("terminal-bench") else None)
             if agent:
                 row["harness"] = "unregistered"
                 row["configuration"] = (

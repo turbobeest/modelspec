@@ -140,6 +140,11 @@ class BoardReading:
     #: ``unit`` and ``source_kind`` for a row the board adds. A board that declares
     #: them can seed a benchmark no card carries yet; otherwise a card row is the template.
     row_template: Mapping[str, str] | None = None
+    #: A board whose rows carry a reasoning effort and an agent (Terminal-Bench): the
+    #: card benchmark id whose stored board rows state the effort a card is read at.
+    #: The new-row match narrows same-name rows to that effort, and the row it adds
+    #: carries the effort and the agent. None for every other board.
+    effort_basis: str | None = None
     #: The board's projector puts the value key on every listed row, with an
     #: explicit None where the source lists the model and prints no measured value.
     #: Default off: only a board declared in ``UNPUBLISHED_CELL_BOARDS`` may mark.
@@ -1399,12 +1404,46 @@ def _matching_new_row(board: BoardReading, front: Mapping[str, Any]) -> Mapping[
         )
         if value
     }
+    if board.effort_basis is not None:
+        # This board's names drop the "Claude" of Anthropic's ("Fable 5.1").
+        aliases |= {re.sub(r"^claude ", "", alias) for alias in aliases}
     matches = []
     for row in board.rows:
         identity, _ = readers.split_model_cell(_subject(row))
         if identity in aliases:
             matches.append(row)
+    if board.effort_basis is not None:
+        # Same-name rows differ only by effort: the card's stored effort picks one.
+        stored = _stored_efforts(front, board)
+        if len(stored) > 1:
+            return None
+        if stored:
+            matches = [row for row in matches if readers._effort(row) in stored]
     return matches[0] if len(matches) == 1 else None
+
+
+def _stored_efforts(front: Mapping[str, Any], board: BoardReading) -> set[str]:
+    """The efforts the card's own rows from this board's host (the previous version) state."""
+    host = urllib.parse.urlparse(board.source_url).netloc
+    efforts: set[str] = set()
+    for row in (front.get("benchmarks") or {}).get("evidence") or []:
+        if row.get("benchmark_id") != board.effort_basis \
+                or urllib.parse.urlparse(str(row.get("source_url") or "")).netloc != host:
+            continue
+        effort = row.get("effort") or readers.structured_name_effort(
+            str(row.get("model_id_as_evaluated") or ""))
+        if effort:
+            efforts.add(str(effort).casefold())
+    return efforts
+
+
+def _agent_configuration(board: BoardReading, row: Mapping[str, Any], effort: str | None) -> str:
+    agent = row.get("agent")
+    if not agent:
+        return ""
+    return (f"{urllib.parse.urlparse(board.source_url).netloc.removeprefix('www.')} leaderboard row read "
+            f"{board.observed_at}: agent {agent}"
+            + (f", reasoning effort {effort}" if effort else "") + ".")
 
 
 def _evidence_template(
@@ -1469,18 +1508,21 @@ def _new_evidence(
             "date_type": "evaluated",
             "observed_at": board.observed_at,
             "verified_at": board.observed_at,
-            "benchmark_version": "",
+            "benchmark_version": template.get("benchmark_version", "") if board.row_template else "",
             "configuration": "",
             "limitations": "",
             "measured_by": measured_by(template),
             "effort": None,
-            "harness": None,
+            "harness": template.get("harness") if board.row_template else None,
             "sources": [SourceRef(
                 source_id=board.source_id,
                 snapshot_ref=board.snapshot_ref,
                 cited_regions=["rows"],
             ).model_dump(mode="json")],
         }
+        if board.effort_basis is not None:
+            row["effort"] = readers._effort(matched)
+            row["configuration"] = _agent_configuration(board, matched, row["effort"])
         row["id"] = evidence_id(model_id, row)
         rows.append(row)
     return rows, failures
@@ -3497,6 +3539,7 @@ def _reading_from_projection(
     projected: bytes, observed_at: str, value_field: str, store: CopyStore,
     fraction: bool = False, card_urls: Iterable[str] = (),
     row_template: Mapping[str, str] | None = None,
+    effort_basis: str | None = None,
 ) -> BoardReading:
     payload = json.loads(projected)
     declared = key in UNPUBLISHED_CELL_BOARDS
@@ -3512,7 +3555,7 @@ def _reading_from_projection(
     return BoardReading(
         key, source_id, frozenset(benchmarks), source_url, observed_at, rows,
         value_field, fraction, store.put(projected, source_url=source_url), frozenset(card_urls), row_template,
-        key in UNPUBLISHED_CELL_BOARDS,
+        effort_basis, key in UNPUBLISHED_CELL_BOARDS,
     )
 
 
@@ -3521,6 +3564,10 @@ def _reading_from_projection(
 TBENCH_URL = "https://www.tbench.ai/"
 TBENCH_NAME = "4-1-0"
 TBENCH_TITLE = "Terminal-Bench 4.1"
+#: What a refreshed Terminal-Bench 4.0 board row stored: percent, the benchmark's own
+#: board, the version, and the unregistered agent harness. Effort and agent come from the row.
+TBENCH_ROW = {"unit": "percent", "source_kind": "benchmark_author",
+              "benchmark_version": TBENCH_TITLE, "harness": "unregistered"}
 
 
 def _check_tbench_board(payload: str, expected_name: str, expected_title: str
@@ -3777,7 +3824,9 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
     def collect(key: str, source_id: str, benchmarks: Iterable[str], source_url: str,
                 fetch_url: str, projector: Callable[..., bytes], value_field: str,
                 *, fraction: bool = False, card_urls: Iterable[str] = (),
-                read: Callable[[str], bytes] | None = None) -> None:
+                read: Callable[[str], bytes] | None = None,
+                row_template: Mapping[str, str] | None = None,
+                effort_basis: str | None = None) -> None:
         try:
             require_allowed_source(fetch_url, benchmarks)
             raw = (read or _fetch)(fetch_url)
@@ -3788,6 +3837,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
                 key=key, source_id=source_id, benchmarks=benchmarks, source_url=source_url,
                 projected=projected, observed_at=observed_at, value_field=value_field,
                 store=store, fraction=fraction, card_urls=card_urls or (source_url,),
+                row_template=row_template, effort_basis=effort_basis,
             ))
         except Exception as exc:  # one failed board must not hide all other board results
             failures.append(RowFailure("*", ",".join(sorted(benchmarks)), source_url,
@@ -3973,7 +4023,8 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
             ("terminal_bench_v4_1",), TBENCH_URL, TBENCH_URL,
             lambda body, **kw: _project_tbench(
                 body.decode(), expected_name=TBENCH_NAME, expected_title=TBENCH_TITLE, **kw),
-            "accuracy", card_urls=(TBENCH_URL,))
+            "accuracy", card_urls=(TBENCH_URL,),
+            row_template=TBENCH_ROW, effort_basis="terminal_bench_v4_0")
 
     frontier_data = "https://cognition.com/data/frontiercode-leaderboard/data.json"
     collect("frontiercode", "model-160-frontiercode", ("frontiercode_v1_1",),
