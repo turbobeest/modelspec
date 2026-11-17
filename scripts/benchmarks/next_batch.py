@@ -49,7 +49,11 @@ def written() -> set[str]:
             continue
         have.add(norm(p.stem))
         head = p.read_text(errors="ignore")[:2000]
-        m = re.search(r"^aliases:\s*\[(.*?)\]", head, re.M)
+        # `slug_aliases` is the dedicated key; the old line-2 `aliases` is the fallback
+        # for pages that have not moved yet.
+        m = re.search(r"^slug_aliases:\s*\[(.*?)\]", head, re.M) or re.search(
+            r"^aliases:\s*\[(.*?)\]", head, re.M
+        )
         if m:
             have.update(norm(a.strip().strip("'\"")) for a in m.group(1).split(",") if a.strip())
     return have

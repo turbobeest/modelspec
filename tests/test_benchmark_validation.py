@@ -153,3 +153,14 @@ def test_calibration_keeps_the_duplicate_diagnostic_when_the_page_loads(tmp_path
     rules = {f["rule"] for f in run(c, registry, date(2026, 11, 9))["findings"]}
     assert "duplicate_yaml_key" in rules
     assert "snapshot_build" not in rules
+
+
+def test_slug_aliases_is_a_known_key_beside_display_aliases(page):
+    from schema.benchmark import BenchmarkCard, unknown_key_paths
+
+    insert_mapping(page, 'slug_aliases: ["example1"]\naliases: ["Example One"]')
+    assert check(page) == []
+    front, _ = split_front_matter(page.read_text(), path=page)
+    assert unknown_key_paths(front) == []
+    assert BenchmarkCard(**front).slug_aliases == ["example1"]
+    assert unknown_key_paths({**front, "slug_alias": []}) == ["benchmark"]
