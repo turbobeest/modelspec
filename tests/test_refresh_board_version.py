@@ -297,7 +297,7 @@ def test_with_no_4_1_row_on_any_card_nothing_is_filed_and_no_failure(monkeypatch
     assert not (root / "verification" / "log.jsonl").exists()
 
 
-# ── the first 4.1 row is held for a release-signals run ─────────────────────
+# ── the first-row hold: none now, and the mechanism still works ─────────────
 
 def _first_row_repo(tmp_path):
     root, card = _repo(tmp_path, with_row=False)
@@ -307,7 +307,15 @@ def _first_row_repo(tmp_path):
     return root
 
 
-def test_add_missing_files_no_first_4_1_row_while_the_hold_is_on(monkeypatch, tmp_path):
+def test_a_release_signal_files_the_first_4_1_row_now_that_no_board_is_held(monkeypatch, tmp_path):
+    assert refresh.FIRST_ROW_BOARDS_HELD == frozenset()
+    report, _ = _run(monkeypatch, tmp_path, _first_row_repo(tmp_path), _page(),
+                     dry_run=True, add_missing=True, model_ids=["lab/alpha"])
+    assert report.added == 1
+
+
+def test_a_held_board_files_no_first_row_until_released(monkeypatch, tmp_path):
+    monkeypatch.setattr(refresh, "FIRST_ROW_BOARDS_HELD", frozenset({"terminal-bench-4-1"}))
     held, _ = _run(monkeypatch, tmp_path / "a", _first_row_repo(tmp_path / "a"), _page(),
                    dry_run=True, add_missing=True, model_ids=["lab/alpha"])
     assert held.added == 0
