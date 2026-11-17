@@ -12,8 +12,8 @@ OTHER = {"model_id": "anthropic/claude-fable-5-1", "display_name": "Claude Fable
          "version": "claude-fable-5-1"}
 
 
-def _board(key, field, names, benchmark="gpqa_diamond"):
-    rows = tuple({"model": n, field: 0.5, "observed_at": "2026-11-17"} for n in names)
+def _board(key, field, names, benchmark="gpqa_diamond", **extra):
+    rows = tuple({"model": n, field: 0.5, "observed_at": "2026-11-17", **extra} for n in names)
     return refresh.BoardReading(
         key=key, source_id="x", benchmark_ids=frozenset({benchmark}),
         source_url="https://epoch.ai/benchmarks/gpqa-diamond", observed_at="2026-11-17",
@@ -29,8 +29,8 @@ def matcher(monkeypatch):
     return refresh._matching_new_row
 
 
-def _hit(matcher, names, front=FABLE_5_2, field="mean_score"):
-    found = matcher(_board("t", field, names), front)
+def _hit(matcher, names, front=FABLE_5_2, field="mean_score", key="t"):
+    found = matcher(_board(key, field, names), front)
     return None if found is None else found["model"]
 
 
@@ -56,7 +56,29 @@ def test_epoch_row_carries_effort_max(matcher, tmp_path):
 
 
 def test_terminal_bench_exact_name_maps(matcher):
-    assert _hit(matcher, ["Fable 5", "Fable 5.1", "Fable 5.2"], field="accuracy") == "Fable 5.2"
+    assert _hit(matcher, ["Fable 5", "Fable 5.1", "Fable 5.2"], field="accuracy",
+                key="terminal-bench-4-1") == "Fable 5.2"
+
+
+def test_terminal_bench_row_carries_effort_and_agent(matcher, tmp_path):
+    board = refresh.BoardReading(
+        key="terminal-bench-4-1", source_id="x", benchmark_ids=frozenset({"terminal_bench_v4_1"}),
+        source_url="https://www.tbench.ai/leaderboard/terminal-bench/4.1",
+        observed_at="2026-11-17", snapshot_ref="sha256:" + "0" * 64,
+        rows=({"model": "Fable 5.2", "reasoning_effort": "max", "agent": "Claude Code",
+               "accuracy": 50.0, "observed_at": "2026-11-17"},),
+        value_field="accuracy", row_template={"unit": "percent", "source_kind": "benchmark_author"},
+    )
+    rows, failures = refresh._new_evidence(
+        root=tmp_path, model_id="anthropic/claude-fable-5-2", front=FABLE_5_2, board=board)
+    assert not failures and len(rows) == 1
+    assert rows[0]["effort"] == "max" and rows[0]["harness"] == "unregistered"
+    assert "agent Claude Code" in rows[0]["configuration"]
+
+
+def test_bare_fable_5_2_on_another_board_stays_unmatched(matcher):
+    assert _hit(matcher, ["Fable 5.2", "Fable 5.1 (xhigh)"], field="accuracy",
+                key="scale-hle") is None
 
 
 def test_fallback_row_stays_unmatched(matcher):
