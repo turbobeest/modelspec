@@ -49,3 +49,33 @@ def test_batch_admits_only_recomputed_eligible_ids(tmp_path, monkeypatch):
     with pytest.raises(SystemExit):
         next_batch.main()
     assert not output.exists()
+
+
+def _page(root, stem, front):
+    (root / "benchmarks").mkdir(exist_ok=True)
+    (root / "benchmarks" / f"{stem}.md").write_text(f"---\nid: {stem}\n{front}name: X\n---\nbody\n")
+
+
+def test_written_reads_slug_aliases_and_falls_back_to_line_two_aliases(tmp_path, monkeypatch):
+    monkeypatch.setattr(next_batch, "ROOT", tmp_path)
+    _page(tmp_path, "aime_2024", 'aliases: ["aime2024"]\n')  # old form: line 2
+    assert next_batch.written() == {"aime2024"}  # stem and slug normalise alike
+
+    _page(tmp_path, "gpqa", 'aliases: ["gpqa_main"]\n')
+    _page(tmp_path, "arc_challenge", 'slug_aliases: ["arc_c", "arcchallenge2"]\naliases:\n  - ARC-C\n')
+    _page(tmp_path, "bbh", 'slug_aliases: ["bigbenchhard"]\naliases: ["BBH display"]\n')
+    have = next_batch.written()
+    # fallback page, dedicated-key pages; display aliases are never treated as slugs
+    assert {"gpqa", "gpqamain", "arcchallenge", "arcc", "arcchallenge2", "bbh", "bigbenchhard"} <= have
+    assert "bbhdisplay" not in have
+
+
+def test_skip_set_is_the_same_before_and_after_moving_the_key(tmp_path, monkeypatch):
+    monkeypatch.setattr(next_batch, "ROOT", tmp_path)
+    _page(tmp_path, "aime_2024", 'aliases: ["aime2024"]\n')
+    _page(tmp_path, "gpqa", 'aliases: ["gpqa_main", "gpqa_extended"]\n')
+    before = next_batch.written()
+    for stem in ("aime_2024", "gpqa"):
+        p = tmp_path / "benchmarks" / f"{stem}.md"
+        p.write_text(p.read_text().replace("aliases:", "slug_aliases:", 1))
+    assert next_batch.written() == before

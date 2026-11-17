@@ -127,6 +127,10 @@ class BenchmarkCard(BaseModel):
     id: str
     name: str
     aliases: list[str] = Field(default_factory=list)
+    #: Internal. Slugs the census used for this page, read only by
+    #: `scripts/benchmarks/next_batch.py` to skip written pages. Never served or exported
+    #: (`INTERNAL_PAGE_KEYS`); `aliases` is the display list ("Also known as").
+    slug_aliases: list[str] = Field(default_factory=list)
     page_kind: Literal["benchmark", "family", "subset"] = "benchmark"
     category: BenchmarkCategory
     subcategory: str = ""
@@ -185,6 +189,10 @@ class BenchmarkCard(BaseModel):
         if len(v) > 220:
             raise ValueError("summary must be one sentence, at most 220 characters")
         return v
+
+
+#: Front-matter keys that stay in the repository: export writers drop them from the page they publish.
+INTERNAL_PAGE_KEYS = ("slug_aliases",)
 
 
 def unknown_key_paths(front: dict) -> list[str]:

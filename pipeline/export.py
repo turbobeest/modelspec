@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from pipeline.load import REPO_ROOT, Benchmark, Catalogue, Model
+from schema.benchmark import INTERNAL_PAGE_KEYS
 from schema.card import applicability_block
 
 #: Shape of the published JSON tree (`/api/index.json`, per-model files,
@@ -260,7 +261,7 @@ def write(out_dir: Path, models: list[Model], benchmarks: list[Benchmark],
         disposition = catalogue.for_benchmark(bench.benchmark_id)
         dump(f"benchmarks/{bench.benchmark_id}.json", {
             "build": build.to_json(),
-            "page": bench.front,
+            "page": {k: v for k, v in bench.front.items() if k not in INTERNAL_PAGE_KEYS},
             "body": bench.body,
             "disposition": {
                 "status": disposition.status,
