@@ -131,7 +131,21 @@ def test_cli_filters_existing_card_slugs_and_counts_reasons(tmp_path, monkeypatc
     assert "PRIVATE CONTENT" not in output.read_text() + summary.read_text()
 
 
-def run_watch(tmp_path, monkeypatch, entries):
+def freeze_clock(monkeypatch, moment):
+    """Make release_watch.main see `moment` as the current time."""
+    class Frozen(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return moment if tz is None else moment.astimezone(tz)
+
+    monkeypatch.setattr(release_watch, "datetime", Frozen)
+
+
+def run_watch(tmp_path, monkeypatch, entries, *, now=NOW):
+    """Run the watcher on fixtures dated `now`; now=None keeps the real clock."""
+    if now is not None:
+        freeze_clock(monkeypatch, now)
+    stamp = now or datetime.now(UTC)
     sources = [
         {"id": "liquid-page", "kind": "page", "provider": "liquid",
          "url": "https://liquid.example/models", "pattern": "lfm-[a-z0-9.-]+",
@@ -156,11 +170,11 @@ def run_watch(tmp_path, monkeypatch, entries):
             return Response(200, entries["page"].encode())
         if url.startswith("https://huggingface.co/"):
             return Response(200, json.dumps([
-                {"id": f"LiquidAI/{name}", "createdAt": "2026-10-20T00:00:00Z"}
+                {"id": f"LiquidAI/{name}", "createdAt": stamp.strftime("%Y-%m-%dT%H:%M:%SZ")}
                 for name in entries["hf"]
             ]).encode())
         return Response(200, json.dumps({"data": [
-            {"id": f"liquid/{name}", "created": int(NOW.timestamp())}
+            {"id": f"liquid/{name}", "created": int(stamp.timestamp())}
             for name in entries["openrouter"]
         ]}).encode())
 
@@ -170,6 +184,33 @@ def run_watch(tmp_path, monkeypatch, entries):
         "--registry", str(registry), "--baseline", str(baseline), "--report", str(report),
     ]) == 0
     return json.loads(report.read_text())
+
+
+def test_default_clock_is_the_real_time_with_a_30_day_window(tmp_path, monkeypatch):
+    # No frozen clock: fixtures dated "now" must be inside the window on any date.
+    result = run_watch(tmp_path, monkeypatch, {
+        "page": "<td>lfm-fresh-7b</td>", "hf": ["lfm-fresh-7b"],
+        "openrouter": ["lfm-fresh-7b"]}, now=None)
+    assert [row["model_name"] for row in result["discoveries"]] == ["lfm-fresh-7b"]
+    # And the 30-day cutoff is measured from the clock: 31 days later it is stale.
+    stale = datetime.now(UTC) + timedelta(days=31)
+    freeze_clock(monkeypatch, stale)
+    baseline = tmp_path / "baseline.json"
+    report = tmp_path / "stale.json"
+    stamp = (stale - timedelta(days=31)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    monkeypatch.setattr(release_watch, "http_fetch", lambda ua: lambda url: (
+        Response(404, b"") if url.endswith("/robots.txt") else Response(200, json.dumps(
+            [{"id": "LiquidAI/lfm-old-7b", "createdAt": stamp}]).encode())))
+    registry = tmp_path / "registry.yaml"
+    registry.write_text(yaml.safe_dump({
+        "user_agent": "test", "recent_days": 30, "variant_exclude": "(gguf)",
+        "page_exclude": "(docs)", "sources": [
+            {"id": "hf-liquidai", "kind": "huggingface", "org": "LiquidAI",
+             "provider": "liquid", "confidence": 0.7}]}))
+    baseline.write_text(json.dumps({"sources": {"hf-liquidai": []}}))
+    assert release_watch.main(["--registry", str(registry), "--baseline", str(baseline),
+                               "--report", str(report)]) == 0
+    assert json.loads(report.read_text())["discoveries"] == []
 
 
 def test_cli_groups_sources_and_packaging_with_evidence_and_a_draft(tmp_path, monkeypatch):
