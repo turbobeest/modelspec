@@ -871,12 +871,20 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
 
     report.diffs = source_diffs(report, sources, store)
     if write:
-        for fact in report.facts:
+        for index, fact in enumerate(report.facts):
             if fact.status is Status.CITED and fact.claim is not None:
                 path = root / fact.file
-                before = path.read_text(encoding="utf-8")
-                after = rewrite_fact(before, fact)
-                check_value_only(before, after, [fact])
+                try:
+                    before = path.read_text(encoding="utf-8")
+                    after = rewrite_fact(before, fact)
+                    check_value_only(before, after, [fact])
+                except (ValueError, yaml.YAMLError, OSError) as exc:
+                    # One card that will not rewrite is an alert for its fact, not the
+                    # end of the run: the file stays as it was and the report is written.
+                    report.facts[index] = replace(
+                        fact, status=Status.UNREADABLE, claim=None,
+                        reason=f"the rewrite failed ({type(exc).__name__}); the file is unchanged")
+                    continue
                 path.write_text(after, encoding="utf-8")
                 queue.file(fact.claim, at=at)
                 queue.checked(Result(fact.claim.target, "cited", reason=fact.reason), at=at)

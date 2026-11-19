@@ -1400,3 +1400,35 @@ def test_a_cited_rewrite_keeps_a_list_other_facts_share(fid: str) -> None:
         urls = [str(u) for u in fact["sources"][0]["resolved_urls"]]
         assert urls == (["https://example.com/new.md"] if other == fid
                         else ["https://example.com/plans.md"])
+
+
+def test_a_card_that_will_not_rewrite_alerts_and_the_run_still_reports(estate, monkeypatch) -> None:
+    """MODEL-421: one cited fact whose rewrite cannot be checked is an alert row for that
+    fact; its file stays as it was and the run goes on to write the report."""
+    root, _ = estate
+    new_ref = "sha256:" + "2" * 64
+    original = price_reread.reread_fact
+
+    def cite_one(tracked, claim, *args, **kwargs):
+        result = original(tracked, claim, *args, **kwargs)
+        if result.fact_id != PRO_PRICE:
+            return result
+        cited = replace(claim, sources=(SourceRef(
+            source_id="example-plans", snapshot_ref=new_ref, cited_regions=["page"],
+            retrieved_at=datetime(2026, 10, 6, tzinfo=UTC)),))
+        return replace(result, status=Status.CITED, claim=cited,
+                       copies={"example-plans": ("sha256:" + "1" * 64, new_ref)})
+
+    real_rewrite = price_reread.rewrite_fact
+    monkeypatch.setattr(price_reread, "reread_fact", cite_one)
+    monkeypatch.setattr(price_reread, "rewrite_fact",
+                        lambda text, change: real_rewrite(text, change) + "\nbroken: *undefined\n")
+    before = (root / PLAN_FILE).read_text()
+    report, _ = reread(estate, [page("plans.html")], write=True)
+
+    result = by_id(report)[PRO_PRICE]
+    assert result.status is Status.UNREADABLE
+    assert "rewrite failed" in result.reason
+    assert PRO_PRICE in [f.fact_id for f in report.alerts]
+    assert report.to_dict()["alerts"]
+    assert (root / PLAN_FILE).read_text() == before
