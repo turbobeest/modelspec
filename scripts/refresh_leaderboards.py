@@ -71,6 +71,21 @@ from scripts.model_143_evidence import evidence_id, evidence_key, measured_by
 #: A configuration cites the day the board was read as the standalone word ``read``
 #: and a date. A hyphenated word such as ``re-read`` is not that citation.
 _READ_DATE = re.compile(r"(?<![\w-])read \d{4}-\d{2}-\d{2}\b")
+
+
+def _read_day_of(text: object) -> str | None:
+    """The day in the one ``read <date>`` of ``text``; None when it has none or several."""
+    if not isinstance(text, str):
+        return None
+    found = _READ_DATE.findall(text)
+    return found[0][5:] if len(found) == 1 else None
+
+
+def _retell_read_day(text: object, day: str) -> object:
+    """Set the one ``read <date>`` of ``text`` to ``day``. Text with two or none stays."""
+    if _read_day_of(text) is None or not day:
+        return text
+    return _READ_DATE.sub(f"read {day}", str(text))
 #: The same citation in a folded YAML scalar, where the date can sit on the next line.
 _READ_DATE_FOLDED = re.compile(
     r"(?<![\w-])read(?:[ \t]+|[ \t]*\n[ \t]+)(\d{4}-\d{2}-\d{2})\b"
@@ -918,6 +933,9 @@ def _copy_matched_reading(
     new.pop("not_published_since", None)
     if not observation.reading_checked:
         new["score"] = observation.new_value
+        # A re-confirmed row was read on this run's day; its one ``read <date>`` says so.
+        if isinstance(old.get("configuration"), str):
+            new["configuration"] = _retell_read_day(old["configuration"], _iso_day(observed_at))
         return new, None
     stored_effort = old.get("effort")
     named_effort = _verifier_named_effort(old.get("model_id_as_evaluated"))
@@ -1107,6 +1125,12 @@ def _plan_observations(
                 "stored name spells a different effort than the dataset row",
             ))
             continue
+        if match is None and not arena_board and _board_renamed_to_an_effort(board, stored_name):
+            failures.append(RowFailure(
+                model_id, str(evidence.get("benchmark_id")), board.source_url,
+                _BOARD_RENAMED_TO_EFFORT,
+            ))
+            continue
         if match is None or match.get(board.value_field) is None:
             failures.append(RowFailure(
                 model_id, str(evidence.get("benchmark_id")), board.source_url,
@@ -1265,6 +1289,7 @@ def _rewrite_card(
             names = [name for name in fields if replacement.get(name) != row.get(name)]
         day = _iso_day(replacement.get("evidence_date"))
         old_configuration, new_configuration = row.get("configuration"), replacement.get("configuration")
+        day = _read_day_of(new_configuration) or day
         patch_read_date = (
             "configuration" in names
             and isinstance(old_configuration, str)
@@ -1497,6 +1522,32 @@ def _name_effort(subject: str | None) -> str | None:
         return None
     qualifier = verify._EFFORT_QUALIFIER.match(found.group(1).strip().casefold())
     return _NAME_EFFORT.get(qualifier.group(1)) if qualifier else None
+
+
+_BOARD_RENAMED_TO_EFFORT = (
+    "board names this row with an effort the stored name does not state; "
+    "not matched without a stated effort"
+)
+
+
+def _name_stem(subject: str | None) -> str:
+    return readers.normalise_name(re.sub(r"\([^()]*\)\s*$", "", subject or ""))
+
+
+def _board_renamed_to_an_effort(board: BoardReading, stored_name: str) -> bool:
+    """True when the stored name ends in a parenthesis that states no effort ("(Think)")
+    and the board lists the same stem only under names that state an effort (MODEL-505).
+
+    The stored row is not matched to such a row: the effort is the board's, not
+    the stored name's, and the writer does not pick one.
+    """
+    if not re.search(r"\([^()]*\)\s*$", stored_name) or _name_effort(stored_name) is not None:
+        return False
+    stem = _name_stem(stored_name)
+    return bool(stem) and any(
+        _name_stem(_subject(row)) == stem and _name_effort(_subject(row)) is not None
+        for row in board.rows
+    )
 
 
 def _new_evidence(
@@ -1809,6 +1860,8 @@ def _skip_class(reason: str, diffs: Sequence[Diff] = (), outcome: str = "") -> s
     if "dataset names an effort the stored name does not" in text:
         return "effort"
     if "card effort differs from the dataset's only row" in text:
+        return "effort"
+    if text == _BOARD_RENAMED_TO_EFFORT:
         return "effort"
     if "different effort" in text or "already a different level" in text:
         return "effort"
@@ -3319,16 +3372,21 @@ def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> 
             new.pop("effort", None)
     dated_by_source = source_publishes_row_date(str(before.get("source_url") or ""))
     if old.get("configuration") != new.get("configuration"):
-        if not observation_dated(
-            after.get("evidence_date"), after.get("observed_at"), source_dated=dated_by_source,
-        ):
-            return False
-        expected = _READ_DATE.sub(
-            f"read {_iso_day(after.get('evidence_date'))}",
-            str(old.get("configuration") or ""),
+        retold_at_observed = new.get("configuration") == _retell_read_day(
+            old.get("configuration"), _iso_day(after.get("observed_at")),
         )
-        if expected != str(new.get("configuration") or ""):
-            return False
+        if not retold_at_observed:
+            if not observation_dated(
+                after.get("evidence_date"), after.get("observed_at"),
+                source_dated=dated_by_source,
+            ):
+                return False
+            expected = _READ_DATE.sub(
+                f"read {_iso_day(after.get('evidence_date'))}",
+                str(old.get("configuration") or ""),
+            )
+            if expected != str(new.get("configuration") or ""):
+                return False
         old.pop("configuration", None)
         new.pop("configuration", None)
     if old.get("date_type") != new.get("date_type"):

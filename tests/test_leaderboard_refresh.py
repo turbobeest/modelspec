@@ -702,7 +702,7 @@ benchmarks:
     )
 
 
-def test_source_dated_row_keeps_its_read_date_and_date_type(
+def test_source_dated_row_retells_its_read_day_and_keeps_its_date_type(
     monkeypatch, tmp_path: Path,
 ) -> None:
     root = tmp_path / "repo"
@@ -780,7 +780,7 @@ benchmarks:
     assert str(row["evidence_date"]) == "2026-09-01"
     assert str(row["observed_at"]) == "2026-09-28"
     assert row["date_type"] == "published"
-    assert row["configuration"] == "Board row read 2026-09-24; published 2026-09-01."
+    assert row["configuration"] == "Board row read 2026-09-28; published 2026-09-01."
 
 
 def _run_one_row_refresh(
@@ -862,7 +862,7 @@ benchmarks:
 
 
 @pytest.mark.parametrize("date_key", refresh._SOURCE_DATE_KEYS)
-def test_same_day_source_date_stays_published_and_unchanged(
+def test_same_day_source_date_stays_published_with_its_read_day_retold(
     monkeypatch, tmp_path: Path, date_key: str,
 ) -> None:
     configuration = "dataset re-read 2026-09-24. Board row read 2026-09-24."
@@ -878,7 +878,7 @@ def test_same_day_source_date_stays_published_and_unchanged(
     assert str(row["evidence_date"]) == "2026-09-28"
     assert str(row["observed_at"]) == "2026-09-28"
     assert row["date_type"] == "published"
-    assert row["configuration"] == configuration
+    assert row["configuration"] == "dataset re-read 2026-09-24. Board row read 2026-09-28."
 
 
 def test_dataset_reread_text_is_not_rewritten(monkeypatch, tmp_path: Path) -> None:
@@ -1001,7 +1001,7 @@ benchmarks:
     result = refresh.check_score_only(before, root)
     assert report.quarantined == []
     assert row["date_type"] == "published"
-    assert row["configuration"] == configuration
+    assert row["configuration"] == configuration.replace("read 2026-09-24", "read 2026-09-28")
     assert str(row["observed_at"]) == "2026-09-28"
     assert str(row["evidence_date"]) == "2026-09-28"
     assert result.ok, result.errors
