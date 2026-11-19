@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import tempfile
 from datetime import date
@@ -34,6 +35,8 @@ def main(argv=None) -> int:
     if args.n < 1:
         p.error("--n must be positive")
     seed = args.seed or args.date.strftime("%G-W%V")
+    # The retained-copy check reads the private register under this directory (MODEL-510).
+    os.environ["MODELSPEC_DATA_DIR"] = str(args.data_dir)
     with tempfile.TemporaryDirectory(prefix="modelspec-trust-overlay-") as tmp:
         root = overlay(ENGINE, args.data_dir, Path(tmp))
         c = load(root, source_root=args.data_dir)

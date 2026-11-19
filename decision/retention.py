@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from functools import cache
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -26,6 +27,41 @@ def cite_only_hosts() -> tuple[str, ...]:
            or any(char in host for char in "/:@ ") for host in hosts):
         raise ValueError("source retention policy requires canonical host names")
     return tuple(hosts)
+
+
+DATA_DIR_ENV = "MODELSPEC_DATA_DIR"
+FORBIDS = "forbids"
+
+
+@cache
+def _register_forbidding(data_dir: str) -> tuple[str, ...]:
+    path = Path(data_dir) / "registry" / "source-terms.json"
+    try:
+        terms = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return ()
+    except (OSError, ValueError):
+        logger.warning("the private source-terms register could not be read")
+        return ()
+    if not isinstance(terms, dict):
+        logger.warning("the private source-terms register is not an object")
+        return ()
+    return tuple(sorted(host for host, cls in terms.items()
+                        if cls == FORBIDS and isinstance(host, str) and host
+                        and host == host.lower().rstrip(".")
+                        and not any(char in host for char in "/:@ ")))
+
+
+def forbidding_hosts() -> tuple[str, ...]:
+    """Hosts the private terms register classes ``forbids`` (MODEL-510).
+
+    Read from ``registry/source-terms.json`` under ``MODELSPEC_DATA_DIR``.
+    With no data directory (a public build) the result is empty, so the
+    public list alone decides, as before. RESTRICTIVE call sites only: this
+    never grants cite-only status.
+    """
+    data_dir = os.environ.get(DATA_DIR_ENV, "").strip()
+    return _register_forbidding(data_dir) if data_dir else ()
 
 
 _C0_OR_SPACE = "".join(chr(code) for code in range(0x21))
@@ -91,13 +127,18 @@ def is_cite_only_restrictive(url: object) -> bool:
     For RESTRICTIVE call sites only (retention, storage, display): no bytes
     are kept, evidence stays out and nothing reads as machine-verified. Never
     use it where cite-only status grants anything; use ``cite_only_status``.
+    A host the private register marks ``forbids`` counts here too (MODEL-510).
     """
     status = cite_only_status(url)
     if status is None:
         # The URL itself is not logged: it may come from private data.
         logger.warning("a malformed HTTP(S) URL is treated as cite-only")
         return True
-    return status
+    if status:
+        return True
+    host = canonical_host(url)
+    return host is not None and any(
+        host == denied or host.endswith("." + denied) for denied in forbidding_hosts())
 
 
 def redirect_urls(value: object) -> tuple[str, ...]:
