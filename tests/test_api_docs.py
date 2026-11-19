@@ -541,7 +541,7 @@ def test_named_model_comparison_documents_bounded_keyed_facts(
         assert "comparison_version" in schema["properties"]
         assert "contract_version" not in schema["properties"]
         version = generator._resolve(schema["properties"]["comparison_version"], spec)
-        assert version.get("const", version.get("enum")) in ("1.1", ["1.1"])
+        assert version.get("const", version.get("enum")) in ("1.2", ["1.2"])
 
 
 def test_comparison_schema_accepts_every_facet_value_and_sparse_offering(
@@ -1070,7 +1070,7 @@ def test_widened_output_ranges_took_a_contract_major() -> None:
     assert policy.SCHEMA_VERSION == "2.0"
     assert decide.contract.CONTRACT_VERSION == "2.20"
     assert decide.contract.BOUNDED_VERSION == "1.5"
-    assert decide.contract.MODEL_COMPARISON_VERSION == "1.1"
+    assert decide.contract.MODEL_COMPARISON_VERSION == "1.2"
 
 
 def test_coding_rank_success_matches_rank_response(spec: dict[str, Any]) -> None:

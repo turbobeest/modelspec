@@ -50,7 +50,7 @@ from pydantic.fields import FieldInfo
 # range are unchanged. Bounded stays at BOUNDED_VERSION. Named comparison
 # stays at MODEL_COMPARISON_VERSION.
 CONTRACT_VERSION = "2.20"
-MODEL_COMPARISON_VERSION = "1.1"
+MODEL_COMPARISON_VERSION = "1.2"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -2336,9 +2336,13 @@ class ComparisonModel(_Strict):
     evidence: list[ComparisonEvidence]
 
 
-class ComparisonSource(_Strict):
+class ComparisonSource(_ExcludeIf):
     id: str
     url: str
+    #: The credit the source's licence asks for, with the licence and source
+    #: links. Present only for such a source (Epoch AI, CC BY 4.0). Added in
+    #: comparison 1.2 (MODEL-508).
+    title: str | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class ComparisonOmitted(_Strict):

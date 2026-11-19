@@ -13,6 +13,7 @@ from decision.contract import (
     CITE_ONLY_NOTICE,
     CITE_ONLY_WARNING,
 )
+from decision.credit import credit_text, is_epoch_url
 from decision.refinements import is_refinement_key, split_dimension
 from decision.regions import guarantees_countries, no_guarantee_reason
 from decision.filter import UNVERIFIED_MAY_QUALIFY, governance_unverified_suffix
@@ -1096,7 +1097,10 @@ def cited_sources(decision, snapshot):
             verified.setdefault(sid, None)
             if day and (verified[sid] is None or day > verified[sid]):
                 verified[sid] = day
-    return [CitedSource(id=sid, url=snapshot.source_url(sid), date=verified[sid])
+    # A source whose licence asks for credit carries it in ``title`` (MODEL-508); every
+    # other source keeps a null title, as the snapshot records no titles.
+    return [CitedSource(id=sid, url=snapshot.source_url(sid), date=verified[sid],
+                        title=credit_text() if is_epoch_url(snapshot.source_url(sid)) else None)
             for sid in sorted(verified)]
 
 

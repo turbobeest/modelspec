@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from decision.contract import MODEL_COMPARISON_VERSION, FacetLookup
+from decision.credit import credit_text, is_epoch_url
 from decision.engine import offering_ref
 from decision.explain import DISPLAY_FACETS, source_ids
 from decision.registry import facet as registry_facet
@@ -113,4 +114,7 @@ def update_sources(body: dict[str, Any], snapshot: ExplanationIndex) -> None:
         item for row in rows for offering in row["offerings"] for item in offering["facts"]
     )
     ids = sorted({source for item in items for source in item.get("source_ids", [])})
-    body["sources"] = [{"id": sid, "url": snapshot.source_url(sid)} for sid in ids]
+    body["sources"] = [
+        {"id": sid, "url": url, **({"title": credit_text()} if is_epoch_url(url) else {})}
+        for sid, url in ((sid, snapshot.source_url(sid)) for sid in ids)
+    ]

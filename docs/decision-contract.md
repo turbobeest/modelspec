@@ -1645,7 +1645,9 @@ contract version. Version 1.1 retains them.
   leaf had an entry and each repeated its source URLs in `sources`; from 1.4
   `sources` on an origin is always empty.
 - `sources` (1.4) lists every source the origins and shown facts cite, once:
-  its `id`, `url`, `title` (null: the snapshot records no titles yet) and
+  its `id`, `url`, `title` (null: the snapshot records no titles yet, except that a
+  source whose licence asks for credit carries it there: Epoch AI's benchmark data
+  reads `Epoch AI data, CC BY 4.0.` with the licence and source links) and
   `date`, the latest date a record in this decision citing it was verified.
   Source URLs and retained verification or citation records resolve through
   `snapshot.source_url()` and `snapshot.record()`.
@@ -1844,7 +1846,7 @@ off. A browser visit token does not admit this endpoint. Existing access
 quotas and billing apply at the `decide.full` credit weight. The CLI's named
 comparison and MCP `compare_models` tool call this endpoint.
 
-The named comparison has its own contract, version **1.1**, identified by
+The named comparison has its own contract, version **1.2**, identified by
 `comparison_version` on success and refusal bodies. It has no
 `contract_version`. Its fields follow the same MODEL-59 versioning rule:
 widening a comparison field bumps the comparison's major version.
@@ -1855,11 +1857,11 @@ The success response is a `ModelComparison` with these fields:
 
 | Field | Meaning |
 |---|---|
-| `comparison_version` | `"1.1"`, the named comparison's own contract version. |
+| `comparison_version` | `"1.2"`, the named comparison's own contract version. |
 | `endpoint` | `"compare-models"`. |
 | `snapshot` | The verified snapshot ID. |
 | `models` | One row per requested model, in caller order. |
-| `sources` | Registered sources, each with `id` and `url`. |
+| `sources` | Registered sources, each with `id` and `url`. From comparison 1.2, a source whose licence asks for credit adds `title` with it: Epoch AI's benchmark data reads `Epoch AI data, CC BY 4.0.` with the licence and source links. |
 | `omitted` | Counts of whole `facts`, `offerings`, and `evidence` items removed to fit the response budget. |
 
 A model row has `model`, `lifecycle`, `facts`, `offerings`, and `evidence`.
@@ -2126,6 +2128,12 @@ that used to be accepted is a major change; accepting more is not.
   `<...>` placeholder with a no-verified-fact reason for each missing ID.
   These fields are additive. The bounded representation remains version 1.2
   and projects complete contract 2.17.
+
+- **Comparison 1.2, MODEL-508:** A comparison source whose licence asks for
+  credit adds an optional `title` carrying it. Epoch AI's benchmark data, CC BY
+  4.0, is the only such source. Decision `sources[].title`, an existing nullable
+  field, carries the same credit for that source. No existing field changes
+  range, and `contract_version` stays 2.20.
 
 - **Comparison 1.0, MODEL-364:** Adds keyed named-model comparison through
   `POST /v1/compare-models`, with caller order, sourced facts, explicit unknowns,

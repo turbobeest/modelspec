@@ -19,6 +19,7 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from decision.credit import credit_record, is_epoch_url
 from api.ranking.engine import (
     BENCHMARK_RANGES,
     USE_CASE_PROFILES,
@@ -464,6 +465,11 @@ def write_export(out_dir: Any, cards: list[Any], sink: CollectingSink,
         path.write_text(json.dumps(payload, sort_keys=True, default=str), encoding="utf-8")
 
     candidates = build_candidates(cards, sink, cited_facts=cited_facts)
+    # Epoch AI's CC BY 4.0 asks for credit where its data is shown (MODEL-508).
+    # Additive and absent when no score here came from Epoch, as `authoring_guides` was.
+    credits = ([credit_record()] if any(
+        is_epoch_url(record.source_url)
+        for card in cards for record in card.benchmarks.evidence) else [])
     dump("profiles.json", {
         "build": build_json,
         "featured": list(FEATURED_PROFILES),
@@ -479,6 +485,7 @@ def write_export(out_dir: Any, cards: list[Any], sink: CollectingSink,
         "count": len(candidates),
         "candidates": [c.to_json() for c in candidates],
         "authoring_guides": authoring_guides_from_cards(cards),
+        **({"credits": credits} if credits else {}),
     })
 
     # The device vocabulary, without the 7 MB of FITS_ON edges that the graph
@@ -504,7 +511,8 @@ def write_export(out_dir: Any, cards: list[Any], sink: CollectingSink,
             candidates, key, limit=25,
             min_benchmark_coverage=WIZARD_BENCHMARK_COVERAGE,
         )
-    dump("rankings.json", {"schema_version": "2.0", "build": build_json, "rankings": precomputed})
+    dump("rankings.json", {"schema_version": "2.0", "build": build_json, "rankings": precomputed,
+                            **({"credits": credits} if credits else {})})
 
     return {
         "candidates": len(candidates),

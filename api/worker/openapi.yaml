@@ -2607,6 +2607,10 @@ components:
       properties:
         id: {type: string}
         url: {type: string}
+        title:
+          anyOf:
+          - {type: string}
+          - {type: 'null'}
       required: [id, url]
       type: object
     DecisionConstraintCost:
@@ -3274,7 +3278,7 @@ components:
     DecisionModelComparison:
       additionalProperties: false
       properties:
-        comparison_version: {const: '1.1', default: '1.1', type: string}
+        comparison_version: {const: '1.2', default: '1.2', type: string}
         endpoint: {const: compare-models, default: compare-models, type: string}
         snapshot: {pattern: '^snap_[A-Za-z0-9:._-]+$', type: string}
         models:
@@ -4328,7 +4332,7 @@ components:
       properties:
         comparison_version:
           type: string
-          enum: ['1.1']
+          enum: ['1.2']
         endpoint:
           type: string
           enum: [compare-models]
@@ -4354,7 +4358,7 @@ components:
       properties:
         comparison_version:
           type: string
-          enum: ['1.1']
+          enum: ['1.2']
         endpoint:
           type: string
           enum: [compare-models]

@@ -803,7 +803,7 @@ def test_named_comparison_keeps_complete_and_bounded_decision_versions() -> None
 
 def test_named_comparison_has_an_independent_contract_version() -> None:
     raw = {
-        "comparison_version": "1.1",
+        "comparison_version": "1.2",
         "endpoint": "compare-models",
         "snapshot": "snap_compare",
         "models": [
@@ -816,7 +816,7 @@ def test_named_comparison_has_an_independent_contract_version() -> None:
     comparison = c.ModelComparison.model_validate(raw)
     assert comparison.model_dump(mode="json") == raw
     properties = c.ModelComparison.model_json_schema(mode="serialization")["properties"]
-    assert properties["comparison_version"]["const"] == "1.1"
+    assert properties["comparison_version"]["const"] == "1.2"
     assert "contract_version" not in properties
     with pytest.raises(ValueError, match="comparison_version"):
         c.ModelComparison.model_validate(raw | {"comparison_version": "2.0"})
