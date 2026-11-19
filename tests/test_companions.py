@@ -38,7 +38,8 @@ SOURCES = {
 
 def _claim() -> Claim:
     ref = lambda sid: SourceRef.model_validate(  # noqa: E731
-        {"source_id": sid, "snapshot_ref": "sha256:" + "ab" * 32, "cited_regions": ["incorporation"]})
+        {"source_id": sid, "snapshot_ref": "sha256:" + "ab" * 32,
+         "cited_regions": ["incorporation"]})
     return Claim(
         target=TargetRef(kind="fact", id="lab:acme#origin.lab_jurisdiction"),
         subject="lab:acme", names=("Acme LLC",), field="origin.lab_jurisdiction", value=["US"],
@@ -84,7 +85,8 @@ def test_a_fact_with_a_rendered_and_a_plain_source_is_judged_on_both(tmp_path) -
     read = reads["lab-companion"]
     assert read.outcome == "ok" and store.has(read.copy)
     rendered = "sha256:" + "11" * 32
-    regions = Regions({rendered: "Acme LLC, a Delaware company", read.copy: "Acme LLC, a Delaware company"})
+    text = "Acme LLC, a Delaware company"
+    regions = Regions({rendered: text, read.copy: text})
     result = _judge(_claim(), {"lab-rendered": rendered}, reads, regions)
     assert result.outcome == "verified"
     seen = claim_with_copies(_claim(), {"lab-rendered": rendered}, reads)
@@ -110,7 +112,8 @@ def test_a_failed_rendered_read_is_unreachable_not_verified(tmp_path) -> None:
     regions = Regions({reads["lab-companion"].copy: "Acme LLC, a Delaware company"})
     result = _judge(_claim(), {"lab-rendered": None}, reads, regions)
     assert result.outcome == "unreachable"
-    assert claim_with_copies(_claim(), {"lab-rendered": None}, reads).sources[0].snapshot_ref == MISSING_COPY
+    failed = claim_with_copies(_claim(), {"lab-rendered": None}, reads)
+    assert failed.sources[0].snapshot_ref == MISSING_COPY
 
 
 def test_a_source_never_read_is_not_reread_and_never_verifies() -> None:
@@ -133,7 +136,8 @@ def test_a_redirect_to_an_unclassified_host_has_its_own_reason_and_keeps_nothing
     reads = fetch_companions(["lab-companion"], SOURCES, fetcher=_fetcher(handler), store=store,
                              terms=TERMS, now=NOW)
     read = reads["lab-companion"]
-    assert (read.outcome, read.host, read.copy) == ("redirect_unclassified", "unknown.example", None)
+    assert (read.outcome, read.host, read.copy) == (
+        "redirect_unclassified", "unknown.example", None)
     assert sent == ["registry.example"]  # the unclassified host never received a request
     assert not list(tmp_path.rglob("*"))
     rendered = "sha256:" + "11" * 32

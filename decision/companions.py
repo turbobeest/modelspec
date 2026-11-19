@@ -34,7 +34,7 @@ MISSING_COPY = "sha256:" + "0" * 64
 CompanionOutcome = Literal["ok", "cited", "unreachable", "redirect_unclassified"]
 
 
-class UnclassifiedRedirect(ValueError):
+class UnclassifiedRedirectError(ValueError):
     """A redirect reached a host with no class in the terms register."""
 
     def __init__(self, host: str) -> None:
@@ -105,13 +105,13 @@ def fetch_companions(
             except ValueError:
                 host = None
             if host != start and not _classified(host, terms):
-                raise UnclassifiedRedirect(host or "unparseable")
+                raise UnclassifiedRedirectError(host or "unparseable")
 
         hooks = fetcher.client.event_hooks["request"]
         hooks.append(check)
         try:
             result = fetcher.fetch(url)
-        except UnclassifiedRedirect as stop:
+        except UnclassifiedRedirectError as stop:
             reads[sid] = CompanionRead(sid, "redirect_unclassified", host=stop.host,
                                        error=f"redirect to a host with no terms class: {stop.host}")
             continue
@@ -156,8 +156,9 @@ def judge(
 ):
     """Judge a fact on every source it cites, or say why it was not judged.
 
-    ``copies`` maps the sources this run read to their copy refs; a source whose read failed maps to ``None``). ``verify_claim`` gets the
-    claim with fresh refs and returns the verifier's ``Result``.
+    ``copies`` maps the sources this run read to their copy refs; a source whose read
+    failed maps to ``None``. ``verify_claim`` gets the claim with fresh refs and returns
+    the verifier's ``Result``.
     """
     from decision.verify import Result
 
@@ -181,6 +182,7 @@ def report_rows(reads: Mapping[str, CompanionRead]) -> dict[str, dict]:
 
 
 __all__: Sequence[str] = [
-    "MISSING_COPY", "CompanionRead", "UnclassifiedRedirect", "companion_ids", "fetch_companions",
+    "MISSING_COPY", "CompanionRead", "UnclassifiedRedirectError",
+    "companion_ids", "fetch_companions",
     "claim_with_copies", "judge", "report_rows",
 ]
