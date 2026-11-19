@@ -944,6 +944,36 @@ def _dump_value(value: Any) -> str:
                           default_flow_style=False).strip()
 
 
+_ANCHOR = re.compile(r"^(\s*)resolved_urls: &(\w+)\s*$")
+
+
+def _expand_resolved_urls_anchors(lines: list[str], start: int, end: int) -> list[str]:
+    """Lines with every ``resolved_urls`` alias of an anchor defined inside
+    ``lines[start:end]`` written out as its own list.
+
+    A card dumped by PyYAML shares one list between facts (``&id001`` on the first,
+    ``*id001`` on the rest). Replacing the first fact's list drops the anchor and
+    leaves the aliases undefined, and the whole run then fails. Writing each alias
+    out as a flow list keeps the value of every other fact as it was."""
+    expanded = list(lines)
+    for i in range(start, end):
+        m = _ANCHOR.match(lines[i])
+        if m is None:
+            continue
+        depth = len(m.group(1))
+        urls: list[str] = []
+        j = i + 1
+        while j < end and (len(lines[j]) - len(lines[j].lstrip(" ")) > depth
+                           or re.match(r"^\s*- https?://", lines[j])):
+            urls.append(lines[j].strip()[2:].strip())
+            j += 1
+        alias = re.compile(rf"^(\s*)resolved_urls: \*{re.escape(m.group(2))}\s*$")
+        for k, line in enumerate(expanded):
+            if a := alias.match(line):
+                expanded[k] = f"{a.group(1)}resolved_urls: {json.dumps(urls)}\n"
+    return expanded
+
+
 def rewrite_fact(text: str, change: FactResult) -> str:
     """``text`` with one fact's value, state and re-fetched copy refs replaced, and
     every other line kept byte for byte."""
@@ -962,10 +992,12 @@ def rewrite_fact(text: str, change: FactResult) -> str:
             break
         end += 1
 
+    cited = change.status is Status.CITED
+    if cited:
+        lines = _expand_resolved_urls_anchors(lines, start, end)
     block = lines[start:end]
     out: list[str] = []
     current_source: str | None = None
-    cited = change.status is Status.CITED
     refs = {ref.source_id: ref for ref in change.claim.sources} if cited and change.claim else {}
     i = 0
     while i < len(block):

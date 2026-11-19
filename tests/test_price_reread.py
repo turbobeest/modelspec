@@ -1345,3 +1345,58 @@ def test_overdue_price_without_filed_claim_alerts(estate):
     report = price_reread.run(root=root, fetcher=fetcher, store=store, today=date(2026, 10, 20))
     assert LARGE_INPUT in {fact.fact_id for fact in report.alerts}
     assert fetcher.fetched == []
+
+
+SHARED_URLS = """\
+- id: example/subscription/pro
+  facts:
+  - id: example/subscription/pro#offering.subscription.price
+    facet: offering.subscription.price
+    value: 20
+    state: known
+    sources:
+    - source_id: example-plans
+      snapshot_ref: sha256:1111111111111111111111111111111111111111111111111111111111111111
+      cited_regions:
+      - page
+      retrieved_at: '2026-11-13T23:41:10.903492+00:00'
+      resolved_urls: &id001
+      - https://example.com/plans.md
+  - id: example/subscription/pro#offering.subscription.coverage_quote
+    facet: offering.subscription.coverage_quote
+    value: Opus
+    state: known
+    sources:
+    - source_id: example-plans
+      snapshot_ref: sha256:1111111111111111111111111111111111111111111111111111111111111111
+      cited_regions:
+      - page
+      retrieved_at: '2026-11-13T23:41:10.903492+00:00'
+      resolved_urls: *id001
+"""
+
+
+@pytest.mark.parametrize("fid", ["example/subscription/pro#offering.subscription.price",
+                                 "example/subscription/pro#offering.subscription.coverage_quote"])
+def test_a_cited_rewrite_keeps_a_list_other_facts_share(fid: str) -> None:
+    """A card dumped by PyYAML anchors one ``resolved_urls`` list and aliases it. Citing
+    either fact must leave the file loadable and every other fact's list as it was."""
+    when = datetime(2026, 11, 17, 7, 45, 29, tzinfo=UTC)
+    old_ref, new_ref = "sha256:" + "1" * 64, "sha256:" + "2" * 64
+    claim = Claim(
+        target=TargetRef(kind="fact", id=fid), subject="example/subscription/pro",
+        names=("Example Pro",), field=fid.split("#")[1], value=20, collector=COLLECTOR,
+        sources=(SourceRef(source_id="example-plans", snapshot_ref=new_ref,
+                           cited_regions=["page"], retrieved_at=when,
+                           resolved_urls=("https://example.com/new.md",)),))
+    change = price_reread.FactResult(
+        fid, fid.split("#")[1], PLAN_FILE, ("example-plans",), Status.CITED, "known", 20,
+        copies={"example-plans": (old_ref, new_ref)}, claim=claim)
+    rewritten = rewrite_fact(SHARED_URLS, change)
+    check_value_only(SHARED_URLS, rewritten, [change])
+    assert "*id001" not in rewritten
+    facts = {f["id"]: f for o in yaml.safe_load(rewritten) for f in o["facts"]}
+    for other, fact in facts.items():
+        urls = [str(u) for u in fact["sources"][0]["resolved_urls"]]
+        assert urls == (["https://example.com/new.md"] if other == fid
+                        else ["https://example.com/plans.md"])
