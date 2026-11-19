@@ -1480,6 +1480,25 @@ def _stored_score(raw: float, row: Mapping[str, Any]) -> float:
     return float(raw)
 
 
+#: The effort a board name's trailing parenthesis may state: explicit map, nothing else.
+#: "(thinking)", a date or an agent harness is not an effort, and stays in the name.
+_NAME_EFFORT = {"minimal": "minimal", "low": "low", "medium": "medium", "high": "high",
+                "xhigh": "xhigh", "max": "max", "maximum": "max"}
+
+
+def _name_effort(subject: str | None) -> str | None:
+    """The effort a board name states in its trailing parenthesis, or None (MODEL-498).
+
+    "Claude-Fable-5.2 (max)" states ``max``; "(max effort)" too. Any other suffix,
+    or none, states no effort. The match itself is unchanged.
+    """
+    found = re.search(r"\(([^()]*)\)\s*$", subject or "")
+    if not found:
+        return None
+    qualifier = verify._EFFORT_QUALIFIER.match(found.group(1).strip().casefold())
+    return _NAME_EFFORT.get(qualifier.group(1)) if qualifier else None
+
+
 def _new_evidence(
     *, root: Path, model_id: str, front: Mapping[str, Any], board: BoardReading,
 ) -> tuple[list[dict[str, Any]], list[RowFailure]]:
@@ -1513,7 +1532,7 @@ def _new_evidence(
             "configuration": "",
             "limitations": "",
             "measured_by": measured_by(template),
-            "effort": None,
+            "effort": _name_effort(_subject(matched)) if board.effort_basis is None else None,
             "harness": template.get("harness") if board.row_template else None,
             "sources": [SourceRef(
                 source_id=board.source_id,
