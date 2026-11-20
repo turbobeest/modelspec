@@ -288,6 +288,21 @@ def test_read_detail_truncates_prose():
     assert empty["read_value"] is None and empty["read_value_truncated"] is False
 
 
+def test_read_detail_withholds_a_cite_only_value(monkeypatch):
+    from decision import retention
+    from decision.verify import Diff, Result
+
+    monkeypatch.setattr(retention, "cite_only_hosts", lambda: frozenset({"cite.example.test"}))
+    result = Result(target=None, outcome="mismatch", diffs=(Diff("value", "a", "page text"),))
+    held = sample.read_detail(result, {"https://cite.example.test/p": b"page"})
+    assert held["read_value"] is None
+    assert held["read_value_withheld"] == "cite-only"
+    assert len(held["source_snapshots"]) == 1
+    open_ = sample.read_detail(result, {"https://open.example.test/p": b"page"})
+    assert open_["read_value"] == "page text"
+    assert "read_value_withheld" not in open_
+
+
 def test_matched_and_unreadable_carry_no_read_detail(catalogue, registry):
     catalogue.facts = catalogue.facts[1:]
     for outcome in ("matched", "unreadable"):

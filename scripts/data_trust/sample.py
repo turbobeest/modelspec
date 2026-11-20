@@ -107,10 +107,17 @@ def read_detail(result, fetched_bytes: dict[str, bytes]) -> dict:
     """
     from decision.sources import fingerprint_bytes
 
+    from decision.retention import cite_only_origin_restrictive
+
     found = next((d for d in result.diffs if d.found is not None), None)
     text = None if found is None else str(found.found)
+    # A cite-only host's page text is not kept: only the hashes are recorded.
+    withheld = cite_only_origin_restrictive(None, tuple(fetched_bytes))
+    if withheld:
+        text = None
     return {
         "read_value": None if text is None else text[:READ_VALUE_LIMIT],
+        **({"read_value_withheld": "cite-only"} if withheld else {}),
         "read_value_truncated": text is not None and len(text) > READ_VALUE_LIMIT,
         "read_field": None if found is None else found.field,
         "diff_fields": sorted({d.field for d in result.diffs}),
