@@ -1082,3 +1082,24 @@ def test_a_changed_proposal_carries_the_owner_stamp_line_and_a_noop_does_not(tmp
     (root / "premier/slice-1.yaml").write_bytes(output.read_bytes())
     result, output, diff = _propose(root)
     assert "approval_stamp" not in json.loads(diff.read_text())
+
+
+def test_the_gate_audits_the_unfiltered_inputs(tmp_path, monkeypatch):
+    """MODEL-520: the completeness audit sees the same inputs as production."""
+    root = catalogue(tmp_path)
+    write_card(root, "lab/one", release="2026-09-29")
+    seen = []
+    real = premier_live.audit_build
+
+    def spy(inputs, **kwargs):
+        seen.append(inputs)
+        return real(inputs, **kwargs)
+
+    monkeypatch.setattr(premier_live, "audit_build", spy)
+    premier_live.load_inputs(root, TODAY)
+    full = premier_live.collect_repo(root)
+    assert len(seen) == 1
+    assert seen[0].offerings == full.offerings
+    assert seen[0].subscriptions == full.subscriptions
+    assert seen[0].hardware == full.hardware
+    assert seen[0].hardware_fit_records == full.hardware_fit_records
