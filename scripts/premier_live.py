@@ -126,6 +126,11 @@ def load_inputs(root: Path, as_of: date) -> dict:
     missing_facets: dict[str, set[str]] = {}
     audit_args = dict(registry=registry, premier=sorted(active), as_of=as_of,
                       guard=excluded_sources())
+    completeness_audit = "full"
+    unregistered = [
+        {part: offering[part] for part in ("model", "provider", "region", "tier")}
+        for offering in audit_inputs.offerings if offering not in offerings
+    ]
     try:
         gaps = audit_build(audit_inputs, **audit_args).gaps
     except SnapshotBuildError:
@@ -133,6 +138,7 @@ def load_inputs(root: Path, as_of: date) -> dict:
         # the filtered inputs rather than stop the proposer.
         logging.getLogger(__name__).warning(
             "full-input audit failed; the completeness gate uses filtered inputs")
+        completeness_audit = "filtered-fallback"
         gaps = audit_build(inputs, **audit_args).gaps
     for gap in gaps:
         missing_facets.setdefault(gap.model, set()).add(gap.facet)
@@ -256,4 +262,6 @@ def load_inputs(root: Path, as_of: date) -> dict:
         "slice2": slice2,
         "reviewer_clauses": reviewer_clauses,
         "aliases": {},
+        "completeness_audit": completeness_audit,
+        "unregistered_offerings": unregistered if completeness_audit != "full" else [],
     }
