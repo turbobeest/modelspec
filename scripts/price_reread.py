@@ -79,6 +79,8 @@ from decision.normalise import (
     normalise_document,
 )
 from decision.sources import (
+    named_refusal,
+    refusal_reason,
     RENDERED_PREPARATIONS,
     CopyStore,
     Fetcher,
@@ -141,11 +143,14 @@ class Status(StrEnum):
     UNREADABLE = "unreadable"
     UNREACHABLE = "unreachable"
     NOT_REREAD = "not_reread"
+    #: A fetch refused at the terms register (MODEL-509): its own alert, never ``unreachable``.
+    REDIRECT_UNCLASSIFIED = "redirect_unclassified"
     #: A ``not_disclosed`` price whose page read and has no value for it: claims nothing.
     NOT_DISCLOSED_NO_VALUE = "not_disclosed_no_value"
 
 
-ALERTS = frozenset({Status.NEEDS_REVIEW, Status.UNREADABLE, Status.UNREACHABLE})
+ALERTS = frozenset({Status.NEEDS_REVIEW, Status.UNREADABLE, Status.UNREACHABLE,
+                    Status.REDIRECT_UNCLASSIFIED})
 
 
 @dataclass(frozen=True)
@@ -232,7 +237,8 @@ class Report:
     def counts(self) -> dict[str, int]:
         counts = Counter(f.status.value for f in self.facts)
         return {s.value: counts.get(s.value, 0) for s in Status
-                if s not in (Status.CITED, Status.NOT_DISCLOSED_NO_VALUE)
+                if s not in (Status.CITED, Status.NOT_DISCLOSED_NO_VALUE,
+                             Status.REDIRECT_UNCLASSIFIED)
                 or counts.get(s.value, 0)}
 
     def to_dict(self) -> dict[str, Any]:
@@ -673,6 +679,10 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
                                "re-register the source to re-read it rendered")
             return replace(base, reason="the page needs a rendered fetch"
                            if "rendered" in outcomes else "excluded source")
+        refused = [named_refusal(why, s.source_id) for s in old_sources
+                   if (why := refusal_reason(fetched[s.source_id].outcome))]
+        if refused:
+            return replace(base, status=Status.REDIRECT_UNCLASSIFIED, reason="; ".join(refused))
         return replace(base, status=Status.UNREACHABLE, reason="; ".join(outcomes))
 
     copies = {sid: (next(s.snapshot_ref for s in old_sources if s.source_id == sid),

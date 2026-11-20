@@ -45,7 +45,8 @@ from decision.excluded import excluded_sources
 from decision.model import CitedRegion as CitedRegion
 from decision.model import RenderedInteraction, Source, SourceSnapshot
 from decision.retention import (
-    canonical_host, citation_metadata, classified_hosts, cite_only_origin_restrictive, cite_only_origin_status,
+    TermsRegisterUnreadable, canonical_host, citation_metadata, classified_hosts,
+    cite_only_origin_restrictive, is_classified, cite_only_origin_status,
     record_origin_status, require_source_url,
 )
 from decision.normalise import (
@@ -211,38 +212,66 @@ class ExcludedSource(ValueError):
 
 
 class UnclassifiedRedirectError(ValueError):
-    """A redirect reached a host with no class in the private terms register (MODEL-509)."""
+    """A request reached a host with no class in the private terms register, or the register
+    could not be read (MODEL-509)."""
 
-    def __init__(self, host: str) -> None:
-        super().__init__(f"redirect to unclassified host {host}")
+    def __init__(self, host: str, *, unreadable: bool = False) -> None:
+        super().__init__("terms register unreadable" if unreadable
+                         else f"redirect to unclassified host {host}")
         self.host = host
+        self.unreadable = unreadable
 
 
 REDIRECT_UNCLASSIFIED = "redirect_unclassified"
+TERMS_REGISTER_UNREADABLE = "terms_register_unreadable"
+
+
+def refusal_reason(result: Any) -> str | None:
+    """Why a fetch was refused at the terms register (``redirect_unclassified:<host>`` or
+    ``terms_register_unreadable``), or None when it was not refused for that."""
+    error = (result if isinstance(result, str) else getattr(result, "error", None)) or ""
+    if error == TERMS_REGISTER_UNREADABLE or error.startswith(REDIRECT_UNCLASSIFIED + ":"):
+        return error
+    return None
 
 
 def unclassified_redirect_host(result: Any) -> str | None:
-    """The host a fetch was refused at, or None when it was not refused for this."""
-    error = getattr(result, "error", None) or ""
+    """The host a fetch was refused at, or None (also None for an unreadable register)."""
+    error = refusal_reason(result) or ""
     prefix = REDIRECT_UNCLASSIFIED + ":"
     return (error[len(prefix):] or None) if error.startswith(prefix) else None
 
 
-def _require_classified_hop(start: str | None, url: str, classified: frozenset[str] | None) -> None:
-    """Refuse, before the request, a hop to another host the register does not class.
+def named_refusal(reason: str, source_id: str) -> str:
+    """The reason with the source named: ``redirect_unclassified:<source_id>:<host>``."""
+    if reason == TERMS_REGISTER_UNREADABLE:
+        return reason
+    return f"{REDIRECT_UNCLASSIFIED}:{source_id}:{reason.partition(':')[2]}"
 
-    With no register (no data directory) nothing is refused. A hop within the
-    start host passes, as does one to any host the register classes.
+
+def _require_classified_request(start: str | None, url: str, *, first: bool) -> None:
+    """Refuse, before the request, a host the terms register does not class.
+
+    With no data directory nothing is refused. A redirect within the start host
+    passes; the first request and every other host need a class (the host or a
+    parent domain). With an unreadable register every other host is refused.
     """
-    if classified is None:
+    try:
+        classes = classified_hosts()
+        unreadable = False
+    except TermsRegisterUnreadable:
+        classes, unreadable = frozenset(), True
+    if classes is None:
         return
     try:
         host = canonical_host(url)
     except ValueError:
         host = None
-    if host is not None and (host == start or host in classified):
+    if host is not None and not first and host == start:
         return
-    raise UnclassifiedRedirectError(host or "unparseable")
+    if not unreadable and is_classified(host, classes):
+        return
+    raise UnclassifiedRedirectError(host or "unparseable", unreadable=unreadable)
 
 
 def require_allowed_source_urls(url: str, resolved_urls: Iterable[str] = ()) -> None:
@@ -260,15 +289,13 @@ def get_source_response(
 
     history = []
     request = None
-    classified = classified_hosts()
     try:
         start = canonical_host(url)
     except ValueError:
         start = None
     while True:
         require_allowed_source_urls(url)
-        if request is not None:
-            _require_classified_hop(start, url, classified)
+        _require_classified_request(start, url, first=request is None)
         if before_request is not None:
             before_request(url)
         response = (client.get(url, follow_redirects=False, **kwargs) if request is None
@@ -365,7 +392,9 @@ class Fetcher:
             except ExcludedSource:
                 return FetchResult("unreachable", error="excluded source")
             except UnclassifiedRedirectError as stop:
-                return FetchResult("unreachable", error=f"{REDIRECT_UNCLASSIFIED}:{stop.host}")
+                return FetchResult("unreachable", error=(
+                    TERMS_REGISTER_UNREADABLE if stop.unreadable
+                    else f"{REDIRECT_UNCLASSIFIED}:{stop.host}"))
             except httpx.TooManyRedirects:
                 return FetchResult("unreachable", error="source redirect limit reached")
             except httpx.TimeoutException as exc:
@@ -944,6 +973,21 @@ class Skipped:
     reason: str
 
 
+@dataclass(frozen=True)
+class RedirectRefused:
+    """An alert event: a fetch was refused at the terms register (MODEL-509)."""
+
+    source_id: str
+    reason: str
+    url: str
+    detected_at: datetime
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"event": "redirect_unclassified", "source_id": self.source_id,
+                "reason": self.reason, "url": self.url,
+                "detected_at": self.detected_at.isoformat()}
+
+
 @dataclass
 class RecheckReport:
     regions: list[RegionResult] = field(default_factory=list)
@@ -953,12 +997,17 @@ class RecheckReport:
     reconfirmed: list[str] = field(default_factory=list)
     #: Facts and evidence on a source past its unreachable grace period.
     quarantine: list[str] = field(default_factory=list)
-    alerts: list[GovernanceChange] = field(default_factory=list)
+    alerts: list[GovernanceChange | RedirectRefused] = field(default_factory=list)
     skipped: list[Skipped] = field(default_factory=list)
     #: Every source's state after this run; persist these for the next one.
     states: dict[str, SourceState] = field(default_factory=dict)
     #: The final fetch attempt for each source, including HTTP status and errors.
     fetches: dict[str, FetchResult] = field(default_factory=dict)
+
+    @property
+    def redirect_unclassified(self) -> int:
+        """Sources refused at the terms register this run; above 0 the job ends red."""
+        return sum(isinstance(alert, RedirectRefused) for alert in self.alerts)
 
 
 def recheck(
@@ -1048,9 +1097,12 @@ def _check_one(
         last_modified=previous.last_modified if conditional and previous else None,
     )
     report.fetches[source.id] = result
-    if (host := unclassified_redirect_host(result)) is not None:
-        # Refused before the request (MODEL-509): no bytes, no failure counted.
-        report.skipped.append(Skipped(source.id, f"{REDIRECT_UNCLASSIFIED}:{source.id}:{host}"))
+    if (refused := refusal_reason(result)) is not None:
+        # Refused before the request (MODEL-509): no bytes, no failure counted. The
+        # refusal is its own alert, not a quiet skip.
+        named = named_refusal(refused, source.id)
+        report.skipped.append(Skipped(source.id, named))
+        report.alerts.append(RedirectRefused(source.id, named, str(source.url), now))
         return replace(state, last_attempt_at=now)
     old = previous.region_fingerprints if previous else {}
 

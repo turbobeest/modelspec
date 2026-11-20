@@ -63,6 +63,7 @@ def _audit(args, seed) -> int:
                 "seed": seed,
                 "counts": {"matched": 0, "mismatched": 0, "unreadable": 0},
                 "skipped": {},
+                "redirect_unclassified": 0,
                 "error_rate": sample.wilson(0, 0),
                 "strata": [],
                 "results": [],
@@ -96,7 +97,7 @@ def _audit(args, seed) -> int:
         else json.dumps(report, sort_keys=True, allow_nan=False),
         end="\n",
     )
-    return 1 if inv["errors"] else 0
+    return 1 if inv["errors"] or sampled.get("redirect_unclassified") else 0
 
 
 if __name__ == "__main__":

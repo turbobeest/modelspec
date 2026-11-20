@@ -907,3 +907,95 @@ def test_a_leading_data_cell_button_without_a_price_is_still_dropped(label: byte
     assert normalise_document(page, NORMALISERS["html-header-buttons"]).text == (
         "Name | Price\nClaude Sonnet 5.5 |\nClaude Opus 5.5 | $0.20 / MTok"
     )
+
+
+# --- MODEL-509: every fetch path checks hops against the private terms register ---------------
+
+M509_START = "https://lab.example/page"
+M509_TERMS = {"lab.example": "permits", "www.lab.example": "permits", "mirror.example": "unclear"}
+M509_NOW = datetime(2026, 11, 19, 6, tzinfo=UTC)
+
+
+@pytest.fixture
+def m509_terms(tmp_path):
+    import json
+
+    from decision.retention import using_data_dir
+
+    (tmp_path / "data" / "registry").mkdir(parents=True)
+    (tmp_path / "data" / "registry" / "source-terms.json").write_text(json.dumps(M509_TERMS))
+    with using_data_dir(tmp_path / "data"):
+        yield tmp_path / "data"
+
+
+def _m509_fetcher(routes, sent):
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        sent.append(url)
+        if url in routes:
+            return httpx.Response(302, headers={"location": routes[url]})
+        return httpx.Response(200, text="<html><body><p>hello</p></body></html>",
+                              headers={"content-type": "text/html"})
+
+    return Fetcher(httpx.Client(transport=httpx.MockTransport(handler)), retries=0,
+                   min_host_interval=0, sleep=lambda _s: None)
+
+
+def test_m509_hop_to_an_unclassified_host_is_refused_before_the_request(m509_terms) -> None:
+    sent: list[str] = []
+    result = _m509_fetcher({M509_START: "https://unknown.example/x"}, sent).fetch(M509_START)
+    assert (result.outcome, result.error, result.body) == (
+        "unreachable", "redirect_unclassified:unknown.example", b"")
+    assert sent == [M509_START]
+
+
+def test_m509_classed_hosts_subdomains_and_the_same_host_pass(m509_terms) -> None:
+    sent: list[str] = []
+    routes = {M509_START: "https://www.lab.example/page",
+              "https://www.lab.example/page": "https://deep.mirror.example/z"}
+    assert _m509_fetcher(routes, sent).fetch(M509_START).outcome == "ok"
+    assert sent[-1] == "https://deep.mirror.example/z"
+
+
+def test_m509_the_first_request_needs_a_class_too(m509_terms) -> None:
+    sent: list[str] = []
+    result = _m509_fetcher({}, sent).fetch("https://unknown.example/page")
+    assert result.error == "redirect_unclassified:unknown.example" and sent == []
+
+
+def test_m509_without_a_data_dir_nothing_is_refused(monkeypatch) -> None:
+    monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)
+    sent: list[str] = []
+    result = _m509_fetcher({M509_START: "https://unknown.example/x"}, sent).fetch(M509_START)
+    assert result.outcome == "ok" and sent[-1] == "https://unknown.example/x"
+
+
+@pytest.mark.parametrize("content", [None, "{", "[]"], ids=["missing", "invalid", "not-object"])
+def test_m509_an_unreadable_register_refuses_every_cross_host_hop(tmp_path, content) -> None:
+    from decision.retention import using_data_dir
+
+    (tmp_path / "registry").mkdir()
+    if content is not None:
+        (tmp_path / "registry" / "source-terms.json").write_text(content)
+    sent: list[str] = []
+    with using_data_dir(tmp_path):
+        crossing = _m509_fetcher({M509_START: "https://mirror.example/x"}, sent).fetch(M509_START)
+        within = _m509_fetcher({M509_START: "https://lab.example/other"}, []).fetch(M509_START)
+    assert crossing.error == "terms_register_unreadable"
+    assert within.error == "terms_register_unreadable"  # the first request is refused too
+
+
+def test_m509_recheck_makes_a_refusal_its_own_alert_and_keeps_nothing(m509_terms, tmp_path) -> None:
+    source = Source(id="lab-page", url=M509_START, kind="official_registry",
+                    normaliser="html-default", fetch="http",
+                    cited_regions=[{"id": "page", "locator": {"kind": "page"}}])
+    store = CopyStore(tmp_path / "copies")
+    report = recheck([source], {}, [], store=store, now=M509_NOW,
+                     fetcher=_m509_fetcher({M509_START: "https://unknown.example/x"}, []))
+    assert [(s.source_id, s.reason) for s in report.skipped] == [
+        ("lab-page", "redirect_unclassified:lab-page:unknown.example")]
+    assert report.redirect_unclassified == 1
+    assert report.alerts[0].to_dict()["event"] == "redirect_unclassified"
+    assert report.states["lab-page"].consecutive_failures == 0
+    assert report.states["lab-page"].snapshot is None
+    assert not (tmp_path / "copies").exists() or not list((tmp_path / "copies").rglob("*"))

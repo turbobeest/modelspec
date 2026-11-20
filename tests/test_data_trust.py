@@ -1142,3 +1142,47 @@ def test_trust_open_scale_keeps_nonfinite_diagnostics(balance_catalogue, registr
 def test_trust_open_scale_keeps_unit_diagnostic(balance_catalogue, registry):
     balance_catalogue.facts[0].update(value=1, unit='fraction')
     assert 'benchmark_unit' in rules(balance_catalogue, registry)
+
+
+# --- MODEL-509 -----------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("row, reason", [
+    ({"field": "terminal_bench_v4_0"}, "board no longer published"),
+    ({"field": "terminal_bench_v4_1", "not_published_since": "2026-10-01"}, "not_published_since"),
+    ({"field": "terminal_bench_v4_0", "not_published_since": "2026-10-01"}, "not_published_since"),
+    ({"field": "terminal_bench_v3"}, "board version not named by an audited field"),
+    ({"field": "terminal_bench_v4_1"}, None),
+    ({"field": "terminal_bench_v4_1", "not_published_since": None}, None),
+    ({"field": "swe_bench_verified"}, None),
+])
+def test_unauditable_rows(row, reason):
+    assert sample.unauditable(row) == reason
+
+
+def test_skipped_rows_are_never_fetched_and_are_not_in_sampled(catalogue, registry):
+    catalogue.facts[0]["field"] = "terminal_bench_v4_0"
+
+    class HTTP:
+        def fetch(self, url):
+            return FetchResult("unreachable", error="HTTP 503")
+
+    report = sample.run(catalogue, registry, n=60, seed="week", as_of=TODAY, fetcher=HTTP())
+    assert report["skipped"] == {"board no longer published": 1}
+    assert report["selected"] == 2 and report["sampled"] == 1
+    assert report["counts"] == {"matched": 0, "mismatched": 0, "unreadable": 1}
+
+
+def test_a_refused_hop_is_its_own_count_and_ends_the_audit_red(catalogue, registry):
+    class HTTP:
+        def fetch(self, url):
+            return FetchResult("unreachable", error="redirect_unclassified:unknown.example")
+
+    report = sample.run(catalogue, registry, n=60, seed="week", as_of=TODAY, fetcher=HTTP())
+    assert report["redirect_unclassified"] == 2
+    assert report["counts"]["unreadable"] == 0
+    assert {r["reason"] for r in report["results"]} == {
+        "redirect_unclassified:src-lab-docs:unknown.example"}
+    assert "terms register (redirect_unclassified): 2" in summary(
+        {"sample": report, "invariants": {"facts": 0, "errors": 0, "warnings": 0, "models": 0,
+                                          "offerings": 0}})

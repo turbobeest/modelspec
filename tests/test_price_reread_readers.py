@@ -478,3 +478,19 @@ def test_a_cached_column_on_the_input_row_still_prices_cached_input(tmp_path) ->
             "<tr><td></td><td>Output</td><td>$25.00</td><td>N/A</td></tr></table></body></html>")
     estate = build(tmp_path, page, [("cached_input", "known", 0.5)], names=(BETA,))
     assert result(reread(estate, page), "cached_input").status is Status.UNCHANGED
+
+
+def test_m509_a_refused_hop_is_its_own_alert_status(tmp_path):
+    class Refused:
+        def fetch(self, url, **_):
+            return FetchResult("unreachable", error="redirect_unclassified:unknown.example")
+
+    estate = build(tmp_path, NO_BATCH, [("input", "disclosed", 4)])
+    root, store = estate
+    report = price_reread.run(root=root, fetcher=Refused(), store=store, today=TODAY,
+                              write=False, at=AT)
+    fact = result(report, "input")
+    assert fact.status is Status.REDIRECT_UNCLASSIFIED
+    assert fact.reason == "redirect_unclassified:example-pricing:unknown.example"
+    assert fact in report.alerts and report.counts()["redirect_unclassified"] == 1
+    assert "unreachable" in report.counts() and report.counts()["unreachable"] == 0

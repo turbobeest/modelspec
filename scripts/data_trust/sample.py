@@ -137,10 +137,10 @@ def reread(
             sid = raw_ref["source_id"] if raw_ref else f"audit-primary-{index}"
             if url not in fetched:
                 response = fetcher.fetch(url)
-                from decision.sources import REDIRECT_UNCLASSIFIED, unclassified_redirect_host
+                from decision.sources import named_refusal, refusal_reason
 
-                if (stopped := unclassified_redirect_host(response)) is not None:
-                    return "unreadable", f"{REDIRECT_UNCLASSIFIED}:{sid}:{stopped}"
+                if (refused := refusal_reason(response)) is not None:
+                    return "redirect_unclassified", named_refusal(refused, sid)
                 from decision.retention import cite_only_origin_restrictive
 
                 if cite_only_origin_restrictive(url, response.resolved_urls):
@@ -236,6 +236,7 @@ def run(
     coverage = reader_coverage(c, registry, as_of)
     strata = defaultdict(Counter)
     skipped = Counter()
+    refused = 0
     results = []
     fetched = {}
     client = None
@@ -249,6 +250,8 @@ def run(
             outcome, reason = reader(f, c, registry, fetcher, store, fetched, as_of)
             if outcome == "skipped":
                 skipped[reason] += 1
+            elif outcome == "redirect_unclassified":
+                refused += 1
             else:
                 strata[key][outcome] += 1
             results.append(
@@ -268,10 +271,15 @@ def run(
         "reader_coverage": coverage,
         "eligible": len(eligible),
         "requested": n,
-        "sampled": len(chosen),
+        "selected": len(chosen),
+        # Assessed rows only: skipped rows (a withdrawn board, a row marked not published) are
+        # reported under ``skipped`` and are not part of the sample.
+        "sampled": len(chosen) - sum(skipped.values()),
         "seed": seed,
         "counts": counts,
         "skipped": dict(sorted(skipped.items())),
+        # Fetches refused at the terms register (MODEL-509); above 0 the audit ends red.
+        "redirect_unclassified": refused,
         "error_rate": wilson(counts["mismatched"], counts["matched"] + counts["mismatched"]),
         "strata": [
             {

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 import logging
 import os
 from contextlib import contextmanager
@@ -68,14 +69,29 @@ def _register_classes(data_dir: str) -> frozenset[str] | None:
                      if isinstance(host, str) and host and isinstance(cls, str) and cls)
 
 
+class TermsRegisterUnreadable(Exception):
+    """A data directory is named but its terms register is missing or unreadable."""
+
+
 def classified_hosts() -> frozenset[str] | None:
     """Hosts that carry a class in the private terms register (MODEL-509).
 
-    None when no data directory is named or the register cannot be read: a
-    caller then behaves as it did before the register existed.
+    None when no data directory is named: a caller then behaves as it did before
+    the register existed. With a data directory and no readable register this
+    raises ``TermsRegisterUnreadable``, so a caller fails closed.
     """
     data_dir = os.environ.get(DATA_DIR_ENV, "").strip()
-    return _register_classes(data_dir) if data_dir else None
+    if not data_dir:
+        return None
+    classes = _register_classes(data_dir)
+    if classes is None:
+        raise TermsRegisterUnreadable
+    return classes
+
+
+def is_classified(host: str | None, classes: frozenset[str] | Mapping[str, str]) -> bool:
+    """Whether ``host`` or a parent domain of it carries a class (the rule ``cite_only_status`` uses)."""
+    return host is not None and any(host == c or host.endswith("." + c) for c in classes)
 
 
 def use_data_dir(data_dir: object) -> None:

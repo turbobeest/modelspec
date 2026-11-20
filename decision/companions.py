@@ -25,9 +25,9 @@ from typing import Literal
 
 from decision.model import Source
 from decision.normalise import canonical_url
-from decision.retention import canonical_host
+from decision.retention import canonical_host, is_classified
 from decision.sources import (
-    CopyStore, Fetcher, FetchMode, UnclassifiedRedirectError, unclassified_redirect_host,
+    CopyStore, Fetcher, FetchMode, UnclassifiedRedirectError, refusal_reason,
 )
 
 #: The ref the reader reports as an absent copy (unreachable), as the rendered job uses.
@@ -64,7 +64,7 @@ def companion_ids(claims: Iterable, sources: Mapping[str, Source],
 
 
 def _classified(host: str | None, terms: Mapping[str, str]) -> bool:
-    return host is not None and host in terms
+    return is_classified(host, terms)
 
 
 def fetch_companions(
@@ -111,9 +111,9 @@ def fetch_companions(
             continue
         finally:
             hooks.remove(check)
-        if (stopped := unclassified_redirect_host(result)) is not None:
-            reads[sid] = CompanionRead(sid, "redirect_unclassified", host=stopped,
-                                       error=f"redirect to a host with no terms class: {stopped}")
+        if (why := refusal_reason(result)) is not None:
+            reads[sid] = CompanionRead(sid, "redirect_unclassified",
+                                       host=why.partition(":")[2] or None, error=why)
             continue
         if result.outcome != "ok" or not result.body.strip():
             reads[sid] = CompanionRead(sid, "unreachable", error=result.error or "empty body",
@@ -166,11 +166,19 @@ def judge(
     if unclassified:
         first = unclassified[0]
         return Result(claim.target, "skipped",
-                      reason=f"redirect_unclassified:{first.source_id}:{first.host}")
+                      reason=(f"redirect_unclassified:{first.source_id}:{first.host}"
+                              if first.host else "terms_register_unreadable"))
     unread = sorted({sid for sid in cited if sid not in copies and sid not in reads})
     if unread:
         return Result(claim.target, "skipped", reason="not_reread:" + ",".join(unread))
     return verify_claim(claim_with_copies(claim, copies, reads))
+
+
+def refused(reads: Mapping[str, CompanionRead]) -> dict[str, str]:
+    """Companions refused at the terms register, by source id. A job ends red when this is
+    not empty; it is its own count, never folded into ``unreachable``."""
+    return {sid: read.error or "redirect_unclassified" for sid, read in sorted(reads.items())
+            if read.outcome == "redirect_unclassified"}
 
 
 def report_rows(reads: Mapping[str, CompanionRead]) -> dict[str, dict]:
@@ -181,6 +189,6 @@ def report_rows(reads: Mapping[str, CompanionRead]) -> dict[str, dict]:
 
 __all__: Sequence[str] = [
     "MISSING_COPY", "CompanionRead", "UnclassifiedRedirectError",
-    "companion_ids", "fetch_companions",
+    "companion_ids", "fetch_companions", "refused",
     "claim_with_copies", "judge", "report_rows",
 ]
