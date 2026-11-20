@@ -1301,6 +1301,9 @@ def _current_copies(
                         (row.reason for row in report.skipped if row.source_id == source.source_id),
                         "no_copy",
                     )
+                    if error_category.startswith("shell_page:"):
+                        # Bytes that are a shell (MODEL-519): its own category.
+                        error_category = "shell_page"
                 diagnostics.append({
                     "source_id": source.source_id,
                     "url": str(sources[source.source_id].url),
@@ -1430,6 +1433,7 @@ def data_fidelity(
     drawn = 0
     fetched_sources: set[str] = set()
     refused_sources: set[str] = set()
+    shell_sources: set[str] = set()
     with tempfile.TemporaryDirectory(prefix="modelspec-accuracy-sources-") as temporary:
         store = CopyStore(Path(temporary))
         fetcher = Fetcher()
@@ -1453,6 +1457,9 @@ def data_fidelity(
             refused_sources.update(
                 row["source_id"] for rows in fetch_diagnostics.values() for row in rows
                 if row["error_category"] in {"redirect_unclassified", "terms_register_unreadable"})
+            shell_sources.update(
+                row["source_id"] for rows in fetch_diagnostics.values() for row in rows
+                if row["error_category"] == "shell_page")
             result = verify_fidelity_sample(
                 current,
                 regions=StoredRegions(store, sources),
@@ -1479,6 +1486,10 @@ def data_fidelity(
         status = "fail"
         summary += (f" {len(refused_sources)} source(s) were refused at the terms register "
                     "(redirect_unclassified).")
+    if shell_sources:
+        # A shell page is loud too (MODEL-519): the layer fails.
+        status = "fail"
+        summary += f" {len(shell_sources)} source(s) returned a shell page (shell_page)."
     summary += (
         f" {counts['public_image_lag']} draw(s) lagged a newer verified private correction."
     )
@@ -1505,6 +1516,7 @@ def data_fidelity(
             },
             "plain_http_sources": len(fetched_sources),
             "redirect_unclassified": len(refused_sources),
+            "shell_page": len(shell_sources),
             "firecrawl_credits_used": 0,
             "firecrawl_credit_limit": config.max_firecrawl_credits,
         },

@@ -184,3 +184,21 @@ def test_m509_a_refused_companion_is_counted_apart_from_unreachable(tmp_path) ->
                              store=CopyStore(tmp_path), terms=TERMS, now=NOW)
     assert refused(reads) == {"lab-companion": "redirect_unclassified:unknown.example"}
     assert refused({"x": reads["lab-companion"].__class__("x", "unreachable")}) == {}
+
+
+def test_m519_a_shell_companion_is_its_own_outcome_and_skips_the_fact(tmp_path) -> None:
+    from decision.companions import shell_pages
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="<html><body><div id=root></div></body></html>",
+                              headers={"content-type": "text/html"})
+
+    store = CopyStore(tmp_path)
+    reads = fetch_companions(["lab-companion"], SOURCES, fetcher=_fetcher(handler), store=store,
+                             terms=TERMS, now=NOW)
+    assert reads["lab-companion"].outcome == "shell_page" and reads["lab-companion"].copy is None
+    assert shell_pages(reads)["lab-companion"].startswith("shell_page:lab-companion:")
+    assert not list(tmp_path.rglob("*"))
+    rendered = "sha256:" + "11" * 32
+    result = _judge(_claim(), {"lab-rendered": rendered}, reads, Regions({rendered: "Delaware"}))
+    assert result.outcome == "skipped" and result.reason.startswith("shell_page:lab-companion:")

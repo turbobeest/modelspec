@@ -155,6 +155,7 @@ def reread(
     try:
         claim = claim_for(f, c, registry)
         sources, fresh_refs, raw_bytes = {}, [], {}
+        shell_reason = None
         for index, url in enumerate(dict.fromkeys(urls)):
             if not safe_url(url) or excluded_sources().url(url):
                 continue
@@ -175,7 +176,24 @@ def reread(
                 if (refused := refusal_reason(response)) is not None:
                     return "redirect_unclassified", named_refusal(refused, sid)
                 from decision.retention import cite_only_origin_restrictive
+                from decision.sources import (
+                    ShellCheck, ShellPageError, fingerprint_bytes, shell_refusal,
+                )
 
+                if response.outcome == "ok":
+                    try:
+                        store.check_shell(
+                            response.body, fingerprint_bytes(response.body), url,
+                            response.resolved_urls,
+                            ShellCheck("text-default"
+                                       if response.content_type.startswith("text/plain")
+                                       else "html-default"))
+                    except ShellPageError as stop:
+                        # Bytes that are a shell cite nothing (MODEL-519); a fallback
+                        # source may still read.
+                        shell_reason = shell_refusal(stop.reason, sid)
+                        fetched[url] = (None, "")
+                        continue
                 if cite_only_origin_restrictive(url, response.resolved_urls):
                     store.put(response.body, source_url=url,
                               retrieved_at=response.retrieved_at,
@@ -216,6 +234,8 @@ def reread(
                     or [r.id for r in source.cited_regions],
                 )
             )
+        if not fresh_refs and shell_reason is not None:
+            return "shell_page", shell_reason
         if not fresh_refs:
             refused = all(not safe_url(u) or excluded_sources().url(u) for u in urls)
             return "unreadable", "source_refused" if refused else "http_unavailable"
@@ -271,6 +291,7 @@ def run(
     strata = defaultdict(Counter)
     skipped = Counter()
     refused = 0
+    shell_pages = 0
     results = []
     fetched = {}
     client = None
@@ -286,6 +307,8 @@ def run(
                 skipped[reason] += 1
             elif outcome == "redirect_unclassified":
                 refused += 1
+            elif outcome == "shell_page":
+                shell_pages += 1
             else:
                 strata[key][outcome] += 1
             results.append(
@@ -315,6 +338,7 @@ def run(
         "skipped": dict(sorted(skipped.items())),
         # Fetches refused at the terms register (MODEL-509), reported apart from unreadable.
         "redirect_unclassified": refused,
+        "shell_page": shell_pages,
         "error_rate": wilson(counts["mismatched"], counts["matched"] + counts["mismatched"]),
         "strata": [
             {

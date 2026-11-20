@@ -1052,3 +1052,109 @@ def test_m509_recheck_makes_a_refusal_its_own_alert_and_keeps_nothing(m509_terms
     assert report.states["lab-page"].consecutive_failures == 0
     assert report.states["lab-page"].snapshot is None
     assert not (tmp_path / "copies").exists() or not list((tmp_path / "copies").rglob("*"))
+
+
+# --- MODEL-519: a shell page is never cited ------------------------------------------------------
+
+_M519_PAGE = ("<html><body><h1>Guide</h1><p>" + "A real documentation page with prose. " * 8
+              + "</p></body></html>")
+_M519_SHELL = "<html><head><script src=app.js></script></head><body><div id=root></div></body></html>"
+
+
+def _m519_fetcher(pages: dict[str, str]):
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text=pages[str(request.url)],
+                              headers={"content-type": "text/html"})
+
+    return Fetcher(httpx.Client(transport=httpx.MockTransport(handler)), retries=0,
+                   min_host_interval=0, sleep=lambda _s: None)
+
+
+def _m519_source(sid: str, url: str, **extra) -> Source:
+    return Source(id=sid, url=url, fetch="http", normaliser="html-default",
+                  cited_regions=[{"id": "page", "locator": {"kind": "page"}}], **extra)
+
+
+@pytest.mark.parametrize("body", [b"", b"  \n", _M519_SHELL.encode()], ids=["empty", "blank", "shell"])
+def test_m519_empty_or_thin_text_is_refused_and_keeps_nothing(tmp_path, body) -> None:
+    from decision.sources import ShellCheck, ShellPageError
+
+    store = CopyStore(tmp_path)
+    with pytest.raises(ShellPageError) as found:
+        store.put(body, source_url="https://docs.example/a", shell_check=ShellCheck())
+    assert found.value.reason.startswith("shell_page:")
+    assert not list(tmp_path.rglob("*"))
+
+
+def test_m519_a_real_page_is_kept_and_the_check_is_opt_in(tmp_path) -> None:
+    from decision.sources import ShellCheck
+
+    store = CopyStore(tmp_path)
+    ref = store.put(_M519_PAGE.encode(), source_url="https://docs.example/a", shell_check=ShellCheck())
+    assert store.has(ref)
+    tiny = store.put(b"<p>hi</p>", source_url="https://docs.example/b")  # no check: unchanged
+    assert store.has(tiny)
+
+
+def test_m519_same_bytes_for_a_different_url_on_one_host_is_refused(tmp_path) -> None:
+    from decision.sources import ShellCheck, ShellPageError
+
+    store = CopyStore(tmp_path)
+    body = _M519_PAGE.encode()
+    store.put(body, source_url="https://docs.example/a", shell_check=ShellCheck())
+    store.put(body, source_url="https://docs.example/a", shell_check=ShellCheck())  # same URL again
+    store.put(body, source_url="https://other.example/a", shell_check=ShellCheck())  # other host
+    with pytest.raises(ShellPageError, match="same_bytes_as:https://docs.example/a"):
+        store.put(body, source_url="https://docs.example/b", shell_check=ShellCheck())
+    # A registered alias, or a redirect between the two URLs, may share bytes.
+    store.put(body, source_url="https://docs.example/b",
+              shell_check=ShellCheck(alias_urls=("https://docs.example/a",)))
+    store.put(body, source_url="https://docs.example/c", resolved_urls=("https://docs.example/a", "https://docs.example/b"),
+              shell_check=ShellCheck())
+    # Raw text files may repeat (a licence file); only HTML pages are held to the rule.
+    store.put(b"MIT License " * 20, source_url="https://docs.example/x/LICENSE",
+              shell_check=ShellCheck("text-default"))
+    store.put(b"MIT License " * 20, source_url="https://docs.example/y/LICENSE",
+              shell_check=ShellCheck("text-default"))
+
+
+def test_m519_a_citation_with_a_hash_seen_on_another_url_is_refused(tmp_path) -> None:
+    from decision.sources import ShellCheck, ShellPageError
+
+    store = CopyStore(tmp_path)
+    ref = store.put(_M519_PAGE.encode(), source_url="https://docs.example/a", shell_check=ShellCheck())
+    with pytest.raises(ShellPageError):
+        store.record_citation(ref, source_url="https://docs.example/b", shell_check=ShellCheck())
+    assert store.citation(ref) is None
+
+
+def test_m519_alias_of_names_the_other_source() -> None:
+    from decision.sources import shell_alias_urls
+
+    a = _m519_source("a", "https://docs.example/a")
+    b = _m519_source("b", "https://docs.example/b", alias_of="a")
+    c = _m519_source("c", "https://docs.example/c")
+    assert shell_alias_urls(a, [a, b, c]) == ("https://docs.example/b",)
+    assert shell_alias_urls(b, [a, b, c]) == ("https://docs.example/a",)
+    assert shell_alias_urls(c, [a, b, c]) == ()
+    assert "alias_of" not in c.model_dump(mode="json")
+
+
+def test_m519_recheck_makes_a_shell_its_own_alert_and_binds_nothing(tmp_path) -> None:
+    urls = {"empty": "https://docs.example/empty", "one": "https://docs.example/one",
+            "two": "https://docs.example/two", "alias": "https://docs.example/alias"}
+    pages = {urls["empty"]: _M519_SHELL, urls["one"]: _M519_PAGE, urls["two"]: _M519_PAGE,
+             urls["alias"]: _M519_PAGE}
+    sources = [_m519_source("empty", urls["empty"]), _m519_source("one", urls["one"]),
+               _m519_source("two", urls["two"]), _m519_source("alias", urls["alias"], alias_of="one")]
+    report = recheck(sources, {}, [], store=CopyStore(tmp_path), now=T0,
+                     fetcher=_m519_fetcher(pages))
+    refused = {s.source_id: s.reason for s in report.skipped}
+    assert refused["empty"].startswith("shell_page:empty:")
+    assert refused["two"] == "shell_page:two:same_bytes_as:https://docs.example/one"
+    assert "one" not in refused and "alias" not in refused
+    assert report.shell_page == 2 and report.redirect_unclassified == 0
+    assert {a.to_dict()["event"] for a in report.alerts} == {"shell_page"}
+    for sid in ("empty", "two"):
+        assert report.states[sid].snapshot is None and report.states[sid].consecutive_failures == 0
+        assert not [r for r in report.regions if r.source_id == sid]

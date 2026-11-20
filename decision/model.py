@@ -602,6 +602,13 @@ class Source(Record):
     #: is unknown; existing registries still load.
     kind: str | None = None
     cited_regions: list[CitedRegion] = Field(default_factory=list)
+    #: The id of the source this one is an alias or redirect of (MODEL-519). Two sources on
+    #: one host that serve the same bytes are a shell page unless one names the other here.
+    alias_of: str | None = Field(
+        default=None,
+        **({"exclude_if": lambda value: value is None} if NATIVE_EXCLUDE_IF else {
+            "json_schema_extra": {"exclude_if": lambda value: value is None},
+        }))
     rendered_interactions: list[RenderedInteraction] = Field(
         default_factory=list, max_length=16,
         **({"exclude_if": lambda value: not value} if NATIVE_EXCLUDE_IF else {

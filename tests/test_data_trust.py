@@ -236,7 +236,7 @@ def test_wilson():
     [
         (b"Model: Test Model\nmodel.context window: 128000 tokens\n", "matched"),
         (b"Model: Test Model\nmodel.context window: 64000 tokens\n", "mismatched"),
-        (b"JavaScript required", "unreadable"),
+        (b"JavaScript required", "shell_page"),
         (b"Model: Sibling Model\nmodel.context window: 128000 tokens\n", "unreadable"),
     ],
 )
@@ -248,6 +248,9 @@ def test_plain_http_readers(catalogue, registry, body, expected):
 
     catalogue.facts = catalogue.facts[1:]
     report = sample.run(catalogue, registry, n=60, seed="week", as_of=TODAY, fetcher=HTTP())
+    if expected == "shell_page":
+        assert report["shell_page"] == 1 and sum(report["counts"].values()) == 0
+        return
     assert report["counts"][expected] == 1
     assert report["error_rate"]["readable"] == (0 if expected == "unreadable" else 1)
 

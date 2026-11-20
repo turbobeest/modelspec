@@ -15,7 +15,7 @@ from tests.snapshot_records import SOURCES, fact, model, subscription
 
 FETCHED = datetime(2026, 10, 18, 16, tzinfo=UTC)
 TODAY = date(2026, 10, 19)
-PAGE = b'<section id="faq"><p>Synthetic transient FAQ sentinel.</p></section>'
+PAGE = b'<section id="faq"><p>Synthetic transient FAQ sentinel, long enough to count as a page.</p></section>'
 VALUE = ["anthropic/claude-sonnet-5", "openai/gpt-5-6-terra"]
 URLS = ["https://perplexity.ai/pro", "https://www.perplexity.ai/pro"]
 

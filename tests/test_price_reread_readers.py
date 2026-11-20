@@ -68,7 +68,7 @@ LOOSER_NAME_ONLY = """<html><body><table>
 <tr><th>Model</th><th>Pricing (1M Tokens)</th><th>Flex</th><th>Priority</th></tr>
 <tr><td>Acme Alpha Mini Global</td><td>Input: $1 Output: $5</td><td>N/A</td><td>N/A</td></tr>
 </table></body></html>"""
-NO_TABLE = "<html><body><h1>Pricing</h1><p>Acme Alpha Global is available.</p></body></html>"
+NO_TABLE = "<html><body><h1>Pricing</h1><p>Acme Alpha Global is available in all regions today.</p></body></html>"
 ONE_LINE_TABLE = f"""<html><body><table>
 <tr><td>{ALPHA}</td><td>Input: $4 Output: $20</td></tr>
 </table></body></html>"""
@@ -494,3 +494,13 @@ def test_m509_a_refused_hop_is_its_own_alert_status(tmp_path):
     assert fact.reason == "redirect_unclassified:example-pricing:unknown.example"
     assert fact in report.alerts and report.counts()["redirect_unclassified"] == 1
     assert "unreachable" in report.counts() and report.counts()["unreachable"] == 0
+
+
+def test_m519_a_shell_page_is_its_own_alert_status(tmp_path):
+    estate = build(tmp_path, NO_BATCH, [("input", "disclosed", 4)])
+    shell = "<html><body><div id=root></div></body></html>"
+    report = reread(estate, shell)
+    fact = result(report, "input")
+    assert fact.status is Status.SHELL_PAGE
+    assert fact.reason.startswith("shell_page:example-pricing:")
+    assert fact in report.alerts and report.counts()["shell_page"] == 1

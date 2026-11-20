@@ -27,13 +27,14 @@ from decision.model import Source
 from decision.normalise import canonical_url
 from decision.retention import canonical_host, is_classified
 from decision.sources import (
-    CopyStore, Fetcher, FetchMode, UnclassifiedRedirectError, refusal_reason,
+    CopyStore, Fetcher, FetchMode, ShellCheck, ShellPageError, UnclassifiedRedirectError,
+    refusal_reason, shell_alias_urls, shell_refusal,
 )
 
 #: The ref the reader reports as an absent copy (unreachable), as the rendered job uses.
 MISSING_COPY = "sha256:" + "0" * 64
 
-CompanionOutcome = Literal["ok", "cited", "unreachable", "redirect_unclassified"]
+CompanionOutcome = Literal["ok", "cited", "unreachable", "redirect_unclassified", "shell_page"]
 
 
 @dataclass(frozen=True)
@@ -119,8 +120,15 @@ def fetch_companions(
             reads[sid] = CompanionRead(sid, "unreachable", error=result.error or "empty body",
                                        resolved_urls=result.resolved_urls)
             continue
-        ref = store.put(result.body, source_url=url, retrieved_at=result.retrieved_at or now,
-                        resolved_urls=result.resolved_urls)
+        try:
+            ref = store.put(result.body, source_url=url, retrieved_at=result.retrieved_at or now,
+                            resolved_urls=result.resolved_urls,
+                            shell_check=ShellCheck(source.normaliser,
+                                                   shell_alias_urls(source, sources.values())))
+        except ShellPageError as stop:
+            reads[sid] = CompanionRead(sid, "shell_page", error=shell_refusal(stop.reason, sid),
+                                       resolved_urls=result.resolved_urls)
+            continue
         cited = store.citation(ref) is not None
         reads[sid] = CompanionRead(sid, "cited" if cited else "ok", copy=ref,
                                    resolved_urls=result.resolved_urls)
@@ -168,6 +176,10 @@ def judge(
         return Result(claim.target, "skipped",
                       reason=(f"redirect_unclassified:{first.source_id}:{first.host}"
                               if first.host else "terms_register_unreadable"))
+    shelled = [reads[sid] for sid in cited
+               if sid in reads and reads[sid].outcome == "shell_page"]
+    if shelled:
+        return Result(claim.target, "skipped", reason=shelled[0].error)
     unread = sorted({sid for sid in cited if sid not in copies and sid not in reads})
     if unread:
         return Result(claim.target, "skipped", reason="not_reread:" + ",".join(unread))
@@ -181,6 +193,13 @@ def refused(reads: Mapping[str, CompanionRead]) -> dict[str, str]:
             if read.outcome == "redirect_unclassified"}
 
 
+def shell_pages(reads: Mapping[str, CompanionRead]) -> dict[str, str]:
+    """Companions whose bytes were a shell (MODEL-519), by source id. Its own count, and a
+    job ends red when this is not empty."""
+    return {sid: read.error or "shell_page" for sid, read in sorted(reads.items())
+            if read.outcome == "shell_page"}
+
+
 def report_rows(reads: Mapping[str, CompanionRead]) -> dict[str, dict]:
     """Per-source report entries for the job's report, with no page text."""
     return {sid: dict(outcome=read.outcome, copy=read.copy, error=read.error, host=read.host)
@@ -189,6 +208,6 @@ def report_rows(reads: Mapping[str, CompanionRead]) -> dict[str, dict]:
 
 __all__: Sequence[str] = [
     "MISSING_COPY", "CompanionRead", "UnclassifiedRedirectError",
-    "companion_ids", "fetch_companions", "refused",
+    "companion_ids", "fetch_companions", "refused", "shell_pages",
     "claim_with_copies", "judge", "report_rows",
 ]

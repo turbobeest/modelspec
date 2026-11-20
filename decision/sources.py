@@ -819,6 +819,57 @@ class RenderedFetcher:
                 page.close()
 
 
+# --- shell pages ---------------------------------------------------------------------------------
+
+SHELL_PAGE = "shell_page"
+#: Fewest characters of normalised text an HTML page must have to be bound (MODEL-519). The
+#: smallest recorded real HTML page has 7,547; a shell is empty or a few words ("Loading",
+#: "Enable JavaScript"), so 40 catches only the empty. The same-bytes rule catches shells that
+#: keep page chrome (the DeepSeek pair has 2,085 characters of text). Text and JSON files can
+#: be short and legitimate, so only an empty body refuses them.
+MIN_PAGE_TEXT_CHARS = 40
+
+
+class ShellPageError(ValueError):
+    """The fetched bytes are a shell, not the page: nothing is cited or verified from them."""
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
+@dataclass(frozen=True)
+class ShellCheck:
+    """How ``CopyStore.put`` and ``record_citation`` check a fetched page (MODEL-519).
+
+    ``normaliser`` names the source's recipe; ``alias_urls`` are the URLs the registry marks
+    as an alias or redirect of this one (they may share its bytes); ``text`` is the
+    already-normalised text, when the caller has it.
+    """
+
+    normaliser: str = "html-default"
+    alias_urls: tuple[str, ...] = ()
+    text: str | None = None
+
+
+def shell_alias_urls(source: Source, sources: Iterable[Source]) -> tuple[str, ...]:
+    """URLs of the sources ``source`` is an alias of, or that are aliases of it."""
+    return tuple(canonical_url(str(other.url)) for other in sources
+                 if other.id != source.id
+                 and (source.alias_of == other.id or other.alias_of == source.id))
+
+
+def shell_refusal(reason: str | None, source_id: str) -> str | None:
+    """The reason with the source named: ``shell_page:<source id>:<detail>``."""
+    if reason is None:
+        return None
+    return f"{SHELL_PAGE}:{source_id}:{reason.partition(':')[2]}"
+
+
+def shell_page_reason(error: str | None) -> str | None:
+    return error if error and error.startswith(SHELL_PAGE + ":") else None
+
+
 # --- retained copies -----------------------------------------------------------------------------
 
 _REF = re.compile(r"^sha256:([0-9a-f]{64})$")
@@ -846,7 +897,7 @@ class CopyStore:
     # trusted only when its bytes still hash to its name (MODEL-235).
 
     def put(self, body: bytes, *, source_url: str, retrieved_at: datetime | None = None,
-            resolved_urls: Iterable[str] = ()) -> str:
+            resolved_urls: Iterable[str] = (), shell_check: ShellCheck | None = None) -> str:
         source_url = require_source_url(source_url)
         resolved_urls = tuple(resolved_urls)
         cite_only = cite_only_origin_status(source_url, resolved_urls)
@@ -854,6 +905,9 @@ class CopyStore:
             # Neither bytes nor a citation record for a malformed origin (MODEL-420).
             raise ValueError("retaining source bytes requires well-formed HTTP URLs")
         ref = fingerprint_bytes(body)
+        if shell_check is not None:
+            # Refuse a shell before anything is kept (MODEL-519).
+            self.check_shell(body, ref, source_url, resolved_urls, shell_check)
         if cite_only or cite_only_origin_restrictive(source_url, resolved_urls):
             # Restrictive reading too: a host the private register marks forbids
             # keeps the citation and hash, never the bytes (MODEL-510).
@@ -871,8 +925,71 @@ class CopyStore:
             os.replace(tmp, target)
         return ref
 
+    def _seen_path(self, ref: str) -> Path:
+        return self.path(ref).with_suffix(".urls.json")
+
+    def _seen(self, ref: str) -> list[dict]:
+        try:
+            data = json.loads(self._seen_path(ref).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return []
+        return [row for row in data if isinstance(row, dict)] if isinstance(data, list) else []
+
+    def check_shell(self, body: bytes | None, ref: str, source_url: str,
+                     resolved_urls: Iterable[str], check: ShellCheck) -> None:
+        """Raise ShellPageError when the bytes are empty or thin, or already recorded for a
+        different URL on the same host (HTML pages only; raw text and JSON files can
+        legitimately repeat, as a licence file does). Records the URL on success."""
+        url = canonical_url(source_url)
+        resolved = {canonical_url(str(u)) for u in resolved_urls}
+        rules = NORMALISERS.get(check.normaliser, NORMALISERS["html-default"])
+        if body is not None:
+            if not body.strip():
+                raise ShellPageError(f"{SHELL_PAGE}:empty_body")
+            if rules.content == "html":
+                text = check.text
+                if text is None:
+                    try:
+                        text = normalise_document(body, rules).text
+                    except UnsupportedContentError:
+                        text = None
+                if text is not None and len(text.strip()) < MIN_PAGE_TEXT_CHARS:
+                    raise ShellPageError(
+                        f"{SHELL_PAGE}:text_below_{MIN_PAGE_TEXT_CHARS}_chars")
+        if rules.content == "html":
+            try:
+                host = canonical_host(url)
+            except ValueError:
+                host = None
+            exempt = {canonical_url(u) for u in check.alias_urls} | resolved
+            for row in self._seen(ref):
+                other = row.get("url")
+                if not isinstance(other, str) or other == url or other in exempt:
+                    continue
+                if url in {canonical_url(str(u)) for u in row.get("resolved", ())}:
+                    continue
+                try:
+                    same_host = canonical_host(other) == host
+                except ValueError:
+                    same_host = False
+                if same_host:
+                    raise ShellPageError(f"{SHELL_PAGE}:same_bytes_as:{other}")
+        rows = self._seen(ref)
+        if not any(r.get("url") == url for r in rows):
+            rows.append({"url": url, "resolved": sorted(resolved)})
+            target = self._seen_path(ref)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            fd, tmp = tempfile.mkstemp(dir=target.parent, prefix=".tmp-")
+            with os.fdopen(fd, "w", encoding="utf-8") as out:
+                json.dump(rows, out, sort_keys=True)
+            os.replace(tmp, target)
+
     def record_citation(self, ref: str, *, source_url: str,
-                        retrieved_at: datetime | None = None, resolved_urls=()) -> None:
+                        retrieved_at: datetime | None = None, resolved_urls=(),
+                        shell_check: ShellCheck | None = None) -> None:
+        if shell_check is not None:
+            # No bytes here: only the same-bytes rule can apply.
+            self.check_shell(None, ref, require_source_url(source_url), resolved_urls, shell_check)
         target = self.path(ref).with_suffix(".citation.json")
         metadata = citation_metadata(source_url, ref, retrieved_at=retrieved_at or datetime.now(UTC),
                                      resolved_urls=resolved_urls)
@@ -999,6 +1116,21 @@ class RedirectRefused:
                 "detected_at": self.detected_at.isoformat()}
 
 
+@dataclass(frozen=True)
+class ShellPageRefused:
+    """An alert event: fetched bytes were a shell page and were not cited (MODEL-519)."""
+
+    source_id: str
+    reason: str
+    url: str
+    detected_at: datetime
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"event": SHELL_PAGE, "source_id": self.source_id,
+                "reason": self.reason, "url": self.url,
+                "detected_at": self.detected_at.isoformat()}
+
+
 @dataclass
 class RecheckReport:
     regions: list[RegionResult] = field(default_factory=list)
@@ -1008,7 +1140,8 @@ class RecheckReport:
     reconfirmed: list[str] = field(default_factory=list)
     #: Facts and evidence on a source past its unreachable grace period.
     quarantine: list[str] = field(default_factory=list)
-    alerts: list[GovernanceChange | RedirectRefused] = field(default_factory=list)
+    alerts: list[GovernanceChange | RedirectRefused | ShellPageRefused] = field(
+        default_factory=list)
     skipped: list[Skipped] = field(default_factory=list)
     #: Every source's state after this run; persist these for the next one.
     states: dict[str, SourceState] = field(default_factory=dict)
@@ -1019,6 +1152,11 @@ class RecheckReport:
     def redirect_unclassified(self) -> int:
         """Sources refused at the terms register this run; above 0 the job ends red."""
         return sum(isinstance(alert, RedirectRefused) for alert in self.alerts)
+
+    @property
+    def shell_page(self) -> int:
+        """Sources whose bytes were a shell this run (MODEL-519); above 0 the job ends red."""
+        return sum(isinstance(alert, ShellPageRefused) for alert in self.alerts)
 
 
 def recheck(
@@ -1042,7 +1180,8 @@ def recheck(
     report = RecheckReport(states=dict(states))
     for source in sources:
         state = states.get(source.id) or SourceState(source.id)
-        report.states[source.id] = _check_one(source, state, fetcher, store, now, grace, report)
+        report.states[source.id] = _check_one(source, state, fetcher, store, now, grace, report,
+                                              shell_alias_urls(source, sources))
 
     by_region: dict[tuple[str, str], list[Citation]] = {}
     for c in citations:
@@ -1095,6 +1234,7 @@ def _check_one(
     now: datetime,
     grace: int,
     report: RecheckReport,
+    alias_urls: tuple[str, ...] = (),
 ) -> SourceState:
     if source.fetch == FetchMode.RENDERED.value:
         report.skipped.append(Skipped(source.id, "rendered_fetch_required"))
@@ -1116,6 +1256,15 @@ def _check_one(
         report.alerts.append(RedirectRefused(source.id, named, str(source.url), now))
         return replace(state, last_attempt_at=now)
     old = previous.region_fingerprints if previous else {}
+    shell = ShellCheck(source.normaliser, alias_urls)
+
+    def refuse_shell(stop: ShellPageError) -> SourceState:
+        # Nothing is bound to a shell (MODEL-519): no bytes, no region result, no failure
+        # counted; its own alert.
+        named = shell_refusal(stop.reason, source.id)
+        report.skipped.append(Skipped(source.id, named))
+        report.alerts.append(ShellPageRefused(source.id, named, str(source.url), now))
+        return replace(state, last_attempt_at=now)
 
     try:
         previous_citation = store.citation(previous.copy_ref) if previous else None
@@ -1137,9 +1286,12 @@ def _check_one(
             and result.outcome in {"ok", "not_modified"}:
         if result.outcome == "not_modified" and previous is None:
             return replace(state, last_attempt_at=now)
-        ref = (previous.copy_ref if result.outcome == "not_modified" else
-               store.put(result.body, source_url=str(source.url), retrieved_at=now,
-                         resolved_urls=resolved_urls))
+        try:
+            ref = (previous.copy_ref if result.outcome == "not_modified" else
+                   store.put(result.body, source_url=str(source.url), retrieved_at=now,
+                             resolved_urls=resolved_urls, shell_check=shell))
+        except ShellPageError as stop:
+            return refuse_shell(stop)
         store.record_citation(ref, source_url=str(source.url), retrieved_at=now,
                               resolved_urls=resolved_urls)
         for region in source.cited_regions:
@@ -1195,6 +1347,12 @@ def _check_one(
         report.skipped.append(Skipped(source.id, f"unsupported_content:{exc.kind}"))
         return replace(state, last_attempt_at=now)
 
+    try:
+        copy_ref = store.put(result.body, source_url=str(source.url), retrieved_at=now,
+                             resolved_urls=result.resolved_urls,
+                             shell_check=replace(shell, text=doc.text))
+    except ShellPageError as stop:
+        return refuse_shell(stop)
     current: dict[str, str | None] = {}
     for region in source.cited_regions:
         kind = "heading" if region.locator.kind == "heading_anchor" else region.locator.kind
@@ -1212,8 +1370,7 @@ def _check_one(
         retrieved_at=now,
         page_fingerprint=fingerprint(doc.text),
         region_fingerprints=current,
-        copy_ref=store.put(result.body, source_url=str(source.url), retrieved_at=now,
-                           resolved_urls=result.resolved_urls),
+        copy_ref=copy_ref,
         etag=result.etag,
         last_modified=result.last_modified,
     )
