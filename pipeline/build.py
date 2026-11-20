@@ -24,6 +24,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from decision import registry as decision_registry
+from decision import retention
 from pipeline import agent_copy, brand, card_ids, data_source
 from pipeline import export as exporter
 from pipeline import render as r
@@ -863,6 +864,14 @@ def write_use_case_pages(tree: Path, public_root: Path, *, examples=None,
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    if not args.data_dir:
+        return _main(args)
+    # MODEL-510: the terms register's forbids class applies to a private build too.
+    with retention.using_data_dir(Path(args.data_dir)):
+        return _main(args)
+
+
+def _main(args: argparse.Namespace) -> int:
     split = os.environ.get("DATA_SPLIT_ENABLED") == "true"
     data_dir = Path(args.data_dir) if args.data_dir else data_source.data_dir_from_env()
     if data_dir is None and os.environ.get(data_source.REQUIRE_DATA_ENV, "").strip() not in ("", "0"):

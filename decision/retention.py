@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+from contextlib import contextmanager
 from functools import cache
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -15,7 +17,7 @@ POLICY_PATH = Path(__file__).resolve().parents[1] / "registry" / "source-retenti
 
 
 @cache
-def cite_only_hosts() -> tuple[str, ...]:
+def _public_cite_only_hosts() -> tuple[str, ...]:
     data = json.loads(POLICY_PATH.read_text(encoding="utf-8"))
     if not isinstance(data, dict) or set(data) != {"schema_version", "cite_only_hosts"} \
             or type(data["schema_version"]) is not int or data["schema_version"] != 1 \
@@ -26,6 +28,85 @@ def cite_only_hosts() -> tuple[str, ...]:
            or any(char in host for char in "/:@ ") for host in hosts):
         raise ValueError("source retention policy requires canonical host names")
     return tuple(hosts)
+
+
+DATA_DIR_ENV = "MODELSPEC_DATA_DIR"
+FORBIDS = "forbids"
+
+
+@cache
+def _register_forbidding(data_dir: str) -> tuple[str, ...]:
+    path = Path(data_dir) / "registry" / "source-terms.json"
+    try:
+        terms = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return ()
+    except (OSError, ValueError):
+        logger.warning("the private source-terms register could not be read")
+        return ()
+    if not isinstance(terms, dict):
+        logger.warning("the private source-terms register is not an object")
+        return ()
+    return tuple(sorted(host for host, cls in terms.items()
+                        if cls == FORBIDS and isinstance(host, str) and host
+                        and host == host.lower().rstrip(".")
+                        and not any(char in host for char in "/:@ ")))
+
+
+def use_data_dir(data_dir: object) -> None:
+    """Name the private data directory for every reader in this process.
+
+    Entry points that take ``--data-dir`` (the trust audit, ``pipeline.build``,
+    ``api/worker/vendor.py``) call this so ``forbidding_hosts`` reads the same
+    register on every path (MODEL-510). A subprocess inherits it.
+    """
+    os.environ[DATA_DIR_ENV] = str(data_dir)
+
+
+@contextmanager
+def using_data_dir(data_dir: object):
+    """``use_data_dir`` for the length of a block; the previous value comes back."""
+    previous = os.environ.get(DATA_DIR_ENV)
+    use_data_dir(data_dir)
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop(DATA_DIR_ENV, None)
+        else:
+            os.environ[DATA_DIR_ENV] = previous
+
+
+def forbidding_hosts() -> tuple[str, ...]:
+    """Hosts the private terms register classes ``forbids`` (MODEL-510).
+
+    Read from ``registry/source-terms.json`` under ``MODELSPEC_DATA_DIR``.
+    With no data directory (a public build) the result is empty, so the
+    public list alone decides, as before. ``cite_only_hosts`` adds these
+    hosts to the public list, so every reading treats them alike.
+    """
+    data_dir = os.environ.get(DATA_DIR_ENV, "").strip()
+    return _register_forbidding(data_dir) if data_dir else ()
+
+
+def cite_only_hosts() -> tuple[str, ...]:
+    """The public list, plus the hosts the private register classes ``forbids``.
+
+    A forbids-class host behaves exactly like a listed one in both directions
+    (MODEL-510): no bytes kept, and a cited claim from it is admitted. The
+    register is read only when a data directory is named; with none the result
+    is the public list alone.
+    """
+    public = _public_cite_only_hosts()
+    return (*public, *(host for host in forbidding_hosts() if host not in public))
+
+
+def _clear_caches() -> None:
+    _public_cite_only_hosts.cache_clear()
+    _register_forbidding.cache_clear()
+
+
+cite_only_hosts.cache_clear = _clear_caches  # type: ignore[attr-defined]
 
 
 _C0_OR_SPACE = "".join(chr(code) for code in range(0x21))

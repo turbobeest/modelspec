@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -16,6 +17,18 @@ def _clear_modelspec_cache_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """
     monkeypatch.delenv("MODELSPEC_CACHE", raising=False)
     monkeypatch.delenv("MODELSPEC_ARENA_REVISION", raising=False)
+
+
+@pytest.fixture(autouse=True)
+def _clear_modelspec_data_dir_env(monkeypatch: pytest.MonkeyPatch):
+    """A leaked MODELSPEC_DATA_DIR flips later tests into private mode (MODEL-510).
+
+    Entry points that take a data directory set it for the length of the call;
+    tests that need it set it themselves.
+    """
+    monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)
+    yield
+    os.environ.pop("MODELSPEC_DATA_DIR", None)
 
 
 @pytest.fixture

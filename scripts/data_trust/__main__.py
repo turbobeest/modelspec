@@ -5,11 +5,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import tempfile
 from datetime import date
 from pathlib import Path
 
+from decision import retention
 from decision.registry import load as load_registry
 from pipeline.data_source import overlay
 from scripts.data_trust import invariants, sample
@@ -34,6 +36,13 @@ def main(argv=None) -> int:
     if args.n < 1:
         p.error("--n must be positive")
     seed = args.seed or args.date.strftime("%G-W%V")
+    # The audit reads the private register under this directory (MODEL-510); the
+    # variable does not outlive the call.
+    with retention.using_data_dir(args.data_dir):
+        return _audit(args, seed)
+
+
+def _audit(args, seed) -> int:
     with tempfile.TemporaryDirectory(prefix="modelspec-trust-overlay-") as tmp:
         root = overlay(ENGINE, args.data_dir, Path(tmp))
         c = load(root, source_root=args.data_dir)

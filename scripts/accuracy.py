@@ -2070,8 +2070,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         for path in result.details:
             print(path)
         return 1 if result.status == "fail" else 0
+    from contextlib import nullcontext
+
+    from decision import retention
+
     try:
-        return _publish_profile(args)
+        # MODEL-510: the terms register's forbids class applies to the private nightly too.
+        with (retention.using_data_dir(args.private_data_root)
+              if args.private_data_root is not None else nullcontext()):
+            return _publish_profile(args)
     except (KeyboardInterrupt, SystemExit):
         raise
     except Exception as exc:
