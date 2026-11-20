@@ -5419,3 +5419,11 @@ def test_base_lineage_checks_are_unchanged_without_a_publisher() -> None:
     for kind in ("provider_documentation", "provider_terms", None):
         assert not verify._kind_admitted(
             claim, verify.default_registry().facet(claim.field), kind, None)
+
+
+def test_a_reseller_never_passes_the_seller_rule_even_with_the_labs_page() -> None:
+    claim = _absence_claim("aws-bedrock/anthropic/nimbus-3/global/standard",
+                           "offering.price.batch_input", "nimbus-model-page")
+    facet = verify.default_registry().facet("offering.price.batch_input")
+    for publisher in ("aws-bedrock", "anthropic", None):
+        assert not verify._kind_admitted(claim, facet, "lab_documentation", publisher)
