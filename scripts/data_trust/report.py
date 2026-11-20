@@ -193,7 +193,7 @@ def write(report: dict, directory: Path) -> tuple[Path, Path]:
         for benchmark, count in classes.items():
             lines.append(f"| {tier} | {benchmark} | {count} |")
     coverage = report["sample"].get("reader_coverage", {})
-    if report.get("trust_line"):
+    if report.get("trust_line") and "stale" in report["trust_line"]:
         s = report["trust_line"]["stale"]
         lines += [
             "",
@@ -207,6 +207,8 @@ def write(report: dict, directory: Path) -> tuple[Path, Path]:
         ]
         for group, row in s["by_group"].items():
             lines.append(f"| {group} | {row['verified']} | {row['older']} |")
+    elif report.get("trust_line"):
+        lines += ["", "## Trust line", "", trust_line.text(report["trust_line"]).rstrip()]
     lines += [
         "",
         "## Reader coverage",

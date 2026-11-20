@@ -56,11 +56,16 @@ def _audit(args, seed) -> int:
             c.facts = []
             c.findings.append(Finding("snapshot", "build", "snapshot_build"))
         inv = invariants.run(c, registry, args.date)
-        line = trust_line.with_change(
-            trust_line.compute(c, args.data_dir, args.date, args.stale_days, args.stale_days_price),
-            args.output_dir or args.data_dir / "reports/data-trust",
-            args.date,
-        )
+        try:
+            line = trust_line.with_change(
+                trust_line.compute(
+                    c, args.data_dir, args.date, args.stale_days, args.stale_days_price
+                ),
+                args.output_dir or args.data_dir / "reports/data-trust",
+                args.date,
+            )
+        except Exception as error:  # a count must never stop the audit
+            line = {"unavailable": f"{type(error).__name__}: {error}"}
         sampled = (
             sample.run(c, registry, n=args.n, seed=seed, as_of=args.date)
             if args.command != "data"

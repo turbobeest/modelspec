@@ -178,7 +178,7 @@ def with_change(line: dict, directory: Path | None, as_of: date) -> dict:
             report = json.loads(path.read_text())
         except (OSError, ValueError):
             continue
-        if isinstance(report.get("trust_line"), dict):
+        if isinstance(report.get("trust_line"), dict) and "stale" in report["trust_line"]:
             previous = (path.stem, report["trust_line"])
             break
     if previous is None:
@@ -197,12 +197,15 @@ def _delta(line: dict, key: str) -> str:
 
 
 def text(line: dict) -> str:
+    if "unavailable" in line:
+        return f"Trust line: trust line unavailable ({line['unavailable']})\n"
     s, lost, hosts = line["stale"], line["lost_copies"], line["moved_hosts"]
     moved = (f"{hosts['moved']}{_delta(line, 'moved')}" if hosts["recorded"]
              else "not recorded yet")
     return (
         f"Trust line: verified records older than {s['age_line_days']} days "
-        f"({s['age_line_days_price_subscription']} for price and subscription): "
+        f"({s['age_line_days_price_subscription']} for price and subscription; "
+        f"age line pending MODEL-521): "
         f"{s['older']} of {s['verified']}{_delta(line, 'stale')}\n"
         f"Trust line: lost retained copies: {lost['lost_paths']} paths"
         f"{_delta(line, 'lost_paths')}; records whose digest only a lost path names: "

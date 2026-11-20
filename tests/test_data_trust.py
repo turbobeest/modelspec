@@ -1409,3 +1409,34 @@ def test_trust_line_final_host_and_report(catalogue, registry, tmp_path):
     assert "final host differs from the registered host: 1" in summary(report)
     md, _ = write(report, tmp_path / "out")
     assert "## Trust line" in md.read_text()
+
+
+def test_trust_line_failure_does_not_stop_the_audit(tmp_path, registry, monkeypatch, capsys):
+    from scripts.data_trust import __main__ as command
+
+    monkeypatch.setattr(command, "load_registry", lambda *a, **kw: registry)
+
+    def broken(*args, **kwargs):
+        raise OSError("broken symlink")
+
+    monkeypatch.setattr(command.trust_line, "compute", broken)
+    (tmp_path / "models").mkdir()
+    (tmp_path / "benchmarks").mkdir()
+    raw = fact("model", MID, "model.context_window", -2)
+    (tmp_path / "models/card.md").write_text(
+        "---\n" + yaml.safe_dump({"model_id": MID, "facts": [raw]}) + "---\n"
+    )
+    (tmp_path / "registry").mkdir()
+    (tmp_path / "registry/sources.yaml").write_text(
+        yaml.safe_dump({"schema_version": 1, "sources": [{
+            "id": "src-lab-docs", "url": "https://example.test/docs",
+            "cited_regions": [{"id": "r1", "locator": {"kind": "page"}}]}]})
+    )
+    args = ["data", "--data-dir", str(tmp_path), "--date", str(TODAY),
+            "--output-dir", str(tmp_path / "reports")]
+    status = command.main(args)
+    out = capsys.readouterr().out
+    assert "trust line unavailable (OSError: broken symlink)" in out
+    payload = json.loads((tmp_path / "reports" / f"{TODAY}.json").read_text())
+    assert payload["trust_line"] == {"unavailable": "OSError: broken symlink"}
+    assert status == (1 if payload["invariants"]["errors"] else 0)
