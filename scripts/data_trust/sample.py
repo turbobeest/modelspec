@@ -157,6 +157,7 @@ def _read(
     try:
         claim = claim_for(f, c, registry)
         sources, fresh_refs, raw_bytes = {}, [], {}
+        shell_reason = None
         for index, listed in enumerate(dict.fromkeys(urls)):
             url = at_revision(listed, pin) if pin else listed
             if not safe_url(url) or excluded_sources().url(url):
@@ -178,7 +179,22 @@ def _read(
                 if (refused := refusal_reason(response)) is not None:
                     return "redirect_unclassified", named_refusal(refused, sid)
                 from decision.retention import cite_only_origin_restrictive
+                from decision.sources import (
+                    ShellCheck, ShellPageError, fingerprint_bytes, shell_refusal,
+                )
 
+                if response.outcome == "ok":
+                    try:
+                        store.check_shell(
+                            response.body, fingerprint_bytes(response.body), url,
+                            response.resolved_urls,
+                            ShellCheck(_shell_normaliser(response.content_type)))
+                    except ShellPageError as stop:
+                        # Bytes that are a shell cite nothing (MODEL-519); a fallback
+                        # source may still read.
+                        shell_reason = shell_refusal(stop.reason, sid)
+                        fetched[url] = (None, "")
+                        continue
                 if cite_only_origin_restrictive(url, response.resolved_urls):
                     store.put(response.body, source_url=url,
                               retrieved_at=response.retrieved_at,
@@ -219,6 +235,8 @@ def _read(
                     or [r.id for r in source.cited_regions],
                 )
             )
+        if not fresh_refs and shell_reason is not None:
+            return "shell_page", shell_reason
         if not fresh_refs:
             refused = all(not safe_url(u) or excluded_sources().url(u) for u in urls)
             return "unreadable", "source_refused" if refused else "http_unavailable"
@@ -352,6 +370,16 @@ def reread(
     return out
 
 
+def _shell_normaliser(content_type: str) -> str:
+    """The recipe the shell check reads a reply with: only HTML is held to the text rule."""
+    kind = (content_type or "").split(";")[0].strip().lower()
+    if kind == "application/json" or kind.endswith("+json"):
+        return "json-default"
+    if kind in {"text/html", "application/xhtml+xml", ""}:
+        return "html-default"
+    return "text-default"
+
+
 def run(
     c: Catalogue, registry, *, n: int, seed: str, as_of: date, fetcher=None, reader=reread
 ) -> dict:
@@ -365,6 +393,7 @@ def run(
     strata = defaultdict(Counter)
     skipped = Counter()
     refused = 0
+    shell_pages = 0
     moved = 0
     results = []
     fetched = {}
@@ -383,6 +412,8 @@ def run(
                 moved += 1
             elif outcome == "redirect_unclassified":
                 refused += 1
+            elif outcome == "shell_page":
+                shell_pages += 1
             else:
                 strata[key][outcome] += 1
             results.append(
@@ -412,6 +443,7 @@ def run(
         "skipped": dict(sorted(skipped.items())),
         # Fetches refused at the terms register (MODEL-509), reported apart from unreadable.
         "redirect_unclassified": refused,
+        "shell_page": shell_pages,
         # A value that differs now but matched the board when read (MODEL-516): reported,
         # and not part of the error rate.
         "source_moved": moved,

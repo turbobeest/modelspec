@@ -236,7 +236,7 @@ def test_wilson():
     [
         (b"Model: Test Model\nmodel.context window: 128000 tokens\n", "matched"),
         (b"Model: Test Model\nmodel.context window: 64000 tokens\n", "mismatched"),
-        (b"JavaScript required", "unreadable"),
+        (b"JavaScript required", "shell_page"),
         (b"Model: Sibling Model\nmodel.context window: 128000 tokens\n", "unreadable"),
     ],
 )
@@ -248,6 +248,9 @@ def test_plain_http_readers(catalogue, registry, body, expected):
 
     catalogue.facts = catalogue.facts[1:]
     report = sample.run(catalogue, registry, n=60, seed="week", as_of=TODAY, fetcher=HTTP())
+    if expected == "shell_page":
+        assert report["shell_page"] == 1 and sum(report["counts"].values()) == 0
+        return
     assert report["counts"][expected] == 1
     assert report["error_rate"]["readable"] == (0 if expected == "unreadable" else 1)
 
@@ -1332,3 +1335,24 @@ def test_source_moved_is_counted_apart_from_the_error_rate(catalogue, registry):
     assert report["error_rate"]["readable"] == 1
     assert report["sampled"] == 2
     assert {r["outcome"] for r in report["results"]} == {"matched", "source_moved"}
+
+
+@pytest.mark.parametrize("content_type,recipe", [
+    ("application/json", "json-default"), ("application/vnd.api+json; charset=utf-8", "json-default"),
+    ("text/html; charset=utf-8", "html-default"), ("", "html-default"),
+    ("text/plain", "text-default"), ("text/csv", "text-default"),
+])
+def test_m519_the_shell_rule_reads_each_reply_with_its_own_recipe(content_type, recipe):
+    assert sample._shell_normaliser(content_type) == recipe
+
+
+@pytest.mark.parametrize("content_type,shell", [("application/json", 0), ("text/html", 1)])
+def test_m519_a_short_json_reply_is_read_not_refused_as_a_shell(
+        catalogue, registry, content_type, shell):
+    class HTTP:
+        def fetch(self, url):
+            return FetchResult("ok", status=200, body=b'{"context":1}', content_type=content_type)
+
+    catalogue.facts = catalogue.facts[1:]
+    report = sample.run(catalogue, registry, n=60, seed="week", as_of=TODAY, fetcher=HTTP())
+    assert report["shell_page"] == shell

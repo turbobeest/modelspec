@@ -35,6 +35,7 @@ def summary(report: dict) -> str:
         f"{sample.get('source_moved', 0)}\n"
         f"Refused at the terms register (redirect_unclassified): "
         f"{sample.get('redirect_unclassified', 0)}\n"
+        f"Shell pages not cited (shell_page): {sample.get('shell_page', 0)}\n"
         f"Readable sample error rate: {rate}\n"
         f"Reader coverage: {coverage['with_reader']}/{coverage['served']} ({reader_share}). "
         "The stratified readable sample cannot establish five-nines accuracy.\n"

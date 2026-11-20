@@ -64,6 +64,7 @@ def _audit(args, seed) -> int:
                 "counts": {"matched": 0, "mismatched": 0, "unreadable": 0},
                 "skipped": {},
                 "redirect_unclassified": 0,
+                "shell_page": 0,
                 "error_rate": sample.wilson(0, 0),
                 "strata": [],
                 "results": [],
