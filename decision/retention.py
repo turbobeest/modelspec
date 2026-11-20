@@ -69,29 +69,38 @@ def _register_classes(data_dir: str) -> frozenset[str] | None:
                      if isinstance(host, str) and host and isinstance(cls, str) and cls)
 
 
+class TermsRegisterUnreadable(Exception):
+    """A data directory is named but a private register it needs is missing or unreadable."""
+
+
 @cache
-def _registered_urls(data_dir: str) -> frozenset[str]:
+def _registered_hosts(data_dir: str) -> frozenset[str] | None:
     import yaml
 
     path = Path(data_dir) / "registry" / "sources.yaml"
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
-        rows = data["sources"] if isinstance(data, dict) else []
-        return frozenset(str(row["url"]) for row in rows
-                         if isinstance(row, dict) and row.get("url"))
+        hosts = {canonical_host(row["url"]) for row in data["sources"]
+                 if isinstance(row, dict) and row.get("url")}
+        return frozenset(host for host in hosts if host)
     except (OSError, ValueError, KeyError, TypeError, yaml.YAMLError):
         logger.warning("the private source registry could not be read")
-        return frozenset()
+        return None
 
 
-def registered_source_urls() -> frozenset[str]:
-    """URLs of the sources the private registry lists; empty with no data directory."""
+def registered_source_hosts() -> frozenset[str] | None:
+    """Hosts of the sources the private registry lists; None with no data directory.
+
+    With a data directory and no readable registry this raises
+    ``TermsRegisterUnreadable``, so a caller fails closed.
+    """
     data_dir = os.environ.get(DATA_DIR_ENV, "").strip()
-    return _registered_urls(data_dir) if data_dir else frozenset()
-
-
-class TermsRegisterUnreadable(Exception):
-    """A data directory is named but its terms register is missing or unreadable."""
+    if not data_dir:
+        return None
+    hosts = _registered_hosts(data_dir)
+    if hosts is None:
+        raise TermsRegisterUnreadable
+    return hosts
 
 
 def classified_hosts() -> frozenset[str] | None:
@@ -167,7 +176,7 @@ def _clear_caches() -> None:
     _public_cite_only_hosts.cache_clear()
     _register_forbidding.cache_clear()
     _register_classes.cache_clear()
-    _registered_urls.cache_clear()
+    _registered_hosts.cache_clear()
 
 
 cite_only_hosts.cache_clear = _clear_caches  # type: ignore[attr-defined]

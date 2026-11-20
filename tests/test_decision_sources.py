@@ -966,6 +966,36 @@ def test_m509_a_registered_source_on_an_unclassed_host_is_refused_at_the_first_r
     assert result.error == "redirect_unclassified:registered.example" and sent == []
 
 
+@pytest.mark.parametrize("url", [
+    "https://registered.example/page/", "https://registered.example/page?x=1",
+    "https://registered.example/page#frag", "https://REGISTERED.Example/PAGE",
+    "https://registered.example/elsewhere", "https://www.registered.example/page",
+], ids=["slash", "query", "fragment", "case", "path", "subdomain"])
+def test_m509_the_first_request_is_decided_by_host_not_by_url(m509_terms, url) -> None:
+    sent: list[str] = []
+    result = _m509_fetcher({}, sent).fetch(url)
+    assert result.error == "redirect_unclassified:" + (
+        "www.registered.example" if "www." in url else "registered.example")
+    assert sent == []
+
+
+@pytest.mark.parametrize("content", [None, "{", "[]", "sources: 3"],
+                         ids=["missing", "invalid", "not-object", "not-list"])
+def test_m509_an_unreadable_source_registry_refuses_the_first_request(tmp_path, content) -> None:
+    import json
+
+    from decision.retention import using_data_dir
+
+    (tmp_path / "registry").mkdir()
+    (tmp_path / "registry" / "source-terms.json").write_text(json.dumps(M509_TERMS))
+    if content is not None:
+        (tmp_path / "registry" / "sources.yaml").write_text(content)
+    sent: list[str] = []
+    with using_data_dir(tmp_path):
+        result = _m509_fetcher({}, sent).fetch("https://feed.example/api.json")
+    assert result.error == "terms_register_unreadable" and sent == []
+
+
 def test_m509_an_unregistered_first_fetch_passes_but_its_hops_are_checked(m509_terms) -> None:
     feed = "https://feed.example/api.json"  # the release-signal feed shape: no class, unregistered
     sent: list[str] = []
@@ -996,6 +1026,8 @@ def test_m509_an_unreadable_register_refuses_every_cross_host_hop(tmp_path, cont
     from decision.retention import using_data_dir
 
     (tmp_path / "registry").mkdir()
+    (tmp_path / "registry" / "sources.yaml").write_text(
+        "schema_version: 1\nsources:\n- id: s\n  url: https://registered.example/page\n")
     if content is not None:
         (tmp_path / "registry" / "source-terms.json").write_text(content)
     sent: list[str] = []
