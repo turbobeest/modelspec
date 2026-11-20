@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+from contextlib import contextmanager
 from functools import cache
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -16,7 +17,7 @@ POLICY_PATH = Path(__file__).resolve().parents[1] / "registry" / "source-retenti
 
 
 @cache
-def cite_only_hosts() -> tuple[str, ...]:
+def _public_cite_only_hosts() -> tuple[str, ...]:
     data = json.loads(POLICY_PATH.read_text(encoding="utf-8"))
     if not isinstance(data, dict) or set(data) != {"schema_version", "cite_only_hosts"} \
             or type(data["schema_version"]) is not int or data["schema_version"] != 1 \
@@ -62,16 +63,50 @@ def use_data_dir(data_dir: object) -> None:
     os.environ[DATA_DIR_ENV] = str(data_dir)
 
 
+@contextmanager
+def using_data_dir(data_dir: object):
+    """``use_data_dir`` for the length of a block; the previous value comes back."""
+    previous = os.environ.get(DATA_DIR_ENV)
+    use_data_dir(data_dir)
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop(DATA_DIR_ENV, None)
+        else:
+            os.environ[DATA_DIR_ENV] = previous
+
+
 def forbidding_hosts() -> tuple[str, ...]:
     """Hosts the private terms register classes ``forbids`` (MODEL-510).
 
     Read from ``registry/source-terms.json`` under ``MODELSPEC_DATA_DIR``.
     With no data directory (a public build) the result is empty, so the
-    public list alone decides, as before. RESTRICTIVE call sites only: this
-    never grants cite-only status.
+    public list alone decides, as before. ``cite_only_hosts`` adds these
+    hosts to the public list, so every reading treats them alike.
     """
     data_dir = os.environ.get(DATA_DIR_ENV, "").strip()
     return _register_forbidding(data_dir) if data_dir else ()
+
+
+def cite_only_hosts() -> tuple[str, ...]:
+    """The public list, plus the hosts the private register classes ``forbids``.
+
+    A forbids-class host behaves exactly like a listed one in both directions
+    (MODEL-510): no bytes kept, and a cited claim from it is admitted. The
+    register is read only when a data directory is named; with none the result
+    is the public list alone.
+    """
+    public = _public_cite_only_hosts()
+    return (*public, *(host for host in forbidding_hosts() if host not in public))
+
+
+def _clear_caches() -> None:
+    _public_cite_only_hosts.cache_clear()
+    _register_forbidding.cache_clear()
+
+
+cite_only_hosts.cache_clear = _clear_caches  # type: ignore[attr-defined]
 
 
 _C0_OR_SPACE = "".join(chr(code) for code in range(0x21))
@@ -137,18 +172,13 @@ def is_cite_only_restrictive(url: object) -> bool:
     For RESTRICTIVE call sites only (retention, storage, display): no bytes
     are kept, evidence stays out and nothing reads as machine-verified. Never
     use it where cite-only status grants anything; use ``cite_only_status``.
-    A host the private register marks ``forbids`` counts here too (MODEL-510).
     """
     status = cite_only_status(url)
     if status is None:
         # The URL itself is not logged: it may come from private data.
         logger.warning("a malformed HTTP(S) URL is treated as cite-only")
         return True
-    if status:
-        return True
-    host = canonical_host(url)
-    return host is not None and any(
-        host == denied or host.endswith("." + denied) for denied in forbidding_hosts())
+    return status
 
 
 def redirect_urls(value: object) -> tuple[str, ...]:

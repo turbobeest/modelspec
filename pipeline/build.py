@@ -867,15 +867,8 @@ def main(argv: list[str] | None = None) -> int:
     if not args.data_dir:
         return _main(args)
     # MODEL-510: the terms register's forbids class applies to a private build too.
-    previous = os.environ.get(data_source.DATA_DIR_ENV)
-    retention.use_data_dir(Path(args.data_dir))
-    try:
+    with retention.using_data_dir(Path(args.data_dir)):
         return _main(args)
-    finally:
-        if previous is None:
-            os.environ.pop(data_source.DATA_DIR_ENV, None)
-        else:
-            os.environ[data_source.DATA_DIR_ENV] = previous
 
 
 def _main(args: argparse.Namespace) -> int:

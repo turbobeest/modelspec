@@ -226,7 +226,7 @@ FORBIDDEN = "forbidden.example"
 
 @pytest.fixture
 def lists(monkeypatch):
-    monkeypatch.setattr(retention, "cite_only_hosts", lambda: (LISTED,))
+    monkeypatch.setattr(retention, "_public_cite_only_hosts", lambda: (LISTED,))
     retention._register_forbidding.cache_clear()
     yield
     retention._register_forbidding.cache_clear()
@@ -260,10 +260,103 @@ def test_without_a_forbids_data_dir_behaviour_is_unchanged(lists, monkeypatch):
     assert retention.is_cite_only_restrictive(f"https://{LISTED}/a")
 
 
-def test_granting_status_is_not_widened(lists, forbids_data_dir):
-    assert retention.cite_only_status(f"https://{FORBIDDEN}/a") is False
-    assert retention.cite_only_origin_status(f"https://{FORBIDDEN}/a") is False
-    assert retention.cite_only_status(f"https://{LISTED}/a") is True
+def test_granting_status_is_symmetric_with_the_public_list(lists, forbids_data_dir):
+    for host in (FORBIDDEN, f"docs.{FORBIDDEN}", LISTED):
+        assert retention.cite_only_status(f"https://{host}/a") is True
+        assert retention.cite_only_origin_status(f"https://{host}/a") is True
+        assert retention.record_origin_status({"url": f"https://{host}/a"}) is True
+    for host in ("unclear.example", "restricts.example", "permits.example", f"not{FORBIDDEN}"):
+        assert retention.cite_only_status(f"https://{host}/a") is False
+        assert retention.record_origin_status({"url": f"https://{host}/a"}) is False
+
+
+class _Store:
+    def __init__(self, records=None):
+        self.records = records or {}
+
+    def citation(self, ref):
+        return self.records.get(ref)
+
+
+HASH = "sha256:" + "a" * 64
+
+
+def _fact(host):
+    return {"sources": [{"source_id": "s", "snapshot_ref": HASH, "cited_regions": ["r"],
+                         "retrieved_at": "2026-11-19T00:00:00+00:00"}]}, {"s": f"https://{host}/page"}
+
+
+def test_forbids_host_fact_with_a_citation_record_is_admitted_as_cited(lists, forbids_data_dir):
+    from decision import citation
+    record, sources = _fact(FORBIDDEN)
+    store = _Store({HASH: {"url": sources["s"], "snapshot_ref": HASH, "retrieved_at": None,
+                           "resolved_urls": []}})
+    assert citation.ref_states(record, sources, store) == ("cited",)
+    admitted = citation.fact_citation(record, sources, store)
+    assert admitted["status"] == "cited" and admitted["sources"][0]["url"] == sources["s"]
+    # exactly what a public-list host gets
+    pub_record, pub_sources = _fact(LISTED)
+    assert citation.ref_states(pub_record, pub_sources, _Store()) == ("cited",)
+
+
+def test_a_fact_without_a_valid_citation_is_not_admitted(lists, forbids_data_dir):
+    from decision import citation
+    record, sources = _fact(FORBIDDEN)
+    record["sources"][0]["snapshot_ref"] = "not-a-hash"
+    with pytest.raises(ValueError):
+        citation.fact_citation(record, sources, _Store())
+    record["sources"][0]["snapshot_ref"] = HASH
+    record["sources"][0]["cited_regions"] = []
+    with pytest.raises(ValueError):
+        citation.fact_citation(record, sources, _Store())
+
+
+def test_unclear_host_fact_is_not_cited(lists, forbids_data_dir):
+    from decision import citation
+    record, sources = _fact("unclear.example")
+    assert citation.ref_states(record, sources, _Store()) == ("open",)
+    assert citation.fact_citation(record, sources, _Store()) is None
+
+
+def test_no_data_dir_leaves_a_forbids_host_open(lists, monkeypatch):
+    from decision import citation
+    monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)
+    record, sources = _fact(FORBIDDEN)
+    assert citation.ref_states(record, sources, _Store()) == ("open",)
+
+
+def test_data_trust_main_restores_the_data_dir_env(lists, forbids_data_dir, monkeypatch):
+    import os
+    from scripts.data_trust import __main__ as command
+    monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)
+    seen = []
+    monkeypatch.setattr(command, "_audit", lambda args, seed: (
+        seen.append(os.environ.get("MODELSPEC_DATA_DIR")), 0)[1])
+    assert command.main(["data", "--data-dir", str(forbids_data_dir)]) == 0
+    assert seen == [str(forbids_data_dir)]
+    assert "MODELSPEC_DATA_DIR" not in os.environ
+
+
+def test_accuracy_private_run_applies_the_forbids_class_and_restores(lists, forbids_data_dir, monkeypatch):
+    import os
+    from scripts import accuracy
+    monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)
+    seen = []
+    monkeypatch.setattr(accuracy, "_publish_profile", lambda args: (
+        seen.append(retention.forbidding_hosts()), 0)[1])
+    assert accuracy.main(["--private-data-root", str(forbids_data_dir)]) == 0
+    assert seen == [(FORBIDDEN,)]
+    assert "MODELSPEC_DATA_DIR" not in os.environ
+
+
+def test_env_leak_probe_sets_the_variable_directly():
+    import os
+    os.environ["MODELSPEC_DATA_DIR"] = "/leaked/by/a/test"
+
+
+def test_env_leak_probe_next_test_sees_no_leak():
+    import os
+    assert "MODELSPEC_DATA_DIR" not in os.environ
 
 
 def test_unreadable_register_changes_nothing(lists, tmp_path, monkeypatch):

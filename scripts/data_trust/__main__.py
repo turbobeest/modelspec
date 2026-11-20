@@ -36,8 +36,13 @@ def main(argv=None) -> int:
     if args.n < 1:
         p.error("--n must be positive")
     seed = args.seed or args.date.strftime("%G-W%V")
-    # The retained-copy check reads the private register under this directory (MODEL-510).
-    retention.use_data_dir(args.data_dir)
+    # The audit reads the private register under this directory (MODEL-510); the
+    # variable does not outlive the call.
+    with retention.using_data_dir(args.data_dir):
+        return _audit(args, seed)
+
+
+def _audit(args, seed) -> int:
     with tempfile.TemporaryDirectory(prefix="modelspec-trust-overlay-") as tmp:
         root = overlay(ENGINE, args.data_dir, Path(tmp))
         c = load(root, source_root=args.data_dir)
