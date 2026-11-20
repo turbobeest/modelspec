@@ -15,7 +15,8 @@ from decision import retention, snapshot
 from decision.registry import load as load_registry
 from scripts.data_trust import invariants
 from scripts.data_trust import retention as audit
-from scripts.data_trust.catalogue import calibrate, load
+from scripts.data_trust import trust_line
+from scripts.data_trust.catalogue import Catalogue, calibrate, load
 
 TODAY = date(2026, 11, 9)
 
@@ -665,3 +666,24 @@ def test_copy_store_keeps_bytes_without_a_forbids_data_dir(lists, tmp_path, monk
     monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)
     store = CopyStore(tmp_path / "store")
     assert store.has(store.put(b"page", source_url=f"https://{FORBIDDEN}/page"))
+
+
+def test_trust_line_lost_copies_and_records(root):
+    kept = body(root, "kept.gz")
+    kept_digest = hashlib.sha256(kept.read_bytes()).hexdigest()
+    lost_digest = hashlib.sha256(b"gone").hexdigest()
+    manifest(root, [
+        {"url": "https://ok.example/a", "path": "kept.gz", "sha256": kept_digest},
+        {"url": "https://ok.example/b", "path": f"missing-{lost_digest}.gz"},
+    ])
+    ref = lambda d: {"source_id": "s", "snapshot_ref": f"sha256:{d}"}
+    verified = {"date": "2026-11-01"}
+    c = Catalogue(
+        sources={"s": {"url": "https://ok.example/a"}},
+        facts=[
+            {"verification": verified, "sources": [ref(kept_digest)]},
+            {"verification": verified, "sources": [ref(lost_digest)]},
+            {"verification": verified, "sources": [ref("0" * 64)]},  # never retained: not counted
+        ],
+    )
+    assert trust_line.lost_copies(c, root) == {"lost_paths": 1, "lost_records": 1}

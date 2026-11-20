@@ -14,7 +14,7 @@ from pathlib import Path
 from decision import retention
 from decision.registry import load as load_registry
 from pipeline.data_source import overlay
-from scripts.data_trust import invariants, sample
+from scripts.data_trust import invariants, sample, trust_line
 from scripts.data_trust.catalogue import Finding, calibrate, load
 from scripts.data_trust.report import append_defects, summary, write
 
@@ -28,6 +28,8 @@ def main(argv=None) -> int:
     p.add_argument("--n", type=int, default=60)
     p.add_argument("--seed")
     p.add_argument("--date", type=date.fromisoformat, default=date.today())
+    p.add_argument("--stale-days", type=int, default=trust_line.STALE_DAYS)
+    p.add_argument("--stale-days-price", type=int, default=trust_line.STALE_DAYS_FAST)
     p.add_argument("--json", action="store_true")
     p.add_argument("--summary-only", action="store_true")
     p.add_argument("--output-dir", type=Path)
@@ -54,6 +56,16 @@ def _audit(args, seed) -> int:
             c.facts = []
             c.findings.append(Finding("snapshot", "build", "snapshot_build"))
         inv = invariants.run(c, registry, args.date)
+        try:
+            line = trust_line.with_change(
+                trust_line.compute(
+                    c, args.data_dir, args.date, args.stale_days, args.stale_days_price
+                ),
+                args.output_dir or args.data_dir / "reports/data-trust",
+                args.date,
+            )
+        except Exception as error:  # a count must never stop the audit
+            line = {"unavailable": f"{type(error).__name__}: {error}"}
         sampled = (
             sample.run(c, registry, n=args.n, seed=seed, as_of=args.date)
             if args.command != "data"
@@ -87,6 +99,7 @@ def _audit(args, seed) -> int:
         ).hexdigest(),
         "invariants": inv,
         "sample": sampled,
+        "trust_line": line,
     }
     if args.defect_log:
         report["new_defects"] = append_defects(args.defect_log, report)
