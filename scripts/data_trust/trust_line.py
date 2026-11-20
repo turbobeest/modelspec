@@ -27,7 +27,7 @@ from scripts.data_trust.retention import MAX_MANIFEST_BYTES, PATH_FIELDS, _files
 STALE_DAYS = 90
 STALE_DAYS_FAST = 45  # price and subscription facets move faster
 FAST_GROUPS = {"offering price", "subscription"}
-FINAL_HOSTS = "fetch-state/final-hosts.json"  # MODEL-523 per-source state, in the data repo
+FINAL_HOSTS = "verification/final-hosts.json"  # MODEL-523 per-source state, in the data repo
 HEX = re.compile(r"[0-9a-f]{64}")
 CHANGE_KEYS = ("stale", "lost_paths", "lost_records", "moved")
 

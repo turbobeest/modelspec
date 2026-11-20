@@ -1392,9 +1392,9 @@ def test_trust_line_counts_stale_by_group_and_change(tmp_path):
 
 
 def test_trust_line_final_host_and_report(catalogue, registry, tmp_path):
-    (tmp_path / "fetch-state").mkdir()
-    (tmp_path / "fetch-state/final-hosts.json").write_text(
-        json.dumps({"src-lab-docs": {"final_host": "other.test"}, "gone": {"final_host": "x"}})
+    (tmp_path / "verification").mkdir()
+    (tmp_path / "verification/final-hosts.json").write_text(
+        json.dumps({"src-lab-docs": {"final_url": "https://other.test/docs", "final_host": "other.test", "first_seen": "2026-11-01", "last_seen": "2026-11-20"}, "gone": {"final_host": "x"}})
     )
     line = trust_line.compute(catalogue, tmp_path, TODAY)
     assert line["moved_hosts"] == {"recorded": True, "moved": 1, "source_ids": ["src-lab-docs"]}
