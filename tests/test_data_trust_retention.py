@@ -69,6 +69,77 @@ def test_retained_copy_manifest_shapes(root, path_field, container):
     assert len(retained(report(root))) == 1
 
 
+def extracts(result):
+    return [f for f in result["findings"] if f["rule"] == "retained_cite_only_extract"]
+
+
+def extract(root, name="visible/page.txt"):
+    path = root / "research" / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("synthetic visible text\n")
+    return path
+
+
+@pytest.mark.parametrize("field", ["visible_copy", "visible_path", "text_copy", "text_path",
+                                   "extract", "extract_path", "normalized_path"])
+def test_audit_reports_retained_text_extract_from_cite_only_host(root, field):
+    extract(root)
+    manifest(root, [{"url": "https://cite.example/source", field: "research/visible/page.txt",
+                     "sha256": "0" * 64, "retention": "cite-only"}])
+    result = report(root)
+    assert extracts(result) == [{"id": "research/visible/page.txt", "field": "source_copy",
+                                 "rule": "retained_cite_only_extract", "severity": "error"}]
+    assert not retained(result)
+    assert result["errors"] == 1
+
+
+def test_extract_origin_includes_redirects_and_nested_records(root):
+    extract(root)
+    manifest(root, {"results": [{"url": "https://retain.example/start", "redirects": [],
+                                 "resolved_urls": ["https://sub.cite.example/end"],
+                                 "visible_copy": "research/visible/page.txt"}]})
+    assert len(extracts(report(root))) == 1
+
+
+def test_extract_from_retainable_host_or_cleared_path_passes(root):
+    extract(root, "visible/kept.txt")
+    manifest(root, [{"url": "https://retain.example/source", "visible_copy": "research/visible/kept.txt"},
+                    {"url": "https://cite.example/source", "visible_copy": None, "visible_preview": "",
+                     "retention": "cite-only"}])
+    result = report(root)
+    assert not extracts(result)
+    assert result["errors"] == 0
+
+
+def test_copy_and_extract_from_one_record_report_the_copy_once(root):
+    body(root)
+    extract(root)
+    manifest(root, [{"url": "https://cite.example/source", "copy": "research/page.gz",
+                     "visible_copy": "research/visible/page.txt"}])
+    result = report(root)
+    assert [f["id"] for f in retained(result)] == ["research/page.gz"]
+    assert [f["id"] for f in extracts(result)] == ["research/visible/page.txt"]
+
+
+def test_extract_check_never_reads_the_text(root, monkeypatch):
+    path = extract(root)
+    manifest(root, [{"url": "https://cite.example/source", "visible_copy": "research/visible/page.txt"}])
+    read_text = Path.read_text
+    monkeypatch.setattr(Path, "read_text", lambda self, *a, **k:
+                        pytest.fail("extract read") if self == path else read_text(self, *a, **k))
+    assert len(extracts(report(root))) == 1
+
+
+def test_extract_outside_root_is_unsafe_not_followed(root, tmp_path_factory):
+    outside = tmp_path_factory.mktemp("outside") / "page.txt"
+    outside.write_text("synthetic")
+    (root / "research/link.txt").symlink_to(outside)
+    manifest(root, [{"url": "https://cite.example/source", "visible_copy": "research/link.txt"}])
+    result = report(root)
+    assert not extracts(result)
+    assert any(f["rule"] == "retained_copy_unsafe_path" for f in result["findings"])
+
+
 def test_retainable_origin_and_metadata_without_body_pass(root):
     body(root)
     manifest(root, [{"url": "https://retain.example/source", "path": "page.gz"},
@@ -375,6 +446,17 @@ def test_audit_flags_retained_copy_from_forbids_host_only(lists, forbids_data_di
         {"url": "https://unclear.example/x", "path": "b.gz", "sha256": "0" * 64}]))
     found = [f for f in audit.inventory(forbids_data_dir) if f.rule == "retained_cite_only_copy"]
     assert [f.id for f in found] == ["research/a.gz"]
+
+
+def test_audit_flags_retained_extract_from_forbids_host_only(lists, forbids_data_dir):
+    (forbids_data_dir / "research").mkdir()
+    for name in ("a.txt", "b.txt"):
+        (forbids_data_dir / "research" / name).write_text("synthetic")
+    (forbids_data_dir / "research/sources.json").write_text(json.dumps([
+        {"url": f"https://{FORBIDDEN}/x", "visible_copy": "a.txt", "sha256": "0" * 64},
+        {"url": "https://unclear.example/x", "visible_copy": "b.txt", "sha256": "0" * 64}]))
+    found = [f for f in audit.inventory(forbids_data_dir) if f.rule == "retained_cite_only_extract"]
+    assert [f.id for f in found] == ["research/a.txt"]
 
 
 def _capture(monkeypatch, target, name, seen):

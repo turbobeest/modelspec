@@ -15,6 +15,10 @@ MAX_MANIFEST_BYTES = 2 * 1024 * 1024
 MAX_MANIFEST_NODES = 100_000
 MAX_MANIFEST_DEPTH = 20
 PATH_FIELDS = ("path", "file", "copy", "copy_path", "raw_path", "artifact")
+# Extracted or derived page text kept beside a copy (MODEL-515). It is page content
+# under the same retention rule as a copy, so it gets the same origin test.
+EXTRACT_FIELDS = ("visible_copy", "visible_path", "text_copy", "text_path",
+                  "extract", "extract_path", "normalized_path")
 ORIGIN_FIELDS = ("url", "requested_url", "source_url", "sourceURL", "final_url")
 BODY_SUFFIXES = {".gz", ".html", ".htm", ".pdf"}
 
@@ -49,7 +53,7 @@ def _records(document):
         if visited > MAX_MANIFEST_NODES or depth > MAX_MANIFEST_DEPTH:
             raise ValueError("manifest structure limit")
         if isinstance(value, dict):
-            if (any(key in value for key in PATH_FIELDS)
+            if (any(key in value for key in (*PATH_FIELDS, *EXTRACT_FIELDS))
                     and any(key in value for key in (*ORIGIN_FIELDS, "resolved_urls",
                                                      "sha256", "bytes", "snapshot_ref"))):
                 yield value
@@ -91,7 +95,53 @@ def inventory(root: Path) -> list[Finding]:
         files = _files(root)
     except (OSError, ValueError, subprocess.SubprocessError):
         return [Finding("catalogue", "source_copy", "retained_copy_inventory_limit", "warning")]
-    referenced, attributed, restricted = set(), set(), set()
+    referenced, attributed, restricted, restricted_extracts = set(), set(), set(), set()
+    def check_record(manifest, record, fields, kept):
+        values = [record[key] for key in fields if record.get(key) is not None]
+        if not values:
+            return
+        resolved = set()
+        for value in values:
+            if not isinstance(value, str) or not value:
+                add(manifest, "retained_copy_unsafe_path")
+                continue
+            path = Path(value)
+            if path.is_absolute():
+                add(manifest, "retained_copy_unsafe_path")
+                continue
+            candidates = {root / path, manifest.parent / path}
+            safe, unsafe = set(), False
+            for candidate in candidates:
+                try:
+                    target = candidate.resolve(strict=True)
+                    if not target.is_relative_to(root):
+                        unsafe = True
+                    elif Path(os.path.normpath(candidate)) in files and target.is_file():
+                        safe.add(target)
+                except FileNotFoundError:
+                    continue
+                except (OSError, ValueError, RuntimeError):
+                    unsafe = True
+            if len(safe) > 1:
+                add(manifest, "retained_copy_ambiguous_path")
+            elif safe:
+                resolved.update(safe)
+            else:
+                add(manifest, "retained_copy_unsafe_path" if unsafe else "retained_copy_missing")
+        referenced.update(resolved)
+        if not resolved:
+            return
+        try:
+            origins = _origins(record)
+        except ValueError:
+            add(manifest, "retained_copy_origin", "error")
+            return
+        if not origins:
+            return
+        attributed.update(resolved)
+        if cite_only_origin_restrictive(origins[0], origins[1:]):
+            kept.update(resolved)
+
     manifests = sorted((path for path in files if path.suffix == ".json"),
                        key=lambda path: (not any(word in path.name.lower()
                                                  for word in ("source", "manifest")), path))
@@ -117,52 +167,12 @@ def inventory(root: Path) -> list[Finding]:
             add(manifest, "retained_copy_manifest_limit")
             continue
         for record in records:
-            values = [record[key] for key in PATH_FIELDS if record.get(key) is not None]
-            if not values:
-                continue
-            resolved = set()
-            for value in values:
-                if not isinstance(value, str) or not value:
-                    add(manifest, "retained_copy_unsafe_path")
-                    continue
-                path = Path(value)
-                if path.is_absolute():
-                    add(manifest, "retained_copy_unsafe_path")
-                    continue
-                candidates = {root / path, manifest.parent / path}
-                safe, unsafe = set(), False
-                for candidate in candidates:
-                    try:
-                        target = candidate.resolve(strict=True)
-                        if not target.is_relative_to(root):
-                            unsafe = True
-                        elif Path(os.path.normpath(candidate)) in files and target.is_file():
-                            safe.add(target)
-                    except FileNotFoundError:
-                        continue
-                    except (OSError, ValueError, RuntimeError):
-                        unsafe = True
-                if len(safe) > 1:
-                    add(manifest, "retained_copy_ambiguous_path")
-                elif safe:
-                    resolved.update(safe)
-                else:
-                    add(manifest, "retained_copy_unsafe_path" if unsafe else "retained_copy_missing")
-            referenced.update(resolved)
-            if not resolved:
-                continue
-            try:
-                origins = _origins(record)
-            except ValueError:
-                add(manifest, "retained_copy_origin", "error")
-                continue
-            if not origins:
-                continue
-            attributed.update(resolved)
-            if cite_only_origin_restrictive(origins[0], origins[1:]):
-                restricted.update(resolved)
+            check_record(manifest, record, PATH_FIELDS, restricted)
+            check_record(manifest, record, EXTRACT_FIELDS, restricted_extracts)
     for path in sorted(restricted):
         add(path, "retained_cite_only_copy", "error")
+    for path in sorted(restricted_extracts - restricted):
+        add(path, "retained_cite_only_extract", "error")
     candidates = referenced | {path for path in files
                                if path.is_relative_to(root / "research") and path.suffix in BODY_SUFFIXES}
     for path in sorted(candidates):
