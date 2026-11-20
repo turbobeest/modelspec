@@ -2949,6 +2949,12 @@ _FEATURE_NO_OBJECT = re.compile(
     r"|\bno\s+support\s+for\b)")
 _FEATURE_PARTIAL_SENTENCE = re.compile(
     r"(?i)\b(?:partial(?:ly)?\s+support(?:ed|s)?|limited\s+support|(?:only\s+)?partially)\b")
+#: "not unsupported", "not unavailable": a double negative is not read.
+_FEATURE_DOUBLE_NEGATIVE = re.compile(
+    r"(?i)\b(?:not|isn't|aren't|never)\s+(?:un\w+|not\b)")
+#: Text right before a feature that excludes it: "but not X", "except X", "without X".
+_FEATURE_EXCLUDES = re.compile(
+    r"(?i)\b(?:not|except|without)\s+(?:(?:support(?:s|ing)?|offer(?:s|ing)?|for)\s+)?$")
 _FEATURE_CLAUSES = re.compile(r"(?i);|,|\bbut\b|\bwhile\b|\bwhereas\b")
 _FEATURE_DASH = frozenset({"-", "–", "—"})
 
@@ -2956,6 +2962,9 @@ _FEATURE_DASH = frozenset({"-", "–", "—"})
 def _feature_cell(cell: str) -> str | None:
     """Classify a value cell as supported, not supported or partial."""
     plain = cell.replace("**", "").replace("`", "").strip()
+    # A bracketed note after the value ("No (coming soon)") does not change it.
+    unnoted = re.sub(r"\s*\([^)]*\)\s*$", "", plain).strip()
+    plain = unnoted or plain
     if not plain:
         return None
     key = normalise_name(plain)
@@ -2972,6 +2981,10 @@ def _clause_state(clause: str, wanted: Sequence[str], raw: Sequence[str]) -> str
     hits = [(low.index(w), w) for w in raw if w in low]
     start, phrase = min(hits) if hits else (0, "")
     end = start + len(phrase)
+    if _FEATURE_DOUBLE_NEGATIVE.search(clause):
+        return "partial"
+    if hits and _FEATURE_EXCLUDES.search(low[:start]):
+        return "not supported"
     # "Streaming: No", "Batch API - unsupported": a value right after the name.
     tail = re.match(r"\s*[:\u2013\u2014-]\s*(\S.*)$", clause[end:]) if hits else None
     if tail and (state := _feature_cell(tail.group(1).strip().rstrip("."))) is not None:

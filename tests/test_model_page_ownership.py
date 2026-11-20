@@ -325,3 +325,29 @@ def test_a_supported_line_and_a_not_supported_line_conflict(field, yes, no):
 def test_a_negation_about_another_feature_does_not_deny_streaming():
     page = "# Fixture Model\nTool calling is not supported in streaming mode.\nModel details.\nText.\n"
     assert read(page, "feature.streaming", False).outcome != "verified"
+
+
+@pytest.mark.parametrize("text,field,stated", [
+    ("Supports streaming and tool calling, but not batch inference.", "feature.batch", False),
+    ("Supports streaming and tool calling, but not batch inference.", "feature.streaming", True),
+    ("Fixture Model supports tool calling but not streaming.", "feature.streaming", False),
+    ("Supports tool calling except batch inference.", "feature.batch", False),
+    ("Supports tool calling without streaming.", "feature.streaming", False),
+    ("Streaming: No (coming soon)", "feature.streaming", False),
+    ("| Streaming | No (coming soon) |", "feature.streaming", False),
+    ("| Streaming | Yes (beta) |", "feature.streaming", True),
+])
+def test_excluded_features_and_noted_values_read_correctly(text, field, stated):
+    page = f"# Fixture Model\n{text}\nModel details.\nText generation.\n"
+    assert read(page, field, stated).outcome == "verified"
+    assert read(page, field, not stated).outcome != "verified"
+
+
+@pytest.mark.parametrize("text", [
+    "Streaming is not unsupported.", "Streaming is not unavailable.",
+    "Streaming isn't unsupported.",
+])
+def test_a_double_negative_is_unreadable(text):
+    page = f"# Fixture Model\n{text}\nModel details.\nText generation.\n"
+    assert read(page, "feature.streaming", True).outcome != "verified"
+    assert read(page, "feature.streaming", False).outcome != "verified"
