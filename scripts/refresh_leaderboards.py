@@ -1417,8 +1417,14 @@ def _verifier_skip_reason(
             f"verifier: {diff.field} expected {diff.expected!r} found {diff.found!r}"
             for diff in diffs
         ), diffs, ""
-    if result.outcome == "skipped" and not (result.reason or "").strip():
+    reason = (result.reason or "").strip()
+    if result.outcome == "skipped" and not reason:
         return "verifier: skipped", (), "unowned"
+    if result.outcome == "skipped" and all(
+        part.startswith(verify.UNOWNED_REASONS) for part in reason.split("; ")
+    ):
+        # The page was read and no row was this claim's: say which of the four ways.
+        return f"verifier: {reason}", (), "unowned"
     return f"verifier: {result.reason or result.outcome}", (), ""
 
 

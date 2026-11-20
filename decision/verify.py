@@ -6974,7 +6974,14 @@ def _reading_subject_matches(subject: str, names: Sequence[str], *, field: str |
         return True
     # Effort is a separate condition. Other qualifiers and '+' remain identity.
     identity = split_model_cell(subject.replace("+", " plus "))[0]
-    aliases = tuple(split_model_cell(name.replace("+", " plus "))[0] for name in names)
+    # Two names that each carry a compound parenthesis are compared by their ordered
+    # name and qualifier multiset below, never flattened: "Max (High, 32K, d)" and
+    # "(Max, High, 32K, d)" flatten to one string and are different names. A slug has no
+    # parenthesis, so a display name still matches its slug by the flat identity.
+    flat = [name for name in names
+            if not (_compound_qualifier(subject) is not None
+                    and _compound_qualifier(name) is not None)]
+    aliases = tuple(split_model_cell(name.replace("+", " plus "))[0] for name in flat)
     if _published_subject(identity, aliases) is not None:
         return True
     # The name outside a compound parenthesis is ordered. The qualifier is a
@@ -7094,6 +7101,16 @@ def _number_agrees(expected: int | float, found: object, unit: str | None = None
     return quantity is not None and numbers_agree(expected, unit, quantity)
 
 
+#: How an evidence claim's skip says that the stored copy was read and no row was its own.
+#: Each reason starts with one of these; the refresh files them under one skip class.
+UNOWNED_REASONS = (
+    "no reader accepts the stored copy",
+    "no independent reader for the stored copy",
+    "the stored copy has no row for this model",
+    "the reader found no rows in the stored copy",
+)
+
+
 def _verify_evidence_reading(
     claim: Claim,
     regions: Regions,
@@ -7112,6 +7129,8 @@ def _verify_evidence_reading(
     reachable = False
     reasons: list[str] = []
     no_copy: list[str] = []
+    #: Why a region read but unowned says nothing else: used only when no other reason is.
+    silent: list[str] = []
     diffs: list[Diff] = []
 
     for source in claim.sources:
@@ -7127,11 +7146,13 @@ def _verify_evidence_reading(
                     reasons.append(f"unreachable:{where}")
                 continue
             reachable = True
-            for extractor in [
-                item
-                for item in ordered
-                if item.accepts(text) and _independent(claim, item.actor, today)
-            ]:
+            accepting = [item for item in ordered if item.accepts(text)]
+            readers_here = [item for item in accepting if _independent(claim, item.actor, today)]
+            if not accepting:
+                silent.append(f"no reader accepts the stored copy: {where}")
+            elif not readers_here:
+                silent.append(f"no independent reader for the stored copy: {where}")
+            for extractor in readers_here:
                 try:
                     readings = extractor.extract(claim, text)
                 except ExtractorError as exc:
@@ -7141,6 +7162,7 @@ def _verify_evidence_reading(
                     actor = actor or extractor.actor
                     diffs.append(Diff("model", claim.names[0], None))
                     continue
+                matched_here = False
                 for reading in readings:
                     if not isinstance(reading.value, dict) or not reading.subject:
                         continue
@@ -7148,6 +7170,7 @@ def _verify_evidence_reading(
                     benchmark = _published_subject(reading.subject, benchmark_names) is not None
                     if not own and not benchmark:
                         continue
+                    matched_here = True
                     actor = actor or extractor.actor
                     found = reading.value
                     if own and "score" in found:
@@ -7179,6 +7202,11 @@ def _verify_evidence_reading(
                         else:
                             diffs.append(Diff("n", expected["n"], found["n"]))
                     found_flags.update(str(flag) for flag in found.get("quality_flags", []))
+                if not matched_here:
+                    silent.append(
+                        f"the stored copy has no row for this model ({len(readings)} rows read): "
+                        f"{where}" if readings else
+                        f"the reader found no rows in the stored copy: {where}")
 
     expected_flags = set(expected.get("quality_flags") or [])
     if found_flags == expected_flags:
@@ -7208,7 +7236,8 @@ def _verify_evidence_reading(
             _verification(claim, REGION_LOOKUP, "unreachable", today),
             reason="; ".join(reasons),
         )
-    return Result(claim.target, "skipped", reason="; ".join([*reasons, *no_copy]))
+    return Result(claim.target, "skipped",
+                  reason="; ".join([*reasons, *no_copy]) or "; ".join(silent))
 
 
 def _verify_jurisdiction_set(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
