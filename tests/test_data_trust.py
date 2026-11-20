@@ -252,6 +252,52 @@ def test_plain_http_readers(catalogue, registry, body, expected):
     assert report["error_rate"]["readable"] == (0 if expected == "unreadable" else 1)
 
 
+def test_mismatch_records_what_it_read(catalogue, registry):
+    body = b"Model: Test Model\nmodel.context window: 64000 tokens\n"
+
+    class HTTP:
+        def fetch(self, url):
+            return FetchResult("ok", status=200, body=body)
+
+    catalogue.facts = catalogue.facts[1:]
+    report = sample.run(catalogue, registry, n=60, seed="week", as_of=TODAY, fetcher=HTTP())
+    (row,) = report["results"]
+    assert row["outcome"] == "mismatched"
+    assert "64000" in row["read_value"]
+    assert row["read_value_truncated"] is False
+    assert row["read_field"] == "value"
+    assert row["diff_fields"] == ["value"]
+    from decision.sources import fingerprint_bytes
+
+    assert list(row["source_snapshots"].values()) == [fingerprint_bytes(body)]
+
+
+def test_read_detail_truncates_prose():
+    from decision.verify import Diff, Result
+
+    long = "x" * (sample.READ_VALUE_LIMIT + 50)
+    result = Result(
+        target=None, outcome="mismatch",
+        diffs=(Diff("conditions", None, None), Diff("value", "stored", long)),
+    )
+    detail = sample.read_detail(result, {"https://example.test/a": b"page"})
+    assert detail["read_value"] == "x" * sample.READ_VALUE_LIMIT
+    assert detail["read_value_truncated"] is True
+    assert detail["diff_fields"] == ["conditions", "value"]
+    empty = sample.read_detail(Result(target=None, outcome="mismatch"), {})
+    assert empty["read_value"] is None and empty["read_value_truncated"] is False
+
+
+def test_matched_and_unreadable_carry_no_read_detail(catalogue, registry):
+    catalogue.facts = catalogue.facts[1:]
+    for outcome in ("matched", "unreadable"):
+        report = sample.run(
+            catalogue, registry, n=60, seed="week", as_of=TODAY,
+            reader=lambda *a, o=outcome: (o, "r", {"read_value": "x"}),
+        )
+        assert "read_value" not in report["results"][0]
+
+
 def test_primary_source_fetch_once(catalogue, registry):
     class HTTP:
         calls = 0

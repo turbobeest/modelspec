@@ -93,15 +93,41 @@ def guard_request(request: httpx.Request) -> None:
         raise ValueError("refused source")
 
 
+#: A mismatch records the value the reader found, cut to this many characters.
+READ_VALUE_LIMIT = 200
+
+
+def read_detail(result, fetched_bytes: dict[str, bytes]) -> dict:
+    """What a mismatch read, so a reviewer can tell source drift from a reader fault.
+
+    ``read_value`` is the found value of the first diff that has one, cut to
+    ``READ_VALUE_LIMIT`` characters (``read_value_truncated`` says whether it was cut).
+    ``diff_fields`` names every field that differed. ``source_snapshots`` maps each
+    fetched URL to the hash of the bytes the reader was given, before any projection.
+    """
+    from decision.sources import fingerprint_bytes
+
+    found = next((d for d in result.diffs if d.found is not None), None)
+    text = None if found is None else str(found.found)
+    return {
+        "read_value": None if text is None else text[:READ_VALUE_LIMIT],
+        "read_value_truncated": text is not None and len(text) > READ_VALUE_LIMIT,
+        "read_field": None if found is None else found.field,
+        "diff_fields": sorted({d.field for d in result.diffs}),
+        "source_snapshots": {u: fingerprint_bytes(b) for u, b in sorted(fetched_bytes.items())},
+    }
+
+
 def reread(
     f: dict, c: Catalogue, registry, fetcher, store: CopyStore, fetched: dict, today: date
-) -> tuple[str, str]:
+) -> tuple[str, str] | tuple[str, str, dict]:
+    """The outcome and reason; a mismatch adds a third item, the ``read_detail``."""
     urls = source_urls(f, c)
     if not urls:
         return "unreadable", "no_primary_source"
     try:
         claim = claim_for(f, c, registry)
-        sources, fresh_refs = {}, []
+        sources, fresh_refs, raw_bytes = {}, [], {}
         for index, url in enumerate(dict.fromkeys(urls)):
             if not safe_url(url) or excluded_sources().url(url):
                 continue
@@ -132,6 +158,7 @@ def reread(
             body, content_type = fetched[url]
             if body is None:
                 continue
+            raw_bytes[url] = body
             body = project(claim, url, body, today)
             source = (
                 Source.model_validate(c.sources[sid])
@@ -194,7 +221,7 @@ def reread(
             return "unreadable", "no_reading"
         if any(d.field == "model" and d.found is None for d in result.diffs):
             return "unreadable", "identity_unreadable"
-        return "mismatched", "deterministic_difference"
+        return "mismatched", "deterministic_difference", read_detail(result, raw_bytes)
     except (ValidationError, ValueError, KeyError, TypeError, OSError, ImportError):
         # Diagnostics contain reason codes, never exception text or credential-bearing URLs.
         return "unreadable", "unsupported_source_or_claim"
@@ -221,7 +248,7 @@ def run(
         store = CopyStore(Path(cache_dir))
         for f in chosen:
             key = stratum(f, as_of)
-            outcome, reason = reader(f, c, registry, fetcher, store, fetched, as_of)
+            outcome, reason, *rest = reader(f, c, registry, fetcher, store, fetched, as_of)
             strata[key][outcome] += 1
             results.append(
                 {
@@ -230,6 +257,7 @@ def run(
                     "stratum": list(key),
                     "outcome": outcome,
                     "reason": reason,
+                    **(rest[0] if rest and outcome == "mismatched" else {}),
                 }
             )
     if client is not None:
