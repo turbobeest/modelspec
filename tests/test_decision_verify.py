@@ -5325,3 +5325,97 @@ def test_documented_maintenance_entry_point_has_verification_help(monkeypatch, t
         assert "--root" in args
         assert args[args.index("--root") + 1] == str(tmp_path / "data")
     assert not (tmp_path / "data").exists()
+
+
+# --- MODEL-530: a source's publisher lets a lab's own pages back lab and seller facts ---
+
+class _PublisherRegions(_KindRegions):
+    def __init__(self, texts, kinds, publishers) -> None:
+        super().__init__(texts, kinds)
+        self.publishers = publishers
+
+    def source_publisher(self, source_id: str) -> str | None:
+        return self.publishers.get(source_id)
+
+
+def _absence_claim(subject: str, facet: str, source_id: str) -> verify.Claim:
+    from decision.model import Fact
+
+    kind = "offering" if facet.startswith("offering.") else "model"
+    fact = Fact(
+        id=f"{subject}#{facet}", subject={"kind": kind, "id": subject}, facet=facet,
+        state="not_disclosed",
+        sources=[{"source_id": source_id, "snapshot_ref": "sha256:" + "d" * 64,
+                  "cited_regions": ["page"]}],
+    )
+    return verify.Claim.from_fact(fact, names=["Nimbus 3"], collector=COLLECTOR)
+
+
+_SILENT = "Model: Nimbus 3\nContext Window: 128K tokens\n"
+
+
+def _outcome(claim, kind, publisher) -> verify.Result:
+    sid = claim.sources[0].source_id
+    regions = _PublisherRegions({(sid, "page"): _SILENT}, {sid: kind}, {sid: publisher})
+    return verify.verify(claim, regions, verify.deterministic_extractors(), today=TODAY)
+
+
+@pytest.mark.parametrize("publisher, passes", [
+    ("lab", True), ("reseller", False), (None, False),
+])
+def test_a_lab_kind_facet_takes_a_provider_page_only_from_the_lab(publisher, passes) -> None:
+    claim = _absence_claim("lab/nimbus-3", "model.max_output_tokens", "nimbus-pricing")
+    result = _outcome(claim, "provider_documentation", publisher)
+    if passes:
+        assert result.outcome == "verified", result
+    else:
+        assert result.outcome == "mismatch" and result.diffs[0].field == "source_kind"
+
+
+@pytest.mark.parametrize("subject, publisher, passes", [
+    ("lab-api/lab/nimbus-3/global/standard", "lab-api", True),
+    ("reseller/lab/nimbus-3/global/standard", "reseller", False),
+    ("lab-api/lab/nimbus-3/global/standard", "reseller", False),
+    ("lab-api/lab/nimbus-3/global/standard", None, False),
+])
+def test_a_seller_facet_takes_a_lab_page_only_from_the_labs_own_provider(
+        monkeypatch, subject, publisher, passes) -> None:
+    monkeypatch.setattr(verify, "_provider_of_lab",
+                        lambda provider, lab: (provider, lab) == ("lab-api", "lab"))
+    claim = _absence_claim(subject, "offering.price.batch_input", "nimbus-model-page")
+    result = _outcome(claim, "lab_documentation", publisher)
+    assert (result.outcome == "verified") is passes, result
+    if not passes:
+        assert result.outcome == "mismatch" and result.diffs[0].field == "source_kind"
+
+
+def test_a_publisher_never_widens_a_kind_that_matches_neither_rule() -> None:
+    claim = _absence_claim("lab/nimbus-3", "model.max_output_tokens", "nimbus-spec")
+    assert _outcome(claim, "weights_repository", "lab").outcome == "mismatch"
+    assert _outcome(claim, "lab_documentation", None).outcome == "verified"
+
+
+def test_the_publisher_is_optional_on_a_source_and_never_serialised_when_absent() -> None:
+    from decision.model import Source
+
+    base = {"id": "s", "url": "https://example.com/p", "kind": "lab_documentation"}
+    assert Source.model_validate(base).publisher is None
+    assert "publisher" not in Source.model_validate(base).model_dump(mode="json")
+    assert Source.model_validate({**base, "publisher": "lab"}).publisher == "lab"
+
+
+def test_base_lineage_checks_are_unchanged_without_a_publisher() -> None:
+    from decision.model import Fact
+
+    fact = Fact(
+        id="lab/nimbus-3#origin.base_lineage", subject={"kind": "model", "id": "lab/nimbus-3"},
+        facet="origin.base_lineage", state="known", value=[],
+        sources=[{"source_id": "nimbus-spec", "snapshot_ref": "sha256:" + "e" * 64,
+                  "cited_regions": ["page"]}],
+    )
+    claim = verify.Claim.from_fact(fact, names=["Nimbus 3"], collector=COLLECTOR)
+    for kind in ("lab_documentation", "weights_repository", "licence_text"):
+        assert verify._kind_admitted(claim, verify.default_registry().facet(claim.field), kind, None)
+    for kind in ("provider_documentation", "provider_terms", None):
+        assert not verify._kind_admitted(
+            claim, verify.default_registry().facet(claim.field), kind, None)

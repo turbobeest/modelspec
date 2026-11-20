@@ -601,6 +601,14 @@ class Source(Record):
     #: A ``source_kinds`` id from ``registry/facets.yaml``. Absent means the kind
     #: is unknown; existing registries still load.
     kind: str | None = None
+    #: Who publishes the page: a lab id or a provider id, as the registries spell
+    #: them (MODEL-530). Absent means unknown. The kind check reads it so a lab's own
+    #: pages can back both lab and seller facts. Never served.
+    publisher: str | None = Field(
+        default=None,
+        **({"exclude_if": lambda value: value is None} if NATIVE_EXCLUDE_IF else {
+            "json_schema_extra": {"exclude_if": lambda value: value is None},
+        }))
     cited_regions: list[CitedRegion] = Field(default_factory=list)
     #: The id of the source this one is an alias or redirect of (MODEL-519). Two sources on
     #: one host that serve the same bytes are a shell page unless one names the other here.

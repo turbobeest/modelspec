@@ -211,6 +211,8 @@ class Provider:
     jurisdiction: Jurisdiction
     attestations: Mapping[str, Sourced]
     v1_availability_field: str | None = None
+    #: The lab this provider is the own API of (MODEL-530). Absent means none stated.
+    lab: str | None = None
 
 
 @dataclass(frozen=True)
@@ -725,7 +727,11 @@ def _load_providers(err: _Errors, root: Path) -> dict[str, Provider]:
     out: dict[str, Provider] = {}
     for e in entries:
         where = f"providers.yaml {e.get('id')!r}"
-        _keys(err, where, e, required, {"v1_availability_field"})
+        _keys(err, where, e, required, {"v1_availability_field", "lab"})
+        lab = e.get("lab")
+        if lab is not None and (not isinstance(lab, str) or not KEBAB_ID.fullmatch(lab)):
+            err.add(where, "lab must be a kebab-case lab id")
+            lab = None
         if not _https(e.get("url")):
             err.add(where, "url must be an https URL")
         if e.get("kind") not in PROVIDER_KINDS:
@@ -766,7 +772,8 @@ def _load_providers(err: _Errors, root: Path) -> dict[str, Provider]:
             out.setdefault(e["id"], Provider(
                 id=e["id"], name=str(e.get("name", "")), url=str(e.get("url", "")),
                 kind=str(e.get("kind", "")), jurisdiction=jurisdiction,
-                attestations=MappingProxyType(attestations), v1_availability_field=field_))
+                attestations=MappingProxyType(attestations), v1_availability_field=field_,
+                lab=lab))
     return out
 
 
