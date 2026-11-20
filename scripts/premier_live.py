@@ -12,7 +12,7 @@ import yaml
 
 from decision.excluded import excluded_sources
 from decision.registry import default as default_registry
-from decision.snapshot import LoadedSnapshot, build_snapshot, collect_repo
+from decision.snapshot import LoadedSnapshot, audit_build, build_snapshot, collect_repo
 from pipeline.data_source import check_private
 
 # The approved lineup counted the lab API as one recorded provider, and a
@@ -119,7 +119,14 @@ def load_inputs(root: Path, as_of: date) -> dict:
         if facet.subject == "model" and facet.tier == "guaranteed"
         and facet.computed_by is None
     }
+    # MODEL-495: the facets each active card lacks under the premier completeness gate.
+    missing_facets: dict[str, set[str]] = {}
+    for gap in audit_build(
+        inputs, registry=registry, premier=sorted(active), as_of=as_of, guard=excluded_sources(),
+    ).gaps:
+        missing_facets.setdefault(gap.model, set()).add(gap.facet)
     for model_id, card in cards.items():
+        card["completeness_gaps"] = sorted(missing_facets.get(model_id, ()))
         if model_id not in active:
             card["status"] = "sunset"
         if not COUNT_LAB_API:
