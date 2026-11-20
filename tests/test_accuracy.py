@@ -2642,3 +2642,31 @@ def test_compare_approved_answers_rejects_two_report_files(tmp_path: Path, capsy
         "::error::Private recall inputs could not be validated: expected one report.\n"
     )
     assert not paths[3].exists()
+
+
+def test_m509_a_refused_hop_is_its_own_diagnostic_and_fails_the_layer(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    result, _unread, _queue, _log = _run_fidelity_fetch(
+        tmp_path, {"plain": _text_source("plain", "http")},
+        [_sourced("lab/refused#context", "plain")],
+        {"https://example.test/plain": FetchResult(
+            "unreachable", error="redirect_unclassified:unknown.example")},
+    )
+    assert result.details[0]["sources"][0]["error_category"] == "redirect_unclassified"
+
+    public, private, _lag = _public_and_private_fidelity(tmp_path / "layer", monkeypatch)
+    from decision import sources as source_module
+
+    monkeypatch.setattr(source_module, "Fetcher", lambda: _FetchResults({
+        "https://example.test/lag": FetchResult(
+            "unreachable", error="terms_register_unreadable"),
+        "https://example.test/plain": FetchResult(
+            "ok", 200, body=_PAGE, content_type="text/plain"),
+    }))
+    layer = accuracy.data_fidelity(
+        public, as_of=date(2026, 10, 13), config=accuracy.load_config().data_fidelity,
+        seed="model335", private_data_root=private)
+    assert layer.status == "fail"
+    assert layer.details["redirect_unclassified"] == 1
+    assert "refused at the terms register" in layer.summary

@@ -1226,7 +1226,7 @@ def _current_copies(
     ``render_required``.
     """
     from decision.model import SourceRef
-    from decision.sources import FetchMode, recheck
+    from decision.sources import FetchMode, recheck, refusal_reason
 
     selected = {source.source_id for claim, _ in batch for source in claim.sources}
     report = recheck(
@@ -1286,7 +1286,11 @@ def _current_copies(
                     *map(str, source.resolved_urls), *response.resolved_urls,
                 ]))
                 error_category = None
-                if response.status is not None and response.status >= 400:
+                if (refused := refusal_reason(response)) is not None:
+                    # Refused at the terms register (MODEL-509): its own category, so the
+                    # layer counts it and fails; never a plain transport error.
+                    error_category = refused.partition(":")[0]
+                elif response.status is not None and response.status >= 400:
                     error_category = "http_error"
                 elif response.error:
                     error_category = (
@@ -1425,6 +1429,7 @@ def data_fidelity(
     sample: list[dict[str, Any]] = []
     drawn = 0
     fetched_sources: set[str] = set()
+    refused_sources: set[str] = set()
     with tempfile.TemporaryDirectory(prefix="modelspec-accuracy-sources-") as temporary:
         store = CopyStore(Path(temporary))
         fetcher = Fetcher()
@@ -1445,6 +1450,9 @@ def data_fidelity(
                 nightly_methods=nightly_methods,
                 fetch_diagnostics=fetch_diagnostics,
             )
+            refused_sources.update(
+                row["source_id"] for rows in fetch_diagnostics.values() for row in rows
+                if row["error_category"] in {"redirect_unclassified", "terms_register_unreadable"})
             result = verify_fidelity_sample(
                 current,
                 regions=StoredRegions(store, sources),
@@ -1466,6 +1474,11 @@ def data_fidelity(
     # Rendered sources the nightly cannot read stay visible each night (MODEL-336).
     render_required = sum(row["reason"] == "render_required" for row in sample)
     summary += f" {render_required} draw(s) needed a renderer (render_required)."
+    if refused_sources:
+        # A refused hop is loud (MODEL-509): the layer fails, which opens the nightly alert.
+        status = "fail"
+        summary += (f" {len(refused_sources)} source(s) were refused at the terms register "
+                    "(redirect_unclassified).")
     summary += (
         f" {counts['public_image_lag']} draw(s) lagged a newer verified private correction."
     )
@@ -1491,6 +1504,7 @@ def data_fidelity(
                                "missing_source_metadata")
             },
             "plain_http_sources": len(fetched_sources),
+            "redirect_unclassified": len(refused_sources),
             "firecrawl_credits_used": 0,
             "firecrawl_credit_limit": config.max_firecrawl_credits,
         },

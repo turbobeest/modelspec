@@ -93,6 +93,24 @@ def guard_request(request: httpx.Request) -> None:
         raise ValueError("refused source")
 
 
+#: Boards the audit reads, by the version a field names (MODEL-509). The 4.0 board is
+#: gone, so its claims are not compared with the 4.1 page.
+TBENCH_BOARD_GONE = "terminal_bench_v4_0"
+TBENCH_READ_FIELD = "terminal_bench_v4_1"
+
+
+def unauditable(f: dict) -> str | None:
+    """Why a row is not compared with a live page at all, or None."""
+    if f.get("not_published_since") not in (None, ""):
+        return "not_published_since"
+    field = str(f.get("field") or "")
+    if field == TBENCH_BOARD_GONE:
+        return "board no longer published"
+    if field.startswith("terminal_bench") and field != TBENCH_READ_FIELD:
+        return "board version not named by an audited field"
+    return None
+
+
 #: A mismatch records the value the reader found, cut to this many characters.
 READ_VALUE_LIMIT = 200
 
@@ -129,6 +147,8 @@ def reread(
     f: dict, c: Catalogue, registry, fetcher, store: CopyStore, fetched: dict, today: date
 ) -> tuple[str, str] | tuple[str, str, dict]:
     """The outcome and reason; a mismatch adds a third item, the ``read_detail``."""
+    if (skip := unauditable(f)) is not None:
+        return "skipped", skip
     urls = source_urls(f, c)
     if not urls:
         return "unreadable", "no_primary_source"
@@ -150,6 +170,10 @@ def reread(
             sid = raw_ref["source_id"] if raw_ref else f"audit-primary-{index}"
             if url not in fetched:
                 response = fetcher.fetch(url)
+                from decision.sources import named_refusal, refusal_reason
+
+                if (refused := refusal_reason(response)) is not None:
+                    return "redirect_unclassified", named_refusal(refused, sid)
                 from decision.retention import cite_only_origin_restrictive
 
                 if cite_only_origin_restrictive(url, response.resolved_urls):
@@ -245,6 +269,8 @@ def run(
     chosen = select(eligible, n, seed, as_of)
     coverage = reader_coverage(c, registry, as_of)
     strata = defaultdict(Counter)
+    skipped = Counter()
+    refused = 0
     results = []
     fetched = {}
     client = None
@@ -256,7 +282,12 @@ def run(
         for f in chosen:
             key = stratum(f, as_of)
             outcome, reason, *rest = reader(f, c, registry, fetcher, store, fetched, as_of)
-            strata[key][outcome] += 1
+            if outcome == "skipped":
+                skipped[reason] += 1
+            elif outcome == "redirect_unclassified":
+                refused += 1
+            else:
+                strata[key][outcome] += 1
             results.append(
                 {
                     "id": f["id"],
@@ -275,9 +306,15 @@ def run(
         "reader_coverage": coverage,
         "eligible": len(eligible),
         "requested": n,
-        "sampled": len(chosen),
+        "selected": len(chosen),
+        # Assessed rows only: skipped rows (a withdrawn board, a row marked not published) are
+        # reported under ``skipped`` and are not part of the sample.
+        "sampled": len(chosen) - sum(skipped.values()),
         "seed": seed,
         "counts": counts,
+        "skipped": dict(sorted(skipped.items())),
+        # Fetches refused at the terms register (MODEL-509), reported apart from unreadable.
+        "redirect_unclassified": refused,
         "error_rate": wilson(counts["mismatched"], counts["matched"] + counts["mismatched"]),
         "strata": [
             {

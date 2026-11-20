@@ -172,3 +172,15 @@ def test_a_rendered_source_is_refused_as_a_companion(tmp_path) -> None:
     with pytest.raises(ValueError, match="rendered"):
         fetch_companions(["lab-rendered"], SOURCES, fetcher=_fetcher(_page),
                          store=CopyStore(tmp_path), terms=TERMS, now=NOW)
+
+
+def test_m509_a_refused_companion_is_counted_apart_from_unreachable(tmp_path) -> None:
+    from decision.companions import refused
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(302, headers={"location": "https://unknown.example/filing/"})
+
+    reads = fetch_companions(["lab-companion"], SOURCES, fetcher=_fetcher(handler),
+                             store=CopyStore(tmp_path), terms=TERMS, now=NOW)
+    assert refused(reads) == {"lab-companion": "redirect_unclassified:unknown.example"}
+    assert refused({"x": reads["lab-companion"].__class__("x", "unreachable")}) == {}

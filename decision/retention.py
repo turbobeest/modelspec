@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 import logging
 import os
 from contextlib import contextmanager
@@ -51,6 +52,76 @@ def _register_forbidding(data_dir: str) -> tuple[str, ...]:
                         if cls == FORBIDS and isinstance(host, str) and host
                         and host == host.lower().rstrip(".")
                         and not any(char in host for char in "/:@ ")))
+
+
+@cache
+def _register_classes(data_dir: str) -> frozenset[str] | None:
+    path = Path(data_dir) / "registry" / "source-terms.json"
+    try:
+        terms = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        logger.warning("the private source-terms register could not be read")
+        return None
+    if not isinstance(terms, dict):
+        logger.warning("the private source-terms register is not an object")
+        return None
+    return frozenset(host for host, cls in terms.items()
+                     if isinstance(host, str) and host and isinstance(cls, str) and cls)
+
+
+class TermsRegisterUnreadable(Exception):
+    """A data directory is named but a private register it needs is missing or unreadable."""
+
+
+@cache
+def _registered_hosts(data_dir: str) -> frozenset[str] | None:
+    import yaml
+
+    path = Path(data_dir) / "registry" / "sources.yaml"
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        hosts = {canonical_host(row["url"]) for row in data["sources"]
+                 if isinstance(row, dict) and row.get("url")}
+        return frozenset(host for host in hosts if host)
+    except (OSError, ValueError, KeyError, TypeError, yaml.YAMLError):
+        logger.warning("the private source registry could not be read")
+        return None
+
+
+def registered_source_hosts() -> frozenset[str] | None:
+    """Hosts of the sources the private registry lists; None with no data directory.
+
+    With a data directory and no readable registry this raises
+    ``TermsRegisterUnreadable``, so a caller fails closed.
+    """
+    data_dir = os.environ.get(DATA_DIR_ENV, "").strip()
+    if not data_dir:
+        return None
+    hosts = _registered_hosts(data_dir)
+    if hosts is None:
+        raise TermsRegisterUnreadable
+    return hosts
+
+
+def classified_hosts() -> frozenset[str] | None:
+    """Hosts that carry a class in the private terms register (MODEL-509).
+
+    None when no data directory is named: a caller then behaves as it did before
+    the register existed. With a data directory and no readable register this
+    raises ``TermsRegisterUnreadable``, so a caller fails closed.
+    """
+    data_dir = os.environ.get(DATA_DIR_ENV, "").strip()
+    if not data_dir:
+        return None
+    classes = _register_classes(data_dir)
+    if classes is None:
+        raise TermsRegisterUnreadable
+    return classes
+
+
+def is_classified(host: str | None, classes: frozenset[str] | Mapping[str, str]) -> bool:
+    """Whether ``host`` or a parent domain of it carries a class (the rule ``cite_only_status`` uses)."""
+    return host is not None and any(host == c or host.endswith("." + c) for c in classes)
 
 
 def use_data_dir(data_dir: object) -> None:
@@ -104,6 +175,8 @@ def cite_only_hosts() -> tuple[str, ...]:
 def _clear_caches() -> None:
     _public_cite_only_hosts.cache_clear()
     _register_forbidding.cache_clear()
+    _register_classes.cache_clear()
+    _registered_hosts.cache_clear()
 
 
 cite_only_hosts.cache_clear = _clear_caches  # type: ignore[attr-defined]
