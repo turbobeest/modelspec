@@ -105,11 +105,11 @@ def loose(root, *names):
 
 
 def test_files_linked_by_page_name_are_flagged(root):
-    loose(root, "pricing.txt", "pricing.png", "pricing-regions.json", "pricing-terms.txt")
+    loose(root, "pricing.txt", "pricing.png", "pricing-regions.json", "pricing-text.txt")
     manifest(root, {"pages": [{"name": "pricing", "url": "https://cite.example/p", "file": None,
                                "retention": "cite-only"}]}, name="page/retrieval.json")
     assert linked(report(root)) == sorted(f"research/page/pricing{tail}" for tail in
-                                          (".png", "-regions.json", "-terms.txt", ".txt"))
+                                          (".png", "-regions.json", "-text.txt", ".txt"))
 
 
 def test_page_name_link_does_not_reach_a_different_page(root):
@@ -127,11 +127,29 @@ def test_page_name_link_needs_a_cite_only_origin_and_stays_in_the_directory(root
     assert linked(report(root)) == []
 
 
-def test_page_name_link_skips_an_error_response(root):
+@pytest.mark.parametrize("extra", [{"bytes": 5810}, {"bytes": 900000, "title": "Attention Required!"}])
+def test_page_name_link_skips_a_block_page(root, extra):
     loose(root, "pricing.txt")
-    manifest(root, [{"name": "pricing", "url": "https://cite.example/p", "status": 403}],
+    manifest(root, [{"name": "pricing", "url": "https://cite.example/p", "status": 403, **extra}],
              name="page/retrieval.json")
     assert linked(report(root)) == []
+
+
+@pytest.mark.parametrize("extra", [{"bytes": 900000, "title": "Pricing"}, {"title": "Pricing"}, {}])
+def test_page_name_link_flags_an_error_response_that_holds_page_content(root, extra):
+    loose(root, "pricing.txt")
+    manifest(root, [{"name": "pricing", "url": "https://cite.example/p", "status": 403, **extra}],
+             name="page/retrieval.json")
+    assert linked(report(root)) == ["research/page/pricing.txt"]
+
+
+def test_page_name_dash_branch_takes_tags_counters_and_digests_only(root):
+    digest = "ab" * 16
+    loose(root, "pricing-regions.json", "pricing-2.txt", f"pricing-{digest}.txt",
+          "pricing-v2.txt", "pricing-enterprise.txt", "pricing-regionsx.json")
+    manifest(root, [{"name": "pricing", "url": "https://cite.example/p"}], name="page/retrieval.json")
+    assert linked(report(root)) == sorted(f"research/page/{n}" for n in (
+        "pricing-regions.json", "pricing-2.txt", f"pricing-{digest}.txt"))
 
 
 def test_file_named_by_a_cite_only_digest_is_flagged(root):
@@ -149,6 +167,14 @@ def inline(result):
 def test_inline_page_text_from_cite_only_host_is_flagged(root, field):
     manifest(root, {"results": [{"url": "https://cite.example/p", "nested": {field: "w" * 281}}]})
     assert inline(report(root)) == ["research/sources.json"]
+
+
+def test_long_error_or_url_list_in_a_cite_only_record_is_not_page_text(root):
+    manifest(root, [{"url": "https://cite.example/p", "error": "e" * 900,
+                     "resolved_urls": ["https://cite.example/a"],
+                     "urls": [f"https://cite.example/{n}/" + "x" * 40 for n in range(20)],
+                     "notes": "n" * 900}])
+    assert inline(report(root)) == []
 
 
 def test_short_quote_or_other_origin_inline_text_passes(root):

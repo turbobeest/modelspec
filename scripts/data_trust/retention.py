@@ -27,6 +27,17 @@ BODY_SUFFIXES = {".gz", ".html", ".htm", ".pdf"}
 # `<name>-*`. These suffixes are the page-derived files such a link can reach.
 NAME_FIELDS = ("name", "page_id", "page")
 LINKED_SUFFIXES = BODY_SUFFIXES | {".txt", ".png", ".json"}
+DERIVATIVE_TAGS = {"regions", "text", "visible", "extract", "raw", "screenshot", "preview",
+                   "normalized", "body", "copy", "html"}
+# A non-2xx response is a block or error page, with nothing to retain, when it is small
+# (block pages run about 5 KB; 8 KiB leaves headroom) or its title is a known block marker.
+# A larger error response may be a paywall teaser holding page text, so it is judged.
+BLOCK_PAGE_BYTES = 8192
+BLOCK_MARKERS = re.compile(r"attention required|cloudflare|access denied|just a moment|captcha",
+                           re.IGNORECASE)
+# Record fields that carry page text; other long strings (errors, URL lists) are not text.
+TEXT_KEYS = ("preview", "excerpt", "text", "content", "body", "snippet", "quote", "extract",
+             "visible")
 SHA_IN_NAME = re.compile(r"(?<![0-9a-f])[0-9a-f]{64}(?![0-9a-f])")
 # Page text kept inline in a record. A short quote is a sentence or two; 280 characters
 # (the length of one post) is the longest string still read as a quote, not a page body.
@@ -94,24 +105,24 @@ def _all_records(document):
 
 
 def _inline_text(record: dict):
-    """Yield long strings inside a record, without entering a child record that has
-    its own origin (that child is judged by its own origin)."""
-    pending = [(value, 0) for key, value in record.items()
+    """Yield long page-text strings inside a record, without entering a child record that
+    has its own origin (that child is judged by its own origin)."""
+    pending = [(value, 0, str(key).lower()) for key, value in record.items()
                if key not in ORIGIN_FIELDS and key != "resolved_urls"]
     visited = 0
     while pending:
-        value, depth = pending.pop()
+        value, depth, key = pending.pop()
         visited += 1
         if visited > MAX_MANIFEST_NODES or depth > MAX_MANIFEST_DEPTH:
             raise ValueError("manifest structure limit")
         if isinstance(value, str):
-            if len(value) > MAX_INLINE_TEXT:
+            if len(value) > MAX_INLINE_TEXT and any(word in key for word in TEXT_KEYS):
                 yield value
         elif isinstance(value, dict):
-            if not any(key in value for key in (*ORIGIN_FIELDS, "resolved_urls")):
-                pending.extend((child, depth + 1) for child in value.values())
+            if not any(k in value for k in (*ORIGIN_FIELDS, "resolved_urls")):
+                pending.extend((child, depth + 1, str(k).lower()) for k, child in value.items())
         elif isinstance(value, list):
-            pending.extend((child, depth + 1) for child in value)
+            pending.extend((child, depth + 1, key) for child in value)
 
 
 def _names(record: dict) -> tuple[str, ...]:
@@ -120,7 +131,14 @@ def _names(record: dict) -> tuple[str, ...]:
 
 
 def _linked(name: str, stem: str) -> bool:
-    return stem == name or stem.startswith(name + "-")
+    """The page's own stem, or the stem plus a derivative tag, a counter or a digest.
+    `pricing-v2` is another page, not `pricing`."""
+    if stem == name:
+        return True
+    if not stem.startswith(name + "-"):
+        return False
+    tail = stem[len(name) + 1:]
+    return tail in DERIVATIVE_TAGS or bool(re.fullmatch(r"\d+|[0-9a-f]{8,64}", tail))
 
 
 def _origins(record: dict) -> tuple[str, ...]:
@@ -176,7 +194,10 @@ def inventory(root: Path) -> list[Finding]:
             restricted_inline.add(manifest)
         status = record.get("status")
         if isinstance(status, int) and not isinstance(status, bool) and not 200 <= status < 300:
-            return  # an error or block page carries no page content to retain
+            size, title = record.get("bytes"), record.get("title")
+            small = isinstance(size, int) and not isinstance(size, bool) and size <= BLOCK_PAGE_BYTES
+            if small or (isinstance(title, str) and BLOCK_MARKERS.search(title)):
+                return  # a block or error page carries no page content to retain
         for name in _names(record):
             for path in by_directory.get(manifest.parent, ()):
                 if (path != manifest and path.suffix in LINKED_SUFFIXES
