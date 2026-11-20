@@ -292,3 +292,36 @@ def test_a_bare_label_followed_by_unsupported_reads_as_not_supported():
             "<p>Batch API</p><p>Unsupported</p></main></body></html>")
     assert read(text, "feature.batch", True).outcome != "verified"
     assert read(text, "feature.batch", False).outcome == "verified"
+
+
+@pytest.mark.parametrize("text,field,stated", [
+    ("The model supports streaming, but JSON mode is not supported.", "feature.streaming", True),
+    ("The model supports streaming, but JSON mode is not supported.", "feature.structured_output", False),
+    ("Supports streaming; batch inference unavailable.", "feature.streaming", True),
+    ("Supports streaming; batch inference unavailable.", "feature.batch", False),
+    ("Fixture Model supports streaming; fine-tuning is not supported.", "feature.streaming", True),
+    ("Streaming does not support stop sequences.", "feature.streaming", True),
+    ("Tool calling is not supported in streaming mode.", "feature.tool_calling", False),
+    ("| Tool calling | — | Yes |", "feature.tool_calling", True),
+    ("| Tool calling | - | No |", "feature.tool_calling", False),
+    ("| Tool calling | — |", "feature.tool_calling", False),
+])
+def test_negation_binds_to_the_feature_in_its_own_clause(text, field, stated):
+    page = f"# Fixture Model\n{text}\nModel details.\nText generation.\n"
+    assert read(page, field, stated).outcome == "verified"
+    assert read(page, field, not stated).outcome != "verified"
+
+
+@pytest.mark.parametrize("field,yes,no", [
+    ("feature.batch", "Batch inference is supported.", "Batch inference is not supported."),
+    ("feature.batch", "| Batch Inference | Yes |", "| Batch Inference | Unsupported |"),
+])
+def test_a_supported_line_and_a_not_supported_line_conflict(field, yes, no):
+    page = f"# Fixture Model\n{yes}\n{no}\nModel details.\n"
+    assert read(page, field, True).outcome != "verified"
+    assert read(page, field, False).outcome != "verified"
+
+
+def test_a_negation_about_another_feature_does_not_deny_streaming():
+    page = "# Fixture Model\nTool calling is not supported in streaming mode.\nModel details.\nText.\n"
+    assert read(page, "feature.streaming", False).outcome != "verified"
