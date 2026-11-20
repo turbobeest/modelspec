@@ -1121,7 +1121,7 @@ def retain_only(store: CopyStore, root: Path, report: Report) -> int:
     keep |= {s.copy_ref for s in report.sources.values() if s.copy_ref}
     removed = 0
     for path in store.root.glob("??/*"):
-        if path.is_file() and path.name.endswith(".urls.json"):
+        if path.is_file() and path.name.endswith((".urls.json", ".shell.json")):
             # The URLs a copy was recorded for (MODEL-519) go with the copy.
             if f"sha256:{path.name.partition('.')[0]}" not in keep:
                 path.unlink()

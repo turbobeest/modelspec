@@ -1158,3 +1158,34 @@ def test_m519_recheck_makes_a_shell_its_own_alert_and_binds_nothing(tmp_path) ->
     for sid in ("empty", "two"):
         assert report.states[sid].snapshot is None and report.states[sid].consecutive_failures == 0
         assert not [r for r in report.regions if r.source_id == sid]
+
+
+@pytest.mark.parametrize("first", ["a", "b"])
+def test_m519_a_collision_refuses_both_urls_whichever_came_first(tmp_path, first) -> None:
+    from decision.sources import ShellCheck, ShellPageError
+
+    store = CopyStore(tmp_path)
+    body = _M519_PAGE.encode()
+    urls = {"a": "https://docs.example/a", "b": "https://docs.example/b"}
+    second = "b" if first == "a" else "a"
+    store.put(body, source_url=urls[first], shell_check=ShellCheck())  # admitted, for now
+    with pytest.raises(ShellPageError):
+        store.put(body, source_url=urls[second], shell_check=ShellCheck())
+    with pytest.raises(ShellPageError, match="same_bytes_as"):  # the earlier one, read again
+        store.put(body, source_url=urls[first], shell_check=ShellCheck())
+    with pytest.raises(ShellPageError):
+        store.put(body, source_url=urls[second], shell_check=ShellCheck())
+    # A registered alias clears it.
+    store.put(body, source_url=urls[first],
+              shell_check=ShellCheck(alias_urls=(urls[second],)))
+
+
+def test_m519_a_collision_sees_the_per_url_citation_records(tmp_path) -> None:
+    from decision.sources import ShellCheck, ShellPageError
+
+    store = CopyStore(tmp_path)
+    body = _M519_PAGE.encode()
+    ref = store.put(body, source_url="https://www.anthropic.com/a")  # cite-only: no check
+    store.record_citation(ref, source_url="https://www.anthropic.com/a")
+    with pytest.raises(ShellPageError, match="same_bytes_as:https://www.anthropic.com/a"):
+        store.put(body, source_url="https://www.anthropic.com/b", shell_check=ShellCheck())

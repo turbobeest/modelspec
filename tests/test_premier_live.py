@@ -19,6 +19,14 @@ ARENA_ROOT = "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset"
 ARENA_BENCH = "arena_elo_style_control"
 
 
+@pytest.fixture(autouse=True)
+def _fixtures_are_incomplete_cards(monkeypatch, request):
+    """Most fixtures here are bare cards; the MODEL-495 tests opt back in to the gate."""
+    if "completeness_gate" not in request.fixturenames:
+        monkeypatch.setenv("MODELSPEC_ALLOW_INCOMPLETE_CARDS", "1")
+        monkeypatch.setattr(premier_slice1, "SKIP_INCOMPLETE_CARDS", False)
+
+
 def write_yaml(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(value, sort_keys=False))
@@ -1012,3 +1020,65 @@ def test_without_a_note_the_same_group_is_unchanged(tmp_path, monkeypatch):
     root = _under_quota_with_competitor(tmp_path / "x", monkeypatch, None)
     document = premier_slice1.build(data_dir=root, as_of=TODAY)
     assert _ids(document) == {"lab/top", "lab/recent"}
+
+
+# MODEL-495: incomplete cards are not proposed, and a proposal says how to approve it.
+
+@pytest.fixture
+def completeness_gate():
+    """Naming this fixture keeps the MODEL-495 gate on for a test."""
+
+
+def test_an_incomplete_card_is_listed_apart_and_not_proposed(tmp_path, completeness_gate):
+    root = catalogue(tmp_path)
+    write_card(root, "lab/leader", rows=[evidence("lab/leader", BENCH, 90)],
+               facts=guaranteed_facts("lab/leader"))
+    log_guaranteed(root, "lab/leader")
+    pad_board(root)
+    write_card(root, "lab/complete", release="2026-09-29",
+               facts=guaranteed_facts("lab/complete"))
+    log_guaranteed(root, "lab/complete")
+    write_card(root, "lab/incomplete", release="2026-09-29")
+    result, output, diff = _propose(root)
+    assert result.returncode == 0, result.stderr
+    changes = json.loads(diff.read_text())
+    added = {row["model_id"] for row in changes["added"]}
+    assert added == {"lab/complete", "lab/leader"}
+    (row,) = changes["not_proposed"]
+    assert row["model_id"] == "lab/incomplete"
+    assert "model.context_window" in row["facets"]
+    line = f"not proposed: card incomplete ({', '.join(row['facets'])}): lab/incomplete"
+    assert line in result.stderr
+    proposal = yaml.safe_load(output.read_text())
+    assert "not_proposed" not in proposal
+    assert "lab/incomplete" not in {m["model_id"] for m in proposal["models"]}
+
+
+def test_a_reviewed_seat_is_not_dropped_by_the_gate(tmp_path, completeness_gate):
+    root = catalogue(tmp_path)
+    write_card(root, "lab/incumbent", rows=[evidence("lab/incumbent", BENCH, 90)])
+    pad_board(root)
+    write_yaml(root / "premier/slice-1.yaml",
+               {"models": [{"model_id": "lab/incumbent", "clauses": []}]})
+    result, output, diff = _propose(root)
+    assert result.returncode == 0, result.stderr
+    changes = json.loads(diff.read_text())
+    assert changes["changed"] is False and "not_proposed" not in changes
+    assert "lab/incumbent" in {m["model_id"] for m in yaml.safe_load(output.read_text())["models"]}
+
+
+def test_a_changed_proposal_carries_the_owner_stamp_line_and_a_noop_does_not(tmp_path):
+    root = catalogue(tmp_path)
+    write_card(root, "lab/leader", rows=[evidence("lab/leader", BENCH, 90)])
+    pad_board(root)
+    write_card(root, "lab/new-release", release="2026-09-29")
+    result, output, diff = _propose(root)
+    assert result.returncode == 0, result.stderr
+    document = yaml.safe_load(output.read_text())
+    assert (document["status"], document["approved_date"]) == ("proposed", None)
+    stamp = json.loads(diff.read_text())["approval_stamp"]
+    assert "status: proposed" in stamp and "status: approved" in stamp
+    assert "approved_date: null" in stamp and "2026-10-04" in stamp
+    (root / "premier/slice-1.yaml").write_bytes(output.read_bytes())
+    result, output, diff = _propose(root)
+    assert "approval_stamp" not in json.loads(diff.read_text())

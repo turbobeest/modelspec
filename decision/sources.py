@@ -929,11 +929,41 @@ class CopyStore:
         return self.path(ref).with_suffix(".urls.json")
 
     def _seen(self, ref: str) -> list[dict]:
+        """Every URL this hash was recorded for: the URL list this check keeps, and the
+        per-(hash, URL) citation records (MODEL-513)."""
         try:
             data = json.loads(self._seen_path(ref).read_text(encoding="utf-8"))
         except (OSError, ValueError):
-            return []
-        return [row for row in data if isinstance(row, dict)] if isinstance(data, list) else []
+            data = []
+        rows = [row for row in data if isinstance(row, dict)] if isinstance(data, list) else []
+        try:
+            records = self.citations(ref)
+        except ValueError:
+            records = []
+        known = {row.get("url") for row in rows}
+        for record in records:
+            if isinstance(record.get("url"), str) and record["url"] not in known:
+                known.add(record["url"])
+                rows.append({"url": canonical_url(record["url"]),
+                             "resolved": [str(u) for u in record.get("resolved_urls", ())]})
+        return rows
+
+    def _flag_path(self, ref: str) -> Path:
+        return self.path(ref).with_suffix(".shell.json")
+
+    def _flagged(self, ref: str) -> dict[str, str]:
+        try:
+            data = json.loads(self._flag_path(ref).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+        return {k: v for k, v in data.items() if isinstance(v, str)} if isinstance(data, dict) else {}
+
+    def _write_json(self, target: Path, value: Any) -> None:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=target.parent, prefix=".tmp-")
+        with os.fdopen(fd, "w", encoding="utf-8") as out:
+            json.dump(value, out, sort_keys=True)
+        os.replace(tmp, target)
 
     def check_shell(self, body: bytes | None, ref: str, source_url: str,
                      resolved_urls: Iterable[str], check: ShellCheck) -> None:
@@ -962,6 +992,10 @@ class CopyStore:
             except ValueError:
                 host = None
             exempt = {canonical_url(u) for u in check.alias_urls} | resolved
+            # A URL already caught in a collision keeps refusing, whichever came first.
+            partner = self._flagged(ref).get(url)
+            if partner is not None and partner not in exempt:
+                raise ShellPageError(f"{SHELL_PAGE}:same_bytes_as:{partner}")
             for row in self._seen(ref):
                 other = row.get("url")
                 if not isinstance(other, str) or other == url or other in exempt:
@@ -973,42 +1007,46 @@ class CopyStore:
                 except ValueError:
                     same_host = False
                 if same_host:
+                    # Neither URL is the page: refuse both, now and on every later read.
+                    flagged = self._flagged(ref)
+                    flagged[url], flagged[other] = other, url
+                    self._write_json(self._flag_path(ref), flagged)
                     raise ShellPageError(f"{SHELL_PAGE}:same_bytes_as:{other}")
-        rows = self._seen(ref)
+        rows = [r for r in self._seen(ref)]
         if not any(r.get("url") == url for r in rows):
             rows.append({"url": url, "resolved": sorted(resolved)})
-            target = self._seen_path(ref)
-            target.parent.mkdir(parents=True, exist_ok=True)
-            fd, tmp = tempfile.mkstemp(dir=target.parent, prefix=".tmp-")
-            with os.fdopen(fd, "w", encoding="utf-8") as out:
-                json.dump(rows, out, sort_keys=True)
-            os.replace(tmp, target)
+            self._write_json(self._seen_path(ref), rows)
+
+    def _alias_path(self, ref: str, url: str) -> Path:
+        key = hashlib.sha256(url.encode("utf-8")).hexdigest()[:16]
+        base = self.path(ref)
+        return base.with_name(f"{base.name}.citation.{key}.json")
 
     def record_citation(self, ref: str, *, source_url: str,
                         retrieved_at: datetime | None = None, resolved_urls=(),
                         shell_check: ShellCheck | None = None) -> None:
+        """Record that ``ref`` was fetched from ``source_url`` (MODEL-513).
+
+        One record per (hash, URL): the same bytes served under two registered
+        URLs keep both. ``<digest>.citation.json`` still holds the latest write,
+        so a reader that asks only by hash sees what it always saw.
+        """
         if shell_check is not None:
-            # No bytes here: only the same-bytes rule can apply.
-            self.check_shell(None, ref, require_source_url(source_url), resolved_urls, shell_check)
-        target = self.path(ref).with_suffix(".citation.json")
+            # No bytes here: only the same-bytes rule can apply (MODEL-519).
+            self.check_shell(None, ref, require_source_url(source_url), resolved_urls,
+                             shell_check)
         metadata = citation_metadata(source_url, ref, retrieved_at=retrieved_at or datetime.now(UTC),
                                      resolved_urls=resolved_urls)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        fd, temporary = tempfile.mkstemp(dir=target.parent, prefix=".tmp-")
-        with os.fdopen(fd, "w", encoding="utf-8") as output:
-            json.dump(metadata, output, sort_keys=True)
-        os.replace(temporary, target)
+        for target in (self._alias_path(ref, metadata["url"]),
+                       self.path(ref).with_suffix(".citation.json")):
+            target.parent.mkdir(parents=True, exist_ok=True)
+            fd, temporary = tempfile.mkstemp(dir=target.parent, prefix=".tmp-")
+            with os.fdopen(fd, "w", encoding="utf-8") as output:
+                json.dump(metadata, output, sort_keys=True)
+            os.replace(temporary, target)
 
-    def citation(self, ref: str) -> dict | None:
-        """The citation record for ``ref``, or None when no entry exists at its path.
-
-        An entry that exists but is not a readable regular file holding a JSON
-        object (a directory, a dangling symlink, bad JSON) raises ValueError:
-        an unreadable record is never read as "no citation" (MODEL-420).
-        """
-        target = self.path(ref).with_suffix(".citation.json")
-        if not os.path.lexists(target):
-            return None
+    @staticmethod
+    def _read_record(target: Path, ref: str) -> dict:
         if not target.is_file():
             raise ValueError("citation record is not a readable file")
         try:
@@ -1020,6 +1058,33 @@ class CopyStore:
         if metadata.get("snapshot_ref") != ref:
             raise ValueError("citation metadata does not match its hash")
         return metadata
+
+    def citation(self, ref: str, *, url: str | None = None) -> dict | None:
+        """The citation record for ``ref``, or None when no entry exists at its path.
+
+        An entry that exists but is not a readable regular file holding a JSON
+        object (a directory, a dangling symlink, bad JSON) raises ValueError:
+        an unreadable record is never read as "no citation" (MODEL-420).
+        With ``url``, only the record for that (hash, URL) pair.
+        """
+        if url is not None:
+            return next((r for r in self.citations(ref) if r.get("url") == url), None)
+        target = self.path(ref).with_suffix(".citation.json")
+        if not os.path.lexists(target):
+            return None
+        return self._read_record(target, ref)
+
+    def citations(self, ref: str) -> list[dict]:
+        """Every citation record for ``ref``: one per URL, the latest write first."""
+        latest = self.citation(ref)
+        records = [] if latest is None else [latest]
+        base = self.path(ref)
+        if base.parent.is_dir():
+            for target in sorted(base.parent.glob(f"{base.name}.citation.*.json")):
+                record = self._read_record(target, ref)
+                if all(record.get("url") != seen.get("url") for seen in records):
+                    records.append(record)
+        return records
 
     def get(self, ref: str, *, source_url: str | None = None) -> bytes:
         if self.citation(ref) is not None or source_url is not None and cite_only_origin_restrictive(source_url):
@@ -1267,7 +1332,10 @@ def _check_one(
         return replace(state, last_attempt_at=now)
 
     try:
-        previous_citation = store.citation(previous.copy_ref) if previous else None
+        previous_citation = None
+        if previous:
+            previous_citation = (store.citation(previous.copy_ref, url=str(source.url))
+                                 or store.citation(previous.copy_ref))
         # Every origin of the previous record is validated before its presence
         # grants the cite-only path (MODEL-420).
         if previous_citation is not None and record_origin_status(previous_citation) is None:

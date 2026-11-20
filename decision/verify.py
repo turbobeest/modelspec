@@ -2912,9 +2912,132 @@ class ModelPageExtractor:
                         return True
                 return False
 
-            if any(own_feature(line) for line in lines):
-                readings.append(Reading(subject=subject, value="supported"))
+            states: list[str] = []
+            for n, line in enumerate(lines):
+                if own_feature(line):
+                    following = lines[n + 1] if n + 1 < len(lines) else None
+                    state = _feature_state(line, phrases, following)
+                    if state not in states:
+                        states.append(state)
+            if len(states) > 1:
+                # A supported line and a not-supported line for one feature
+                # conflict: neither may confirm a claim.
+                states = ["partial"]
+            for state in states:
+                readings.append(Reading(subject=subject, value=state))
         return readings or [Reading(subject=subject, value=None)]
+
+
+#: Cell or value wordings that say a feature is not offered, or only in part.
+_FEATURE_NO = frozenset({
+    "unsupported", "not supported", "no", "none", "not available", "unavailable",
+    "n a", "na", "not applicable", "✗", "✘", "✕", "x", "-", "–", "—",
+})
+_FEATURE_PARTIAL = frozenset({
+    "partial", "partially", "partial support", "partially supported", "limited",
+    "limited support",
+})
+#: Negations that describe their subject ("X is not supported"): they bind to a
+#: feature named before them in the clause.
+_FEATURE_NO_SUBJECT = re.compile(
+    r"(?i)(?:\b(?:is|are)(?:\s+not|n't)\s+(?:currently\s+)?(?:supported|available|offered)\b"
+    r"|\b(?:un|not\s+)supported\b|\bunavailable\b|\bnot\s+offered\b|(?<![\w/])n/a(?![\w/]))")
+#: Negations that take an object ("does not support X"): they bind to a feature
+#: named after them.
+_FEATURE_NO_OBJECT = re.compile(
+    r"(?i)(?:\b(?:does|do|did|will|would|can|could)(?:\s+not|n't)\s+(?:currently\s+)?support\b"
+    r"|\bno\s+support\s+for\b)")
+_FEATURE_PARTIAL_SENTENCE = re.compile(
+    r"(?i)\b(?:partial(?:ly)?\s+support(?:ed|s)?|limited\s+support|(?:only\s+)?partially)\b")
+#: "not unsupported", "not unavailable": a double negative is not read.
+_FEATURE_DOUBLE_NEGATIVE = re.compile(
+    r"(?i)\b(?:not|isn't|aren't|never)\s+(?:un\w+|not\b)")
+#: Text right before a feature that excludes it: "but not X", "except X", "without X".
+_FEATURE_EXCLUDES = re.compile(
+    r"(?i)\b(?:not|except|without)\s+(?:(?:support(?:s|ing)?|offer(?:s|ing)?|for)\s+)?$")
+_FEATURE_CLAUSES = re.compile(r"(?i);|,|\bbut\b|\bwhile\b|\bwhereas\b")
+_FEATURE_DASH = frozenset({"-", "–", "—"})
+
+
+def _feature_cell(cell: str) -> str | None:
+    """Classify a value cell as supported, not supported or partial."""
+    plain = cell.replace("**", "").replace("`", "").strip()
+    # A bracketed note after the value ("No (coming soon)") does not change it.
+    unnoted = re.sub(r"\s*\([^)]*\)\s*$", "", plain).strip()
+    plain = unnoted or plain
+    if not plain:
+        return None
+    key = normalise_name(plain)
+    if key in _FEATURE_NO or plain in _FEATURE_NO:
+        return "not supported"
+    if key in _FEATURE_PARTIAL:
+        return "partial"
+    return "supported"
+
+
+def _clause_state(clause: str, wanted: Sequence[str], raw: Sequence[str]) -> str:
+    """What one clause that names the feature says of it."""
+    low = clause.casefold()
+    hits = [(low.index(w), w) for w in raw if w in low]
+    start, phrase = min(hits) if hits else (0, "")
+    end = start + len(phrase)
+    if _FEATURE_DOUBLE_NEGATIVE.search(clause):
+        return "partial"
+    if hits and _FEATURE_EXCLUDES.search(low[:start]):
+        return "not supported"
+    # "Streaming: No", "Batch API - unsupported": a value right after the name.
+    tail = re.match(r"\s*[:\u2013\u2014-]\s*(\S.*)$", clause[end:]) if hits else None
+    if tail and (state := _feature_cell(tail.group(1).strip().rstrip("."))) is not None:
+        return state
+    for match in _FEATURE_NO_SUBJECT.finditer(clause):
+        if match.start() >= end and hits:
+            return "not supported"
+    for match in _FEATURE_NO_OBJECT.finditer(clause):
+        if not hits or match.end() <= start:
+            return "not supported"
+    if _FEATURE_PARTIAL_SENTENCE.search(clause):
+        return "partial"
+    return "supported"
+
+
+def _feature_state(line: str, phrases: Sequence[str], following: str | None) -> str:
+    """What a line that names a feature says of it.
+
+    A table cell or value that says unsupported, no, a cross or N/A reads as not
+    supported; a dash does too when it is the only value. Partial or limited
+    reads as neither. Negation binds to the feature in its own clause, not to the
+    rest of the sentence. Two clauses that disagree read as partial (unreadable).
+    Anything else reads as supported, as before.
+    """
+    plain = line.replace("**", "").replace("`", "").lstrip("-* ")
+    wanted = [normalise_name(phrase) for phrase in phrases]
+    raw = [phrase.casefold() for phrase in phrases]
+    if "|" in plain:
+        cells = [c.strip() for c in plain.strip().strip("|").split("|")]
+        named = next((i for i, c in enumerate(cells)
+                      if ":" not in c and any(w in normalise_name(c) for w in wanted)), None)
+        if named is not None:
+            values = [c for c in cells[named + 1:] if c]
+            real = [c for c in values if c not in _FEATURE_DASH]
+            if real:
+                return _feature_cell(real[0]) or "supported"
+            if values:
+                return "not supported"
+    states: list[str] = []
+    for sentence in re.split(r"(?<=[.!?])\s+", plain):
+        for clause in _FEATURE_CLAUSES.split(sentence):
+            if any(w in normalise_name(clause) for w in wanted):
+                states.append(_clause_state(clause, wanted, raw))
+    if not states:
+        states.append("supported")
+    if len(set(states)) > 1:
+        return "partial"
+    if states[0] == "supported" and following is not None and len(following) <= 40 and any(
+            normalise_name(plain) == w for w in wanted):
+        # A bare label followed by its value on the next line.
+        if (state := _feature_cell(following)) in {"not supported", "partial"}:
+            return state
+    return states[0]
 
 
 #: A Metric | Price row label, as normalised, and the price kind it states.

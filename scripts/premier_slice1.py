@@ -31,6 +31,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import re
 import sys
 from datetime import UTC, date, datetime, timedelta
@@ -126,6 +127,11 @@ STRICT_BOARD_ROWS = False
 # the 2026-09-26 approval, so that file stays the lineup that was approved.
 # --quota-cuts-top10 applies that same cut to a live proposal.
 KEEP_EVERY_CURRENT_TOP10 = True
+
+# MODEL-495: a live proposal does not add a model whose card fails the premier
+# completeness gate (a guaranteed facet unknown). Seats already in the reviewed
+# lineup stay; the gate is not a removal rule. The skipped models are reported.
+SKIP_INCOMPLETE_CARDS = True
 SLICE_CLASSES = {"text-generator", "vectoriser", "orderer", "decider"}
 VISION_DOMAINS = {"vision", "vision_documents"}
 
@@ -867,7 +873,7 @@ def mixed_slice1_boards(boards: list[dict]) -> list[str]:
 
 
 def build(*, data_dir: Path | None = None, as_of: date | None = None,
-          allow_mixed_boards: bool = False) -> dict:
+          allow_mixed_boards: bool = False, baseline_ids: frozenset[str] = frozenset()) -> dict:
     if data_dir is None:
         aliases = json.loads((INPUTS / "aliases.json").read_text())
         cards = load_cards()
@@ -1180,6 +1186,18 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None,
             selected.append(model_id)
             selected_set.add(model_id)
 
+    # MODEL-495: a new seat whose card fails the completeness gate is not
+    # proposed. Reported apart, so a reviewer sees why it is missing.
+    not_proposed: list[dict] = []
+    if data_dir is not None and SKIP_INCOMPLETE_CARDS:
+        for model_id in list(selected):
+            gaps = by_model[model_id]["card"].get("completeness_gaps")
+            if gaps and model_id not in baseline_ids:
+                not_proposed.append({"model_id": model_id, "facets": list(gaps)})
+                selected.remove(model_id)
+                selected_set.discard(model_id)
+    skipped_ids = {row["model_id"] for row in not_proposed}
+
     models = []
     for model_id in selected:
         entry = by_model[model_id]
@@ -1278,7 +1296,7 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None,
 
     near = []
     for model_id, entry in sorted(by_model.items()):
-        if model_id in selected_set:
+        if model_id in selected_set or model_id in skipped_ids:
             continue
         card = entry["card"]
         if card["status"] == "sunset":
@@ -1366,7 +1384,7 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None,
         counts["reviewer_additions_past_quota_by_group"] = {
             group: count for group, count in reviewer_past_quota.items() if count
         }
-    return {
+    document = {
         "schema_version": 1,
         "status": "proposed" if data_dir else "approved",
         "approved_date": None if data_dir else "2026-09-26",
@@ -1380,6 +1398,9 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None,
         "near_misses": near,
         "counts": counts,
     }
+    if not_proposed:
+        document["not_proposed"] = not_proposed  # main() moves it out of the YAML
+    return document
 
 
 def _archived_row(entry: dict) -> dict:
@@ -1420,6 +1441,19 @@ def membership_diff(document: dict, baseline: dict) -> dict:
     return {"added": added, "removed": removed, "changed": bool(added or removed)}
 
 
+def not_proposed_line(row: dict) -> str:
+    return f"not proposed: card incomplete ({', '.join(row['facets'])}): {row['model_id']}"
+
+
+def approval_stamp(as_of: date) -> str:
+    """The one-line change the owner makes to a merged proposal (approval is the owner's, J9)."""
+    return (
+        "A merged proposal stays `status: proposed`. To approve it, change "
+        "`premier/slice-1.yaml` as the owner: `status: proposed` to `status: approved` and "
+        f"`approved_date: null` to `approved_date: <merge date, e.g. {as_of.isoformat()}>`."
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="fail if the YAML differs")
@@ -1441,6 +1475,11 @@ def main() -> int:
         help="let a full group quota cut a current top 10, the approval-time rule",
     )
     parser.add_argument(
+        "--allow-incomplete-cards",
+        action="store_true",
+        help="propose a new model even when its card fails the completeness gate",
+    )
+    parser.add_argument(
         "--allow-mixed-boards",
         action="store_true",
         help="propose even when an Arena top 10 mixes publish dates",
@@ -1449,6 +1488,9 @@ def main() -> int:
     if args.strict_board_rows:
         global STRICT_BOARD_ROWS
         STRICT_BOARD_ROWS = True
+    if args.allow_incomplete_cards or os.environ.get("MODELSPEC_ALLOW_INCOMPLETE_CARDS") == "1":
+        global SKIP_INCOMPLETE_CARDS
+        SKIP_INCOMPLETE_CARDS = False
     if args.quota_cuts_top10:
         global KEEP_EVERY_CURRENT_TOP10
         KEEP_EVERY_CURRENT_TOP10 = False
@@ -1459,16 +1501,29 @@ def main() -> int:
         if any(path and path.resolve() == baseline_path.resolve()
                for path in (args.output, args.diff)):
             parser.error("output paths must not overwrite the reviewed premier list")
+        baseline = yaml.safe_load(baseline_path.read_text())
+        baseline_ids = frozenset(
+            row if isinstance(row, str) else row["model_id"] for row in baseline["models"]
+        )
+        as_of = args.as_of or datetime.now(UTC).date()
         try:
             document = build(
                 data_dir=args.data_dir,
-                as_of=args.as_of,
+                as_of=as_of,
                 allow_mixed_boards=args.allow_mixed_boards,
+                baseline_ids=baseline_ids,
             )
         except MixedBoards as error:
             print(error, file=sys.stderr)
             return 3
-        changes = membership_diff(document, yaml.safe_load(baseline_path.read_text()))
+        not_proposed = document.pop("not_proposed", [])
+        changes = membership_diff(document, baseline)
+        if not_proposed:
+            changes["not_proposed"] = not_proposed
+            for row in not_proposed:
+                print(not_proposed_line(row), file=sys.stderr)
+        if changes["changed"]:
+            changes["approval_stamp"] = approval_stamp(as_of)
         text = json.dumps(changes, indent=2, ensure_ascii=False) + "\n"
         for path, content in ((args.output, _dump(document)), (args.diff, text)):
             if path:

@@ -1250,3 +1250,97 @@ def test_a_refused_hop_is_its_own_count(catalogue, registry):
     assert "terms register (redirect_unclassified): 2" in summary(
         {"sample": report, "invariants": {"facts": 0, "errors": 0, "warnings": 0, "models": 0,
                                           "offerings": 0}})
+
+
+ARENA = (
+    "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/main/"
+    "text_style_control/latest-00000-of-00001.parquet"
+)
+SHA_A, SHA_B = "a" * 40, "b" * 40
+
+
+def test_arena_revision_helpers():
+    assert sample.at_revision(ARENA, SHA_A) == ARENA.replace("/main/", f"/{SHA_A}/")
+    assert sample.at_revision("https://example.test/main/", SHA_A) == "https://example.test/main/"
+    assert sample.stored_revision({}, [ARENA]) is None
+    assert sample.stored_revision({}, [sample.at_revision(ARENA, SHA_A)]) == SHA_A
+    assert sample.stored_revision({"benchmark_version": "text, revision 1880DBEBFF5B"}, [ARENA]) == "1880dbebff5b"
+    assert sample.stored_revision({"configuration": "x. Revision " + SHA_B}, [ARENA]) == SHA_B
+    commits = [("n" * 40, "2026-11-17T04:00:00.000Z"), (SHA_B, "2026-11-16T23:59:59.000Z"),
+               (SHA_A, "2026-11-15T04:00:00.000Z")]
+    assert sample.revisions_by({"observed_at": "2026-11-16"}, commits) == [SHA_B]
+    assert sample.revisions_by({"observed_at": "2026-11-01"}, commits) == []
+
+
+class Commits:
+    def __init__(self, commits):
+        self.body = json.dumps([{"id": s, "date": d} for s, d in commits]).encode()
+
+    def fetch(self, url):
+        page = self.body if url == sample.ARENA_COMMITS else b"[]"
+        return FetchResult("ok", status=200, body=page)
+
+
+def _arena_reread(monkeypatch, row, outcomes):
+    """``outcomes`` maps the pinned revision (None: the latest board) to a read result."""
+    seen = []
+
+    def read(f, c, registry, fetcher, store, fetched, today, pin=None):
+        seen.append(pin)
+        return outcomes[pin]
+
+    monkeypatch.setattr(sample, "_read", read)
+    monkeypatch.setattr(sample, "source_urls", lambda f, c: [ARENA])
+    fetcher = Commits([(SHA_B, "2026-11-16T10:00:00.000Z"), (SHA_A, "2026-11-10T10:00:00.000Z")])
+    out = sample.reread(row, None, None, fetcher, None, {}, TODAY)
+    return out, seen
+
+
+DIFF = ("mismatched", "deterministic_difference", {"read_value": "1"})
+
+
+def test_arena_row_that_matched_when_read_is_source_moved(monkeypatch):
+    row = {"field": "arena_x", "observed_at": "2026-11-16"}
+    out, seen = _arena_reread(monkeypatch, row, {None: DIFF, SHA_B: ("matched", "deterministic_read")})
+    assert out[:2] == ("source_moved", "board_changed_after_read")
+    assert seen == [None, SHA_B]
+
+
+def test_arena_row_matching_no_revision_is_a_mismatch(monkeypatch):
+    row = {"field": "arena_x", "observed_at": "2026-11-16"}
+    out, _ = _arena_reread(monkeypatch, row, {None: DIFF, SHA_B: DIFF})
+    assert out[0] == "mismatched"
+
+
+def test_arena_row_with_a_stored_revision_is_compared_at_it(monkeypatch):
+    row = {"field": "arena_x", "observed_at": "2026-11-16", "configuration": f"Revision {SHA_A}."}
+    out, seen = _arena_reread(monkeypatch, row, {SHA_A: ("matched", "deterministic_read")})
+    assert out[0] == "matched" and seen == [SHA_A]
+    short = {**row, "configuration": "Revision " + SHA_A[:12]}
+    out, seen = _arena_reread(monkeypatch, short, {SHA_A: DIFF})
+    assert out[0] == "mismatched" and seen == [SHA_A]
+
+
+def test_source_moved_is_counted_apart_from_the_error_rate(catalogue, registry):
+    catalogue.facts = catalogue.facts[1:]
+    answers = iter([("matched", "deterministic_read"), ("source_moved", "board_changed_after_read", {})])
+
+    def reader(*args):
+        return next(answers)
+
+    catalogue.facts = [catalogue.facts[0], {**catalogue.facts[0], "id": "other#id"}]
+    report = sample.run(catalogue, registry, n=60, seed="week", as_of=TODAY, reader=reader)
+    assert report["source_moved"] == 1
+    assert report["counts"] == {"matched": 1, "mismatched": 0, "unreadable": 0}
+    assert report["error_rate"]["readable"] == 1
+    assert report["sampled"] == 2
+    assert {r["outcome"] for r in report["results"]} == {"matched", "source_moved"}
+
+
+@pytest.mark.parametrize("content_type,recipe", [
+    ("application/json", "json-default"), ("application/vnd.api+json; charset=utf-8", "json-default"),
+    ("text/html; charset=utf-8", "html-default"), ("", "html-default"),
+    ("text/plain", "text-default"), ("text/csv", "text-default"),
+])
+def test_m519_the_shell_rule_reads_each_reply_with_its_own_recipe(content_type, recipe):
+    assert sample._shell_normaliser(content_type) == recipe
