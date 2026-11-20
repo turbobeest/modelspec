@@ -7106,7 +7106,7 @@ def _number_agrees(expected: int | float, found: object, unit: str | None = None
 UNOWNED_REASONS = (
     "no reader accepts the stored copy",
     "no independent reader for the stored copy",
-    "the stored copy has no row for this model",
+    "no row matched this model's names",
     "the reader found no rows in the stored copy",
 )
 
@@ -7204,7 +7204,7 @@ def _verify_evidence_reading(
                     found_flags.update(str(flag) for flag in found.get("quality_flags", []))
                 if not matched_here:
                     silent.append(
-                        f"the stored copy has no row for this model ({len(readings)} rows read): "
+                        f"no row matched this model's names ({len(readings)} rows read): "
                         f"{where}" if readings else
                         f"the reader found no rows in the stored copy: {where}")
 
