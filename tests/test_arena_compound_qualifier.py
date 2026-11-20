@@ -571,3 +571,76 @@ def test_two_compound_display_names_are_not_flattened_into_one() -> None:
     assert verify._reading_subject_matches(
         "Acme Orbit Max (High, 32K, 20251101)", ["acme-orbit-max-high-32k-20251101"],
     ) is True
+
+
+# MODEL-524: the board renamed four models after their readings were filed. The
+# exact map in ``refresh.ARENA_RENAMED`` refiles each row under the board's name.
+_RENAMED = [
+    ("olmo-2-0325-32b-instruct", "OLMo 2 32B Instruct (0325)"),
+    ("kimi-k2-0711-preview", "Kimi K2 Preview (0711)"),
+    ("kimi-k2-0905-preview", "Kimi K2 Preview (0905)"),
+    (
+        "gemini-2.5-flash-lite-preview-06-17-thinking",
+        "Gemini 2.5 Flash-Lite Preview (Thinking, 06-17)",
+    ),
+]
+
+
+def test_the_alias_map_is_exactly_the_four_renamed_models() -> None:
+    assert refresh.ARENA_RENAMED == dict(_RENAMED)
+
+
+def test_an_alias_match_refiles_the_row_under_the_board_name(monkeypatch, tmp_path: Path) -> None:
+    """Each of the four is refiled whole: name, score, interval, votes, date, revision."""
+    for index, (stored, current) in enumerate(_RENAMED):
+        report, card, root, before = _run(
+            monkeypatch, tmp_path / str(index), evaluated=stored,
+            dataset_rows=[_dataset_row(current, 1450.0, 7777, 9)], snapshot=True,
+        )
+        assert report.failures == [], report.failures
+        assert report.quarantined == []
+        row = _evidence_row(card)
+        assert row["model_id_as_evaluated"] == current
+        assert row["score"] == 1450.0
+        assert row["interval"] == [1444.0, 1456.0]
+        assert row["n"] == 7777
+        assert str(row["observed_at"]) == "2026-11-11"
+        assert "7777" in row["configuration"]
+        assert "2026-11-11" in row["configuration"]
+        assert _verification_log(root)["outcome"] == "verified"
+        # The score-only check allows the refile, and only to the mapped name.
+        old = _evidence_row(before / "models" / "lab" / "model.md")
+        assert refresh._row_allows_refresh(old, row)
+        assert not refresh._row_allows_refresh(old, {**row, "model_id_as_evaluated": "other"})
+
+
+def test_an_alias_never_maps_to_a_non_thinking_or_other_dated_row(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """The board's name is one row's whole subject. A near name refiles nothing."""
+    stored = "gemini-2.5-flash-lite-preview-06-17-thinking"
+    for index, wrong in enumerate((
+        "Gemini 2.5 Flash-Lite Preview (Non-Thinking, 06-17)",
+        "Gemini 2.5 Flash-Lite Preview (Thinking, 09-2025)",
+        "Gemini 2.5 Flash-Lite Preview (Thinking, 06-17) extra",
+    )):
+        report, card, _root = _run(
+            monkeypatch, tmp_path / str(index), evaluated=stored,
+            dataset_rows=[_dataset_row(wrong, 1450.0, 7777, 9)],
+        )
+        row = _unchanged(card)
+        assert row["model_id_as_evaluated"] == stored
+        assert [failure.reason for failure in report.failures] == [
+            f"no unique row for {stored!r}",
+        ]
+
+
+def test_without_an_alias_a_missing_name_behaves_as_before(monkeypatch, tmp_path: Path) -> None:
+    """A stored name outside the map is refused when the board spells it differently."""
+    report, card, _root = _run(
+        monkeypatch, tmp_path, evaluated="kimi-k2-0000-preview",
+        dataset_rows=[_dataset_row("Kimi K2 Preview (0000)", 1450.0, 7777, 9)],
+    )
+    row = _unchanged(card)
+    assert row["model_id_as_evaluated"] == "kimi-k2-0000-preview"
+    assert len(report.failures) == 1
