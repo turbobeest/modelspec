@@ -24,6 +24,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from decision.credit import credit_html, is_epoch_url, credit_text, EPOCH_CREDIT
 from pipeline import landing_chrome
 from pipeline.export import Build, build_day, models_reporting
 from pipeline.load import Benchmark, Catalogue, Model
@@ -368,6 +369,8 @@ def _point_markup(row: dict[str, Any], marker: str, point_id: str, *,
     source_label = f"Source kind: {source_kind}"
     if row.get("citation"):
         source_label += " | Cited, not machine-verified"
+    if is_epoch_url(source):
+        source_label += f" | {EPOCH_CREDIT.rstrip('.')}"
     line_one = f"{name}: {score} | Evidence date: {evidence_date} ({date_type})"
     line_two = f"Configuration: {configuration} | Benchmark version: {version}"
     source_y = panel_y + panel_height - 7
@@ -399,7 +402,8 @@ def _credit_line(rows: list[dict[str, Any]]) -> str:
         f'<a href="{esc(source)}" rel="nofollow noopener">source {i}</a>'
         for i, source in enumerate(sources, 1)
     )
-    return f'<p class="chart-credit">Sources drawn: {links}</p>'
+    credit = f' <span>{credit_html()}</span>' if any(is_epoch_url(u) for u in sources) else ""
+    return f'<p class="chart-credit">Sources drawn: {links}{credit}</p>'
 
 
 def benchmark_chart(bench: Benchmark, covered: list[dict[str, Any]]) -> str:
@@ -606,9 +610,11 @@ def benchmark_strip_asset(rows: list[dict[str, Any]]) -> str:
         ".point-detail text{fill:#eef2f7;font:10px ui-monospace,SFMono-Regular,monospace}"
         ".point-detail .point-source-label{fill:#63c9d9;text-decoration:underline}"
     )
+    credit = (f"<desc>{esc(credit_text())}</desc>"
+              if any(is_epoch_url(row.get("source")) for row in sourced) else "")
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 43">'
-        f'<style>{asset_css}</style>'
+        f'{credit}<style>{asset_css}</style>'
         f'<line class="chart-grid" x1="{left}" y1="17" x2="{width-right}" y2="17"/>'
         f'<text class="chart-label" x="{left}" y="39">{lo:g}</text>'
         f'<text class="chart-label" x="{width-right}" y="39" text-anchor="end">{hi:g}</text>'
@@ -694,9 +700,11 @@ def model_benchmark_strips(model: Model, benchmarks: dict[str, Benchmark],
         )
         heading = f'<h3>{esc(group)}</h3>' if group else ""
         blocks.append(f'<div class="strip-group">{heading}{strips}</div>')
+    shown = epoch_credit_notice(urls=(row.get("source") for _, _, rows, _ in entries
+                                      for row in rows if _sourced_evidence(row)))
     return _section(
         "Benchmark standing",
-        f'<div class="strip-groups">{"".join(blocks)}</div>',
+        f'<div class="strip-groups">{"".join(blocks)}</div>{shown}',
         "Every point is sourced evidence. This model is outlined. Select any point for its "
         "evidence date, type, configuration, and source.",
     )
@@ -704,6 +712,13 @@ def model_benchmark_strips(model: Model, benchmarks: dict[str, Benchmark],
 
 def esc(value: Any) -> str:
     return html.escape(str(value), quote=True)
+
+
+def epoch_credit_notice(*, urls: Iterable[Any]) -> str:
+    """Epoch AI's CC BY 4.0 credit, once, where any of these source URLs is Epoch's (MODEL-508)."""
+    if not any(is_epoch_url(url) for url in urls):
+        return ""
+    return f'<div class="notice ok credit">{credit_html()}</div>'
 
 
 #: Where a static page (a landing, the wizard) takes the site's nav. The build
@@ -1133,6 +1148,7 @@ def evidence_section(model: Model) -> str:
             'They are not machine-verified.</div>') if cited else ('<div class="notice ok">Each row was checked against its source by a reviewer, '
             'and carries the model identifier as actually evaluated — which is not always the '
             'same as this card\'s.</div>')
+    note += epoch_credit_notice(urls=(rec.get("source_url") for rec in records))
     return _section("Benchmark evidence" if cited else "Verified benchmark evidence",
                     note + _table(["Benchmark", "Evaluated as", "Score", "Evidence date",
                                    "Source kind", ""], rows))
@@ -1974,7 +1990,8 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
             for r in results
         )
         verified += (f'<h2>{title}</h2><p class="lede">{note}</p>'
-                     '<div class="scroll"><table><thead><tr><th>Model</th>'
+                     + epoch_credit_notice(urls=(r.get("source_url") for r in results))
+                     + '<div class="scroll"><table><thead><tr><th>Model</th>'
                      '<th>Score</th><th>Evidence date</th><th>Source kind</th><th>Link</th></tr>'
                      f'</thead><tbody>{rows}</tbody></table></div>')
 
@@ -1997,6 +2014,7 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
         if any(c.get("citation") for c in covered):
             notices += ('<div class="notice">Cited, not machine-verified: these rows retain '
                         'a source reference without a page copy.</div>')
+        notices += epoch_credit_notice(urls=(c.get("source") for c in covered))
         covered_block = (
             notices
             + '<div class="scroll"><table><thead><tr><th>Model</th><th>Provider</th><th>Score</th>'

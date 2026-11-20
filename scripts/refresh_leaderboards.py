@@ -39,6 +39,7 @@ from typing import Any
 
 import yaml
 
+from decision.credit import credit_for
 from decision.excluded import excluded_sources
 from decision.model import (
     SourceRef,
@@ -1581,7 +1582,8 @@ def _new_evidence(
             "verified_at": board.observed_at,
             "benchmark_version": template.get("benchmark_version", "") if board.row_template else "",
             "configuration": "",
-            "limitations": "",
+            # CC BY 4.0 asks for credit where the data is shown (MODEL-508).
+            "limitations": credit_for(source_url) or "",
             "measured_by": measured_by(template),
             "effort": _name_effort(_subject(matched)) if board.effort_basis is None else None,
             "harness": template.get("harness") if board.row_template else None,

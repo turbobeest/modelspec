@@ -1452,6 +1452,18 @@
           "title": "Id",
           "type": "string"
         },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
         "url": {
           "title": "Url",
           "type": "string"
@@ -3779,8 +3791,8 @@
       "additionalProperties": false,
       "properties": {
         "comparison_version": {
-          "const": "1.1",
-          "default": "1.1",
+          "const": "1.2",
+          "default": "1.2",
           "title": "Comparison Version",
           "type": "string"
         },

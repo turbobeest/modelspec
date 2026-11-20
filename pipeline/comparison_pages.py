@@ -79,7 +79,9 @@ def _evidence(model: dict, sources: dict[str, str]) -> str:
         rows.append(f'<tr>{values}<td><ul>{conditions}</ul></td><td>{citations}</td></tr>')
     if not rows:
         return '<p>Detailed benchmark evidence is unavailable in this comparison response.</p>'
-    return ('<div class="use-case-table"><table><thead><tr><th>Benchmark</th><th>Version</th>'
+    credit = r.epoch_credit_notice(urls=(sources.get(source) for item in model["evidence"]
+                                         for source in item["source_ids"]))
+    return (credit + '<div class="use-case-table"><table><thead><tr><th>Benchmark</th><th>Version</th>'
             '<th>Measurement</th><th>Unit</th><th>Published interval</th><th>Evidence date</th>'
             '<th>Measurement conditions</th><th>Provenance</th></tr></thead><tbody>'
             + "".join(rows) + '</tbody></table></div>')
