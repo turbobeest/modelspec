@@ -347,12 +347,23 @@ def _show_coverage_log() -> None:
     _coverage_log_ready = True
 
 
-def require_consistent_modalities(cards: list) -> None:
-    """MODEL-457: private data must not publish a card whose modality flags contradict its lists."""
+def require_consistent_modalities(cards: list, facts: list | None = None) -> None:
+    """MODEL-457, MODEL-462: private data must not publish a card whose modality flags
+    contradict its lists, or whose lists contradict its filed modality facts.
+
+    ``facts`` holds each card's front-matter ``facts``, in the order of ``cards``.
+    """
     contradictions = [
         f"{card.identity.model_id}: {error}"
         for card in cards for error in card.modality_errors()
     ]
+    if facts is not None:
+        paired = zip(cards, facts, strict=True)
+    else:
+        paired = ()
+    for card, card_facts in paired:
+        contradictions += [f"{card.identity.model_id}: {error}"
+                           for error in card.modality_fact_errors(card_facts)]
     if contradictions and os.environ.get("MODELSPEC_ALLOW_MODALITY_CONTRADICTIONS") != "1":
         raise SystemExit("modality flag contradicts list:\n" + "\n".join(contradictions))
 
@@ -374,7 +385,7 @@ def export_data(out: Path, data_dir: Path) -> None:
         registry.use_root(root)
         models = load_models(root)
         cards = [ModelCard.from_yaml_file(str(model.path)) for model in models]
-        require_consistent_modalities(cards)
+        require_consistent_modalities(cards, [model.front.get("facts") for model in models])
         build = export.make_build(load_catalogue(root), root).to_json()
         devices = hardware.load_devices(root)
         graph = derive_graph(cards, hardware.device_classes(devices))

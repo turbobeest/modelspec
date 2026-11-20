@@ -214,6 +214,11 @@ def validate_card(filepath: str, compute_diff: bool = True) -> dict:
         return entry
 
     errors = card.modality_errors()
+    if not errors:
+        from pipeline.load import split_front_matter
+
+        front, _ = split_front_matter(full_path.read_text(encoding="utf-8"), path=full_path)
+        errors = card.modality_fact_errors(front.get("facts"))
     if errors:
         entry["status"] = "invalid"
         entry["error"] = "; ".join(errors)

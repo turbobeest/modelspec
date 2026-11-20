@@ -165,3 +165,41 @@ def test_private_data_export_check_can_be_waived_only_by_env(monkeypatch) -> Non
 
     monkeypatch.setenv("MODELSPEC_ALLOW_MODALITY_CONTRADICTIONS", "1")
     require_consistent_modalities([_modality_card(input=["image"])])
+
+
+def _fact(facet: str, value: list[str], state: str = "known") -> dict:
+    return {"facet": facet, "value": value, "state": state}
+
+
+def test_modality_lists_are_compared_with_the_filed_facts() -> None:
+    card = _modality_card(input=["text", "image", "pdf"], output=["text"])
+    facts = [_fact("model.input_modalities", ["text", "image"]),
+             _fact("model.output_modalities", ["text"])]
+    assert card.modality_fact_errors(facts) == [
+        "modalities.input contains pdf but model.input_modalities does not list document"
+    ]
+    facts[0]["value"].append("document")
+    assert card.modality_fact_errors(facts) == []
+
+
+def test_filed_modality_fact_missing_from_the_list_is_a_contradiction() -> None:
+    card = _modality_card(input=["text"], output=["text"])
+    facts = [_fact("model.output_modalities", ["text", "embedding"])]
+    assert card.modality_fact_errors(facts) == [
+        "model.output_modalities lists embedding but modalities.output does not contain embeddings"
+    ]
+
+
+def test_modality_fact_check_skips_unknown_or_absent_facts() -> None:
+    card = _modality_card(input=["text", "pdf"])
+    assert card.modality_fact_errors(None) == []
+    assert card.modality_fact_errors([_fact("model.input_modalities", [], state="unknown")]) == []
+
+
+def test_private_data_export_stops_on_a_list_that_contradicts_its_facts() -> None:
+    from api.worker.vendor import require_consistent_modalities
+
+    card = _modality_card(input=["text", "pdf"])
+    with pytest.raises(SystemExit, match="acme/test: modalities.input contains pdf"):
+        require_consistent_modalities([card], [[_fact("model.input_modalities", ["text"])]])
+    require_consistent_modalities([card], [[_fact("model.input_modalities", ["text", "document"])]])

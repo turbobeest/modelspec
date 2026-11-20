@@ -825,6 +825,18 @@ class AuthoringGuide(BaseModel):
 # THE COMPLETE MODEL CARD
 # ═══════════════════════════════════════════════════════════════
 
+# Legacy ``modalities`` names and the filed-fact names they correspond to (MODEL-462).
+_LEGACY_INPUT_MODALITIES = {"text": "text", "image": "image", "audio": "audio",
+                            "video": "video", "pdf": "document"}
+_LEGACY_OUTPUT_MODALITIES = {"text": "text", "image": "image", "audio": "audio",
+                             "video": "video", "embeddings": "embedding", "scores": "score",
+                             "classifications": "label", "actions": "action"}
+
+
+def _legacy_name(names: dict[str, str], fact_name: str) -> str:
+    return next(legacy for legacy, filed in names.items() if filed == fact_name)
+
+
 class ModelCard(BaseModel):
     """Universal Model Intelligence Card — V3.
 
@@ -911,6 +923,38 @@ class ModelCard(BaseModel):
                     f"modalities.{field} is {str(supported).lower()} but modalities.{direction} "
                     f"{'contains' if listed else 'does not contain'} {kind.value}"
                 )
+        return out
+
+    def modality_fact_errors(self, facts: Iterable[Any] | None) -> list[str]:
+        """Front-matter modalities that contradict the filed modality facts (MODEL-462).
+
+        ``facts`` is the card's front-matter ``facts`` list. The legacy
+        ``modalities.input`` and ``modalities.output`` lists are compared with
+        the known ``model.input_modalities`` and ``model.output_modalities``
+        facts, over the modalities both vocabularies name (``pdf`` is the
+        legacy name for ``document``). A direction with no known fact is not
+        compared. Like :meth:`modality_errors`, an error and not a validator.
+        """
+        out: list[str] = []
+        for direction, facet, names in (
+            ("input", "model.input_modalities", _LEGACY_INPUT_MODALITIES),
+            ("output", "model.output_modalities", _LEGACY_OUTPUT_MODALITIES),
+        ):
+            listed = getattr(self.modalities, direction)
+            legacy = {names[m.value] for m in listed if m.value in names}
+            for fact in facts or ():
+                if not isinstance(fact, dict) or fact.get("facet") != facet:
+                    continue
+                value = fact.get("value")
+                if fact.get("state") != "known" or not isinstance(value, list):
+                    continue
+                filed = {v for v in value if v in names.values()}
+                for name in sorted(legacy - filed):
+                    out.append(f"modalities.{direction} contains {_legacy_name(names, name)} "
+                               f"but {facet} does not list {name}")
+                for name in sorted(filed - legacy):
+                    out.append(f"{facet} lists {name} but modalities.{direction} "
+                               f"does not contain {_legacy_name(names, name)}")
         return out
 
     def warnings(self) -> list[str]:
