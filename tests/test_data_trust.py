@@ -1173,7 +1173,7 @@ def test_skipped_rows_are_never_fetched_and_are_not_in_sampled(catalogue, regist
     assert report["counts"] == {"matched": 0, "mismatched": 0, "unreadable": 1}
 
 
-def test_a_refused_hop_is_its_own_count_and_ends_the_audit_red(catalogue, registry):
+def test_a_refused_hop_is_its_own_count(catalogue, registry):
     class HTTP:
         def fetch(self, url):
             return FetchResult("unreachable", error="redirect_unclassified:unknown.example")

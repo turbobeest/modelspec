@@ -249,12 +249,24 @@ def named_refusal(reason: str, source_id: str) -> str:
     return f"{REDIRECT_UNCLASSIFIED}:{source_id}:{reason.partition(':')[2]}"
 
 
+def _registered(url: str) -> bool:
+    from decision.retention import registered_source_urls
+
+    registered = registered_source_urls()
+    if not registered:
+        return False
+    try:
+        return url in registered or canonical_url(url) in registered
+    except ValueError:
+        return False
+
+
 def _require_classified_request(start: str | None, url: str, *, first: bool) -> None:
     """Refuse, before the request, a host the terms register does not class.
 
     With no data directory nothing is refused. A redirect within the start host
-    passes; the first request and every other host need a class (the host or a
-    parent domain). With an unreadable register every other host is refused.
+    passes; every other host needs a class (the host or a parent domain), and so does
+    the first request when its URL is a registered source. With an unreadable register every other host is refused.
     """
     try:
         classes = classified_hosts()
@@ -268,6 +280,10 @@ def _require_classified_request(start: str | None, url: str, *, first: bool) -> 
     except ValueError:
         host = None
     if host is not None and not first and host == start:
+        return
+    if first and not _registered(url):
+        # Only a registered source needs a class at the first request; any other caller's
+        # first fetch (the release-signal feed, a drafter) is checked at its hops only.
         return
     if not unreadable and is_classified(host, classes):
         return

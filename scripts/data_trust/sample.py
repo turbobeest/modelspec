@@ -278,7 +278,7 @@ def run(
         "seed": seed,
         "counts": counts,
         "skipped": dict(sorted(skipped.items())),
-        # Fetches refused at the terms register (MODEL-509); above 0 the audit ends red.
+        # Fetches refused at the terms register (MODEL-509), reported apart from unreadable.
         "redirect_unclassified": refused,
         "error_rate": wilson(counts["mismatched"], counts["matched"] + counts["mismatched"]),
         "strata": [

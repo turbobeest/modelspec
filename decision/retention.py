@@ -69,6 +69,27 @@ def _register_classes(data_dir: str) -> frozenset[str] | None:
                      if isinstance(host, str) and host and isinstance(cls, str) and cls)
 
 
+@cache
+def _registered_urls(data_dir: str) -> frozenset[str]:
+    import yaml
+
+    path = Path(data_dir) / "registry" / "sources.yaml"
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        rows = data["sources"] if isinstance(data, dict) else []
+        return frozenset(str(row["url"]) for row in rows
+                         if isinstance(row, dict) and row.get("url"))
+    except (OSError, ValueError, KeyError, TypeError, yaml.YAMLError):
+        logger.warning("the private source registry could not be read")
+        return frozenset()
+
+
+def registered_source_urls() -> frozenset[str]:
+    """URLs of the sources the private registry lists; empty with no data directory."""
+    data_dir = os.environ.get(DATA_DIR_ENV, "").strip()
+    return _registered_urls(data_dir) if data_dir else frozenset()
+
+
 class TermsRegisterUnreadable(Exception):
     """A data directory is named but its terms register is missing or unreadable."""
 
@@ -146,6 +167,7 @@ def _clear_caches() -> None:
     _public_cite_only_hosts.cache_clear()
     _register_forbidding.cache_clear()
     _register_classes.cache_clear()
+    _registered_urls.cache_clear()
 
 
 cite_only_hosts.cache_clear = _clear_caches  # type: ignore[attr-defined]

@@ -924,6 +924,8 @@ def m509_terms(tmp_path):
 
     (tmp_path / "data" / "registry").mkdir(parents=True)
     (tmp_path / "data" / "registry" / "source-terms.json").write_text(json.dumps(M509_TERMS))
+    (tmp_path / "data" / "registry" / "sources.yaml").write_text(
+        "schema_version: 1\nsources:\n- id: registered\n  url: https://registered.example/page\n")
     with using_data_dir(tmp_path / "data"):
         yield tmp_path / "data"
 
@@ -957,10 +959,29 @@ def test_m509_classed_hosts_subdomains_and_the_same_host_pass(m509_terms) -> Non
     assert sent[-1] == "https://deep.mirror.example/z"
 
 
-def test_m509_the_first_request_needs_a_class_too(m509_terms) -> None:
+def test_m509_a_registered_source_on_an_unclassed_host_is_refused_at_the_first_request(
+        m509_terms) -> None:
     sent: list[str] = []
-    result = _m509_fetcher({}, sent).fetch("https://unknown.example/page")
-    assert result.error == "redirect_unclassified:unknown.example" and sent == []
+    result = _m509_fetcher({}, sent).fetch("https://registered.example/page")
+    assert result.error == "redirect_unclassified:registered.example" and sent == []
+
+
+def test_m509_an_unregistered_first_fetch_passes_but_its_hops_are_checked(m509_terms) -> None:
+    feed = "https://feed.example/api.json"  # the release-signal feed shape: no class, unregistered
+    sent: list[str] = []
+    assert _m509_fetcher({}, sent).fetch(feed).outcome == "ok" and sent == [feed]
+    same = _m509_fetcher({feed: "https://feed.example/v2"}, []).fetch(feed)
+    assert same.outcome == "ok"
+    hop = _m509_fetcher({feed: "https://other.example/api.json"}, sent).fetch(feed)
+    assert hop.error == "redirect_unclassified:other.example"
+    assert "https://other.example/api.json" not in sent
+
+
+def test_m509_get_source_response_serves_the_unregistered_feed(m509_terms) -> None:
+    from decision.sources import get_source_response
+
+    client = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(200, text="{}")))
+    assert get_source_response(client, "https://feed.example/api.json").status_code == 200
 
 
 def test_m509_without_a_data_dir_nothing_is_refused(monkeypatch) -> None:
@@ -982,7 +1003,7 @@ def test_m509_an_unreadable_register_refuses_every_cross_host_hop(tmp_path, cont
         crossing = _m509_fetcher({M509_START: "https://mirror.example/x"}, sent).fetch(M509_START)
         within = _m509_fetcher({M509_START: "https://lab.example/other"}, []).fetch(M509_START)
     assert crossing.error == "terms_register_unreadable"
-    assert within.error == "terms_register_unreadable"  # the first request is refused too
+    assert within.outcome == "ok"  # a hop within the first request's host passes
 
 
 def test_m509_recheck_makes_a_refusal_its_own_alert_and_keeps_nothing(m509_terms, tmp_path) -> None:
