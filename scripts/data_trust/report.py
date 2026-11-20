@@ -31,6 +31,8 @@ def summary(report: dict) -> str:
         f"Sample: {sample['sampled']}; readable: {interval['readable']}; "
         f"matched: {counts['matched']}; "
         f"mismatched: {counts['mismatched']}; unreadable: {counts['unreadable']}\n"
+        f"Source moved since the read (not in the error rate): "
+        f"{sample.get('source_moved', 0)}\n"
         f"Refused at the terms register (redirect_unclassified): "
         f"{sample.get('redirect_unclassified', 0)}\n"
         f"Readable sample error rate: {rate}\n"
