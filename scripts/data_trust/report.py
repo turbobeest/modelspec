@@ -6,6 +6,8 @@ import gzip
 import json
 from pathlib import Path
 
+from scripts.data_trust import trust_line
+
 MAX_DEFECT_BYTES = 32 * 1024 * 1024
 
 
@@ -24,6 +26,7 @@ def summary(report: dict) -> str:
     coverage = sample.get("reader_coverage", {"served": 0, "with_reader": 0, "share": None})
     legacy_share = "n/a" if legacy["share"] is None else f"{legacy['share']:.4%}"
     reader_share = "n/a" if coverage["share"] is None else f"{coverage['share']:.2%}"
+    trust = trust_line.text(report["trust_line"]) if report.get("trust_line") else ""
     return (
         f"Served facts: {inv['facts']}; errors: {inv['errors']}; warnings: {inv['warnings']}; "
         f"models: {inv['models']}; offerings: {inv['offerings']}\n"
@@ -39,6 +42,7 @@ def summary(report: dict) -> str:
         f"Readable sample error rate: {rate}\n"
         f"Reader coverage: {coverage['with_reader']}/{coverage['served']} ({reader_share}). "
         "The stratified readable sample cannot establish five-nines accuracy.\n"
+        + trust
     )
 
 
@@ -189,6 +193,20 @@ def write(report: dict, directory: Path) -> tuple[Path, Path]:
         for benchmark, count in classes.items():
             lines.append(f"| {tier} | {benchmark} | {count} |")
     coverage = report["sample"].get("reader_coverage", {})
+    if report.get("trust_line"):
+        s = report["trust_line"]["stale"]
+        lines += [
+            "",
+            "## Trust line",
+            "",
+            "Counts, not failures. The age line is a parameter while the stale rule is pending.",
+            trust_line.text(report["trust_line"]).replace("Trust line: ", "- ").rstrip(),
+            "",
+            "| Facet group | Verified | Older than the age line |",
+            "| --- | ---: | ---: |",
+        ]
+        for group, row in s["by_group"].items():
+            lines.append(f"| {group} | {row['verified']} | {row['older']} |")
     lines += [
         "",
         "## Reader coverage",

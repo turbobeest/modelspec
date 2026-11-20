@@ -14,7 +14,7 @@ import yaml
 
 from decision.registry import load as load_registry
 from decision.sources import FetchResult
-from scripts.data_trust import invariants, sample
+from scripts.data_trust import invariants, sample, trust_line
 from scripts.data_trust.catalogue import Catalogue, _records, calibrate, load
 from scripts.data_trust.report import append_defects, summary, write
 from tests.snapshot_records import fact
@@ -1356,3 +1356,56 @@ def test_m519_a_short_json_reply_is_read_not_refused_as_a_shell(
     catalogue.facts = catalogue.facts[1:]
     report = sample.run(catalogue, registry, n=60, seed="week", as_of=TODAY, fetcher=HTTP())
     assert report["shell_page"] == shell
+
+
+def _verified(group_field, when, kind="fact"):
+    return {"kind": kind, "field": group_field, "verification": {"date": when}}
+
+
+def test_trust_line_counts_stale_by_group_and_change(tmp_path):
+    c = Catalogue(
+        facts=[
+            _verified("model.context_window", "2026-06-01"),  # 111 days: older than 90
+            _verified("model.context_window", "2026-09-10"),
+            _verified("offering.price.input", "2026-08-01"),  # 50 days: older than 45
+            _verified("offering.price.input", "2026-09-01"),
+            _verified(None, "2026-09-19", kind="evidence"),
+            {"kind": "fact", "field": "model.x", "verification": {}},  # not verified
+        ]
+    )
+    s = trust_line.stale(c, TODAY, 90, 45)
+    assert (s["verified"], s["older"]) == (5, 2)
+    assert s["by_group"]["offering price"] == {"verified": 2, "older": 1}
+    assert s["by_group"]["benchmark evidence"] == {"verified": 1, "older": 0}
+    assert trust_line.stale(c, TODAY, 200, 200)["older"] == 0  # the age line is a parameter
+    line = trust_line.compute(c, tmp_path, TODAY)
+    assert line["moved_hosts"] == {"recorded": False, "moved": 0, "source_ids": []}
+    assert "not recorded yet" in trust_line.text(line)
+    first = trust_line.with_change(line, tmp_path, TODAY)
+    assert first["change"] is None
+    (tmp_path / "2026-09-13.json").write_text(
+        json.dumps({"trust_line": {**line, "stale": {**line["stale"], "older": 5}}})
+    )
+    later = trust_line.with_change(line, tmp_path, TODAY)
+    assert later["change"]["stale"] == -3 and later["previous"] == "2026-09-13"
+    assert "(-3 since 2026-09-13)" in trust_line.text(later)
+
+
+def test_trust_line_final_host_and_report(catalogue, registry, tmp_path):
+    (tmp_path / "fetch-state").mkdir()
+    (tmp_path / "fetch-state/final-hosts.json").write_text(
+        json.dumps({"src-lab-docs": {"final_host": "other.test"}, "gone": {"final_host": "x"}})
+    )
+    line = trust_line.compute(catalogue, tmp_path, TODAY)
+    assert line["moved_hosts"] == {"recorded": True, "moved": 1, "source_ids": ["src-lab-docs"]}
+    report = {
+        "as_of": TODAY.isoformat(),
+        "engine_commit": "synthetic",
+        "invariants": invariants.run(catalogue, registry, TODAY),
+        "sample": sample.run(catalogue, registry, n=1, seed="w", as_of=TODAY,
+                             reader=lambda *a: ("matched", "")),
+        "trust_line": line,
+    }
+    assert "final host differs from the registered host: 1" in summary(report)
+    md, _ = write(report, tmp_path / "out")
+    assert "## Trust line" in md.read_text()
