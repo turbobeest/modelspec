@@ -195,7 +195,9 @@ def test_live_cli_proposes_recent_lab_release_with_clause_2_and_noop(tmp_path):
     (root / "premier/slice-1.yaml").write_bytes(output.read_bytes())
     result = subprocess.run(command, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
-    assert json.loads(diff.read_text()) == {"added": [], "removed": [], "changed": False}
+    assert json.loads(diff.read_text()) == {
+        "added": [], "removed": [], "changed": False, "completeness_audit": "full",
+    }
 
 
 @pytest.mark.parametrize("flag", ["--output", "--diff"])
@@ -1082,3 +1084,51 @@ def test_a_changed_proposal_carries_the_owner_stamp_line_and_a_noop_does_not(tmp
     (root / "premier/slice-1.yaml").write_bytes(output.read_bytes())
     result, output, diff = _propose(root)
     assert "approval_stamp" not in json.loads(diff.read_text())
+
+
+def test_the_gate_audits_the_unfiltered_inputs(tmp_path, monkeypatch):
+    """MODEL-520: the completeness audit sees the same inputs as production."""
+    root = catalogue(tmp_path)
+    write_card(root, "lab/one", release="2026-09-29")
+    seen = []
+    real = premier_live.audit_build
+
+    def spy(inputs, **kwargs):
+        seen.append(inputs)
+        return real(inputs, **kwargs)
+
+    monkeypatch.setattr(premier_live, "audit_build", spy)
+    premier_live.load_inputs(root, TODAY)
+    full = premier_live.collect_repo(root)
+    assert len(seen) == 1
+    assert seen[0].offerings == full.offerings
+    assert seen[0].subscriptions == full.subscriptions
+    assert seen[0].hardware == full.hardware
+    assert seen[0].hardware_fit_records == full.hardware_fit_records
+
+
+def test_the_fallback_audit_is_flagged_with_its_offerings(tmp_path, monkeypatch):
+    """MODEL-520: a fallback to filtered inputs reaches the diff, with the causes."""
+    root = catalogue(tmp_path)
+    write_card(root, "lab/one", release="2026-09-29")
+    real = premier_live.audit_build
+    calls = []
+
+    def spy(inputs, **kwargs):
+        calls.append(inputs)
+        if len(calls) == 1:
+            raise premier_live.SnapshotBuildError("unregistered identity")
+        return real(inputs, **kwargs)
+
+    bad = {"model": "lab/one", "provider": "nowhere", "region": "US", "tier": "t"}
+    real_collect = premier_live.collect_repo
+    monkeypatch.setattr(premier_live, "audit_build", spy)
+    monkeypatch.setattr(
+        premier_live, "collect_repo",
+        lambda r: (lambda i: premier_live.replace(i, offerings=[*i.offerings, bad]))(real_collect(r)),
+    )
+    live = premier_live.load_inputs(root, TODAY)
+    assert live["completeness_audit"] == "filtered-fallback"
+    assert live["unregistered_offerings"] == [bad]
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert document["audit_note"]["completeness_audit"] == "filtered-fallback"

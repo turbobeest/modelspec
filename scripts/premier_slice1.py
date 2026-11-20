@@ -874,6 +874,7 @@ def mixed_slice1_boards(boards: list[dict]) -> list[str]:
 
 def build(*, data_dir: Path | None = None, as_of: date | None = None,
           allow_mixed_boards: bool = False, baseline_ids: frozenset[str] = frozenset()) -> dict:
+    audit_note = None
     if data_dir is None:
         aliases = json.loads((INPUTS / "aliases.json").read_text())
         cards = load_cards()
@@ -894,6 +895,8 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None,
 
         as_of = as_of or datetime.now(UTC).date()
         live = load_inputs(data_dir, as_of)
+        audit_note = {"completeness_audit": live["completeness_audit"],
+                      "unregistered_offerings": live["unregistered_offerings"]}
         cards, boards, aliases = live["cards"], live["boards"], live["aliases"]
         slice2 = live["slice2"]
         budget_universe, local_universe = live["budget_candidates"], live["local_candidates"]
@@ -1400,6 +1403,8 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None,
     }
     if not_proposed:
         document["not_proposed"] = not_proposed  # main() moves it out of the YAML
+    if audit_note is not None:
+        document["audit_note"] = audit_note  # main() moves it out of the YAML
     return document
 
 
@@ -1517,7 +1522,12 @@ def main() -> int:
             print(error, file=sys.stderr)
             return 3
         not_proposed = document.pop("not_proposed", [])
+        audit_note = document.pop("audit_note", None)
         changes = membership_diff(document, baseline)
+        if audit_note is not None:
+            changes["completeness_audit"] = audit_note["completeness_audit"]
+            if audit_note["unregistered_offerings"]:
+                changes["unregistered_offerings"] = audit_note["unregistered_offerings"]
         if not_proposed:
             changes["not_proposed"] = not_proposed
             for row in not_proposed:
