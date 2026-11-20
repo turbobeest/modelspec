@@ -6668,6 +6668,10 @@ class StoredRegions:
         source = self.sources.get(source_id)
         return None if source is None else source.kind
 
+    def source_publisher(self, source_id: str) -> str | None:
+        source = self.sources.get(source_id)
+        return None if source is None else source.publisher
+
     def dated_prices(self, claim: Claim, source: SourceRef, region_id: str) -> list[Reading]:
         from decision.dated_prices import read_dated_prices
 
@@ -7330,6 +7334,50 @@ def _source_kind(regions: Regions, source_id: str) -> tuple[bool, str | None]:
     return True, method(source_id)
 
 
+def _publisher(regions: Regions, source_id: str) -> str | None:
+    """The source's recorded ``publisher``; ``None`` when unknown or untracked."""
+    method = getattr(regions, "source_publisher", None)
+    return method(source_id) if callable(method) else None
+
+
+def _provider_of_lab(provider_id: str, lab: str) -> bool:
+    try:
+        return default_registry().provider(provider_id).lab == lab
+    except KeyError:
+        return False
+
+
+def _kind_admitted(claim: Claim, facet, kind: str | None, publisher: str | None) -> bool:
+    """Whether a source of ``kind`` and ``publisher`` may back ``claim`` (MODEL-530).
+
+    Every place that checks a source kind against a facet calls this. A kind the facet
+    admits passes. Otherwise a lab's own page passes either way: (a) a facet that admits
+    ``lab_documentation`` takes a ``provider_documentation`` source whose publisher is
+    the model's lab; (b) a facet that admits ``provider_documentation`` takes a
+    ``lab_documentation`` source whose publisher is the offering's provider, when that
+    provider is the own API of the same lab. A reseller, an unknown publisher, or an
+    unknown kind never passes by this route.
+    """
+    permitted = facet.permitted_source_kinds
+    if kind in permitted:
+        return True
+    if kind is None or not publisher:
+        return False
+    parts = claim.subject.split("/")
+    if getattr(facet, "subject", None) == "offering" and len(parts) >= 4:
+        provider, lab = parts[0], parts[1]
+    elif getattr(facet, "subject", None) == "model" and len(parts) == 2:
+        provider, lab = None, parts[0]
+    else:
+        return False
+    if kind == "provider_documentation" and "lab_documentation" in permitted:
+        return publisher == lab
+    if kind == "lab_documentation" and "provider_documentation" in permitted:
+        return provider is not None and publisher == provider \
+            and _provider_of_lab(provider, lab)
+    return False
+
+
 def _facet_or_none(field: str):
     try:
         return default_registry().facet(field)
@@ -7337,7 +7385,8 @@ def _facet_or_none(field: str):
         return None
 
 
-def _binding_page(claim: Claim, regions: Regions, kind: str | None) -> bool:
+def _binding_page(claim: Claim, regions: Regions, kind: str | None,
+                  source_id: str) -> bool:
     """A licence region whose kind the facet does not permit, beside a permitted one.
 
     The region can name the licence. It is not a reading, and it gives no
@@ -7349,14 +7398,13 @@ def _binding_page(claim: Claim, regions: Regions, kind: str | None) -> bool:
     facet = _facet_or_none(claim.field)
     if facet is None:
         return False
-    permitted = set(facet.permitted_source_kinds)
-    if kind in permitted:
+    if _kind_admitted(claim, facet, kind, _publisher(regions, source_id)):
         return False
     for source in claim.sources:
         if not source.cited_regions:
             continue
         _, cited = _source_kind(regions, source.source_id)
-        if cited in permitted:
+        if _kind_admitted(claim, facet, cited, _publisher(regions, source.source_id)):
             return True
     return False
 
@@ -7376,7 +7424,7 @@ def _absence_block(claim: Claim, regions: Regions, source_id: str) -> list[Diff]
         return None
     permitted = list(facet.permitted_source_kinds)
     tracked, kind = _source_kind(regions, source_id)
-    if kind in permitted:
+    if _kind_admitted(claim, facet, kind, _publisher(regions, source_id)):
         return None
     if not claim.field.startswith("licence.") and (not tracked or kind is None):
         return None
@@ -7401,8 +7449,7 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
         return []  # Dated claims use StoredRegions.dated_prices exclusively.
     if claim.field.startswith("licence."):
         facet = _facet_or_none(claim.field)
-        permitted = set(facet.permitted_source_kinds) if facet is not None else set()
-        if kind not in permitted:
+        if facet is None or not _kind_admitted(claim, facet, kind, None):
             return []
         if kind == "licence_text":
             canonical = [
@@ -7489,10 +7536,12 @@ def _verify_architecture_fact(
         return Result(claim.target, "skipped", reason="no_independent_extractor")
     url_of = getattr(regions, "source_url", None)
     pages = []
-    permitted = set(default_registry().facet(claim.field).permitted_source_kinds)
+    facet = default_registry().facet(claim.field)
+    permitted = set(facet.permitted_source_kinds)
     for source in claim.sources:
         _, kind = _source_kind(regions, source.source_id)
-        if kind is not None and kind not in permitted:
+        if kind is not None and not _kind_admitted(
+                claim, facet, kind, _publisher(regions, source.source_id)):
             diffs = [Diff("source_kind", sorted(permitted), kind)]
             return Result(
                 claim.target,
@@ -7811,7 +7860,7 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
             accepting = _readers_for(ordered, read_claim, text, kind, source_url=source_url)
             independent = [e for e in accepting if _independent(claim, e.actor, today)]
             if not independent:
-                if _binding_page(claim, regions, kind):
+                if _binding_page(claim, regions, kind, source.source_id):
                     continue
                 if claim.value is None and claim.field.startswith("licence."):
                     blocked = _absence_block(claim, regions, source.source_id)

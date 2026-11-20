@@ -211,6 +211,8 @@ class Provider:
     jurisdiction: Jurisdiction
     attestations: Mapping[str, Sourced]
     v1_availability_field: str | None = None
+    #: The lab this provider is the own API of (MODEL-530). Absent means none stated.
+    lab: str | None = None
 
 
 @dataclass(frozen=True)
@@ -717,15 +719,41 @@ def _sourced(err: _Errors, where: str, raw: Any, extra: set[str] = frozenset()) 
     return raw
 
 
+def _lab_ids(root: Path) -> set[str] | None:
+    """Lab ids in ``labs.yaml`` beside the registry files, or ``None`` when there is none.
+
+    The public checkout has no ``labs.yaml`` (it is private data), so there a provider's
+    ``lab`` gets the format check only; with the labs registry loaded it must name a known lab.
+    """
+    path = root / "labs.yaml"
+    if not path.is_file():
+        return None
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    rows = data.get("labs") if isinstance(data, dict) else None
+    return {str(r.get("id")) for r in rows or [] if isinstance(r, dict)}
+
+
 def _load_providers(err: _Errors, root: Path) -> dict[str, Provider]:
     entries = _read(root, "providers", "providers")
     _unique(err, "providers.yaml", entries, KEBAB_ID, "kebab-case")
     required = {"id", "name", "url", "kind", "jurisdiction", "attestations"}
     availability: set[str] | None = None
+    lab_ids = _lab_ids(root)
     out: dict[str, Provider] = {}
     for e in entries:
         where = f"providers.yaml {e.get('id')!r}"
-        _keys(err, where, e, required, {"v1_availability_field"})
+        _keys(err, where, e, required, {"v1_availability_field", "lab"})
+        lab = e.get("lab")
+        if lab is not None:
+            if not isinstance(lab, str) or not KEBAB_ID.fullmatch(lab):
+                err.add(where, "lab must be a kebab-case lab id")
+                lab = None
+            elif e.get("kind") != "lab_api":
+                err.add(where, "lab is allowed only on a lab_api provider")
+                lab = None
+            elif lab_ids is not None and lab not in lab_ids:
+                err.add(where, f"lab {lab!r} is not in labs.yaml")
+                lab = None
         if not _https(e.get("url")):
             err.add(where, "url must be an https URL")
         if e.get("kind") not in PROVIDER_KINDS:
@@ -766,7 +794,8 @@ def _load_providers(err: _Errors, root: Path) -> dict[str, Provider]:
             out.setdefault(e["id"], Provider(
                 id=e["id"], name=str(e.get("name", "")), url=str(e.get("url", "")),
                 kind=str(e.get("kind", "")), jurisdiction=jurisdiction,
-                attestations=MappingProxyType(attestations), v1_availability_field=field_))
+                attestations=MappingProxyType(attestations), v1_availability_field=field_,
+                lab=lab))
     return out
 
 

@@ -255,3 +255,41 @@ def test_no_repository_offering_is_sold_by_a_vendor() -> None:
     vendors = {v.id for v in default().vendors()}
 
     assert not [p for p in (ROOT / "offerings").iterdir() if p.name in vendors]
+
+
+def test_a_provider_may_name_the_lab_it_is_the_own_api_of(tmp_path) -> None:
+    """MODEL-530: ``lab`` is optional on a provider and must be a kebab-case id."""
+    root = _registry_copy(tmp_path, "")
+    path = root / "providers.yaml"
+    text = path.read_text(encoding="utf-8")
+    assert load(root).provider("openai").lab is None
+    path.write_text(text.replace("  - id: openai\n", "  - id: openai\n    lab: openai\n", 1),
+                    encoding="utf-8")
+    assert load(root).provider("openai").lab == "openai"
+    path.write_text(text.replace("  - id: openai\n", "  - id: openai\n    lab: Not Kebab\n", 1),
+                    encoding="utf-8")
+    with pytest.raises(Exception, match="lab must be"):
+        load(root)
+
+
+def _with_lab(tmp_path, provider: str, lab: str) -> Path:
+    root = _registry_copy(tmp_path, "")
+    path = root / "providers.yaml"
+    text = path.read_text(encoding="utf-8")
+    path.write_text(text.replace(f"  - id: {provider}\n", f"  - id: {provider}\n    lab: {lab}\n", 1),
+                    encoding="utf-8")
+    return root
+
+
+def test_lab_is_refused_on_a_cloud_provider(tmp_path) -> None:
+    with pytest.raises(Exception, match="only on a lab_api provider"):
+        load(_with_lab(tmp_path, "aws-bedrock", "anthropic"))
+
+
+def test_an_unknown_lab_is_refused_when_labs_are_loaded(tmp_path) -> None:
+    root = _with_lab(tmp_path, "openai", "openai")
+    (root / "labs.yaml").write_text("schema_version: 1\nlabs:\n- id: anthropic\n", encoding="utf-8")
+    with pytest.raises(Exception, match="not in labs.yaml"):
+        load(root)
+    (root / "labs.yaml").write_text("schema_version: 1\nlabs:\n- id: openai\n", encoding="utf-8")
+    assert load(root).provider("openai").lab == "openai"
