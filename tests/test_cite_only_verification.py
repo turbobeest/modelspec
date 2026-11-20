@@ -393,7 +393,9 @@ def test_unreadable_fetcher_record_fails_closed(tmp_path, damage, registered):
     elif damage == "other_hash":
         path.write_text(json.dumps({**record, "snapshot_ref": "sha256:" + "f" * 64}))
     elif damage == "other_source":
-        path.write_text(json.dumps({**record, "url": "https://elsewhere.example/"}))
+        # Every record of the hash, the per-URL ones included, names another source.
+        for target in (path, *path.parent.glob("*.citation.*.json")):
+            target.write_text(json.dumps({**record, "url": "https://elsewhere.example/"}))
     else:
         path.write_text(json.dumps({**record, "resolved_urls": "https://x.ai/"}))
     inputs = card_redirect(snapshot_input(url=registered, outcome="verified"), ref)

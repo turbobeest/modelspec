@@ -69,13 +69,16 @@ def _cited_ref(ref, urls, store):
     if store is not None and isinstance(snapshot_ref, str) \
             and re.fullmatch(r"sha256:[0-9a-f]{64}", snapshot_ref):
         try:
-            record = store.citation(snapshot_ref)
+            records = (store.citations(snapshot_ref) if hasattr(store, "citations")
+                       else [r for r in (store.citation(snapshot_ref),) if r is not None])
         except (OSError, AttributeError, TypeError):
             raise ValueError("unreadable citation record") from None
-        if record is not None:
+        for record in records:
             if not isinstance(record, dict) or record.get("snapshot_ref") != snapshot_ref:
                 raise ValueError("citation record does not match its hash")
-            if record.get("url") != registered:
+        if records:
+            record = next((r for r in records if r.get("url") == registered), None)
+            if record is None:
                 raise ValueError("citation record names another source")
             if record_origin_status(record) is None:
                 raise ValueError("invalid citation redirect record")
