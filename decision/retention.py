@@ -53,6 +53,31 @@ def _register_forbidding(data_dir: str) -> tuple[str, ...]:
                         and not any(char in host for char in "/:@ ")))
 
 
+@cache
+def _register_classes(data_dir: str) -> frozenset[str] | None:
+    path = Path(data_dir) / "registry" / "source-terms.json"
+    try:
+        terms = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        logger.warning("the private source-terms register could not be read")
+        return None
+    if not isinstance(terms, dict):
+        logger.warning("the private source-terms register is not an object")
+        return None
+    return frozenset(host for host, cls in terms.items()
+                     if isinstance(host, str) and host and isinstance(cls, str) and cls)
+
+
+def classified_hosts() -> frozenset[str] | None:
+    """Hosts that carry a class in the private terms register (MODEL-509).
+
+    None when no data directory is named or the register cannot be read: a
+    caller then behaves as it did before the register existed.
+    """
+    data_dir = os.environ.get(DATA_DIR_ENV, "").strip()
+    return _register_classes(data_dir) if data_dir else None
+
+
 def use_data_dir(data_dir: object) -> None:
     """Name the private data directory for every reader in this process.
 
@@ -104,6 +129,7 @@ def cite_only_hosts() -> tuple[str, ...]:
 def _clear_caches() -> None:
     _public_cite_only_hosts.cache_clear()
     _register_forbidding.cache_clear()
+    _register_classes.cache_clear()
 
 
 cite_only_hosts.cache_clear = _clear_caches  # type: ignore[attr-defined]

@@ -45,7 +45,7 @@ from decision.excluded import excluded_sources
 from decision.model import CitedRegion as CitedRegion
 from decision.model import RenderedInteraction, Source, SourceSnapshot
 from decision.retention import (
-    citation_metadata, cite_only_origin_restrictive, cite_only_origin_status,
+    canonical_host, citation_metadata, classified_hosts, cite_only_origin_restrictive, cite_only_origin_status,
     record_origin_status, require_source_url,
 )
 from decision.normalise import (
@@ -210,6 +210,41 @@ class ExcludedSource(ValueError):
     """The requested source or a resolved origin is excluded."""
 
 
+class UnclassifiedRedirectError(ValueError):
+    """A redirect reached a host with no class in the private terms register (MODEL-509)."""
+
+    def __init__(self, host: str) -> None:
+        super().__init__(f"redirect to unclassified host {host}")
+        self.host = host
+
+
+REDIRECT_UNCLASSIFIED = "redirect_unclassified"
+
+
+def unclassified_redirect_host(result: Any) -> str | None:
+    """The host a fetch was refused at, or None when it was not refused for this."""
+    error = getattr(result, "error", None) or ""
+    prefix = REDIRECT_UNCLASSIFIED + ":"
+    return (error[len(prefix):] or None) if error.startswith(prefix) else None
+
+
+def _require_classified_hop(start: str | None, url: str, classified: frozenset[str] | None) -> None:
+    """Refuse, before the request, a hop to another host the register does not class.
+
+    With no register (no data directory) nothing is refused. A hop within the
+    start host passes, as does one to any host the register classes.
+    """
+    if classified is None:
+        return
+    try:
+        host = canonical_host(url)
+    except ValueError:
+        host = None
+    if host is not None and (host == start or host in classified):
+        return
+    raise UnclassifiedRedirectError(host or "unparseable")
+
+
 def require_allowed_source_urls(url: str, resolved_urls: Iterable[str] = ()) -> None:
     rules = excluded_sources()
     if any(rules.url(origin) for origin in (url, *resolved_urls)):
@@ -225,8 +260,15 @@ def get_source_response(
 
     history = []
     request = None
+    classified = classified_hosts()
+    try:
+        start = canonical_host(url)
+    except ValueError:
+        start = None
     while True:
         require_allowed_source_urls(url)
+        if request is not None:
+            _require_classified_hop(start, url, classified)
         if before_request is not None:
             before_request(url)
         response = (client.get(url, follow_redirects=False, **kwargs) if request is None
@@ -322,6 +364,8 @@ class Fetcher:
                 )
             except ExcludedSource:
                 return FetchResult("unreachable", error="excluded source")
+            except UnclassifiedRedirectError as stop:
+                return FetchResult("unreachable", error=f"{REDIRECT_UNCLASSIFIED}:{stop.host}")
             except httpx.TooManyRedirects:
                 return FetchResult("unreachable", error="source redirect limit reached")
             except httpx.TimeoutException as exc:
@@ -1004,6 +1048,10 @@ def _check_one(
         last_modified=previous.last_modified if conditional and previous else None,
     )
     report.fetches[source.id] = result
+    if (host := unclassified_redirect_host(result)) is not None:
+        # Refused before the request (MODEL-509): no bytes, no failure counted.
+        report.skipped.append(Skipped(source.id, f"{REDIRECT_UNCLASSIFIED}:{source.id}:{host}"))
+        return replace(state, last_attempt_at=now)
     old = previous.region_fingerprints if previous else {}
 
     try:

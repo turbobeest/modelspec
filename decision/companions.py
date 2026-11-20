@@ -26,20 +26,14 @@ from typing import Literal
 from decision.model import Source
 from decision.normalise import canonical_url
 from decision.retention import canonical_host
-from decision.sources import CopyStore, Fetcher, FetchMode
+from decision.sources import (
+    CopyStore, Fetcher, FetchMode, UnclassifiedRedirectError, unclassified_redirect_host,
+)
 
 #: The ref the reader reports as an absent copy (unreachable), as the rendered job uses.
 MISSING_COPY = "sha256:" + "0" * 64
 
 CompanionOutcome = Literal["ok", "cited", "unreachable", "redirect_unclassified"]
-
-
-class UnclassifiedRedirectError(ValueError):
-    """A redirect reached a host with no class in the terms register."""
-
-    def __init__(self, host: str) -> None:
-        super().__init__(f"redirect to unclassified host {host}")
-        self.host = host
 
 
 @dataclass(frozen=True)
@@ -117,6 +111,10 @@ def fetch_companions(
             continue
         finally:
             hooks.remove(check)
+        if (stopped := unclassified_redirect_host(result)) is not None:
+            reads[sid] = CompanionRead(sid, "redirect_unclassified", host=stopped,
+                                       error=f"redirect to a host with no terms class: {stopped}")
+            continue
         if result.outcome != "ok" or not result.body.strip():
             reads[sid] = CompanionRead(sid, "unreachable", error=result.error or "empty body",
                                        resolved_urls=result.resolved_urls)
