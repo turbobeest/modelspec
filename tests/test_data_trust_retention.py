@@ -527,6 +527,43 @@ def test_copy_store_withholds_bytes_for_a_forbids_host(lists, forbids_data_dir, 
     assert store.has(other)
 
 
+def _two_url_fact():
+    urls = {"a": f"https://{FORBIDDEN}/one", "b": f"https://{FORBIDDEN}/two"}
+    record = {"sources": [{"source_id": sid, "snapshot_ref": HASH, "cited_regions": ["r"],
+                           "retrieved_at": "2026-11-19T00:00:00+00:00"} for sid in urls]}
+    return record, urls
+
+
+def test_one_citation_record_per_hash_and_url(lists, forbids_data_dir, tmp_path):
+    from decision import citation
+    from decision.sources import CopyStore
+    record, urls = _two_url_fact()
+    store = CopyStore(tmp_path / "store")
+    for url in urls.values():  # the same bytes under two registered URLs (MODEL-513)
+        store.record_citation(HASH, source_url=url)
+    assert {r["url"] for r in store.citations(HASH)} == set(urls.values())
+    assert store.citation(HASH, url=urls["a"])["url"] == urls["a"]
+    assert store.citation(HASH)["url"] == urls["b"]  # by hash alone: the latest write, as before
+    admitted = citation.fact_citation(record, urls, store)
+    assert [row["url"] for row in admitted["sources"]] == list(urls.values())
+    # a ref whose URL matches no record is still refused
+    urls["b"] = f"https://{FORBIDDEN}/three"
+    with pytest.raises(ValueError, match="another source"):
+        citation.fact_citation(record, urls, store)
+
+
+def test_an_unreadable_second_record_still_refuses(lists, forbids_data_dir, tmp_path):
+    from decision import citation
+    from decision.sources import CopyStore
+    record, urls = _two_url_fact()
+    store = CopyStore(tmp_path / "store")
+    store.record_citation(HASH, source_url=urls["a"])
+    store.record_citation(HASH, source_url=urls["b"])
+    next(store.path(HASH).parent.glob("*.citation.*.json")).write_text("{")
+    with pytest.raises(ValueError):
+        citation.fact_citation(record, urls, store)
+
+
 def test_copy_store_keeps_bytes_without_a_forbids_data_dir(lists, tmp_path, monkeypatch):
     from decision.sources import CopyStore
     monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)

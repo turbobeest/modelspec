@@ -871,27 +871,31 @@ class CopyStore:
             os.replace(tmp, target)
         return ref
 
+    def _alias_path(self, ref: str, url: str) -> Path:
+        key = hashlib.sha256(url.encode("utf-8")).hexdigest()[:16]
+        base = self.path(ref)
+        return base.with_name(f"{base.name}.citation.{key}.json")
+
     def record_citation(self, ref: str, *, source_url: str,
                         retrieved_at: datetime | None = None, resolved_urls=()) -> None:
-        target = self.path(ref).with_suffix(".citation.json")
+        """Record that ``ref`` was fetched from ``source_url`` (MODEL-513).
+
+        One record per (hash, URL): the same bytes served under two registered
+        URLs keep both. ``<digest>.citation.json`` still holds the latest write,
+        so a reader that asks only by hash sees what it always saw.
+        """
         metadata = citation_metadata(source_url, ref, retrieved_at=retrieved_at or datetime.now(UTC),
                                      resolved_urls=resolved_urls)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        fd, temporary = tempfile.mkstemp(dir=target.parent, prefix=".tmp-")
-        with os.fdopen(fd, "w", encoding="utf-8") as output:
-            json.dump(metadata, output, sort_keys=True)
-        os.replace(temporary, target)
+        for target in (self._alias_path(ref, metadata["url"]),
+                       self.path(ref).with_suffix(".citation.json")):
+            target.parent.mkdir(parents=True, exist_ok=True)
+            fd, temporary = tempfile.mkstemp(dir=target.parent, prefix=".tmp-")
+            with os.fdopen(fd, "w", encoding="utf-8") as output:
+                json.dump(metadata, output, sort_keys=True)
+            os.replace(temporary, target)
 
-    def citation(self, ref: str) -> dict | None:
-        """The citation record for ``ref``, or None when no entry exists at its path.
-
-        An entry that exists but is not a readable regular file holding a JSON
-        object (a directory, a dangling symlink, bad JSON) raises ValueError:
-        an unreadable record is never read as "no citation" (MODEL-420).
-        """
-        target = self.path(ref).with_suffix(".citation.json")
-        if not os.path.lexists(target):
-            return None
+    @staticmethod
+    def _read_record(target: Path, ref: str) -> dict:
         if not target.is_file():
             raise ValueError("citation record is not a readable file")
         try:
@@ -903,6 +907,33 @@ class CopyStore:
         if metadata.get("snapshot_ref") != ref:
             raise ValueError("citation metadata does not match its hash")
         return metadata
+
+    def citation(self, ref: str, *, url: str | None = None) -> dict | None:
+        """The citation record for ``ref``, or None when no entry exists at its path.
+
+        An entry that exists but is not a readable regular file holding a JSON
+        object (a directory, a dangling symlink, bad JSON) raises ValueError:
+        an unreadable record is never read as "no citation" (MODEL-420).
+        With ``url``, only the record for that (hash, URL) pair.
+        """
+        if url is not None:
+            return next((r for r in self.citations(ref) if r.get("url") == url), None)
+        target = self.path(ref).with_suffix(".citation.json")
+        if not os.path.lexists(target):
+            return None
+        return self._read_record(target, ref)
+
+    def citations(self, ref: str) -> list[dict]:
+        """Every citation record for ``ref``: one per URL, the latest write first."""
+        latest = self.citation(ref)
+        records = [] if latest is None else [latest]
+        base = self.path(ref)
+        if base.parent.is_dir():
+            for target in sorted(base.parent.glob(f"{base.name}.citation.*.json")):
+                record = self._read_record(target, ref)
+                if all(record.get("url") != seen.get("url") for seen in records):
+                    records.append(record)
+        return records
 
     def get(self, ref: str, *, source_url: str | None = None) -> bytes:
         if self.citation(ref) is not None or source_url is not None and cite_only_origin_restrictive(source_url):
@@ -1118,7 +1149,10 @@ def _check_one(
     old = previous.region_fingerprints if previous else {}
 
     try:
-        previous_citation = store.citation(previous.copy_ref) if previous else None
+        previous_citation = None
+        if previous:
+            previous_citation = (store.citation(previous.copy_ref, url=str(source.url))
+                                 or store.citation(previous.copy_ref))
         # Every origin of the previous record is validated before its presence
         # grants the cite-only path (MODEL-420).
         if previous_citation is not None and record_origin_status(previous_citation) is None:
