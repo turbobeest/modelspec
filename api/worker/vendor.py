@@ -218,7 +218,8 @@ def bundle_data(out: Path, data_dir: Path) -> None:
     """Generate private data as an imported module, never a public asset."""
     with tempfile.TemporaryDirectory(prefix="modelspec-worker-") as tmp:
         site = Path(tmp) / "site"
-        env = dict(os.environ, DATA_SPLIT_ENABLED="false", MODELSPEC_REQUIRE_DATA_DIR="1")
+        env = dict(os.environ, DATA_SPLIT_ENABLED="false", MODELSPEC_REQUIRE_DATA_DIR="1",
+                   MODELSPEC_DATA_DIR=str(data_dir.resolve()))
         # Build output and exceptions may contain private rows. Emit only status.
         completed = subprocess.run(
             [sys.executable, str(Path(__file__).resolve()), "--export-data", str(site),
@@ -457,6 +458,18 @@ def check_imports_are_stdlib_only(bundle: Path) -> list[str]:
 
 
 def main() -> int:
+    """Run the vendoring CLI; the data-dir environment it sets does not outlive the call."""
+    previous = os.environ.get("MODELSPEC_DATA_DIR")
+    try:
+        return _main()
+    finally:
+        if previous is None:
+            os.environ.pop("MODELSPEC_DATA_DIR", None)
+        else:
+            os.environ["MODELSPEC_DATA_DIR"] = previous
+
+
+def _main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", default=None, help="Bundle root (default: src/).")
     parser.add_argument("--data-dir", type=Path, default=None)
@@ -471,6 +484,11 @@ def main() -> int:
     if args.data_dir is not None and not os.environ.get("MODELSPEC_SNAPSHOT_KEY"):
         print("private Worker build requires the snapshot verification key", file=sys.stderr)
         return 2
+    if args.data_dir is not None:
+        # MODEL-510: the terms register's forbids class applies to every private export.
+        sys.path.insert(0, str(REPO_ROOT))
+        from decision import retention
+        retention.use_data_dir(args.data_dir.resolve())
     try:
         if args.export_data is not None:
             export_data(args.export_data, args.data_dir)

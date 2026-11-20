@@ -11,6 +11,7 @@ import tempfile
 from datetime import date
 from pathlib import Path
 
+from decision import retention
 from decision.registry import load as load_registry
 from pipeline.data_source import overlay
 from scripts.data_trust import invariants, sample
@@ -36,7 +37,7 @@ def main(argv=None) -> int:
         p.error("--n must be positive")
     seed = args.seed or args.date.strftime("%G-W%V")
     # The retained-copy check reads the private register under this directory (MODEL-510).
-    os.environ["MODELSPEC_DATA_DIR"] = str(args.data_dir)
+    retention.use_data_dir(args.data_dir)
     with tempfile.TemporaryDirectory(prefix="modelspec-trust-overlay-") as tmp:
         root = overlay(ENGINE, args.data_dir, Path(tmp))
         c = load(root, source_root=args.data_dir)

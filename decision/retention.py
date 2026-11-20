@@ -52,6 +52,16 @@ def _register_forbidding(data_dir: str) -> tuple[str, ...]:
                         and not any(char in host for char in "/:@ ")))
 
 
+def use_data_dir(data_dir: object) -> None:
+    """Name the private data directory for every reader in this process.
+
+    Entry points that take ``--data-dir`` (the trust audit, ``pipeline.build``,
+    ``api/worker/vendor.py``) call this so ``forbidding_hosts`` reads the same
+    register on every path (MODEL-510). A subprocess inherits it.
+    """
+    os.environ[DATA_DIR_ENV] = str(data_dir)
+
+
 def forbidding_hosts() -> tuple[str, ...]:
     """Hosts the private terms register classes ``forbids`` (MODEL-510).
 

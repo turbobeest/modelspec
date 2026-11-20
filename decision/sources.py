@@ -770,7 +770,9 @@ class CopyStore:
             # Neither bytes nor a citation record for a malformed origin (MODEL-420).
             raise ValueError("retaining source bytes requires well-formed HTTP URLs")
         ref = fingerprint_bytes(body)
-        if cite_only:
+        if cite_only or cite_only_origin_restrictive(source_url, resolved_urls):
+            # Restrictive reading too: a host the private register marks forbids
+            # keeps the citation and hash, never the bytes (MODEL-510).
             self.record_citation(ref, source_url=source_url, retrieved_at=retrieved_at,
                                  resolved_urls=resolved_urls)
             return ref
