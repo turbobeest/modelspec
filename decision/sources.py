@@ -1358,10 +1358,10 @@ def _check_one(
             ref = (previous.copy_ref if result.outcome == "not_modified" else
                    store.put(result.body, source_url=str(source.url), retrieved_at=now,
                              resolved_urls=resolved_urls, shell_check=shell))
+            store.record_citation(ref, source_url=str(source.url), retrieved_at=now,
+                                  resolved_urls=resolved_urls, shell_check=shell)
         except ShellPageError as stop:
             return refuse_shell(stop)
-        store.record_citation(ref, source_url=str(source.url), retrieved_at=now,
-                              resolved_urls=resolved_urls)
         for region in source.cited_regions:
             before = previous.copy_ref if previous else None
             status = RegionStatus.UNCHANGED if before == ref else RegionStatus.CHANGED
@@ -1373,6 +1373,11 @@ def _check_one(
         return SourceState(source.id, snapshot, 0, False, now)
 
     if result.outcome == "not_modified" and previous is not None:
+        try:
+            # A 304 has no bytes, but a URL flagged as a shell stays flagged (MODEL-519).
+            store.check_shell(None, previous.copy_ref, str(source.url), result.resolved_urls, shell)
+        except ShellPageError as stop:
+            return refuse_shell(stop)
         snapshot = previous.model_copy(update={
             "retrieved_at": now,
             "etag": result.etag or previous.etag,

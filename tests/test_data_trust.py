@@ -1344,3 +1344,15 @@ def test_source_moved_is_counted_apart_from_the_error_rate(catalogue, registry):
 ])
 def test_m519_the_shell_rule_reads_each_reply_with_its_own_recipe(content_type, recipe):
     assert sample._shell_normaliser(content_type) == recipe
+
+
+@pytest.mark.parametrize("content_type,shell", [("application/json", 0), ("text/html", 1)])
+def test_m519_a_short_json_reply_is_read_not_refused_as_a_shell(
+        catalogue, registry, content_type, shell):
+    class HTTP:
+        def fetch(self, url):
+            return FetchResult("ok", status=200, body=b'{"context":1}', content_type=content_type)
+
+    catalogue.facts = catalogue.facts[1:]
+    report = sample.run(catalogue, registry, n=60, seed="week", as_of=TODAY, fetcher=HTTP())
+    assert report["shell_page"] == shell

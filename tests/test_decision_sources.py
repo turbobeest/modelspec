@@ -1189,3 +1189,23 @@ def test_m519_a_collision_sees_the_per_url_citation_records(tmp_path) -> None:
     store.record_citation(ref, source_url="https://www.anthropic.com/a")
     with pytest.raises(ShellPageError, match="same_bytes_as:https://www.anthropic.com/a"):
         store.put(body, source_url="https://www.anthropic.com/b", shell_check=ShellCheck())
+
+
+def test_m519_a_304_on_a_flagged_source_reports_shell_page(tmp_path) -> None:
+    pages = {"https://docs.example/a": _M519_PAGE, "https://docs.example/b": _M519_PAGE}
+    sources = [_m519_source(sid, f"https://docs.example/{sid}").model_copy(
+        update={"fetch": "conditional_http"}) for sid in ("a", "b")]
+    store = CopyStore(tmp_path)
+    first = recheck(sources, {}, [], store=store, now=T0, fetcher=_m519_fetcher(pages))
+    assert first.shell_page == 1 and first.states["a"].snapshot is not None  # a admitted, b refused
+
+    def not_modified(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(304)
+
+    client = Fetcher(httpx.Client(transport=httpx.MockTransport(not_modified)), retries=0,
+                     min_host_interval=0, sleep=lambda _s: None)
+    second = recheck(sources[:1], first.states, [], store=store, now=T0 + timedelta(days=1),
+                     fetcher=client)
+    assert second.shell_page == 1 and second.skipped[0].reason.startswith("shell_page:a:")
+    assert not [r for r in second.regions if r.source_id == "a"]
+    assert second.states["a"].snapshot == first.states["a"].snapshot  # nothing reconfirmed
