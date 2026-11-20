@@ -348,24 +348,24 @@ def _show_coverage_log() -> None:
 
 
 def require_consistent_modalities(cards: list, facts: list | None = None) -> None:
-    """MODEL-457, MODEL-462: private data must not publish a card whose modality flags
-    contradict its lists, or whose lists contradict its filed modality facts.
+    """MODEL-457: private data must not publish a card whose modality flags contradict its lists.
 
-    ``facts`` holds each card's front-matter ``facts``, in the order of ``cards``.
+    MODEL-462: a list that contradicts the card's filed modality facts (``facts``, each
+    card's front-matter ``facts`` in the order of ``cards``) is a warning only: a count
+    on stderr, never a stop, until the data step that fixes the existing ones.
     """
     contradictions = [
         f"{card.identity.model_id}: {error}"
         for card in cards for error in card.modality_errors()
     ]
-    if facts is not None:
-        paired = zip(cards, facts, strict=True)
-    else:
-        paired = ()
-    for card, card_facts in paired:
-        contradictions += [f"{card.identity.model_id}: {error}"
-                           for error in card.modality_fact_errors(card_facts)]
     if contradictions and os.environ.get("MODELSPEC_ALLOW_MODALITY_CONTRADICTIONS") != "1":
         raise SystemExit("modality flag contradicts list:\n" + "\n".join(contradictions))
+    if facts is not None:
+        warned = sum(len(card.modality_fact_errors(card_facts))
+                     for card, card_facts in zip(cards, facts, strict=True))
+        if warned:
+            print(f"warning: {warned} modality list contradiction(s) with filed modality facts",
+                  file=sys.stderr)
 
 
 def export_data(out: Path, data_dir: Path) -> None:

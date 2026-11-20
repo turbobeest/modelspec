@@ -196,10 +196,58 @@ def test_modality_fact_check_skips_unknown_or_absent_facts() -> None:
     assert card.modality_fact_errors([_fact("model.input_modalities", [], state="unknown")]) == []
 
 
-def test_private_data_export_stops_on_a_list_that_contradicts_its_facts() -> None:
+def test_private_data_export_only_warns_on_a_list_that_contradicts_its_facts(capsys) -> None:
     from api.worker.vendor import require_consistent_modalities
 
     card = _modality_card(input=["text", "pdf"])
-    with pytest.raises(SystemExit, match="acme/test: modalities.input contains pdf"):
-        require_consistent_modalities([card], [[_fact("model.input_modalities", ["text"])]])
+    require_consistent_modalities([card], [[_fact("model.input_modalities", ["text"])]])
+    assert "1 modality list contradiction" in capsys.readouterr().err
     require_consistent_modalities([card], [[_fact("model.input_modalities", ["text", "document"])]])
+    assert capsys.readouterr().err == ""
+
+
+def _write_card(root: Path, name: str, pdf: bool) -> str:
+    rel = f"models/acme/{name}.md"
+    (root / rel).parent.mkdir(parents=True, exist_ok=True)
+    front = {"model_id": f"acme/{name}", "display_name": name, "provider": "acme",
+             "modalities": {"input": ["text", "pdf"] if pdf else ["text"], "output": ["text"]},
+             "facts": [_fact("model.input_modalities", ["text"])]}
+    (root / rel).write_text("---\n" + yaml.safe_dump(front) + "---\n")
+    return rel
+
+
+def _run_main(monkeypatch, capsys, root: Path, argv: list[str], files: list[str]) -> tuple[int, dict]:
+    import json
+
+    from scripts import validate_pr
+
+    monkeypatch.setattr(validate_pr, "REPO_ROOT", root)
+    monkeypatch.setattr(validate_pr, "get_all_model_files", lambda: files)
+    monkeypatch.setattr(validate_pr, "get_changed_model_files", lambda: files)
+    monkeypatch.setattr(validate_pr, "get_baseline_completeness", lambda f: None)
+    monkeypatch.setattr(validate_pr, "get_baseline_fields", lambda f: set())
+    monkeypatch.setattr(sys, "argv", ["validate_pr.py", *argv])
+    code = 0
+    try:
+        validate_pr.main()
+    except SystemExit as exit_:
+        code = int(exit_.code or 0)
+    return code, json.loads(capsys.readouterr().out)
+
+
+def test_all_mode_warns_on_a_contradiction_and_stays_valid(tmp_path, monkeypatch, capsys) -> None:
+    rel = _write_card(tmp_path, "bad", pdf=True)
+    code, out = _run_main(monkeypatch, capsys, tmp_path, ["--all"], [rel])
+    assert code == 0
+    assert out["valid"] == 1 and out["invalid"] == 0
+    assert out["modality_fact_warnings"] == 1
+    assert "model.input_modalities" in out["results"][0]["warnings"][0]
+
+
+def test_pr_mode_fails_a_changed_card_and_ignores_an_unchanged_one(tmp_path, monkeypatch, capsys) -> None:
+    bad = _write_card(tmp_path, "bad", pdf=True)
+    good = _write_card(tmp_path, "good", pdf=False)
+    code, out = _run_main(monkeypatch, capsys, tmp_path, [], [bad])
+    assert code != 0 and out["invalid"] == 1
+    code, out = _run_main(monkeypatch, capsys, tmp_path, [], [good])
+    assert code == 0 and out["invalid"] == 0

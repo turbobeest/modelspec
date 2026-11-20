@@ -201,8 +201,15 @@ def get_baseline_fields(filepath: str) -> set[str]:
 # ─── Validation ────────────────────────────────────────────────
 
 
-def validate_card(filepath: str, compute_diff: bool = True) -> dict:
-    """Validate a single model card and return a result dict."""
+def validate_card(filepath: str, compute_diff: bool = True, facts_fatal: bool | None = None) -> dict:
+    """Validate a single model card and return a result dict.
+
+    A modality list that contradicts the filed modality facts (MODEL-462) is an
+    error when ``facts_fatal`` (default: with ``compute_diff``, the PR's changed
+    cards) and a warning otherwise, so ``--all`` reports it without failing.
+    """
+    if facts_fatal is None:
+        facts_fatal = compute_diff
     full_path = REPO_ROOT / filepath
     entry: dict = {"file": filepath}
 
@@ -214,11 +221,14 @@ def validate_card(filepath: str, compute_diff: bool = True) -> dict:
         return entry
 
     errors = card.modality_errors()
+    fact_errors: list[str] = []
     if not errors:
         from pipeline.load import split_front_matter
 
         front, _ = split_front_matter(full_path.read_text(encoding="utf-8"), path=full_path)
-        errors = card.modality_fact_errors(front.get("facts"))
+        fact_errors = card.modality_fact_errors(front.get("facts"))
+        if facts_fatal:
+            errors = fact_errors
     if errors:
         entry["status"] = "invalid"
         entry["error"] = "; ".join(errors)
@@ -229,6 +239,9 @@ def validate_card(filepath: str, compute_diff: bool = True) -> dict:
     entry["completeness"] = card.card_completeness
     entry["fields_filled"] = count_non_null_fields(card)
     entry["warnings"] = card.warnings()
+    if not facts_fatal:
+        entry["warnings"] += fact_errors
+        entry["modality_fact_warnings"] = len(fact_errors)
 
     if compute_diff:
         baseline = get_baseline_completeness(filepath)
@@ -283,6 +296,7 @@ def main() -> None:
             "total": len(results),
             "valid": sum(1 for r in results if r["status"] == "valid"),
             "invalid": sum(1 for r in results if r["status"] == "invalid"),
+            "modality_fact_warnings": sum(r.get("modality_fact_warnings", 0) for r in results),
         }
     else:
         changed_files = get_changed_model_files()
