@@ -270,15 +270,15 @@ def _require_classified_request(start: str | None, url: str, *, first: bool) -> 
         host = None
     if host is not None and not first and host == start:
         return
-    if first and not unreadable:
+    if first:
         # Only a host a registered source lives on needs a class at the first request; any
         # other caller's first fetch (the release-signal feed, a drafter) is checked at its
         # hops only. The host decides, so a path, query or fragment cannot dodge it.
         try:
-            registered = registered_source_hosts()
+            registered = registered_source_hosts() or frozenset()
         except TermsRegisterUnreadable:
-            registered, unreadable = frozenset(), True
-        if not unreadable and not is_classified(host, registered or frozenset()):
+            registered, unreadable = None, True  # cannot tell: fail closed
+        if registered is not None and not is_classified(host, registered):
             return
     if not unreadable and is_classified(host, classes):
         return
