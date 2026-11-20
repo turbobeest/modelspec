@@ -240,3 +240,55 @@ def test_a_sibling_named_declaration_closes_the_previous_feature_list():
             "Fixture Model Ultra offers the following capabilities:\n"
             "- Reasoning effort is configurable per request.\n")
     assert read(text, "feature.effort_controls", True).outcome != "verified"
+
+
+_NOT_OFFERED = ["Unsupported", "Not supported", "No", "✗", "-", "—", "N/A", "n/a"]
+
+
+@pytest.mark.parametrize("cell", _NOT_OFFERED)
+def test_a_table_cell_saying_not_offered_reads_as_not_supported(cell):
+    text = ("# Fixture Model\n| Feature | Status |\n| --- | --- |\n"
+            f"| Batch Inference | {cell} |\n| Streaming | Supported |\nModel details.\n")
+    assert read(text, "feature.batch", True).outcome != "verified"
+    assert read(text, "feature.batch", False).outcome == "verified"
+    assert read(text, "feature.streaming", True).outcome == "verified"
+
+
+@pytest.mark.parametrize("cell", ["Supported", "Yes", "✓", "Available"])
+def test_a_table_cell_saying_supported_still_reads_as_supported(cell):
+    text = f"# Fixture Model\n| Feature | Status |\n| --- | --- |\n| Batch Inference | {cell} |\nModel details.\n"
+    assert read(text, "feature.batch", True).outcome == "verified"
+    assert read(text, "feature.batch", False).outcome != "verified"
+
+
+@pytest.mark.parametrize("cell", ["Partial", "Limited", "Partially supported"])
+def test_a_partial_cell_reads_as_neither(cell):
+    text = f"# Fixture Model\n| Feature | Status |\n| --- | --- |\n| Batch Inference | {cell} |\nModel details.\n"
+    assert read(text, "feature.batch", True).outcome != "verified"
+    assert read(text, "feature.batch", False).outcome != "verified"
+
+
+@pytest.mark.parametrize("sentence", [
+    "Batch inference is unsupported.",
+    "Batch inference is not supported.",
+    "This model does not support batch inference.",
+    "Batch inference: Unsupported",
+    "- Batch inference: N/A",
+])
+def test_a_sentence_saying_not_offered_reads_as_not_supported(sentence):
+    text = f"# Fixture Model\n{sentence}\nModel details.\nText generation.\n"
+    assert read(text, "feature.batch", True).outcome != "verified"
+    assert read(text, "feature.batch", False).outcome == "verified"
+
+
+def test_a_sentence_saying_partial_reads_as_neither():
+    text = "# Fixture Model\nBatch inference has limited support.\nModel details.\nText.\n"
+    assert read(text, "feature.batch", True).outcome != "verified"
+    assert read(text, "feature.batch", False).outcome != "verified"
+
+
+def test_a_bare_label_followed_by_unsupported_reads_as_not_supported():
+    text = ("<!doctype html><html><body><main><h1>Fixture Model</h1><h2>Capabilities</h2>"
+            "<p>Batch API</p><p>Unsupported</p></main></body></html>")
+    assert read(text, "feature.batch", True).outcome != "verified"
+    assert read(text, "feature.batch", False).outcome == "verified"

@@ -2912,9 +2912,81 @@ class ModelPageExtractor:
                         return True
                 return False
 
-            if any(own_feature(line) for line in lines):
-                readings.append(Reading(subject=subject, value="supported"))
+            states: list[str] = []
+            for n, line in enumerate(lines):
+                if own_feature(line):
+                    following = lines[n + 1] if n + 1 < len(lines) else None
+                    state = _feature_state(line, phrases, following)
+                    if state not in states:
+                        states.append(state)
+            for state in states:
+                readings.append(Reading(subject=subject, value=state))
         return readings or [Reading(subject=subject, value=None)]
+
+
+#: Cell or value wordings that say a feature is not offered, or only in part.
+_FEATURE_NO = frozenset({
+    "unsupported", "not supported", "no", "none", "not available", "unavailable",
+    "n a", "na", "not applicable", "✗", "✘", "✕", "x", "-", "–", "—",
+})
+_FEATURE_PARTIAL = frozenset({
+    "partial", "partially", "partial support", "partially supported", "limited",
+    "limited support",
+})
+_FEATURE_NO_SENTENCE = re.compile(
+    r"(?i)\b(?:(?:does|do|did|will|would|can|could)(?:\s+not|n't)\s+(?:currently\s+)?support"
+    r"|(?:is|are)(?:\s+not|n't)\s+(?:currently\s+)?(?:supported|available|offered)"
+    r"|(?:un|not\s+)supported|unavailable|no\s+support\s+for|not\s+offered)\b")
+_FEATURE_PARTIAL_SENTENCE = re.compile(
+    r"(?i)\b(?:partial(?:ly)?\s+support(?:ed|s)?|limited\s+support|(?:only\s+)?partially)\b")
+
+
+def _feature_cell(cell: str) -> str | None:
+    """Classify a value cell as supported, not supported or partial."""
+    plain = cell.replace("**", "").replace("`", "").strip()
+    if not plain:
+        return None
+    key = normalise_name(plain)
+    if key in _FEATURE_NO or plain in _FEATURE_NO:
+        return "not supported"
+    if key in _FEATURE_PARTIAL:
+        return "partial"
+    return "supported"
+
+
+def _feature_state(line: str, phrases: Sequence[str], following: str | None) -> str:
+    """What a line that names a feature says of it.
+
+    A table cell or value that says unsupported, no, a cross, a dash or N/A reads
+    as not supported; partial or limited reads as neither (a value that matches
+    no claim); anything else reads as supported, as before.
+    """
+    plain = line.replace("**", "").replace("`", "").lstrip("-* ")
+    wanted = [normalise_name(phrase) for phrase in phrases]
+    if "|" in plain:
+        cells = [c.strip() for c in plain.strip().strip("|").split("|")]
+        named = next((i for i, c in enumerate(cells)
+                      if any(w in normalise_name(c) for w in wanted)), None)
+        if named is not None:
+            for cell in cells[named + 1:]:
+                if (state := _feature_cell(cell)) is not None:
+                    return state
+            return "supported"
+    label, colon, value = plain.partition(":")
+    if colon and any(w == normalise_name(label) for w in wanted) and value.strip():
+        return _feature_cell(value) or "supported"
+    sentence = next((x for x in re.split(r"(?<=[.!?])\s+", plain)
+                     if any(w in normalise_name(x) for w in wanted)), plain)
+    if _FEATURE_NO_SENTENCE.search(sentence):
+        return "not supported"
+    if _FEATURE_PARTIAL_SENTENCE.search(sentence):
+        return "partial"
+    if following is not None and len(following) <= 40 and any(
+            normalise_name(plain) == w for w in wanted):
+        # A bare label followed by its value on the next line.
+        if (state := _feature_cell(following)) in {"not supported", "partial"}:
+            return state
+    return "supported"
 
 
 #: A Metric | Price row label, as normalised, and the price kind it states.
