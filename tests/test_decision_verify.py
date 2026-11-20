@@ -5277,6 +5277,35 @@ def test_an_absence_from_a_disallowed_source_kind_does_not_verify() -> None:
         == "verified"
 
 
+def test_provider_documentation_is_admitted_for_output_and_context_limits() -> None:
+    """MODEL-528: a seller's own documentation backs these two limits, and no other facet."""
+    from decision.model import Fact
+
+    body = "Model: Nimbus 3\nContext Window: 128K tokens\n"
+
+    def claim_for(facet: str) -> verify.Claim:
+        fact = Fact(
+            id=f"lab/nimbus-3#{facet}",
+            subject={"kind": "model", "id": "lab/nimbus-3"},
+            facet=facet,
+            state="not_disclosed",
+            sources=[{"source_id": "seller-docs", "snapshot_ref": "sha256:" + "d" * 64,
+                      "cited_regions": ["page"]}],
+        )
+        return verify.Claim.from_fact(fact, names=["Nimbus 3"], collector=COLLECTOR)
+
+    regions = _KindRegions({("seller-docs", "page"): body},
+                           {"seller-docs": "provider_documentation"})
+    for facet in ("model.max_output_tokens", "model.context_window"):
+        result = verify.verify(claim_for(facet), regions, verify.deterministic_extractors(),
+                               today=TODAY)
+        assert result.outcome == "verified", (facet, result)
+    result = verify.verify(claim_for("origin.base_lineage"), regions,
+                           verify.deterministic_extractors(), today=TODAY)
+    assert result.outcome == "mismatch"
+    assert result.diffs[0].field == "source_kind"
+
+
 @pytest.mark.parametrize("header", ["Name", "Model", "Model name", "Modèle", "モデル名"])
 def test_a_column_header_after_a_section_label_starts_a_new_table(header: str) -> None:
     """MODEL-369 review: a same-width header row is never read as continued data."""

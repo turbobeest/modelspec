@@ -259,7 +259,7 @@ facets:
       offering, not here.
     tier: guaranteed
     risk: capability
-    permitted_source_kinds: [lab_documentation, lab_announcement, weights_repository]
+    permitted_source_kinds: [lab_documentation, lab_announcement, weights_repository, provider_documentation]
   - id: model.max_output_tokens
     label: Maximum output tokens
     subject: model
@@ -272,7 +272,7 @@ facets:
       documented by its lab.
     tier: guaranteed
     risk: capability
-    permitted_source_kinds: [lab_documentation, lab_announcement]
+    permitted_source_kinds: [lab_documentation, lab_announcement, provider_documentation]
 
   # ── Model: weights, parameters, architecture ──────────────────────────────
   - id: model.weights_openness
