@@ -552,3 +552,22 @@ def test_compound_name_with_a_qualifier_word_matches_only_itself() -> None:
     assert verify._reading_subject_matches(
         "Acme 2 (Thinking, High, 32K, 20251101)", [stored],
     ) is False
+
+
+def test_two_compound_display_names_are_not_flattened_into_one() -> None:
+    # MODEL-486: these pairs flatten to one string and are different names.
+    pairs = [
+        ("Acme Orbit Max (High, 32K, 20251101)", "Acme Orbit (Max, High, 32K, 20251101)"),
+        ("Acme Orbit Thinking (32K, 20251101)", "Acme Orbit (Thinking 32K, 20251101)"),
+    ]
+    for left, right in pairs:
+        assert verify.split_model_cell(left)[0] == verify.split_model_cell(right)[0]
+        assert verify._reading_subject_matches(left, [right]) is False
+        assert verify._reading_subject_matches(right, [left]) is False
+        # The same name, and the name with its parenthesis re-spaced, still match.
+        assert verify._reading_subject_matches(left, [left]) is True
+        assert verify._reading_subject_matches(left, [left.replace(", ", " , ")]) is True
+    # A display name still matches its own slug through the flat identity.
+    assert verify._reading_subject_matches(
+        "Acme Orbit Max (High, 32K, 20251101)", ["acme-orbit-max-high-32k-20251101"],
+    ) is True
