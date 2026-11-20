@@ -65,6 +65,7 @@ from typing import Any
 import yaml
 
 from decision.excluded import excluded_sources
+from decision.final_hosts import FINAL_HOST_CHANGED, STATE_FILE, observe
 from decision.model import (
     DETERMINISTIC,
     Verification,
@@ -226,6 +227,8 @@ class Report:
     diffs: dict[str, list[str]] = field(default_factory=dict)
     overdue: list[str] = field(default_factory=list)
     fallback_spend: str | None = None
+    #: Sources whose fetch now ends on another host than last recorded (MODEL-523).
+    final_host_changed: list[dict[str, str]] = field(default_factory=list)
 
     @property
     def changes(self) -> list[FactResult]:
@@ -254,6 +257,7 @@ class Report:
             "reconfirmed": [f.fact_id for f in self.facts if f.status is Status.UNCHANGED],
             "cited": [f.to_dict() for f in self.facts if f.status is Status.CITED],
             "alerts": [f.to_dict() for f in self.alerts],
+            FINAL_HOST_CHANGED: self.final_host_changed,
             "not_disclosed_no_value": [
                 {"fact": f.fact_id, "sources": list(f.source_ids), "read": f.reason}
                 for f in self.facts if f.status is Status.NOT_DISCLOSED_NO_VALUE],
@@ -892,6 +896,9 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
     report.facts += results
 
     report.diffs = source_diffs(report, sources, store)
+    report.final_host_changed = observe(
+        root / STATE_FILE, {sid: f.resolved_urls for sid, f in report.sources.items()
+                            if f.outcome in ("ok", "cited")}, today, write=write)
     if write:
         for index, fact in enumerate(report.facts):
             if fact.status is Status.CITED and fact.claim is not None:
@@ -1196,6 +1203,13 @@ def render_report(report: Report) -> str:
         for f in report.alerts:
             out.append(f"| `{f.fact_id}` | {f.status.value} | {_show(f.reason, middle=True)} |")
         out.append("")
+    if report.final_host_changed:
+        out += ["### Final host changed", "",
+                "A fetch now ends on another host than the last one recorded.", "",
+                "| Source | Old host | New host |", "|---|---|---|"]
+        out += [f"| `{c['source']}` | {c['old_host']} | {c['new_host']} |"
+                for c in report.final_host_changed]
+        out.append("")
     quiet = [f for f in report.facts if f.status is Status.NOT_DISCLOSED_NO_VALUE]
     if quiet:
         out += ["### Not disclosed, nothing to read", "",
@@ -1315,6 +1329,7 @@ def alert_comment(
     counts = payload["counts"]
     fact_count = len(payload.get("alerts") or [])
     noun = "alert fact" if fact_count == 1 else "alert facts"
+    moved = len(payload.get(FINAL_HOST_CHANGED) or [])
     lines = [
         f"Run: {run_url}",
         "",
@@ -1324,6 +1339,8 @@ def alert_comment(
         "",
         f"{fact_count} {noun}; a fact with several sources is counted under each.",
         "",
+        *([f"{moved} final host {'change' if moved == 1 else 'changes'} "
+           f"({FINAL_HOST_CHANGED}); the sources are in the report.", ""] if moved else []),
         "| Source | Status | Fact-source pairs |",
         "|---|---|---|",
     ]
