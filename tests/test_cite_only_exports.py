@@ -241,3 +241,58 @@ def test_legacy_ranker_prefers_verified_score_to_cited_sibling(tmp_path, verifie
     assert result["verified_contributions"] == 1
     assert result["verified_benchmark_coverage"] == 1
     assert "cite_only_not_machine_verified" not in result.get("warnings", [])
+
+
+def _rank_rows(tmp_path, rows):
+    front, path = card_tree(tmp_path)
+    base = {
+        "benchmark_id": "humaneval", "model_id_as_evaluated": "Cited model",
+        "unit": "percent", "evidence_date": "2026-10-19",
+        "date_type": "published", "verified_at": "2026-10-19",
+    }
+    front["benchmarks"]["evidence"] = [{**base, **row} for row in rows]
+    path.write_text("---\n" + yaml.safe_dump(front) + "---\nSynthetic fixture.\n")
+    return ranking.build_candidates([ModelCard.from_yaml_file(path)], CollectingSink())[0]
+
+
+SELF_VERIFIED = {"score": 95, "source_url": "https://lab.example/results",
+                 "source_kind": "provider_self_report"}
+SELF_CITED = {"score": 40, "source_url": URL, "source_kind": "provider_self_report"}
+INDEP_CITED = {"score": 60, "source_url": URL, "source_kind": "independent_evaluator"}
+
+
+def test_rank_keeps_independent_cited_reading_beside_verified_self_report(tmp_path):
+    # MODEL-531: a cited reading is dropped only beside a verified reading from
+    # the same measurer. The independent cited reading is not hidden by a
+    # provider's own verified one, and it stands for the benchmark.
+    candidate = _rank_rows(tmp_path, [SELF_VERIFIED, INDEP_CITED])
+    assert candidate.benchmark_scores["humaneval"] == 60
+    assert "humaneval" not in candidate.verified_benchmarks
+    assert candidate.cited_benchmarks["humaneval"]["status"] == "cited"
+
+
+def test_rank_still_drops_cited_reading_beside_same_measurer_verified(tmp_path):
+    candidate = _rank_rows(tmp_path, [SELF_CITED, SELF_VERIFIED])
+    assert candidate.benchmark_scores["humaneval"] == 95
+    assert "humaneval" in candidate.verified_benchmarks
+    assert "humaneval" not in candidate.cited_benchmarks
+
+
+def test_rank_verified_beats_cited_within_one_measurer_then_newest(tmp_path):
+    older = {**SELF_VERIFIED, "score": 80, "evidence_date": "2026-09-01"}
+    candidate = _rank_rows(tmp_path, [older, SELF_VERIFIED])
+    assert candidate.benchmark_scores["humaneval"] == 95
+
+
+@pytest.mark.parametrize("seed", range(6))
+def test_rank_scalar_does_not_depend_on_record_order(tmp_path, seed):
+    import random
+    older = {**SELF_VERIFIED, "score": 80, "evidence_date": "2026-09-01",
+             "source_url": "https://lab.example/older"}
+    rows = [SELF_VERIFIED, SELF_CITED, INDEP_CITED, older]
+    expected = _rank_rows(tmp_path / "a", rows)
+    random.Random(seed).shuffle(rows)
+    shuffled = _rank_rows(tmp_path / "b", rows)
+    assert shuffled.benchmark_scores == expected.benchmark_scores
+    assert shuffled.verified_benchmarks == expected.verified_benchmarks
+    assert shuffled.cited_benchmarks == expected.cited_benchmarks
