@@ -175,7 +175,7 @@ jobs:
         # A crash here must not stop the board refresh; the last step turns it red.
         continue-on-error: true
         timeout-minutes: 20
-        # MODEL-534: a rolling window of the oldest-verified rows, at most 250 a run, read
+        # MODEL-534: a rolling window of the oldest-verified rows, at most 400 a run, read
         # with the same deterministic reader. It appends verification lines and keeps copies
         # where a host's terms allow; it never edits a card. No paid client, no model.
         env:

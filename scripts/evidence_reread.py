@@ -35,7 +35,7 @@ from decision.retention import cite_only_origin_restrictive
 
 METHOD = "structured-row-match@1"
 #: The most rows one run re-verifies. A group of rows that share a page is taken whole.
-WEEKLY_ROW_CAP = 250
+WEEKLY_ROW_CAP = 400
 #: Rows verified more recently than this are left to the collector that just read them.
 MIN_AGE_DAYS = 14
 #: A source the live-board refresh wrote to this recently is the refresh's to read.

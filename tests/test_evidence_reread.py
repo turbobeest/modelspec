@@ -120,7 +120,7 @@ def test_window_is_oldest_first_within_the_cap_and_takes_page_groups_whole(rerea
 
 
 def test_default_cap_is_set_in_code(reread):
-    assert 200 <= reread.WEEKLY_ROW_CAP <= 300
+    assert reread.WEEKLY_ROW_CAP == 400
     assert reread.HOST_DELAY_SECONDS >= 1
 
 
