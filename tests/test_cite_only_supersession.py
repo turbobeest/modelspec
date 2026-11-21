@@ -183,6 +183,8 @@ def test_same_region_mismatch_stays_quarantined(caplog):
         index = loaded(inputs(records=[record(read_region="pricing")], region="pricing"))
     assert plan_fact(index) is None
     assert "same region" in caplog.text
+    assert FACT_ID not in caplog.text
+    assert "1 mismatch supersessions refused" in caplog.text
 
 
 def test_same_region_through_an_alias_source_stays_quarantined():

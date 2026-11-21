@@ -802,6 +802,10 @@ class _Compiler:
         self.price_periods: dict[str, list[tuple[date | None, date | None]]] = {}
         self.labs: Mapping[str, Any] = inputs.labs
         self.hardware: dict[str, dict[str, Any]] = {}
+        #: Counts only: cards with unregistered sources, and those URLs.
+        self.unregistered_hardware = [0, 0]
+        #: Refused mismatch supersessions by fixed reason wording; no record ids.
+        self.refused_supersessions: Counter[str] = Counter()
         self.hardware_fit: list[dict[str, Any]] = []
         #: Premier models whose lab recorded a sourced null jurisdiction.
         self.jurisdiction_null_ok: set[str] = set()
@@ -994,7 +998,7 @@ class _Compiler:
             [_as_dict(ref) for ref in refs], self.sources)
         if entry is None:
             if refused:
-                logger.warning("%s: mismatch supersession refused: %s", rid, refused)
+                self.refused_supersessions[str(refused)] += 1
                 return f"quarantined (mismatch; supersession refused: {refused})"
             return "quarantined (mismatch)"
         self.superseded[str(rid)] = [entry]
@@ -1413,8 +1417,8 @@ class _Compiler:
         registered = {url: sid for sid, url in sorted(self.sources.items(), reverse=True)}
         unregistered = sorted(set(urls) - registered.keys())
         if unregistered:
-            logger.warning("%s: unregistered hardware source URLs: %s", device_id,
-                           ", ".join(unregistered))
+            self.unregistered_hardware[0] += 1
+            self.unregistered_hardware[1] += len(unregistered)
             self.hardware[device_id] = {
                 "unknown_reason": f"{len(unregistered)} hardware source URLs are not registered",
                 "record_id": None, "source_ids": [],
@@ -1852,6 +1856,16 @@ def _compile(inputs: SnapshotInputs, registry: Any, guard: ExcludedSources | Non
         c.add_hardware(device)
     for record in inputs.hardware_fit_records:
         c.add_hardware_fit(record)
+    if c.refused_supersessions:
+        # Counts and fixed reason wording only: never a record id.
+        logger.warning(
+            "%d mismatch supersessions refused (%s)",
+            sum(c.refused_supersessions.values()),
+            "; ".join(f"{n} x {reason}" for reason, n in sorted(c.refused_supersessions.items())))
+    if c.unregistered_hardware[0]:
+        # Public CI logs carry counts only: never a card id or a source URL.
+        logger.warning("%d hardware cards cite %d unregistered source URLs",
+                       *c.unregistered_hardware)
     return c
 
 
