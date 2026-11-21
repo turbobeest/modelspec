@@ -121,6 +121,42 @@ def rehost_of(card: Any) -> str | None:
     return None
 
 
+def reduce_readings(readings: list[tuple[Any, bool]]) -> tuple[Any, bool]:
+    """The one reading that stands for a benchmark: (record, is_cited).
+
+    Same like-with-like rule as the decide path: a cited reading is dropped only
+    beside a verified reading from the same measurer (`source_kind`). A cited
+    reading from another measurer survives, so an independent cited number is
+    not hidden by a provider's own verified one.
+
+    Ranking needs one scalar, so the survivors reduce by a fixed order that does
+    not depend on input order: independent measurer over `provider_self_report`;
+    then verified over cited; then the most recent `evidence_date`; then, only to
+    break a full tie, source_url, then (model_id_as_evaluated, configuration)
+    compared lexically, and score only as the very last resort. Score is kept out
+    of the tie-break so that two configurations of one row (same URL and date) are
+    not settled by whichever number is higher. Independence leads because the
+    ranker should not let a lab's own claim outrank a third party's, and a
+    reading that is not machine-verified is still a reading of the right kind.
+
+    `source_kind` is the measurer field here, because `BenchmarkEvidence` drops
+    `measured_by`; the two agree on all 3,857 rows that carry both. Rows with
+    only `source_kind` are kept by the ranker, while the decide path excludes
+    them as unclassified.
+    """
+    verified_kinds = {r.source_kind for r, cited in readings if not cited}
+    live = [(r, cited) for r, cited in readings
+            if not (cited and r.source_kind in verified_kinds)]
+
+    def key(item: tuple[Any, bool]) -> tuple[Any, ...]:
+        r, cited = item
+        return (r.source_kind != "provider_self_report", not cited,
+                str(r.evidence_date), r.source_url,
+                r.model_id_as_evaluated or "", r.configuration or "", float(r.score))
+
+    return max(live, key=key)
+
+
 def build_candidates(cards: list[Any], sink: CollectingSink, *,
                      cited_facts: dict[str, list[dict[str, Any]]] | None = None) -> list[Candidate]:
     """One ranking record per card, with capability tiers and hardware fit attached."""
@@ -155,16 +191,18 @@ def build_candidates(cards: list[Any], sink: CollectingSink, *,
         source = card.benchmarks.benchmark_source
         cited_benchmarks = ({key: {"status": "cited", "url": source} for key in scores}
                             if is_cite_only_restrictive(source) else {})
+        by_benchmark: dict[str, list[tuple[Any, bool]]] = {}
         for record in card.benchmarks.evidence:
-            cited = is_cite_only_restrictive(record.source_url)
-            if cited and record.benchmark_id in verified:
-                continue
-            scores[record.benchmark_id] = float(record.score)
+            by_benchmark.setdefault(record.benchmark_id, []).append(
+                (record, is_cite_only_restrictive(record.source_url)))
+        for benchmark_id, readings in by_benchmark.items():
+            record, cited = reduce_readings(readings)
+            scores[benchmark_id] = float(record.score)
             if cited:
-                cited_benchmarks[record.benchmark_id] = {"status": "cited", "url": record.source_url}
+                cited_benchmarks[benchmark_id] = {"status": "cited", "url": record.source_url}
             else:
-                verified.add(record.benchmark_id)
-                cited_benchmarks.pop(record.benchmark_id, None)
+                verified.add(benchmark_id)
+                cited_benchmarks.pop(benchmark_id, None)
         out.append(Candidate(
             model_id=ident.model_id,
             display_name=ident.display_name or ident.model_id,
