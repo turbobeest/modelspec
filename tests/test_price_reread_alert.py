@@ -239,8 +239,8 @@ def test_the_reread_job_uploads_the_report_and_can_label_issues() -> None:
     reconfirm = _step("Open the reconfirmation pull request")
     assert reconfirm["with"]["body-path"] == "${{ runner.temp }}/reconfirm-body.md"
     assert "fit_pull_request_body" in _step("Fit the reconfirmation pull-request body")["run"]
-    fail = _step("Fail a run with alerts")
-    assert fail["if"] == "steps.result.outputs.alerts != '0'"
+    fail = _step("Fail a run that re-verified too few facts")
+    assert fail["if"] == "fromJSON(steps.result.outputs.reconfirmed) < 31"
     assert "exit 1" in fail["run"]
     rendered = (ROOT / ".github" / "private-writers" / "rendered-reread.yml").read_text(
         encoding="utf-8")
@@ -417,8 +417,8 @@ def test_gh_steps_set_a_token_and_a_failed_list_opens_nothing(tmp_path: Path) ->
     assert upload["if"] == "always()"
     assert upload["with"]["if-no-files-found"] == "warn"
     result = _run_alert(tmp_path, existing="", mode="list")
-    assert result.returncode == 0, result.stderr
-    assert "::warning::Could not list open alert issues." in result.stdout
+    assert result.returncode != 0, result.stdout
+    assert "::error::Could not list open alert issues" in result.stdout
     calls = _calls(tmp_path)
     assert any(call[:2] == ["issue", "list"] for call in calls)
     assert not any(call[:2] == ["issue", "create"] for call in calls)

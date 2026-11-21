@@ -11,6 +11,7 @@ from pathlib import Path
 
 from decision.excluded import excluded_sources
 from decision.firecrawl import (
+    DISABLED_STOP_REASON,
     FIRECRAWL_CREDITS_PER_CALL,
     FIRECRAWL_MAX_CREDITS_PER_MONTH,
     FIRECRAWL_MAX_CREDITS_PER_RUN,
@@ -41,6 +42,7 @@ class MonthlyBudget:
 
 FAKE_REASON = "fallback was a fake run"
 STOP_REASONS = {
+    DISABLED_STOP_REASON,
     "FIRECRAWL_API_KEY is not configured",
     "Firecrawl credit allowance exhausted",
     "Firecrawl team balance below minimum of 100 credits",
