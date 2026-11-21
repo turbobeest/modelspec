@@ -164,6 +164,8 @@ class Claim:
     label: str | None = None
     conditions: Mapping[str, str | None] = field(default_factory=dict)
     base_model: str | None = None
+    #: The filed fact's state (``not_disclosed``, ``requires_contract``...); ``None`` when unknown.
+    state: str | None = None
 
     def __post_init__(self) -> None:
         if not self.names:
@@ -217,6 +219,7 @@ class Claim:
             collector=collector,
             sources=tuple(fact.sources),
             base_model=base_model or None,
+            state=getattr(fact, "state", None),
             conditions={key: getattr(fact, key).isoformat() if getattr(fact, key) else None
                         for key in ("effective_from", "effective_until")}
             if fact.effective_from or fact.effective_until else {},
@@ -237,7 +240,13 @@ class Claim:
         }
         if self.base_model:
             data["base_model"] = self.base_model
+        if self.state:
+            data["state"] = self.state
         return data
+
+    def same_as(self, other: Claim | None) -> bool:
+        """Equal ignoring ``state``, which claims queued before it existed lack."""
+        return other is not None and replace(self, state=None) == replace(other, state=None)
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> Claim:
@@ -253,6 +262,7 @@ class Claim:
             collector=VerificationActor.model_validate(data["collector"]),
             sources=tuple(SourceRef.model_validate(s) for s in data["sources"]),
             base_model=data.get("base_model") or None,
+            state=data.get("state") or None,
         )
 
 
@@ -7388,6 +7398,13 @@ def _provider_of_lab(provider_id: str, lab: str) -> bool:
         return False
 
 
+def _provider_has_no_trust_centre(provider_id: str) -> bool:
+    try:
+        return default_registry().provider(provider_id).trust_centre == "none"
+    except KeyError:
+        return False
+
+
 def _kind_admitted(claim: Claim, facet, kind: str | None, publisher: str | None) -> bool:
     """Whether a source of ``kind`` and ``publisher`` may back ``claim`` (MODEL-530).
 
@@ -7398,6 +7415,10 @@ def _kind_admitted(claim: Claim, facet, kind: str | None, publisher: str | None)
     ``lab_documentation`` source whose publisher is the offering's provider, when that
     provider is the own API of the same lab. A reseller, an unknown publisher, or an
     unknown kind never passes by this route.
+
+    One more route: an ``offering.attestation.*`` fact that is ``not_disclosed`` passes on a
+    ``provider_terms`` source whose publisher is the offering's provider, when the
+    registry records that provider with ``trust_centre: none``. A value claim never does.
     """
     permitted = facet.permitted_source_kinds
     if kind in permitted:
@@ -7405,6 +7426,12 @@ def _kind_admitted(claim: Claim, facet, kind: str | None, publisher: str | None)
     if kind is None or not publisher:
         return False
     parts = claim.subject.split("/")
+    if (kind == "provider_terms" and claim.value is None and claim.state == "not_disclosed"
+            and claim.field.startswith("offering.attestation.")
+            and getattr(facet, "subject", None) == "offering" and len(parts) >= 4):
+        # An attestation absence may rest on the provider's own terms only when that
+        # provider has no trust or compliance page at all (registry `trust_centre: none`).
+        return publisher == parts[0] and _provider_has_no_trust_centre(parts[0])
     if getattr(facet, "subject", None) == "offering" and len(parts) >= 4:
         provider, lab = parts[0], parts[1]
     elif getattr(facet, "subject", None) == "model" and len(parts) == 2:

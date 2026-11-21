@@ -99,7 +99,7 @@ class OfferingDraft:
         filed, latest = queue.filed(), log.latest()
         for claim, result in self.checks:
             key = ("fact", claim.target.id)
-            if filed.get(key) == claim and latest.get(key) == result.verification:
+            if claim.same_as(filed.get(key)) and latest.get(key) == result.verification:
                 continue
             queue.file(claim, at=at)
             log.append(result.verification)
