@@ -79,7 +79,7 @@ DETERMINISTIC = "deterministic"
 #: A family name's first word -> the lab whose lineage it is.
 _LINEAGES = {
     "anthropic": "anthropic", "claude": "anthropic",
-    "openai": "openai", "gpt": "openai",
+    "openai": "openai", "gpt": "openai", "codex": "openai",
     "google": "google", "gemini": "google", "gemma": "google",
     "alibaba": "alibaba", "qwen": "alibaba",
     "meta": "meta", "llama": "meta",
@@ -101,9 +101,20 @@ def model_family(name: str) -> str:
     return _LINEAGES.get(re.split(r"[-_ ]", base)[0], base)
 
 
+#: The family recorded when a collector or reader's lineage is not known.
+UNKNOWN = "unknown"
+
+
 def independent_families(collector: str, verifier: str) -> bool:
-    """Two keys: the verifier is deterministic, or of another model family (MODEL-140)."""
-    return verifier == DETERMINISTIC or model_family(collector) != model_family(verifier)
+    """Two keys: the verifier is deterministic, or of another model family (MODEL-140).
+
+    An ``unknown`` family on either side is independent of no model: the check
+    fails closed (MODEL-533). "codex" is an OpenAI lineage (see ``_LINEAGES``).
+    """
+    if verifier == DETERMINISTIC:
+        return True
+    a, b = model_family(collector), model_family(verifier)
+    return UNKNOWN not in (a, b) and a != b
 
 
 def verification_counts(outcome: str, collector: str, verifier: str) -> bool:
