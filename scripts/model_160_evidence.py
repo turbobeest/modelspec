@@ -404,9 +404,13 @@ def project_vending(chunk: str, *, url: str, page_ref: str, read_date: str = REA
     while (m := re.compile(r'"([^"]+)":\{').search(board, i)):
         entry = _js_object(board, m.end() - 1)
         value = re.search(r'(?<![\w.])"?final_value"?:([-\d.eE+]+)', entry)
-        rows.append({"model": m.group(1),
-                     "money_balance": f"{value.group(1)} USD" if value else None})
+        if value is None:
+            # A board entry with no final value is a page that changed shape: fail, never null.
+            raise ValueError("a vb2 entry has no final_value")
+        rows.append({"model": m.group(1), "money_balance": f"{value.group(1)} USD"})
         i = m.end() - 1 + len(entry)
+    if not rows:
+        raise ValueError("the vb2 object lists no model")
     return document(rows, url=url, page_ref=page_ref, read_date=read_date,
                     note="the vb2 object's final_value per model (mean money balance, USD)")
 

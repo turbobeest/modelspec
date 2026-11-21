@@ -253,6 +253,18 @@ def test_vending_projection_reads_the_json_text_form_of_the_board() -> None:
         m160.project_vending("no board", url="u", page_ref="x")
 
 
+@pytest.mark.parametrize("chunk", [
+    'runs:JSON.parse(`{"vb2":{}}`)',
+    "const m={vb2:{}};",
+    'runs:JSON.parse(`{"vb2":{"Orbit":{"num_epochs":5,"time_series":[1]}}}`)',
+    'const m={vb2:{"Orbit":{num_epochs:5,time_series:[1]}}};',
+    'runs:JSON.parse(`{"vb2":{"Orbit":{"final_value":10.5},"Rival":{"num_epochs":5}}}`)',
+])
+def test_vending_projection_fails_loudly_on_an_empty_board_or_a_missing_value(chunk: str) -> None:
+    with pytest.raises(ValueError):
+        m160.project_vending(chunk, url="https://example.test", page_ref="sha256:x")
+
+
 FRONTIERCODE_MD = """\
 | # | Model | Score▼ | Pass rate▼ | Flag rate▼ | Cost / rollout▼ | Output tokens▼ |
 | --- | --- | --- | --- | --- | --- | --- |
