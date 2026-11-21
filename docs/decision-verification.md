@@ -335,6 +335,13 @@ and it stays queued. Other facets still verify an absence from a source
 whose kind is unknown. A known kind outside the facet's list is a mismatch
 for every facet.
 
+One exception to the kind list: an `offering.attestation.*` absence (no value)
+also verifies from a `provider_terms` source whose `publisher` is the offering's
+provider, when `registry/providers.yaml` records that provider with
+`trust_centre: none`. That field needs `trust_centre_checked` (an ISO date) and
+`trust_centre_searched` (the URLs tried); the registry refuses it without both.
+A value claim never takes this route, and neither does another provider's terms.
+
 The first extractor that accepts a region and is independent of the collector
 reads it. Two keys means another model family (MODEL-140, enforced by
 MODEL-159). A deterministic extractor is always independent. An LLM reader is

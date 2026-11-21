@@ -5427,3 +5427,47 @@ def test_a_reseller_never_passes_the_seller_rule_even_with_the_labs_page() -> No
     facet = verify.default_registry().facet("offering.price.batch_input")
     for publisher in ("aws-bedrock", "anthropic", None):
         assert not verify._kind_admitted(claim, facet, "lab_documentation", publisher)
+
+
+# --- MODEL-531: provider terms back an attestation absence only without a trust page ---
+
+_ATT = "zai/zhipu/glm-5-2/global/standard"
+
+
+def _no_trust_centre(monkeypatch, *providers: str) -> None:
+    monkeypatch.setattr(verify, "_provider_has_no_trust_centre", lambda p: p in providers)
+
+
+def test_an_attestation_absence_on_terms_passes_with_trust_centre_none(monkeypatch) -> None:
+    _no_trust_centre(monkeypatch, "zai")
+    claim = _absence_claim(_ATT, "offering.attestation.soc2", "zai-terms")
+    assert _outcome(claim, "provider_terms", "zai").outcome == "verified"
+
+
+def test_an_attestation_absence_on_terms_is_refused_without_trust_centre_none(monkeypatch) -> None:
+    _no_trust_centre(monkeypatch)
+    claim = _absence_claim(_ATT, "offering.attestation.soc2", "zai-terms")
+    result = _outcome(claim, "provider_terms", "zai")
+    assert result.outcome == "mismatch" and result.diffs[0].field == "source_kind"
+
+
+def test_an_attestation_value_on_terms_is_refused_even_with_trust_centre_none(monkeypatch) -> None:
+    _no_trust_centre(monkeypatch, "zai")
+    claim = replace(_absence_claim(_ATT, "offering.attestation.soc2", "zai-terms"), value="type_2")
+    facet = verify.default_registry().facet("offering.attestation.soc2")
+    assert not verify._kind_admitted(claim, facet, "provider_terms", "zai")
+
+
+def test_another_providers_terms_are_refused_for_an_attestation_absence(monkeypatch) -> None:
+    _no_trust_centre(monkeypatch, "zai")
+    claim = _absence_claim(_ATT, "offering.attestation.soc2", "other-terms")
+    for publisher in ("other", None):
+        result = _outcome(claim, "provider_terms", publisher)
+        assert result.outcome == "mismatch" and result.diffs[0].field == "source_kind"
+
+
+def test_trust_centre_none_does_not_widen_other_facets(monkeypatch) -> None:
+    _no_trust_centre(monkeypatch, "zai")
+    claim = _absence_claim(_ATT, "offering.price.batch_input", "zai-terms")
+    facet = verify.default_registry().facet("offering.price.batch_input")
+    assert not verify._kind_admitted(claim, facet, "provider_terms", "zai")

@@ -781,3 +781,41 @@ def test_every_registry_document_read_has_a_schema_version_gate() -> None:
         assert name in registry.REGISTRY_SCHEMA_VERSIONS, name
         declared = yaml.safe_load((root / f"{name}.yaml").read_text(encoding="utf-8"))
         assert declared["schema_version"] == registry.REGISTRY_SCHEMA_VERSIONS[name], name
+
+
+_NONE = {"trust_centre": "none", "trust_centre_checked": "2026-11-20",
+         "trust_centre_searched": ["https://example.com/trust", "https://example.com/security"]}
+
+
+def _provider_with(tmp_path: Path, **over) -> Path:
+    root = _copy(tmp_path)
+
+    def edit(document):
+        entry = next(p for p in document["providers"] if p["id"] == "zai")
+        entry.update(over)
+
+    _edit(root, "providers", edit)
+    return root
+
+
+def test_trust_centre_none_loads_with_its_companions(tmp_path):
+    provider = _load(_provider_with(tmp_path, **_NONE)).provider("zai")
+    assert provider.trust_centre == "none"
+    assert provider.trust_centre_checked == "2026-11-20"
+    assert provider.trust_centre_searched == tuple(_NONE["trust_centre_searched"])
+
+
+def test_a_provider_has_no_trust_centre_claim_by_default(registry):
+    assert all(p.trust_centre is None for p in registry.providers() if p.id != "zai")
+
+
+@pytest.mark.parametrize("drop", ["trust_centre_checked", "trust_centre_searched"])
+def test_trust_centre_none_without_a_companion_is_refused(tmp_path, drop):
+    over = {k: v for k, v in _NONE.items() if k != drop}
+    with pytest.raises(RegistryError, match=drop):
+        _load(_provider_with(tmp_path, **over))
+
+
+def test_companions_without_trust_centre_none_are_refused(tmp_path):
+    with pytest.raises(RegistryError, match="need trust_centre: none"):
+        _load(_provider_with(tmp_path, trust_centre_checked="2026-11-20"))

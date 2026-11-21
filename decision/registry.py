@@ -213,6 +213,11 @@ class Provider:
     v1_availability_field: str | None = None
     #: The lab this provider is the own API of (MODEL-530). Absent means none stated.
     lab: str | None = None
+    #: ``none`` when the provider has no trust or compliance page at all. It needs
+    #: ``trust_centre_checked`` (an ISO date) and ``trust_centre_searched`` (the URLs tried).
+    trust_centre: str | None = None
+    trust_centre_checked: str | None = None
+    trust_centre_searched: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -742,7 +747,23 @@ def _load_providers(err: _Errors, root: Path) -> dict[str, Provider]:
     out: dict[str, Provider] = {}
     for e in entries:
         where = f"providers.yaml {e.get('id')!r}"
-        _keys(err, where, e, required, {"v1_availability_field", "lab"})
+        _keys(err, where, e, required, {"v1_availability_field", "lab", "trust_centre",
+                                           "trust_centre_checked", "trust_centre_searched"})
+        trust_centre = e.get("trust_centre")
+        checked = e.get("trust_centre_checked")
+        searched = e.get("trust_centre_searched")
+        if trust_centre is not None and trust_centre != "none":
+            err.add(where, "trust_centre must be `none` when present")
+            trust_centre = None
+        elif trust_centre == "none":
+            if not _iso_date(checked):
+                err.add(where, "trust_centre `none` needs trust_centre_checked as an ISO date")
+                trust_centre = None
+            if not (isinstance(searched, list) and searched and all(_https(u) for u in searched)):
+                err.add(where, "trust_centre `none` needs trust_centre_searched as a non-empty list of https URLs")
+                trust_centre = None
+        elif checked is not None or searched is not None:
+            err.add(where, "trust_centre_checked and trust_centre_searched need trust_centre: none")
         lab = e.get("lab")
         if lab is not None:
             if not isinstance(lab, str) or not KEBAB_ID.fullmatch(lab):
@@ -795,7 +816,9 @@ def _load_providers(err: _Errors, root: Path) -> dict[str, Provider]:
                 id=e["id"], name=str(e.get("name", "")), url=str(e.get("url", "")),
                 kind=str(e.get("kind", "")), jurisdiction=jurisdiction,
                 attestations=MappingProxyType(attestations), v1_availability_field=field_,
-                lab=lab))
+                lab=lab, trust_centre=trust_centre,
+                trust_centre_checked=str(checked) if trust_centre else None,
+                trust_centre_searched=tuple(searched) if trust_centre else ()))
     return out
 
 

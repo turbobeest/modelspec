@@ -7388,6 +7388,13 @@ def _provider_of_lab(provider_id: str, lab: str) -> bool:
         return False
 
 
+def _provider_has_no_trust_centre(provider_id: str) -> bool:
+    try:
+        return default_registry().provider(provider_id).trust_centre == "none"
+    except KeyError:
+        return False
+
+
 def _kind_admitted(claim: Claim, facet, kind: str | None, publisher: str | None) -> bool:
     """Whether a source of ``kind`` and ``publisher`` may back ``claim`` (MODEL-530).
 
@@ -7398,6 +7405,10 @@ def _kind_admitted(claim: Claim, facet, kind: str | None, publisher: str | None)
     ``lab_documentation`` source whose publisher is the offering's provider, when that
     provider is the own API of the same lab. A reseller, an unknown publisher, or an
     unknown kind never passes by this route.
+
+    One more route: an ``offering.attestation.*`` absence (no value) passes on a
+    ``provider_terms`` source whose publisher is the offering's provider, when the
+    registry records that provider with ``trust_centre: none``. A value claim never does.
     """
     permitted = facet.permitted_source_kinds
     if kind in permitted:
@@ -7405,6 +7416,12 @@ def _kind_admitted(claim: Claim, facet, kind: str | None, publisher: str | None)
     if kind is None or not publisher:
         return False
     parts = claim.subject.split("/")
+    if (kind == "provider_terms" and claim.value is None
+            and claim.field.startswith("offering.attestation.")
+            and getattr(facet, "subject", None) == "offering" and len(parts) >= 4):
+        # An attestation absence may rest on the provider's own terms only when that
+        # provider has no trust or compliance page at all (registry `trust_centre: none`).
+        return publisher == parts[0] and _provider_has_no_trust_centre(parts[0])
     if getattr(facet, "subject", None) == "offering" and len(parts) >= 4:
         provider, lab = parts[0], parts[1]
     elif getattr(facet, "subject", None) == "model" and len(parts) == 2:
