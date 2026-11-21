@@ -2,7 +2,7 @@
 
 A verified fact is shown as stale when its latest verified date is older than a line:
 90 days, or 45 for price and subscription facets. Until ``FIRST_QUARTER_END`` a one-time
-120-day line replaces both, so the re-reads can catch up (owner decision, 2026-11-21).
+120-day line replaces the 90-day line only (price and subscription keep 45), so the re-reads can catch up (owner decision, 2026-11-21).
 Staleness is never a ranking input: nothing here is read by ``rank_score``, the floors
 or the decide verdicts. ``today`` is always passed in by the caller, never read here.
 """
@@ -15,7 +15,7 @@ STALE_DAYS = 90
 STALE_DAYS_FAST = 45
 #: Facet prefixes held to the 45-day line: price and subscription facets.
 FAST_FACET_PREFIXES = ("offering.price", "offering.subscription")
-#: The one-time line, active through this date inclusive; set the end date here only.
+#: The one-time line for non-price facets, active through this date inclusive; set the end date here only.
 FIRST_QUARTER_DAYS = 120
 FIRST_QUARTER_END = date(2027, 3, 31)
 LABEL_PREFIX = "Last checked"
@@ -28,10 +28,10 @@ def is_fast_facet(facet: object) -> bool:
 
 def age_line(facet: object, today: date, *, fast: bool | None = None) -> int:
     """The age in days beyond which a verified fact is stale on ``today``."""
-    if today <= FIRST_QUARTER_END:
-        return FIRST_QUARTER_DAYS
     fast = is_fast_facet(facet) if fast is None else fast
-    return STALE_DAYS_FAST if fast else STALE_DAYS
+    if fast:
+        return STALE_DAYS_FAST  # re-read weekly: 45 days throughout, override included
+    return FIRST_QUARTER_DAYS if today <= FIRST_QUARTER_END else STALE_DAYS
 
 
 def _day(value: object) -> date | None:

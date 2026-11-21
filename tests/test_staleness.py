@@ -25,12 +25,16 @@ def test_override_end_date_is_one_named_constant():
     assert staleness.FIRST_QUARTER_DAYS == 120
 
 
-def test_lines_during_the_first_quarter_are_120_for_every_facet():
+def test_first_quarter_line_is_120_for_non_price_and_45_for_price():
     for today in (date(2026, 11, 21), FIRST_QUARTER_END):
-        for facet in ("model.context_window", "offering.price.input", "offering.subscription.x"):
-            assert age_line(facet, today) == 120
-            assert not is_stale(_checked(today, 120), facet, today)
-            assert is_stale(_checked(today, 121), facet, today)
+        assert age_line("model.context_window", today) == 120
+        assert not is_stale(_checked(today, 100), "model.context_window", today)
+        assert not is_stale(_checked(today, 120), "model.context_window", today)
+        assert is_stale(_checked(today, 121), "model.context_window", today)
+        for facet in ("offering.price.input", "offering.subscription.x"):
+            assert age_line(facet, today) == 45
+            assert not is_stale(_checked(today, 45), facet, today)
+            assert is_stale(_checked(today, 46), facet, today)
 
 
 def test_lines_after_the_override_are_90_and_45():
@@ -64,8 +68,8 @@ def test_trust_report_uses_the_rule_in_force(tmp_path):
     c = Catalogue(facts=[fact("offering.price.input", "2027-02-10"), fact("model.x", "2027-02-10")])
     during = trust_line.compute(c, tmp_path, date(2027, 3, 31))["stale"]
     after = trust_line.compute(c, tmp_path, AFTER)["stale"]
-    assert (during["age_line_days"], during["age_line_days_price_subscription"]) == (120, 120)
-    assert during["older"] == 0
+    assert (during["age_line_days"], during["age_line_days_price_subscription"]) == (120, 45)
+    assert during["older"] == 1 and during["by_group"]["offering price"]["older"] == 1
     assert (after["age_line_days"], after["age_line_days_price_subscription"]) == (90, 45)
     assert after["older"] == 1 and after["by_group"]["offering price"]["older"] == 1
 
