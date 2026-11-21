@@ -17,7 +17,12 @@ from urllib.parse import urlsplit
 import yaml
 
 from release_signals.contract import ReleaseSignal
-from release_signals.scope import derivative_reason, out_of_scope_reason, tag_scope
+from release_signals.scope import (
+    derivative_reason,
+    hub_artefact_reason,
+    out_of_scope_reason,
+    tag_scope,
+)
 from release_signals.watch import Catalogue, Registry, Seen, Source, SourceRun, signal_id
 
 PROVIDERS = {
@@ -216,6 +221,8 @@ def _hub_scope_reason(seen: Seen, source: Source) -> str | None:
         decision.reason if decision.decided
         else out_of_scope_reason(seen.provider, seen.model_name)
     )
+    if reason is None:
+        reason = hub_artefact_reason(seen.key, seen.pipeline_tag, seen.tags)
     if reason:
         return reason
     bases: str | tuple[str, ...] | None = (

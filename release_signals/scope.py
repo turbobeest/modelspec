@@ -270,6 +270,78 @@ def _artefact_tag(tags: Sequence[str]) -> str | None:
     return None
 
 
+# Hub metadata that marks a repository the catalogue does not rank. Matched on
+# the folded tag with underscores read as hyphens.
+_DETECTION_PATTERN = re.compile(
+    r"deepfake|forensic|(?:ai|aigc|synthetic)-generated(?:-[a-z]+)*-detection"
+    r"|aigc-detection|fake-(?:image|video|audio|media)-detection"
+)
+# Tags that, with no pipeline tag, say the repository is a feature encoder.
+_ENCODER_TAGS = frozenset({
+    "encoder", "vision-encoder", "backbone", "feature-extractor", "radio",
+})
+# Name tokens for the same. A bare `encoder` is not one: encoder-decoder
+# language models carry it.
+_ENCODER_NAME = re.compile(
+    r"(?<![a-z0-9])(?:(?:vision|image|video|audio)-encoder|backbone"
+    r"|radio(?:v?\d+)?|feature-extractor)(?![a-z0-9])"
+)
+ADAPTER_CONFIG_FILE_TAG = "file:adapter_config.json"
+
+
+def _is_detection_key(value: str) -> bool:
+    return _DETECTION_PATTERN.search(_artefact_key(value)) is not None
+
+
+def _scope_key(value: str) -> str:
+    return re.sub(r"[_.]", "-", _folded(value))
+
+
+def _adapter_tag(library: str | None, tags: Sequence[str]) -> str | None:
+    for tag in tags:
+        text = _text(tag)
+        if text is None:
+            continue
+        folded = _folded(text)
+        if folded.startswith("base_model:adapter:") or folded == ADAPTER_CONFIG_FILE_TAG:
+            return text
+        if folded == "peft":
+            return text
+    return "library: peft" if library and _folded(library) == "peft" else None
+
+
+def hub_artefact_reason(
+    repository: str,
+    pipeline_tag: str | None,
+    tags: Sequence[str] = (),
+    library_name: str | None = None,
+) -> str | None:
+    """Out of scope by Hub metadata beyond the task tag.
+
+    (a) An adapter: a `base_model:adapter:*` tag, library `peft`, or an
+    adapter config file. (b) A forensics or detection purpose in a tag, the pipeline
+    tag or the repository name. (c) A feature encoder: no pipeline tag, no
+    task tag that keeps a repository, and a vision, image, video or audio
+    encoder, backbone, RADIO-family or feature-extractor name, or an encoder tag.
+    """
+    adapter = _adapter_tag(library_name, tags)
+    if adapter:
+        return "adapter"
+    name = repository.partition("/")[2] or repository
+    for candidate in (*tags, pipeline_tag or "", name):
+        text = _text(candidate)
+        if text and _is_detection_key(text):
+            return "forensics or detection"
+    if _text(pipeline_tag) is None and _keeping_task_tag(tags) is None:
+        for tag in tags:
+            text = _text(tag)
+            if text and _scope_key(text) in _ENCODER_TAGS:
+                return "feature encoder without a pipeline tag"
+        if _ENCODER_NAME.search(_scope_key(name)):
+            return "feature encoder without a pipeline tag"
+    return None
+
+
 def tag_scope(pipeline_tag: str | None, tags: Sequence[str] = ()) -> TagDecision:
     """Scope from the pipeline tag. With none, the name rules decide.
 
@@ -365,7 +437,7 @@ def reported_base_model(repository: str, candidates: Sequence[str]) -> str | Non
 def relevant_hub_tags(
     tags: object, library_name: object, pipeline_tag: str | None,
 ) -> tuple[str, ...]:
-    """Library, base-model tags, task tags, and interpretability artefact tags.
+    """Library, base-model tags, task tags, artefact, detection and encoder tags.
 
     Licence and language tags stay off.
     """
@@ -390,6 +462,8 @@ def relevant_hub_tags(
             or known_pipeline_tag(text)
             or _folded(text) == declared
             or _artefact_key(text) in _ARTEFACT_TAGS
+            or _is_detection_key(text)
+            or _scope_key(text) in _ENCODER_TAGS
         ):
             add(text)
     return tuple(kept)
@@ -416,4 +490,10 @@ def hub_metadata(
             if text and text.startswith("base_model:"):
                 bases.extend(_repository_ids(text.split(":", 1)[1]))
     listed = tuple(dict.fromkeys(bases))
+    siblings = row.get("siblings")
+    if isinstance(siblings, list) and any(
+        isinstance(item, dict) and item.get("rfilename") == "adapter_config.json"
+        for item in siblings
+    ):
+        tags = (*tags, ADAPTER_CONFIG_FILE_TAG)
     return pipeline_tag, tags, reported_base_model(repository, listed), listed
