@@ -48,7 +48,7 @@ from decision.model import (
     evidence_verification_value,
 )
 from decision import verify
-from decision.sources import CopyStore, load_sources
+from decision.sources import CopyStore, fingerprint_bytes, load_sources
 from decision.units import UNITS, unit_id
 from decision.verify import (
     Claim,
@@ -67,6 +67,7 @@ from decision.verify import (
     run as verify_claims,
 )
 from scripts import model_160_evidence as readers
+from scripts.evidence_reread import load_terms
 from scripts.model_143_evidence import evidence_id, evidence_key, measured_by
 
 #: A configuration cites the day the board was read as the standalone word ``read``
@@ -166,6 +167,9 @@ class BoardReading:
     #: explicit None where the source lists the model and prints no measured value.
     #: Default off: only a board declared in ``UNPUBLISHED_CELL_BOARDS`` may mark.
     explicit_empty_cells: bool = False
+    #: The page was read in memory from a cite-only host (MODEL-482). ``snapshot_ref`` is
+    #: the page's sha256; no bytes were kept anywhere. Its rows are written as ``cited``.
+    cite_only: bool = False
 
     def __post_init__(self) -> None:
         date.fromisoformat(self.observed_at)
@@ -2229,6 +2233,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
     boards, board_failures = collect_readings(
         observed_at, store, tau_urls, chosen.sha, arena_complete=complete,
         skip_arena=latest and chosen.fallback is not None,
+        terms=load_terms(root),
     )
     failures = list(board_failures)
     if chosen.fallback:
@@ -2341,6 +2346,17 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                                if row["benchmark_id"] == observation.benchmark
                                and row.get("model_id_as_evaluated") == observation.model
                                and float(row["score"]) == observation.old_value)
+                    if board.cite_only and observation.changed:
+                        # A cited row is never overwritten: a different value is an alert.
+                        failure = RowFailure(
+                            model_id, observation.benchmark, board.source_url,
+                            "mismatch: the cite-only board shows a different value; "
+                            "the row is not overwritten",
+                        )
+                        report.failures.append(failure)
+                        report.quarantined.append(failure)
+                        summary["failures"].append(failure.reason)
+                        continue
                     new, reason = _copy_matched_reading(old, observation, observed_at=observed_at)
                     if new is None:
                         failure = RowFailure(
@@ -2359,10 +2375,12 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                         source_id=board.source_id,
                         snapshot_ref=board.snapshot_ref,
                         cited_regions=["rows"],
+                        retrieved_at=(filed_at if board.cite_only else None),
                     ).model_dump(mode="json")]
                     new["id"] = evidence_id(model_id, new)
                     pending_updates.setdefault(path, []).append((evidence_key(old), new))
-                    claims.append(_claim(model_id, fronts[model_id], new, board))
+                    if not board.cite_only:  # a cited row has no page copy to verify against
+                        claims.append(_claim(model_id, fronts[model_id], new, board))
                     if observation.changed:
                         report.changes.append(observation.score_change())
                     else:
@@ -3661,6 +3679,20 @@ def _fetch_scale_pro(url: str) -> bytes:
     return _fetch(url, accept_final=accept_scale_pro_final)
 
 
+def read_in_memory(url: str, terms: Mapping[str, str], *, request: Callable | None = None) -> bytes:
+    """Read a cite-only board in memory: redirects off, nothing written anywhere.
+
+    A redirect goes only to a retaining host; any other target is not requested and the
+    board waits for the next run (the rule of ``scripts.evidence_reread.fetch``).
+    """
+    from scripts import evidence_reread
+
+    fetched = evidence_reread.fetch(url, dict(terms), request=request or evidence_reread.request_once)
+    if fetched.kind != "ok":
+        raise ValueError(f"cite-only read deferred ({fetched.kind}): {fetched.reason}")
+    return fetched.body
+
+
 def _fetch(url: str, *, accept_final: Callable[[str, str], bool] | None = None) -> bytes:
     """Read a live board. The read must end on the address it asked for.
 
@@ -3695,6 +3727,7 @@ def _reading_from_projection(
     fraction: bool = False, card_urls: Iterable[str] = (),
     row_template: Mapping[str, str] | None = None,
     effort_basis: str | None = None,
+    page_ref: str | None = None, cite_only: bool = False,
 ) -> BoardReading:
     payload = json.loads(projected)
     declared = key in UNPUBLISHED_CELL_BOARDS
@@ -3709,8 +3742,10 @@ def _reading_from_projection(
     )
     return BoardReading(
         key, source_id, frozenset(benchmarks), source_url, observed_at, rows,
-        value_field, fraction, store.put(projected, source_url=source_url), frozenset(card_urls), row_template,
-        effort_basis, key in UNPUBLISHED_CELL_BOARDS,
+        value_field, fraction,
+        page_ref if cite_only else store.put(projected, source_url=source_url),
+        frozenset(card_urls), row_template, effort_basis, key in UNPUBLISHED_CELL_BOARDS,
+        cite_only,
     )
 
 
@@ -3964,6 +3999,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
                      arena_revision: str | None = None, *,
                      arena_complete: bool = False,
                      skip_arena: bool = False,
+                     terms: Mapping[str, str] | None = None,
                      ) -> tuple[list[BoardReading], list[RowFailure]]:
     """Fetch every terms-compatible live board used by the premier snapshot.
 
@@ -3989,6 +4025,22 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
                 effort_basis: str | None = None) -> None:
         try:
             require_allowed_source(fetch_url, benchmarks)
+            from scripts.evidence_reread import host_class
+
+            if read is None and host_class(fetch_url, terms or {}) in ("cite-only", "forbids"):
+                # Cite-only: read in memory, keep the page's hash and nothing else.
+                raw = read_in_memory(fetch_url, terms or {})
+                raw_ref = fingerprint_bytes(raw)
+                projected = projector(raw, url=source_url, page_ref=f"{raw_ref} {fetch_url}",
+                                      observed_at=observed_at)
+                readings.append(_reading_from_projection(
+                    key=key, source_id=source_id, benchmarks=benchmarks, source_url=source_url,
+                    projected=projected, observed_at=observed_at, value_field=value_field,
+                    store=store, fraction=fraction, card_urls=card_urls or (source_url,),
+                    row_template=row_template, effort_basis=effort_basis,
+                    page_ref=raw_ref, cite_only=True,
+                ))
+                return
             raw = (read or _fetch)(fetch_url)
             raw_ref = store.put(raw, source_url=fetch_url)
             projected = projector(raw, url=source_url, page_ref=f"{raw_ref} {fetch_url}",

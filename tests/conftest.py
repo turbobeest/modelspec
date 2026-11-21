@@ -31,6 +31,20 @@ def _clear_modelspec_data_dir_env(monkeypatch: pytest.MonkeyPatch):
     os.environ.pop("MODELSPEC_DATA_DIR", None)
 
 
+@pytest.fixture(autouse=True)
+def _no_live_cite_only_reads(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The refresh reads a cite-only board in memory (MODEL-482); a test never reaches the net.
+
+    A test that serves a page replaces ``request_once`` itself.
+    """
+    from scripts import evidence_reread
+
+    def offline(url: str):
+        raise ConnectionError("the network is off in tests")
+
+    monkeypatch.setattr(evidence_reread, "request_once", offline)
+
+
 @pytest.fixture
 def subscription_repository() -> Path:
     return Path(__file__).resolve().parents[1]
