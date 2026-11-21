@@ -571,3 +571,100 @@ def test_the_watcher_reports_an_interpretability_artefact() -> None:
         "acme-lab/embed", "embed", "Acme", "https://huggingface.co/acme-lab/embed",
         pipeline_tag="feature-extraction", tags=("transformers", "feature-extraction"),
     ), source) is None
+
+
+# MODEL-474: adapters, forensics detectors and task-less feature encoders.
+_HUB_SOURCE = Source(
+    "hf-acme", "huggingface",
+    "https://huggingface.co/api/models?author=acme-lab", 0.7, provider="Acme",
+)
+
+
+def _hub_reason(repository: str, row: dict) -> str | None:
+    pipeline_tag, tags, base_model, base_models = hub_metadata(row, repository)
+    return _hub_scope_reason(Seen(
+        repository, repository.partition("/")[2], "Acme",
+        f"https://huggingface.co/{repository}",
+        pipeline_tag=pipeline_tag, tags=tags,
+        base_model=base_model, base_models=base_models,
+    ), _HUB_SOURCE)
+
+
+def test_a_peft_adapter_for_video_forensics_is_out_of_scope() -> None:
+    row = {
+        "pipeline_tag": "video-text-to-text",
+        "library_name": "peft",
+        "tags": [
+            "peft", "safetensors", "ai-generated-video-detection", "video-forensics",
+            "lora", "video-text-to-text", "base_model:acme-lab/base-4b",
+            "base_model:adapter:acme-lab/base-4b", "license:apache-2.0",
+        ],
+    }
+    assert _hub_reason("acme-lab/clip-forensics", row) == "adapter"
+
+
+def test_a_forensics_tag_alone_is_out_of_scope() -> None:
+    row = {
+        "pipeline_tag": "image-text-to-text",
+        "library_name": "transformers",
+        "tags": ["transformers", "image-text-to-text", "deepfake-detection"],
+    }
+    assert _hub_reason("acme-lab/checker", row) == "forensics or detection"
+    row["tags"] = ["transformers", "image-text-to-text", "ai_generated_image_detection"]
+    assert _hub_reason("acme-lab/checker", row) == "forensics or detection"
+
+
+def test_an_adapter_config_file_is_out_of_scope() -> None:
+    row = {
+        "pipeline_tag": "text-generation",
+        "tags": ["text-generation"],
+        "siblings": [{"rfilename": "adapter_config.json"}],
+    }
+    assert _hub_reason("acme-lab/tuned", row) == "adapter"
+
+
+def test_a_feature_encoder_with_no_task_tag_is_out_of_scope() -> None:
+    row = {
+        "pipeline_tag": None,
+        "tags": [
+            "base_model:acme-lab/vision-backbone-h",
+            "base_model:finetune:acme-lab/vision-backbone-h",
+            "license:other",
+        ],
+    }
+    assert _hub_reason("acme-lab/radiov4-h-av", row) == (
+        "feature encoder without a pipeline tag"
+    )
+    assert _hub_reason("acme-lab/vision-backbone", {"tags": []}) == (
+        "feature encoder without a pipeline tag"
+    )
+
+
+def test_a_multimodal_llm_with_a_feature_extraction_tag_is_kept() -> None:
+    row = {
+        "pipeline_tag": "video-text-to-text",
+        "library_name": "transformers",
+        "tags": [
+            "transformers", "safetensors", "feature-extraction", "multimodal",
+            "video", "video-text-to-text", "custom_code",
+        ],
+    }
+    assert _hub_reason("acme-lab/omni-video-2b", row) is None
+
+
+def test_a_base_llm_checkpoint_is_kept() -> None:
+    row = {
+        "pipeline_tag": "text-generation",
+        "library_name": "transformers",
+        "tags": ["transformers", "safetensors", "text-generation", "conversational"],
+    }
+    assert _hub_reason("acme-lab/lm-base", row) is None
+
+
+def test_an_untagged_repository_without_an_encoder_name_is_kept() -> None:
+    assert _hub_reason("acme-lab/checkpoints", {"tags": []}) is None
+    # A bare `encoder` in a name is an encoder-decoder language model.
+    assert _hub_reason("acme-lab/bert-seq-encoder", {"tags": []}) is None
+    # An embedding model that names itself an encoder keeps its task tag.
+    row = {"pipeline_tag": None, "tags": ["sentence-similarity"]}
+    assert _hub_reason("acme-lab/text-encoder", row) is None
