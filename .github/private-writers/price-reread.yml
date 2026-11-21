@@ -513,7 +513,7 @@ jobs:
           with open(sys.argv[2], "a") as out:
               print(f"changes={len(report['changes'])}", file=out)
               print(f"reconfirmed={len(report['reconfirmed'])}", file=out)
-              print(f"alerts={len(report['alerts'])}", file=out)
+              print(f"alerts={len(report['alerts']) + len(report.get('final_host_changed', []))}", file=out)
           PY
       - name: Keep this week's copies for next week's diff
         if: always()
@@ -561,6 +561,7 @@ jobs:
             offerings/**
             verification/log.jsonl
             verification/queue/events.jsonl
+            verification/final-hosts.json
           signoff: true
           commit-message: |-
             data: re-read prices and plans (MODEL-217)
@@ -608,6 +609,7 @@ jobs:
           add-paths: |
             verification/log.jsonl
             verification/queue/events.jsonl
+            verification/final-hosts.json
             offerings/**
           signoff: true
           commit-message: |-

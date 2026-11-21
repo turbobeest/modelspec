@@ -479,3 +479,39 @@ def test_pull_request_bodies_survive_a_fitter_error(
     assert "price-reread-report" in text
     assert "::warning::" in result.stdout
     assert "FileNotFoundError" in result.stdout
+
+
+def test_final_host_is_recorded_and_a_move_is_reported(tmp_path: Path) -> None:
+    """MODEL-523: synthetic sources; the first sight records, a host move alerts."""
+    from decision.final_hosts import FINAL_HOST_CHANGED, observe
+
+    path = tmp_path / "verification" / "final-hosts.json"
+    first = {"s-a": ["http://a.example/x", "https://www.a.example/x"],
+             "s-b": ["https://b.example/p"], "s-none": []}
+    assert observe(path, first, date(2026, 11, 1)) == []
+    state = json.loads(path.read_text())
+    assert sorted(state) == ["s-a", "s-b"]
+    assert state["s-a"] == {"final_url": "https://www.a.example/x", "final_host": "www.a.example",
+                            "first_seen": "2026-11-01", "last_seen": "2026-11-01"}
+    before = path.read_text()
+    assert observe(path, first, date(2026, 11, 8)) == []
+    assert path.read_text() == before  # a quiet run writes nothing
+    moved = observe(path, {**first, "s-b": ["https://b.example/p", "https://c.example/p"]},
+                    date(2026, 11, 15))
+    assert moved == [{"source": "s-b", "status": FINAL_HOST_CHANGED,
+                      "old_host": "b.example", "new_host": "c.example"}]
+    assert json.loads(path.read_text())["s-b"]["first_seen"] == "2026-11-15"
+    assert observe(path, {"s-b": ["https://x.example"]}, date(2026, 11, 16), write=False)
+    assert json.loads(path.read_text())["s-b"]["final_host"] == "c.example"
+
+
+def test_a_moved_host_reaches_the_report_and_the_alert_count(tmp_path: Path) -> None:
+    payload = price_reread.Report(TODAY, final_host_changed=[
+        {"source": "s-b", "status": "final_host_changed", "old_host": "b.example",
+         "new_host": "c.example"}]).to_dict()
+    assert payload["final_host_changed"][0]["new_host"] == "c.example"
+    assert "1 final host change (final_host_changed)" in price_reread.alert_comment(payload, RUN_URL)
+    assert "### Final host changed" in price_reread.render_report(
+        price_reread.Report(TODAY, final_host_changed=payload["final_host_changed"]))
+    count = _step("Count changes and alerts")["run"]
+    assert "final_host_changed" in count
