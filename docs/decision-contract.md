@@ -1846,7 +1846,7 @@ off. A browser visit token does not admit this endpoint. Existing access
 quotas and billing apply at the `decide.full` credit weight. The CLI's named
 comparison and MCP `compare_models` tool call this endpoint.
 
-The named comparison has its own contract, version **1.2**, identified by
+The named comparison has its own contract, version **1.3**, identified by
 `comparison_version` on success and refusal bodies. It has no
 `contract_version`. Its fields follow the same MODEL-59 versioning rule:
 widening a comparison field bumps the comparison's major version.
