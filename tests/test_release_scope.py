@@ -720,6 +720,32 @@ def test_a_repository_that_states_no_task_is_held_not_out() -> None:
     )
 
 
+_DRAFTER_ROW = {"pipeline_tag": "text-generation", "tags": ["text-generation"]}
+
+
+def _held(repository: str) -> str | None:
+    pipeline_tag, tags = hub_metadata(_DRAFTER_ROW, repository)[:2]
+    return hub_hold_reason(pipeline_tag, tags, repository)
+
+
+@pytest.mark.parametrize("name", [
+    "nemotron-labs-sigma-distill-spec-3b",
+    "nemotron-labs-sigma-distill-spec-8b",
+    "nemotron-labs-sigma-distill-8b-nfe4",
+    "nemotron-labs-sigma-distill-8b-nfe8",
+])
+def test_drafter_and_distill_checkpoint_names_are_held(name: str) -> None:
+    assert _held(f"acme-lab/{name}") is not None
+
+
+@pytest.mark.parametrize("name", [
+    "nex-n2-6", "nemotron-3-super", "spectrum-8b", "acme-spectrum-spec", "specific-8b",
+    "distill-8b", "nfe-base",
+])
+def test_ordinary_names_are_not_held_for_a_drafter_rule(name: str) -> None:
+    assert _held(f"acme-lab/{name}") is None
+
+
 def test_tasks_that_name_a_ranked_model_are_neither_out_nor_held() -> None:
     shapes = {
         "acme-lab/video-lm": {"pipeline_tag": "video-text-to-text", "tags": ["video-text-to-text"]},
