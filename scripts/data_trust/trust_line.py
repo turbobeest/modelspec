@@ -6,7 +6,7 @@ Three numbers a reader can watch from week to week:
      whose digest only such a lost path names;
   3. sources whose final host differs from the registered host (MODEL-523 state).
 Whether a record was never retained is deliberately not reported (owner decision).
-The age line is a parameter: the stale rule (MODEL-521) is pending the owner's wording.
+The age lines come from decision.staleness (MODEL-521); explicit values still override.
 """
 
 from __future__ import annotations
@@ -20,12 +20,13 @@ from collections import Counter, defaultdict
 from datetime import date
 from pathlib import Path
 
+from decision import staleness
 from decision.retention import canonical_host, cite_only_origin_restrictive
 from scripts.data_trust.catalogue import Catalogue, day
 from scripts.data_trust.retention import MAX_MANIFEST_BYTES, PATH_FIELDS, _files, _records
 
-STALE_DAYS = 90
-STALE_DAYS_FAST = 45  # price and subscription facets move faster
+STALE_DAYS = staleness.STALE_DAYS
+STALE_DAYS_FAST = staleness.STALE_DAYS_FAST  # price and subscription facets move faster
 FAST_GROUPS = {"offering price", "subscription"}
 FINAL_HOSTS = "verification/final-hosts.json"  # MODEL-523 per-source state, in the data repo
 HEX = re.compile(r"[0-9a-f]{64}")
@@ -150,8 +151,11 @@ def moved_hosts(c: Catalogue, root: Path) -> dict:
     return {"recorded": True, "moved": len(moved), "source_ids": moved}
 
 
-def compute(c: Catalogue, root: Path, as_of: date, days: int = STALE_DAYS,
-            fast_days: int = STALE_DAYS_FAST) -> dict:
+def compute(c: Catalogue, root: Path, as_of: date, days: int | None = None,
+            fast_days: int | None = None) -> dict:
+    # None means the rule in force on `as_of`, including the one-time first-quarter line.
+    days = staleness.age_line("", as_of, fast=False) if days is None else days
+    fast_days = staleness.age_line("offering.price", as_of, fast=True) if fast_days is None else fast_days
     return {
         "stale": stale(c, as_of, days, fast_days),
         "lost_copies": lost_copies(c, root),
@@ -205,7 +209,7 @@ def text(line: dict) -> str:
     return (
         f"Trust line: verified records older than {s['age_line_days']} days "
         f"({s['age_line_days_price_subscription']} for price and subscription; "
-        f"age line pending MODEL-521): "
+        f"MODEL-521 rule): "
         f"{s['older']} of {s['verified']}{_delta(line, 'stale')}\n"
         f"Trust line: lost retained copies: {lost['lost_paths']} paths"
         f"{_delta(line, 'lost_paths')}; records whose digest only a lost path names: "
