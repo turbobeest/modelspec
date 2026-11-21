@@ -383,13 +383,27 @@ def _js_object(text: str, start: int) -> str:
         i += 1
 
 
+#: Where the board's ``vb2`` object opens in the page's JS chunk: first as a JavaScript
+#: literal with a bare key, since late 2026-11 as the JSON text of ``JSON.parse`...``.
+VENDING_MARKERS = ("{vb2:{", '{"vb2":{')
+
+
+def vending_marker(chunk: str | bytes) -> str | None:
+    """The marker the chunk carries, or None when it holds no Vending-Bench 2 object."""
+    probe = chunk.decode("utf-8", "replace") if isinstance(chunk, bytes) else chunk
+    return next((marker for marker in VENDING_MARKERS if marker in probe), None)
+
+
 def project_vending(chunk: str, *, url: str, page_ref: str, read_date: str = READ_DATE) -> bytes:
     """Andon Labs' Vending-Bench 2 board data: the ``vb2`` object of the page's JS chunk."""
-    board = _js_object(chunk, chunk.index("{vb2:{") + len("{vb2:"))
+    marker = vending_marker(chunk)
+    if marker is None:
+        raise ValueError("no vb2 object in the chunk")
+    board = _js_object(chunk, chunk.index(marker) + len(marker) - 1)
     rows, i = [], 1
     while (m := re.compile(r'"([^"]+)":\{').search(board, i)):
         entry = _js_object(board, m.end() - 1)
-        value = re.search(r"(?<![\w.])final_value:([-\d.eE+]+)", entry)
+        value = re.search(r'(?<![\w.])"?final_value"?:([-\d.eE+]+)', entry)
         rows.append({"model": m.group(1),
                      "money_balance": f"{value.group(1)} USD" if value else None})
         i = m.end() - 1 + len(entry)
@@ -655,7 +669,7 @@ def build(reg: Registry, tau_urls: set[str]) -> None:
     for path in sorted(set(re.findall(r"/_app/immutable/[\w./-]+\.js", page.decode()))):
         chunk_url = "https://andonlabs.com" + path
         body, ref = reg.fetch(chunk_url)
-        if b"{vb2:{" in body:
+        if vending_marker(body):
             reg.add("vending", "model-160-vending-bench-2", VENDING_URL,
                     project_vending(body.decode(), url=VENDING_URL,
                                     page_ref=f"{ref} {chunk_url}"), "money_balance")

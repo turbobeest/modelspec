@@ -4248,7 +4248,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
         for chunk_path in sorted(set(re.findall(r"/_app/immutable/[\w./-]+\.js", page))):
             chunk_url = "https://andonlabs.com" + chunk_path
             raw = _fetch(chunk_url)
-            if b"{vb2:{" not in raw:
+            if readers.vending_marker(raw) is None:
                 continue
             raw_ref = store.put(raw, source_url=chunk_url)
             projected = readers.project_vending(raw.decode(), url=readers.VENDING_URL,
