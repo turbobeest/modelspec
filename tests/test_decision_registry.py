@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import re
 import shutil
+import sys
+from datetime import date
 from functools import cache
 from pathlib import Path
 
@@ -825,3 +827,28 @@ def test_a_future_trust_centre_checked_date_is_refused(tmp_path):
     over = {**_NONE, "trust_centre_checked": "2999-01-01"}
     with pytest.raises(RegistryError, match="must not be in the future"):
         _load(_provider_with(tmp_path, **over))
+
+
+class _EpochDate(date):
+    """`date` as the Worker sees it outside a request: the clock reads 1970-01-01."""
+
+    @classmethod
+    def today(cls):
+        return cls(1970, 1, 1)
+
+
+def test_the_workers_frozen_clock_does_not_reject_a_trust_centre_date(tmp_path, monkeypatch):
+    # The Worker loads the registry at module scope, where Cloudflare's clock is
+    # not today's date. Before the fix this raised "must not be in the future"
+    # and the deploy was rejected (code 10021, "invalid registry").
+    root = _provider_with(tmp_path, **_NONE)
+    monkeypatch.setattr(reg, "date", _EpochDate)
+    monkeypatch.setattr(sys, "platform", "emscripten")
+    assert _load(root).provider("zai").trust_centre_checked == "2026-11-20"
+
+
+def test_a_frozen_clock_off_the_worker_still_refuses_the_date(tmp_path, monkeypatch):
+    # The exemption is the Worker runtime only, not any odd clock.
+    monkeypatch.setattr(reg, "date", _EpochDate)
+    with pytest.raises(RegistryError, match="must not be in the future"):
+        _load(_provider_with(tmp_path, **_NONE))
