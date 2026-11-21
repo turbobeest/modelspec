@@ -223,6 +223,9 @@ class RowObservation:
     reading_revision: str = ""
     reading_checked: bool = False
     reading_rank: int | None = None
+    #: The board's own name for the row, when the stored name matched it through
+    #: ``ARENA_RENAMED``. The refiled row names this reading. None otherwise.
+    reading_name: str | None = None
     #: The card stored an Arena float with more than two decimals that rounds to this reading.
     score_repair: bool = False
 
@@ -425,6 +428,30 @@ def align_observation_dating(row: Mapping[str, Any]) -> dict[str, Any]:
     if updated.get("date_type") == "published":
         updated["date_type"] = OBSERVATION_DATE_TYPE
     return updated
+
+
+#: MODEL-524. Arena models the board renamed after the card's reading was filed:
+#: the stored name -> the board's current name, matched literally and on Arena
+#: boards only. Where the stored name has no unique row, the refresh refiles the
+#: row under the board's name together with its reading, so the row names the
+#: reading it carries. Nothing here is a fuzzy match: the board's name must be
+#: one row's whole subject, so a "Non-Thinking" or other-dated row never matches.
+ARENA_RENAMED: dict[str, str] = {
+    "olmo-2-0325-32b-instruct": "OLMo 2 32B Instruct (0325)",
+    "kimi-k2-0711-preview": "Kimi K2 Preview (0711)",
+    "kimi-k2-0905-preview": "Kimi K2 Preview (0905)",
+    "gemini-2.5-flash-lite-preview-06-17-thinking":
+        "Gemini 2.5 Flash-Lite Preview (Thinking, 06-17)",
+}
+
+
+def _renamed_arena_row(board: BoardReading, stored_name: str) -> Mapping[str, Any] | None:
+    """The one row whose subject is the board's current name for ``stored_name``."""
+    current = ARENA_RENAMED.get(stored_name)
+    if current is None or not board.key.startswith("arena:"):
+        return None
+    rows = [row for row in board.rows if _subject(row) == current]
+    return rows[0] if len(rows) == 1 else None
 
 
 def _name_candidates(board: BoardReading, evidence: Mapping[str, Any]) -> list[Mapping[str, Any]]:
@@ -955,6 +982,8 @@ def _copy_matched_reading(
     if _RANK_QUOTE.search(str(old.get("configuration") or "")) and observation.reading_rank is None:
         return None, "configuration quotes a rank the matched row does not state"
     new["score"] = observation.new_value
+    if observation.reading_name:
+        new["model_id_as_evaluated"] = observation.reading_name
     if observation.reading_interval is not None:
         new["interval"] = [observation.reading_interval[0], observation.reading_interval[1]]
     if observation.reading_n is not None:
@@ -1022,10 +1051,17 @@ def _plan_observations(
         spelled_effort: str | None = None
         adopted: str | None = None
         pinned: Mapping[str, Any] | None = None
+        renamed_to: str | None = None
         if arena_board:
             hits = _normalised_name_hits(board, stored_name)
             spelled_effort = _effort_spelled_by_stored_name(stored_name)
-            if len(hits) > 1:
+            if not hits:
+                alias_row = _renamed_arena_row(board, stored_name)
+                if alias_row is not None:
+                    pinned, renamed_to = alias_row, _subject(alias_row)
+            if pinned is not None:
+                pass
+            elif len(hits) > 1:
                 failures.append(RowFailure(
                     model_id, str(evidence.get("benchmark_id")), board.source_url,
                     "two dataset rows normalise to the stored name",
@@ -1037,7 +1073,7 @@ def _plan_observations(
             # read — one parenthesis, a trailing hyphen or slug token, or
             # several parentheses — is a second effort row. The card's level
             # does not choose among them.
-            if spelled_effort is None and not hits:
+            if pinned is None and spelled_effort is None and not hits:
                 parenthetical = _parenthetical_effort_rows(board, stored_name)
                 benchmark = str(evidence.get("benchmark_id"))
                 if len(parenthetical) > 1 or (
@@ -1177,6 +1213,7 @@ def _plan_observations(
             reading_revision=board_revision,
             reading_checked=arena_board,
             reading_rank=_matched_rank(match) if arena_board else None,
+            reading_name=renamed_to,
             score_repair=score_repair,
         ))
         if not arena_board and _publication_marked(evidence):
@@ -1282,7 +1319,8 @@ def _rewrite_card(
         if fields is None:
             names = [
                 name for name in (
-                    *always, "date_type", "configuration", "interval", "n", "effort",
+                    *always, "model_id_as_evaluated", "date_type", "configuration",
+                    "interval", "n", "effort",
                 )
                 if name in always or replacement.get(name) != row.get(name)
             ]
@@ -1417,8 +1455,14 @@ def _verifier_skip_reason(
             f"verifier: {diff.field} expected {diff.expected!r} found {diff.found!r}"
             for diff in diffs
         ), diffs, ""
-    if result.outcome == "skipped" and not (result.reason or "").strip():
+    reason = (result.reason or "").strip()
+    if result.outcome == "skipped" and not reason:
         return "verifier: skipped", (), "unowned"
+    if result.outcome == "skipped" and all(
+        part.startswith(verify.UNOWNED_REASONS) for part in reason.split("; ")
+    ):
+        # The page was read and no row was this claim's: say which of the four ways.
+        return f"verifier: {reason}", (), "unowned"
     return f"verifier: {result.reason or result.outcome}", (), ""
 
 
@@ -3307,9 +3351,27 @@ def _names_a_different_effort(
     return False
 
 
+def _renamed_by_alias(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
+    """True when ``after`` is ``before`` refiled under its ``ARENA_RENAMED`` board name."""
+    name = before.get("model_id_as_evaluated")
+    return (
+        isinstance(name, str)
+        and ARENA_RENAMED.get(name) is not None
+        and after.get("model_id_as_evaluated") == ARENA_RENAMED[name]
+    )
+
+
+def _same_name_or_renamed(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
+    return before.get("model_id_as_evaluated") == after.get("model_id_as_evaluated") \
+        or _renamed_by_alias(before, after)
+
+
 def _arena_effort_refresh_allowed(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
-    """Null or empty effort may become the spelled level, and nothing else."""
-    if before.get("model_id_as_evaluated") != after.get("model_id_as_evaluated"):
+    """Null or empty effort may become the spelled level, and nothing else.
+
+    The name must be the stored one, or its ``ARENA_RENAMED`` board name (the
+    level is then read from the stored name, as before the rename)."""
+    if not _same_name_or_renamed(before, after):
         return False
     old, new = before.get("effort"), after.get("effort")
     if old == new:
@@ -3354,6 +3416,10 @@ def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> 
         old.pop(key, None)
         new.pop(key, None)
     if refreshed and _arena_reading_row(before) and _arena_reading_row(after):
+        # A refiled alias row names the reading it carries; no other field may use this.
+        if _renamed_by_alias(before, after):
+            old.pop("model_id_as_evaluated", None)
+            new.pop("model_id_as_evaluated", None)
         for key in ("interval", "n"):
             old.pop(key, None)
             new.pop(key, None)

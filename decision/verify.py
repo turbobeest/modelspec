@@ -2912,9 +2912,132 @@ class ModelPageExtractor:
                         return True
                 return False
 
-            if any(own_feature(line) for line in lines):
-                readings.append(Reading(subject=subject, value="supported"))
+            states: list[str] = []
+            for n, line in enumerate(lines):
+                if own_feature(line):
+                    following = lines[n + 1] if n + 1 < len(lines) else None
+                    state = _feature_state(line, phrases, following)
+                    if state not in states:
+                        states.append(state)
+            if len(states) > 1:
+                # A supported line and a not-supported line for one feature
+                # conflict: neither may confirm a claim.
+                states = ["partial"]
+            for state in states:
+                readings.append(Reading(subject=subject, value=state))
         return readings or [Reading(subject=subject, value=None)]
+
+
+#: Cell or value wordings that say a feature is not offered, or only in part.
+_FEATURE_NO = frozenset({
+    "unsupported", "not supported", "no", "none", "not available", "unavailable",
+    "n a", "na", "not applicable", "✗", "✘", "✕", "x", "-", "–", "—",
+})
+_FEATURE_PARTIAL = frozenset({
+    "partial", "partially", "partial support", "partially supported", "limited",
+    "limited support",
+})
+#: Negations that describe their subject ("X is not supported"): they bind to a
+#: feature named before them in the clause.
+_FEATURE_NO_SUBJECT = re.compile(
+    r"(?i)(?:\b(?:is|are)(?:\s+not|n't)\s+(?:currently\s+)?(?:supported|available|offered)\b"
+    r"|\b(?:un|not\s+)supported\b|\bunavailable\b|\bnot\s+offered\b|(?<![\w/])n/a(?![\w/]))")
+#: Negations that take an object ("does not support X"): they bind to a feature
+#: named after them.
+_FEATURE_NO_OBJECT = re.compile(
+    r"(?i)(?:\b(?:does|do|did|will|would|can|could)(?:\s+not|n't)\s+(?:currently\s+)?support\b"
+    r"|\bno\s+support\s+for\b)")
+_FEATURE_PARTIAL_SENTENCE = re.compile(
+    r"(?i)\b(?:partial(?:ly)?\s+support(?:ed|s)?|limited\s+support|(?:only\s+)?partially)\b")
+#: "not unsupported", "not unavailable": a double negative is not read.
+_FEATURE_DOUBLE_NEGATIVE = re.compile(
+    r"(?i)\b(?:not|isn't|aren't|never)\s+(?:un\w+|not\b)")
+#: Text right before a feature that excludes it: "but not X", "except X", "without X".
+_FEATURE_EXCLUDES = re.compile(
+    r"(?i)\b(?:not|except|without)\s+(?:(?:support(?:s|ing)?|offer(?:s|ing)?|for)\s+)?$")
+_FEATURE_CLAUSES = re.compile(r"(?i);|,|\bbut\b|\bwhile\b|\bwhereas\b")
+_FEATURE_DASH = frozenset({"-", "–", "—"})
+
+
+def _feature_cell(cell: str) -> str | None:
+    """Classify a value cell as supported, not supported or partial."""
+    plain = cell.replace("**", "").replace("`", "").strip()
+    # A bracketed note after the value ("No (coming soon)") does not change it.
+    unnoted = re.sub(r"\s*\([^)]*\)\s*$", "", plain).strip()
+    plain = unnoted or plain
+    if not plain:
+        return None
+    key = normalise_name(plain)
+    if key in _FEATURE_NO or plain in _FEATURE_NO:
+        return "not supported"
+    if key in _FEATURE_PARTIAL:
+        return "partial"
+    return "supported"
+
+
+def _clause_state(clause: str, wanted: Sequence[str], raw: Sequence[str]) -> str:
+    """What one clause that names the feature says of it."""
+    low = clause.casefold()
+    hits = [(low.index(w), w) for w in raw if w in low]
+    start, phrase = min(hits) if hits else (0, "")
+    end = start + len(phrase)
+    if _FEATURE_DOUBLE_NEGATIVE.search(clause):
+        return "partial"
+    if hits and _FEATURE_EXCLUDES.search(low[:start]):
+        return "not supported"
+    # "Streaming: No", "Batch API - unsupported": a value right after the name.
+    tail = re.match(r"\s*[:\u2013\u2014-]\s*(\S.*)$", clause[end:]) if hits else None
+    if tail and (state := _feature_cell(tail.group(1).strip().rstrip("."))) is not None:
+        return state
+    for match in _FEATURE_NO_SUBJECT.finditer(clause):
+        if match.start() >= end and hits:
+            return "not supported"
+    for match in _FEATURE_NO_OBJECT.finditer(clause):
+        if not hits or match.end() <= start:
+            return "not supported"
+    if _FEATURE_PARTIAL_SENTENCE.search(clause):
+        return "partial"
+    return "supported"
+
+
+def _feature_state(line: str, phrases: Sequence[str], following: str | None) -> str:
+    """What a line that names a feature says of it.
+
+    A table cell or value that says unsupported, no, a cross or N/A reads as not
+    supported; a dash does too when it is the only value. Partial or limited
+    reads as neither. Negation binds to the feature in its own clause, not to the
+    rest of the sentence. Two clauses that disagree read as partial (unreadable).
+    Anything else reads as supported, as before.
+    """
+    plain = line.replace("**", "").replace("`", "").lstrip("-* ")
+    wanted = [normalise_name(phrase) for phrase in phrases]
+    raw = [phrase.casefold() for phrase in phrases]
+    if "|" in plain:
+        cells = [c.strip() for c in plain.strip().strip("|").split("|")]
+        named = next((i for i, c in enumerate(cells)
+                      if ":" not in c and any(w in normalise_name(c) for w in wanted)), None)
+        if named is not None:
+            values = [c for c in cells[named + 1:] if c]
+            real = [c for c in values if c not in _FEATURE_DASH]
+            if real:
+                return _feature_cell(real[0]) or "supported"
+            if values:
+                return "not supported"
+    states: list[str] = []
+    for sentence in re.split(r"(?<=[.!?])\s+", plain):
+        for clause in _FEATURE_CLAUSES.split(sentence):
+            if any(w in normalise_name(clause) for w in wanted):
+                states.append(_clause_state(clause, wanted, raw))
+    if not states:
+        states.append("supported")
+    if len(set(states)) > 1:
+        return "partial"
+    if states[0] == "supported" and following is not None and len(following) <= 40 and any(
+            normalise_name(plain) == w for w in wanted):
+        # A bare label followed by its value on the next line.
+        if (state := _feature_cell(following)) in {"not supported", "partial"}:
+            return state
+    return states[0]
 
 
 #: A Metric | Price row label, as normalised, and the price kind it states.
@@ -6545,6 +6668,10 @@ class StoredRegions:
         source = self.sources.get(source_id)
         return None if source is None else source.kind
 
+    def source_publisher(self, source_id: str) -> str | None:
+        source = self.sources.get(source_id)
+        return None if source is None else source.publisher
+
     def dated_prices(self, claim: Claim, source: SourceRef, region_id: str) -> list[Reading]:
         from decision.dated_prices import read_dated_prices
 
@@ -6851,7 +6978,14 @@ def _reading_subject_matches(subject: str, names: Sequence[str], *, field: str |
         return True
     # Effort is a separate condition. Other qualifiers and '+' remain identity.
     identity = split_model_cell(subject.replace("+", " plus "))[0]
-    aliases = tuple(split_model_cell(name.replace("+", " plus "))[0] for name in names)
+    # Two names that each carry a compound parenthesis are compared by their ordered
+    # name and qualifier multiset below, never flattened: "Max (High, 32K, d)" and
+    # "(Max, High, 32K, d)" flatten to one string and are different names. A slug has no
+    # parenthesis, so a display name still matches its slug by the flat identity.
+    flat = [name for name in names
+            if not (_compound_qualifier(subject) is not None
+                    and _compound_qualifier(name) is not None)]
+    aliases = tuple(split_model_cell(name.replace("+", " plus "))[0] for name in flat)
     if _published_subject(identity, aliases) is not None:
         return True
     # The name outside a compound parenthesis is ordered. The qualifier is a
@@ -6971,6 +7105,16 @@ def _number_agrees(expected: int | float, found: object, unit: str | None = None
     return quantity is not None and numbers_agree(expected, unit, quantity)
 
 
+#: How an evidence claim's skip says that the stored copy was read and no row was its own.
+#: Each reason starts with one of these; the refresh files them under one skip class.
+UNOWNED_REASONS = (
+    "no reader accepts the stored copy",
+    "no independent reader for the stored copy",
+    "no row matched this model's names",
+    "the reader found no rows in the stored copy",
+)
+
+
 def _verify_evidence_reading(
     claim: Claim,
     regions: Regions,
@@ -6989,6 +7133,8 @@ def _verify_evidence_reading(
     reachable = False
     reasons: list[str] = []
     no_copy: list[str] = []
+    #: Why a region read but unowned says nothing else: used only when no other reason is.
+    silent: list[str] = []
     diffs: list[Diff] = []
 
     for source in claim.sources:
@@ -7004,11 +7150,13 @@ def _verify_evidence_reading(
                     reasons.append(f"unreachable:{where}")
                 continue
             reachable = True
-            for extractor in [
-                item
-                for item in ordered
-                if item.accepts(text) and _independent(claim, item.actor, today)
-            ]:
+            accepting = [item for item in ordered if item.accepts(text)]
+            readers_here = [item for item in accepting if _independent(claim, item.actor, today)]
+            if not accepting:
+                silent.append(f"no reader accepts the stored copy: {where}")
+            elif not readers_here:
+                silent.append(f"no independent reader for the stored copy: {where}")
+            for extractor in readers_here:
                 try:
                     readings = extractor.extract(claim, text)
                 except ExtractorError as exc:
@@ -7018,6 +7166,7 @@ def _verify_evidence_reading(
                     actor = actor or extractor.actor
                     diffs.append(Diff("model", claim.names[0], None))
                     continue
+                matched_here = False
                 for reading in readings:
                     if not isinstance(reading.value, dict) or not reading.subject:
                         continue
@@ -7025,6 +7174,7 @@ def _verify_evidence_reading(
                     benchmark = _published_subject(reading.subject, benchmark_names) is not None
                     if not own and not benchmark:
                         continue
+                    matched_here = True
                     actor = actor or extractor.actor
                     found = reading.value
                     if own and "score" in found:
@@ -7056,6 +7206,11 @@ def _verify_evidence_reading(
                         else:
                             diffs.append(Diff("n", expected["n"], found["n"]))
                     found_flags.update(str(flag) for flag in found.get("quality_flags", []))
+                if not matched_here:
+                    silent.append(
+                        f"no row matched this model's names ({len(readings)} rows read): "
+                        f"{where}" if readings else
+                        f"the reader found no rows in the stored copy: {where}")
 
     expected_flags = set(expected.get("quality_flags") or [])
     if found_flags == expected_flags:
@@ -7085,7 +7240,8 @@ def _verify_evidence_reading(
             _verification(claim, REGION_LOOKUP, "unreachable", today),
             reason="; ".join(reasons),
         )
-    return Result(claim.target, "skipped", reason="; ".join([*reasons, *no_copy]))
+    return Result(claim.target, "skipped",
+                  reason="; ".join([*reasons, *no_copy]) or "; ".join(silent))
 
 
 def _verify_jurisdiction_set(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
@@ -7178,6 +7334,50 @@ def _source_kind(regions: Regions, source_id: str) -> tuple[bool, str | None]:
     return True, method(source_id)
 
 
+def _publisher(regions: Regions, source_id: str) -> str | None:
+    """The source's recorded ``publisher``; ``None`` when unknown or untracked."""
+    method = getattr(regions, "source_publisher", None)
+    return method(source_id) if callable(method) else None
+
+
+def _provider_of_lab(provider_id: str, lab: str) -> bool:
+    try:
+        return default_registry().provider(provider_id).lab == lab
+    except KeyError:
+        return False
+
+
+def _kind_admitted(claim: Claim, facet, kind: str | None, publisher: str | None) -> bool:
+    """Whether a source of ``kind`` and ``publisher`` may back ``claim`` (MODEL-530).
+
+    Every place that checks a source kind against a facet calls this. A kind the facet
+    admits passes. Otherwise a lab's own page passes either way: (a) a facet that admits
+    ``lab_documentation`` takes a ``provider_documentation`` source whose publisher is
+    the model's lab; (b) a facet that admits ``provider_documentation`` takes a
+    ``lab_documentation`` source whose publisher is the offering's provider, when that
+    provider is the own API of the same lab. A reseller, an unknown publisher, or an
+    unknown kind never passes by this route.
+    """
+    permitted = facet.permitted_source_kinds
+    if kind in permitted:
+        return True
+    if kind is None or not publisher:
+        return False
+    parts = claim.subject.split("/")
+    if getattr(facet, "subject", None) == "offering" and len(parts) >= 4:
+        provider, lab = parts[0], parts[1]
+    elif getattr(facet, "subject", None) == "model" and len(parts) == 2:
+        provider, lab = None, parts[0]
+    else:
+        return False
+    if kind == "provider_documentation" and "lab_documentation" in permitted:
+        return publisher == lab
+    if kind == "lab_documentation" and "provider_documentation" in permitted:
+        return provider is not None and publisher == provider \
+            and _provider_of_lab(provider, lab)
+    return False
+
+
 def _facet_or_none(field: str):
     try:
         return default_registry().facet(field)
@@ -7185,7 +7385,8 @@ def _facet_or_none(field: str):
         return None
 
 
-def _binding_page(claim: Claim, regions: Regions, kind: str | None) -> bool:
+def _binding_page(claim: Claim, regions: Regions, kind: str | None,
+                  source_id: str) -> bool:
     """A licence region whose kind the facet does not permit, beside a permitted one.
 
     The region can name the licence. It is not a reading, and it gives no
@@ -7197,14 +7398,13 @@ def _binding_page(claim: Claim, regions: Regions, kind: str | None) -> bool:
     facet = _facet_or_none(claim.field)
     if facet is None:
         return False
-    permitted = set(facet.permitted_source_kinds)
-    if kind in permitted:
+    if _kind_admitted(claim, facet, kind, _publisher(regions, source_id)):
         return False
     for source in claim.sources:
         if not source.cited_regions:
             continue
         _, cited = _source_kind(regions, source.source_id)
-        if cited in permitted:
+        if _kind_admitted(claim, facet, cited, _publisher(regions, source.source_id)):
             return True
     return False
 
@@ -7224,7 +7424,7 @@ def _absence_block(claim: Claim, regions: Regions, source_id: str) -> list[Diff]
         return None
     permitted = list(facet.permitted_source_kinds)
     tracked, kind = _source_kind(regions, source_id)
-    if kind in permitted:
+    if _kind_admitted(claim, facet, kind, _publisher(regions, source_id)):
         return None
     if not claim.field.startswith("licence.") and (not tracked or kind is None):
         return None
@@ -7249,8 +7449,7 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
         return []  # Dated claims use StoredRegions.dated_prices exclusively.
     if claim.field.startswith("licence."):
         facet = _facet_or_none(claim.field)
-        permitted = set(facet.permitted_source_kinds) if facet is not None else set()
-        if kind not in permitted:
+        if facet is None or not _kind_admitted(claim, facet, kind, None):
             return []
         if kind == "licence_text":
             canonical = [
@@ -7337,10 +7536,12 @@ def _verify_architecture_fact(
         return Result(claim.target, "skipped", reason="no_independent_extractor")
     url_of = getattr(regions, "source_url", None)
     pages = []
-    permitted = set(default_registry().facet(claim.field).permitted_source_kinds)
+    facet = default_registry().facet(claim.field)
+    permitted = set(facet.permitted_source_kinds)
     for source in claim.sources:
         _, kind = _source_kind(regions, source.source_id)
-        if kind is not None and kind not in permitted:
+        if kind is not None and not _kind_admitted(
+                claim, facet, kind, _publisher(regions, source.source_id)):
             diffs = [Diff("source_kind", sorted(permitted), kind)]
             return Result(
                 claim.target,
@@ -7659,7 +7860,7 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
             accepting = _readers_for(ordered, read_claim, text, kind, source_url=source_url)
             independent = [e for e in accepting if _independent(claim, e.actor, today)]
             if not independent:
-                if _binding_page(claim, regions, kind):
+                if _binding_page(claim, regions, kind, source.source_id):
                     continue
                 if claim.value is None and claim.field.startswith("licence."):
                     blocked = _absence_block(claim, regions, source.source_id)

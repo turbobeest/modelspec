@@ -172,7 +172,8 @@ def test_fetch_sources_continues_after_malformed_redirect(tmp_path, hash_only):
         def fetch(self, url, **kwargs):
             self.calls.append(url)
             return FetchResult(
-                "ok", 200, body=b"<p>sample</p>",
+                "ok", 200, body=b"<p>sample page with enough prose to be a real page %s</p>"
+                % url.encode(),
                 resolved_urls=(REV3_BAD,) if url.endswith("bad") else (),
                 snapshot_ref="sha256:" + "5" * 64 if hash_only and url.endswith("bad") else None,
             )
@@ -261,7 +262,7 @@ def test_recheck_refuses_malformed_prior_record_origins(tmp_path, field):
 
     class Fresh:
         def fetch(self, url, **kwargs):
-            return FetchResult("ok", 200, body=b"<p>sample</p>")
+            return FetchResult("ok", 200, body=b"<p>sample page with enough prose to be a real page</p>")
 
     initial = recheck([source], {}, [], fetcher=Fresh(), store=store, now=now)
     snapshot = initial.states[source.id].snapshot
@@ -303,7 +304,7 @@ def test_one_bad_fetch_redirect_does_not_abort_recheck(tmp_path):
 
         def fetch(self, url, **kwargs):
             self.calls.append(url)
-            return FetchResult("ok", body=b"<p>sample</p>",
+            return FetchResult("ok", body=b"<p>sample page with enough prose to be a real page</p>",
                                resolved_urls=("https://example.org:bad/",)
                                if len(self.calls) == 1 else ())
 
@@ -581,7 +582,7 @@ def test_admission_fallback_withholds_bytes_for_a_malformed_origin(redirect):
 
     result = _without_restricted_bytes(
         "https://docs.example.com/models",
-        FetchResult("ok", 200, body=b"page bytes", resolved_urls=(redirect,)))
+        FetchResult("ok", 200, body=b"page bytes with enough prose to be a real page", resolved_urls=(redirect,)))
     assert result.body == b"" and result.snapshot_ref is not None
 
 
@@ -606,14 +607,14 @@ def test_existing_current_citation_is_validated_before_fetch_grant(tmp_path, fie
     from decision.sources import fingerprint_bytes
     from scripts import price_reread
 
-    body = b"<p>current page</p>"
+    body = b"<p>current page with enough prose to be a real page</p>"
     ref = fingerprint_bytes(body)
     store = CopyStore(tmp_path / "cache")
     path, record = _current_record(store, ref, "https://example.org/bad", field)
 
     class Fake:
         def fetch(self, url, **kwargs):
-            return FetchResult("ok", 200, body=body if url.endswith("/bad") else b"healthy")
+            return FetchResult("ok", 200, body=body if url.endswith("/bad") else b"healthy page with enough prose to be a real page")
 
     sources = {sid: Source(id=sid, url="https://example.org/" + sid) for sid in ["bad", "good"]}
     result = price_reread.fetch_sources(sources, sources, Fake(), store)
@@ -647,7 +648,7 @@ def test_valid_existing_citation_record_still_gives_cited(tmp_path):
     from decision.sources import fingerprint_bytes
     from scripts import price_reread
 
-    body = b"<p>current page</p>"
+    body = b"<p>current page with enough prose to be a real page</p>"
     ref = fingerprint_bytes(body)
     store = CopyStore(tmp_path / "cache")
     store.record_citation(ref, source_url="https://example.org/s", resolved_urls=[CITE_URL])

@@ -591,8 +591,8 @@ def test_a_script_shell_is_fetched_again_before_it_alerts(estate) -> None:
     assert fetcher.fetched.count(PLANS_URL) == 2
 
     report, _ = reread(estate, [page("plans-shell.html")])
-    assert {f.status for f in report.alerts} == {Status.UNREADABLE}
-    assert "characters of text" in report.alerts[0].reason
+    assert {f.status for f in report.alerts} == {Status.SHELL_PAGE}
+    assert report.alerts[0].reason.startswith("shell_page:")
 
 
 def test_an_unreachable_page_alerts_after_one_more_try(estate) -> None:

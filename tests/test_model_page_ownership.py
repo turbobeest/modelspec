@@ -240,3 +240,114 @@ def test_a_sibling_named_declaration_closes_the_previous_feature_list():
             "Fixture Model Ultra offers the following capabilities:\n"
             "- Reasoning effort is configurable per request.\n")
     assert read(text, "feature.effort_controls", True).outcome != "verified"
+
+
+_NOT_OFFERED = ["Unsupported", "Not supported", "No", "✗", "-", "—", "N/A", "n/a"]
+
+
+@pytest.mark.parametrize("cell", _NOT_OFFERED)
+def test_a_table_cell_saying_not_offered_reads_as_not_supported(cell):
+    text = ("# Fixture Model\n| Feature | Status |\n| --- | --- |\n"
+            f"| Batch Inference | {cell} |\n| Streaming | Supported |\nModel details.\n")
+    assert read(text, "feature.batch", True).outcome != "verified"
+    assert read(text, "feature.batch", False).outcome == "verified"
+    assert read(text, "feature.streaming", True).outcome == "verified"
+
+
+@pytest.mark.parametrize("cell", ["Supported", "Yes", "✓", "Available"])
+def test_a_table_cell_saying_supported_still_reads_as_supported(cell):
+    text = f"# Fixture Model\n| Feature | Status |\n| --- | --- |\n| Batch Inference | {cell} |\nModel details.\n"
+    assert read(text, "feature.batch", True).outcome == "verified"
+    assert read(text, "feature.batch", False).outcome != "verified"
+
+
+@pytest.mark.parametrize("cell", ["Partial", "Limited", "Partially supported"])
+def test_a_partial_cell_reads_as_neither(cell):
+    text = f"# Fixture Model\n| Feature | Status |\n| --- | --- |\n| Batch Inference | {cell} |\nModel details.\n"
+    assert read(text, "feature.batch", True).outcome != "verified"
+    assert read(text, "feature.batch", False).outcome != "verified"
+
+
+@pytest.mark.parametrize("sentence", [
+    "Batch inference is unsupported.",
+    "Batch inference is not supported.",
+    "This model does not support batch inference.",
+    "Batch inference: Unsupported",
+    "- Batch inference: N/A",
+])
+def test_a_sentence_saying_not_offered_reads_as_not_supported(sentence):
+    text = f"# Fixture Model\n{sentence}\nModel details.\nText generation.\n"
+    assert read(text, "feature.batch", True).outcome != "verified"
+    assert read(text, "feature.batch", False).outcome == "verified"
+
+
+def test_a_sentence_saying_partial_reads_as_neither():
+    text = "# Fixture Model\nBatch inference has limited support.\nModel details.\nText.\n"
+    assert read(text, "feature.batch", True).outcome != "verified"
+    assert read(text, "feature.batch", False).outcome != "verified"
+
+
+def test_a_bare_label_followed_by_unsupported_reads_as_not_supported():
+    text = ("<!doctype html><html><body><main><h1>Fixture Model</h1><h2>Capabilities</h2>"
+            "<p>Batch API</p><p>Unsupported</p></main></body></html>")
+    assert read(text, "feature.batch", True).outcome != "verified"
+    assert read(text, "feature.batch", False).outcome == "verified"
+
+
+@pytest.mark.parametrize("text,field,stated", [
+    ("The model supports streaming, but JSON mode is not supported.", "feature.streaming", True),
+    ("The model supports streaming, but JSON mode is not supported.", "feature.structured_output", False),
+    ("Supports streaming; batch inference unavailable.", "feature.streaming", True),
+    ("Supports streaming; batch inference unavailable.", "feature.batch", False),
+    ("Fixture Model supports streaming; fine-tuning is not supported.", "feature.streaming", True),
+    ("Streaming does not support stop sequences.", "feature.streaming", True),
+    ("Tool calling is not supported in streaming mode.", "feature.tool_calling", False),
+    ("| Tool calling | — | Yes |", "feature.tool_calling", True),
+    ("| Tool calling | - | No |", "feature.tool_calling", False),
+    ("| Tool calling | — |", "feature.tool_calling", False),
+])
+def test_negation_binds_to_the_feature_in_its_own_clause(text, field, stated):
+    page = f"# Fixture Model\n{text}\nModel details.\nText generation.\n"
+    assert read(page, field, stated).outcome == "verified"
+    assert read(page, field, not stated).outcome != "verified"
+
+
+@pytest.mark.parametrize("field,yes,no", [
+    ("feature.batch", "Batch inference is supported.", "Batch inference is not supported."),
+    ("feature.batch", "| Batch Inference | Yes |", "| Batch Inference | Unsupported |"),
+])
+def test_a_supported_line_and_a_not_supported_line_conflict(field, yes, no):
+    page = f"# Fixture Model\n{yes}\n{no}\nModel details.\n"
+    assert read(page, field, True).outcome != "verified"
+    assert read(page, field, False).outcome != "verified"
+
+
+def test_a_negation_about_another_feature_does_not_deny_streaming():
+    page = "# Fixture Model\nTool calling is not supported in streaming mode.\nModel details.\nText.\n"
+    assert read(page, "feature.streaming", False).outcome != "verified"
+
+
+@pytest.mark.parametrize("text,field,stated", [
+    ("Supports streaming and tool calling, but not batch inference.", "feature.batch", False),
+    ("Supports streaming and tool calling, but not batch inference.", "feature.streaming", True),
+    ("Fixture Model supports tool calling but not streaming.", "feature.streaming", False),
+    ("Supports tool calling except batch inference.", "feature.batch", False),
+    ("Supports tool calling without streaming.", "feature.streaming", False),
+    ("Streaming: No (coming soon)", "feature.streaming", False),
+    ("| Streaming | No (coming soon) |", "feature.streaming", False),
+    ("| Streaming | Yes (beta) |", "feature.streaming", True),
+])
+def test_excluded_features_and_noted_values_read_correctly(text, field, stated):
+    page = f"# Fixture Model\n{text}\nModel details.\nText generation.\n"
+    assert read(page, field, stated).outcome == "verified"
+    assert read(page, field, not stated).outcome != "verified"
+
+
+@pytest.mark.parametrize("text", [
+    "Streaming is not unsupported.", "Streaming is not unavailable.",
+    "Streaming isn't unsupported.",
+])
+def test_a_double_negative_is_unreadable(text):
+    page = f"# Fixture Model\n{text}\nModel details.\nText generation.\n"
+    assert read(page, "feature.streaming", True).outcome != "verified"
+    assert read(page, "feature.streaming", False).outcome != "verified"

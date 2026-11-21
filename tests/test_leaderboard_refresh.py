@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from decision import verify
 from decision.excluded import REMOVED_HOSTS
 from scripts import accuracy
 from scripts import refresh_leaderboards as refresh
@@ -3427,6 +3428,13 @@ def test_a_match_the_verifier_does_not_own_is_not_written(
     assert report.quarantined == []
     assert any("verifier" in row.reason for row in report.failures)
     assert _arena_skip_classes(report) == {"not-owned": 1}
+    # MODEL-486: the refusal says why the verifier skipped, not just "skipped".
+    reasons = [row.reason for row in report.failures if row.reason.startswith("verifier")]
+    assert reasons and all(
+        reason != "verifier: skipped" and reason[len("verifier: "):].startswith(
+            verify.UNOWNED_REASONS)
+        for reason in reasons
+    ), reasons
     assert _evidence_row(card)["score"] == 1100.0
 
 

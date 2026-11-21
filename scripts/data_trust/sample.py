@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import math
+import re
 import random
 import tempfile
 from collections import Counter, defaultdict
 from dataclasses import replace
-from datetime import date
+from datetime import date, timedelta
 from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -143,10 +144,11 @@ def read_detail(result, fetched_bytes: dict[str, bytes]) -> dict:
     }
 
 
-def reread(
-    f: dict, c: Catalogue, registry, fetcher, store: CopyStore, fetched: dict, today: date
+def _read(
+    f: dict, c: Catalogue, registry, fetcher, store: CopyStore, fetched: dict, today: date,
+    pin: str | None = None,
 ) -> tuple[str, str] | tuple[str, str, dict]:
-    """The outcome and reason; a mismatch adds a third item, the ``read_detail``."""
+    """One read of the row's sources. ``pin`` reads each Arena parquet at that revision."""
     if (skip := unauditable(f)) is not None:
         return "skipped", skip
     urls = source_urls(f, c)
@@ -155,7 +157,9 @@ def reread(
     try:
         claim = claim_for(f, c, registry)
         sources, fresh_refs, raw_bytes = {}, [], {}
-        for index, url in enumerate(dict.fromkeys(urls)):
+        shell_reason = None
+        for index, listed in enumerate(dict.fromkeys(urls)):
+            url = at_revision(listed, pin) if pin else listed
             if not safe_url(url) or excluded_sources().url(url):
                 continue
             raw_ref = next(
@@ -163,7 +167,7 @@ def reread(
                     r
                     for r in f.get("sources") or []
                     if isinstance(r, dict)
-                    and c.sources.get(r.get("source_id"), {}).get("url") == url
+                    and c.sources.get(r.get("source_id"), {}).get("url") == listed
                 ),
                 None,
             )
@@ -175,7 +179,22 @@ def reread(
                 if (refused := refusal_reason(response)) is not None:
                     return "redirect_unclassified", named_refusal(refused, sid)
                 from decision.retention import cite_only_origin_restrictive
+                from decision.sources import (
+                    ShellCheck, ShellPageError, fingerprint_bytes, shell_refusal,
+                )
 
+                if response.outcome == "ok":
+                    try:
+                        store.check_shell(
+                            response.body, fingerprint_bytes(response.body), url,
+                            response.resolved_urls,
+                            ShellCheck(_shell_normaliser(response.content_type)))
+                    except ShellPageError as stop:
+                        # Bytes that are a shell cite nothing (MODEL-519); a fallback
+                        # source may still read.
+                        shell_reason = shell_refusal(stop.reason, sid)
+                        fetched[url] = (None, "")
+                        continue
                 if cite_only_origin_restrictive(url, response.resolved_urls):
                     store.put(response.body, source_url=url,
                               retrieved_at=response.retrieved_at,
@@ -216,6 +235,8 @@ def reread(
                     or [r.id for r in source.cited_regions],
                 )
             )
+        if not fresh_refs and shell_reason is not None:
+            return "shell_page", shell_reason
         if not fresh_refs:
             refused = all(not safe_url(u) or excluded_sources().url(u) for u in urls)
             return "unreadable", "source_refused" if refused else "http_unavailable"
@@ -258,6 +279,107 @@ def reread(
         return "unreadable", "unsupported_source_or_claim"
 
 
+#: The Arena dataset, whose boards are read at a revision (MODEL-516).
+ARENA_DATASET = "lmarena-ai/leaderboard-dataset"
+ARENA_COMMITS = f"https://huggingface.co/api/datasets/{ARENA_DATASET}/commits/main"
+#: Commit pages searched for the revision a row was read at; 50 commits a page.
+ARENA_COMMIT_PAGES = 8
+_REVISION_TEXT = re.compile(r"(?i)\brevision\s+([0-9a-f]{7,40})\b")
+_RESOLVE_REVISION = re.compile(r"/resolve/([0-9a-f]{40})/")
+_RESOLVE_SEGMENT = re.compile(r"(/resolve/)[^/]+(/)")
+
+
+def is_arena(url: str) -> bool:
+    return f"{ARENA_DATASET}/resolve/" in url and url.endswith(".parquet")
+
+
+def at_revision(url: str, sha: str) -> str:
+    """An Arena parquet URL read at ``sha``; any other URL is unchanged."""
+    return _RESOLVE_SEGMENT.sub(rf"\g<1>{sha}\g<2>", url, count=1) if is_arena(url) else url
+
+
+def stored_revision(f: dict, urls: list[str]) -> str | None:
+    """The dataset revision a row records: a pinned source URL, else ``revision <hex>``
+    in its benchmark version or configuration. 7 to 40 hex characters."""
+    for url in urls:
+        if is_arena(url) and (m := _RESOLVE_REVISION.search(url)):
+            return m.group(1)
+    for key in ("benchmark_version", "configuration"):
+        if m := _REVISION_TEXT.search(str(f.get(key) or "")):
+            return m.group(1).lower()
+    return None
+
+
+def arena_commits(fetcher, fetched: dict) -> list[tuple[str, str]]:
+    """(sha, UTC time) of the dataset's recent commits, newest first. Empty when unreadable."""
+    import json
+
+    commits: list[tuple[str, str]] = []
+    for page in range(ARENA_COMMIT_PAGES):
+        url = ARENA_COMMITS + (f"?p={page}" if page else "")
+        if url not in fetched:
+            response = fetcher.fetch(url)
+            fetched[url] = (response.body if response.outcome == "ok" else None, "")
+        body = fetched[url][0]
+        try:
+            rows = json.loads(body) if body else []
+            commits += [(r["id"], r["date"]) for r in rows]
+        except (ValueError, KeyError, TypeError):
+            break
+        if not rows:
+            break
+    return commits
+
+
+def revisions_by(f: dict, commits: list[tuple[str, str]]) -> list[str]:
+    """The newest commit made on or before the end of the row's ``observed_at`` day."""
+    seen = day(f.get("observed_at"))
+    if seen is None:
+        return []
+    cutoff = (seen + timedelta(days=1)).isoformat()
+    return [sha for sha, when in commits if when < cutoff][:1]
+
+
+def reread(
+    f: dict, c: Catalogue, registry, fetcher, store: CopyStore, fetched: dict, today: date
+) -> tuple[str, str] | tuple[str, str, dict]:
+    """The outcome and reason; a mismatch adds a third item, the ``read_detail``.
+
+    An Arena board changes after a row is read. A row that records its dataset revision is
+    compared at it. Otherwise a value that differs from the latest board, yet equals the board
+    at the revision of its ``observed_at`` day, is ``source_moved``: the source changed, the
+    row was right when read. Only a value that fits neither is a mismatch.
+    """
+    urls = source_urls(f, c)
+    if not any(is_arena(u) for u in urls) or unauditable(f) is not None:
+        return _read(f, c, registry, fetcher, store, fetched, today)
+    recorded = stored_revision(f, urls)
+    if recorded is not None:
+        full = recorded if len(recorded) == 40 else next(
+            (s for s, _ in arena_commits(fetcher, fetched) if s.startswith(recorded)), None
+        )
+        if full is not None:
+            return _read(f, c, registry, fetcher, store, fetched, today, pin=full)
+    out = _read(f, c, registry, fetcher, store, fetched, today)
+    if out[0] != "mismatched":
+        return out
+    for sha in revisions_by(f, arena_commits(fetcher, fetched)):
+        again = _read(f, c, registry, fetcher, store, fetched, today, pin=sha)
+        if again[0] == "matched":
+            return "source_moved", "board_changed_after_read", out[2]
+    return out
+
+
+def _shell_normaliser(content_type: str) -> str:
+    """The recipe the shell check reads a reply with: only HTML is held to the text rule."""
+    kind = (content_type or "").split(";")[0].strip().lower()
+    if kind == "application/json" or kind.endswith("+json"):
+        return "json-default"
+    if kind in {"text/html", "application/xhtml+xml", ""}:
+        return "html-default"
+    return "text-default"
+
+
 def run(
     c: Catalogue, registry, *, n: int, seed: str, as_of: date, fetcher=None, reader=reread
 ) -> dict:
@@ -271,6 +393,8 @@ def run(
     strata = defaultdict(Counter)
     skipped = Counter()
     refused = 0
+    shell_pages = 0
+    moved = 0
     results = []
     fetched = {}
     client = None
@@ -284,8 +408,12 @@ def run(
             outcome, reason, *rest = reader(f, c, registry, fetcher, store, fetched, as_of)
             if outcome == "skipped":
                 skipped[reason] += 1
+            elif outcome == "source_moved":
+                moved += 1
             elif outcome == "redirect_unclassified":
                 refused += 1
+            elif outcome == "shell_page":
+                shell_pages += 1
             else:
                 strata[key][outcome] += 1
             results.append(
@@ -295,7 +423,7 @@ def run(
                     "stratum": list(key),
                     "outcome": outcome,
                     "reason": reason,
-                    **(rest[0] if rest and outcome == "mismatched" else {}),
+                    **(rest[0] if rest and outcome in ("mismatched", "source_moved") else {}),
                 }
             )
     if client is not None:
@@ -315,6 +443,10 @@ def run(
         "skipped": dict(sorted(skipped.items())),
         # Fetches refused at the terms register (MODEL-509), reported apart from unreadable.
         "redirect_unclassified": refused,
+        "shell_page": shell_pages,
+        # A value that differs now but matched the board when read (MODEL-516): reported,
+        # and not part of the error rate.
+        "source_moved": moved,
         "error_rate": wilson(counts["mismatched"], counts["matched"] + counts["mismatched"]),
         "strata": [
             {

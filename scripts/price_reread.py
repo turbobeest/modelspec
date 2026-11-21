@@ -80,6 +80,7 @@ from decision.normalise import (
 )
 from decision.sources import (
     named_refusal,
+    ShellCheck, ShellPageError, shell_alias_urls, shell_page_reason, shell_refusal,
     refusal_reason,
     RENDERED_PREPARATIONS,
     CopyStore,
@@ -145,12 +146,14 @@ class Status(StrEnum):
     NOT_REREAD = "not_reread"
     #: A fetch refused at the terms register (MODEL-509): its own alert, never ``unreachable``.
     REDIRECT_UNCLASSIFIED = "redirect_unclassified"
+    #: Bytes that are a shell, not the page (MODEL-519): its own alert, never ``unreadable``.
+    SHELL_PAGE = "shell_page"
     #: A ``not_disclosed`` price whose page read and has no value for it: claims nothing.
     NOT_DISCLOSED_NO_VALUE = "not_disclosed_no_value"
 
 
 ALERTS = frozenset({Status.NEEDS_REVIEW, Status.UNREADABLE, Status.UNREACHABLE,
-                    Status.REDIRECT_UNCLASSIFIED})
+                    Status.REDIRECT_UNCLASSIFIED, Status.SHELL_PAGE})
 
 
 @dataclass(frozen=True)
@@ -238,7 +241,7 @@ class Report:
         counts = Counter(f.status.value for f in self.facts)
         return {s.value: counts.get(s.value, 0) for s in Status
                 if s not in (Status.CITED, Status.NOT_DISCLOSED_NO_VALUE,
-                             Status.REDIRECT_UNCLASSIFIED)
+                             Status.REDIRECT_UNCLASSIFIED, Status.SHELL_PAGE)
                 or counts.get(s.value, 0)}
 
     def to_dict(self) -> dict[str, Any]:
@@ -505,6 +508,7 @@ def fetch_sources(source_ids: Iterable[str], sources: Mapping[str, Any], fetcher
             result = fetcher.fetch(url)
         if result.outcome == "ok":
             retrieved_at = result.retrieved_at or datetime.now(UTC)
+            shell = ShellCheck(source.normaliser, shell_alias_urls(source, sources.values()))
             try:
                 if result.snapshot_ref is not None:
                     if cite_only_origin_status(url, result.resolved_urls) is not True:
@@ -512,13 +516,17 @@ def fetch_sources(source_ids: Iterable[str], sources: Mapping[str, Any], fetcher
                     ref = result.snapshot_ref
                     _valid_citation_record(store, ref)  # never overwrite a damaged one
                     store.record_citation(ref, source_url=url, retrieved_at=retrieved_at,
-                                          resolved_urls=result.resolved_urls)
+                                          resolved_urls=result.resolved_urls, shell_check=shell)
                 else:
                     ref = store.put(result.body, source_url=url, retrieved_at=retrieved_at,
-                                    resolved_urls=result.resolved_urls)
+                                    resolved_urls=result.resolved_urls, shell_check=shell)
                 # Granting: "cited" skips verification, so an existing record for
                 # this hash counts only once every origin it carries is valid.
                 outcome = "cited" if _valid_citation_record(store, ref) else "ok"
+            except ShellPageError as stop:
+                # A shell binds nothing (MODEL-519): no citation, its own alert.
+                fetched[sid] = SourceFetch(sid, url, shell_refusal(stop.reason, sid))
+                continue
             except ValueError:
                 # Fail closed for this source only (MODEL-420): no bytes, no
                 # citation, and the other sources still run.
@@ -679,6 +687,10 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
                                "re-register the source to re-read it rendered")
             return replace(base, reason="the page needs a rendered fetch"
                            if "rendered" in outcomes else "excluded source")
+        shelled = [fetched[s.source_id].outcome for s in old_sources
+                   if shell_page_reason(fetched[s.source_id].outcome)]
+        if shelled:
+            return replace(base, status=Status.SHELL_PAGE, reason="; ".join(shelled))
         refused = [named_refusal(why, s.source_id) for s in old_sources
                    if (why := refusal_reason(fetched[s.source_id].outcome))]
         if refused:
@@ -864,7 +876,7 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
 
     # Some servers answer a fetch now and then with a script shell, a bot wall
     # or a 403. A page whose facts would alert is fetched once more first.
-    retryable = {Status.UNREADABLE, Status.UNREACHABLE}
+    retryable = {Status.UNREADABLE, Status.UNREACHABLE, Status.SHELL_PAGE}
     retry = sorted({sid for r in results if r.status in retryable for sid in r.source_ids})
     if retry:
         again = fetch_sources(retry, sources, fetcher, store, rendered=rendered)
@@ -1109,7 +1121,11 @@ def retain_only(store: CopyStore, root: Path, report: Report) -> int:
     keep |= {s.copy_ref for s in report.sources.values() if s.copy_ref}
     removed = 0
     for path in store.root.glob("??/*"):
-        if path.is_file() and f"sha256:{path.name}" not in keep:
+        if path.is_file() and path.name.endswith((".urls.json", ".shell.json")):
+            # The URLs a copy was recorded for (MODEL-519) go with the copy.
+            if f"sha256:{path.name.partition('.')[0]}" not in keep:
+                path.unlink()
+        elif path.is_file() and f"sha256:{path.name}" not in keep:
             path.unlink()
             removed += 1
     return removed

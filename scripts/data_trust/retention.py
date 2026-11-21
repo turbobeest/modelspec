@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -21,6 +22,26 @@ EXTRACT_FIELDS = ("visible_copy", "visible_path", "text_copy", "text_path",
                   "extract", "extract_path", "normalized_path")
 ORIGIN_FIELDS = ("url", "requested_url", "source_url", "sourceURL", "final_url")
 BODY_SUFFIXES = {".gz", ".html", ".htm", ".pdf"}
+# MODEL-517: a manifest record can name its page (`name`, `page_id`, `page`) instead of
+# giving a path, and the page's files sit beside the manifest as `<name>.*` or
+# `<name>-*`. These suffixes are the page-derived files such a link can reach.
+NAME_FIELDS = ("name", "page_id", "page")
+LINKED_SUFFIXES = BODY_SUFFIXES | {".txt", ".png", ".json"}
+DERIVATIVE_TAGS = {"regions", "text", "visible", "extract", "raw", "screenshot", "preview",
+                   "normalized", "body", "copy", "html"}
+# A non-2xx response is a block or error page, with nothing to retain, when it is small
+# (block pages run about 5 KB; 8 KiB leaves headroom) or its title is a known block marker.
+# A larger error response may be a paywall teaser holding page text, so it is judged.
+BLOCK_PAGE_BYTES = 8192
+BLOCK_MARKERS = re.compile(r"attention required|cloudflare|access denied|just a moment|captcha",
+                           re.IGNORECASE)
+# Record fields that carry page text; other long strings (errors, URL lists) are not text.
+TEXT_KEYS = ("preview", "excerpt", "text", "content", "body", "snippet", "quote", "extract",
+             "visible")
+SHA_IN_NAME = re.compile(r"(?<![0-9a-f])[0-9a-f]{64}(?![0-9a-f])")
+# Page text kept inline in a record. A short quote is a sentence or two; 280 characters
+# (the length of one post) is the longest string still read as a quote, not a page body.
+MAX_INLINE_TEXT = 280
 
 
 def _files(root: Path) -> set[Path]:
@@ -53,7 +74,7 @@ def _records(document):
         if visited > MAX_MANIFEST_NODES or depth > MAX_MANIFEST_DEPTH:
             raise ValueError("manifest structure limit")
         if isinstance(value, dict):
-            if (any(key in value for key in (*PATH_FIELDS, *EXTRACT_FIELDS))
+            if (any(key in value for key in (*PATH_FIELDS, *EXTRACT_FIELDS, *NAME_FIELDS))
                     and any(key in value for key in (*ORIGIN_FIELDS, "resolved_urls",
                                                      "sha256", "bytes", "snapshot_ref"))):
                 yield value
@@ -62,6 +83,62 @@ def _records(document):
         elif isinstance(value, list):
             pending.extend((child, depth + 1) for child in value
                            if isinstance(child, (dict, list)))
+
+
+def _all_records(document):
+    """Every dict that carries its own origin, bounded like `_records`."""
+    pending = [(document, 0)]
+    visited = 0
+    while pending:
+        value, depth = pending.pop()
+        visited += 1
+        if visited > MAX_MANIFEST_NODES or depth > MAX_MANIFEST_DEPTH:
+            raise ValueError("manifest structure limit")
+        if isinstance(value, dict):
+            if any(key in value for key in (*ORIGIN_FIELDS, "resolved_urls")):
+                yield value
+            pending.extend((child, depth + 1) for child in value.values()
+                           if isinstance(child, (dict, list)))
+        elif isinstance(value, list):
+            pending.extend((child, depth + 1) for child in value
+                           if isinstance(child, (dict, list)))
+
+
+def _inline_text(record: dict):
+    """Yield long page-text strings inside a record, without entering a child record that
+    has its own origin (that child is judged by its own origin)."""
+    pending = [(value, 0, str(key).lower()) for key, value in record.items()
+               if key not in ORIGIN_FIELDS and key != "resolved_urls"]
+    visited = 0
+    while pending:
+        value, depth, key = pending.pop()
+        visited += 1
+        if visited > MAX_MANIFEST_NODES or depth > MAX_MANIFEST_DEPTH:
+            raise ValueError("manifest structure limit")
+        if isinstance(value, str):
+            if len(value) > MAX_INLINE_TEXT and any(word in key for word in TEXT_KEYS):
+                yield value
+        elif isinstance(value, dict):
+            if not any(k in value for k in (*ORIGIN_FIELDS, "resolved_urls")):
+                pending.extend((child, depth + 1, str(k).lower()) for k, child in value.items())
+        elif isinstance(value, list):
+            pending.extend((child, depth + 1, key) for child in value)
+
+
+def _names(record: dict) -> tuple[str, ...]:
+    return tuple(record[key] for key in NAME_FIELDS
+                 if isinstance(record.get(key), str) and record[key])
+
+
+def _linked(name: str, stem: str) -> bool:
+    """The page's own stem, or the stem plus a derivative tag, a counter or a digest.
+    `pricing-v2` is another page, not `pricing`."""
+    if stem == name:
+        return True
+    if not stem.startswith(name + "-"):
+        return False
+    tail = stem[len(name) + 1:]
+    return tail in DERIVATIVE_TAGS or bool(re.fullmatch(r"\d+|[0-9a-f]{8,64}", tail))
 
 
 def _origins(record: dict) -> tuple[str, ...]:
@@ -96,6 +173,43 @@ def inventory(root: Path) -> list[Finding]:
     except (OSError, ValueError, subprocess.SubprocessError):
         return [Finding("catalogue", "source_copy", "retained_copy_inventory_limit", "warning")]
     referenced, attributed, restricted, restricted_extracts = set(), set(), set(), set()
+    restricted_linked, restricted_inline = set(), set()
+    by_directory = {}
+    for path in files:
+        by_directory.setdefault(path.parent, []).append(path)
+    by_digest = {}
+    for path in files:
+        for digest in SHA_IN_NAME.findall(path.name):
+            by_digest.setdefault(digest, []).append(path)
+
+    def check_cite_only_text(manifest, record):
+        """Page text kept inline, and files linked by page name or digest (MODEL-517)."""
+        try:
+            origins = _origins(record)
+        except ValueError:
+            return
+        if not origins or not cite_only_origin_restrictive(origins[0], origins[1:]):
+            return
+        if any(True for _ in _inline_text(record)):
+            restricted_inline.add(manifest)
+        status = record.get("status")
+        if isinstance(status, int) and not isinstance(status, bool) and not 200 <= status < 300:
+            size, title = record.get("bytes"), record.get("title")
+            small = isinstance(size, int) and not isinstance(size, bool) and size <= BLOCK_PAGE_BYTES
+            if small or (isinstance(title, str) and BLOCK_MARKERS.search(title)):
+                return  # a block or error page carries no page content to retain
+        for name in _names(record):
+            for path in by_directory.get(manifest.parent, ()):
+                if (path != manifest and path.suffix in LINKED_SUFFIXES
+                        and path.is_relative_to(root / "research")
+                        and _linked(name, path.name[:-len(path.suffix)])):
+                    restricted_linked.add(path)
+        digest = record.get("sha256")
+        if isinstance(digest, str):
+            for path in by_digest.get(digest.removeprefix("sha256:").lower(), ()):
+                if path != manifest and path.suffix in LINKED_SUFFIXES:
+                    restricted_linked.add(path)
+
     def check_record(manifest, record, fields, kept):
         values = [record[key] for key in fields if record.get(key) is not None]
         if not values:
@@ -169,10 +283,20 @@ def inventory(root: Path) -> list[Finding]:
         for record in records:
             check_record(manifest, record, PATH_FIELDS, restricted)
             check_record(manifest, record, EXTRACT_FIELDS, restricted_extracts)
+        if manifest.is_relative_to(root / "research"):
+            try:
+                for record in _all_records(document):
+                    check_cite_only_text(manifest, record)
+            except ValueError:
+                add(manifest, "retained_copy_manifest_limit")
     for path in sorted(restricted):
         add(path, "retained_cite_only_copy", "error")
     for path in sorted(restricted_extracts - restricted):
         add(path, "retained_cite_only_extract", "error")
+    for path in sorted(restricted_linked - restricted - restricted_extracts):
+        add(path, "retained_cite_only_linked", "error")
+    for path in sorted(restricted_inline):
+        add(path, "retained_cite_only_inline_text", "error")
     candidates = referenced | {path for path in files
                                if path.is_relative_to(root / "research") and path.suffix in BODY_SUFFIXES}
     for path in sorted(candidates):

@@ -12,7 +12,9 @@ import yaml
 
 from decision.excluded import excluded_sources
 from decision.registry import default as default_registry
-from decision.snapshot import LoadedSnapshot, build_snapshot, collect_repo
+from decision.snapshot import (
+    LoadedSnapshot, SnapshotBuildError, audit_build, build_snapshot, collect_repo,
+)
 from pipeline.data_source import check_private
 
 # The approved lineup counted the lab API as one recorded provider, and a
@@ -83,6 +85,7 @@ def load_inputs(root: Path, as_of: date) -> dict:
     root = check_private(root)
     cards = load_cards(root)
     inputs = collect_repo(root)
+    audit_inputs = inputs  # MODEL-520: the gate audits what production audits
     registry = default_registry()
     identity_values = {
         part: registry.allowed_values(registry.facet(f"offering.{part}"))
@@ -119,7 +122,28 @@ def load_inputs(root: Path, as_of: date) -> dict:
         if facet.subject == "model" and facet.tier == "guaranteed"
         and facet.computed_by is None
     }
+    # MODEL-495: the facets each active card lacks under the premier completeness gate.
+    missing_facets: dict[str, set[str]] = {}
+    audit_args = dict(registry=registry, premier=sorted(active), as_of=as_of,
+                      guard=excluded_sources())
+    completeness_audit = "full"
+    unregistered = [
+        {part: offering[part] for part in ("model", "provider", "region", "tier")}
+        for offering in audit_inputs.offerings if offering not in offerings
+    ]
+    try:
+        gaps = audit_build(audit_inputs, **audit_args).gaps
+    except SnapshotBuildError:
+        # An unregistered offering identity stops the full audit; fall back to
+        # the filtered inputs rather than stop the proposer.
+        logging.getLogger(__name__).warning(
+            "full-input audit failed; the completeness gate uses filtered inputs")
+        completeness_audit = "filtered-fallback"
+        gaps = audit_build(inputs, **audit_args).gaps
+    for gap in gaps:
+        missing_facets.setdefault(gap.model, set()).add(gap.facet)
     for model_id, card in cards.items():
+        card["completeness_gaps"] = sorted(missing_facets.get(model_id, ()))
         if model_id not in active:
             card["status"] = "sunset"
         if not COUNT_LAB_API:
@@ -238,4 +262,6 @@ def load_inputs(root: Path, as_of: date) -> dict:
         "slice2": slice2,
         "reviewer_clauses": reviewer_clauses,
         "aliases": {},
+        "completeness_audit": completeness_audit,
+        "unregistered_offerings": unregistered if completeness_audit != "full" else [],
     }
