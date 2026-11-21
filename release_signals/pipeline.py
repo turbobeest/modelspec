@@ -562,7 +562,7 @@ def hub_scope_for_signal(
     reason = _hub_scope_reason(seen, source)
     if reason:
         return HubScope(reason=reason)
-    return HubScope(hold=hub_hold_reason(pipeline_tag, tags))
+    return HubScope(hold=hub_hold_reason(pipeline_tag, tags, repository))
 
 
 def _accepted_page_kind(url: str, lab_hosts: frozenset[str], hf_orgs: frozenset[str]) -> str:
