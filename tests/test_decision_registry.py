@@ -789,11 +789,18 @@ _NONE = {"trust_centre": "none", "trust_centre_checked": "2026-11-20",
          "trust_centre_searched": ["https://example.com/trust", "https://example.com/security"]}
 
 
+_TRUST_CENTRE_KEYS = ("trust_centre", "trust_centre_checked", "trust_centre_searched")
+
+
 def _provider_with(tmp_path: Path, **over) -> Path:
     root = _copy(tmp_path)
 
     def edit(document):
         entry = next(p for p in document["providers"] if p["id"] == "zai")
+        # A private registry may already carry these on the base entry; each
+        # test sets them in full through `over`.
+        for key in _TRUST_CENTRE_KEYS:
+            entry.pop(key, None)
         entry.update(over)
 
     _edit(root, "providers", edit)
@@ -809,6 +816,26 @@ def test_trust_centre_none_loads_with_its_companions(tmp_path):
 
 def test_a_provider_has_no_trust_centre_claim_by_default(registry):
     assert all(p.trust_centre is None for p in registry.providers() if p.id != "zai")
+
+
+def test_refusals_hold_when_the_base_provider_already_carries_trust_centre_keys(
+    tmp_path, monkeypatch,
+):
+    # A private registry can carry all three keys on the base entry.
+    plain_copy = _copy
+
+    def carrying_copy(path: Path) -> Path:
+        root = plain_copy(path)
+        _edit(root, "providers", lambda d: next(
+            p for p in d["providers"] if p["id"] == "zai").update(_NONE))
+        return root
+
+    monkeypatch.setitem(_provider_with.__globals__, "_copy", carrying_copy)
+    with pytest.raises(RegistryError, match="trust_centre_checked"):
+        _load(_provider_with(
+            tmp_path / "a", **{k: v for k, v in _NONE.items() if k != "trust_centre_checked"}))
+    with pytest.raises(RegistryError, match="need trust_centre: none"):
+        _load(_provider_with(tmp_path / "b", trust_centre_checked="2026-11-20"))
 
 
 @pytest.mark.parametrize("drop", ["trust_centre_checked", "trust_centre_searched"])

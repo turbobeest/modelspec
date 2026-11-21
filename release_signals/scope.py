@@ -364,13 +364,29 @@ def hub_artefact_reason(
     return None
 
 
-def hub_hold_reason(pipeline_tag: str | None, tags: Sequence[str] = ()) -> str | None:
-    """Hold for identity review: the repository states no task.
+# Names of speculative-decoding drafters and distilled research checkpoints:
+# `-spec-<N>b`, `sigma-distill`, `-nfe<N>`. Whole tokens of `_scope_key`, so an
+# unrelated word that contains one (spectrum, specific) does not match.
+_DRAFTER_NAME = re.compile(
+    r"(?<![a-z0-9])(?:spec-\d+(?:-\d+)?b|sigma-distill|nfe\d+)(?![a-z0-9])"
+)
+DRAFTER_HOLD_REASON = "name marks a drafter or distilled research checkpoint"
+
+
+def hub_hold_reason(
+    pipeline_tag: str | None, tags: Sequence[str] = (), repository: str | None = None,
+) -> str | None:
+    """Hold for identity review: the repository states no task, or its name
+    marks a speculative-decoding drafter or distilled research checkpoint.
 
     Not out of scope. No pipeline tag and no task-implying tag, so nothing
     says the repository is a model the catalogue ranks. Call it only after
     the out-of-scope rules found nothing, and only on a readable Hub row.
     """
+    if repository:
+        name = repository.partition("/")[2] or repository
+        if _DRAFTER_NAME.search(_scope_key(name)):
+            return DRAFTER_HOLD_REASON
     if _text(pipeline_tag) is not None:
         return None
     for tag in tags:
