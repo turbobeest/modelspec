@@ -1311,16 +1311,28 @@ class _Compiler:
     # output ------------------------------------------------------------------
 
     def prefer_verified_evidence(self) -> None:
-        """A verified model/benchmark reading supersedes its cited siblings."""
+        """A verified reading supersedes only a cited duplicate of itself.
+
+        The key is (model, benchmark, measured_by). A cited row is dropped only
+        when a verified row for the same model and benchmark from the same
+        measurer exists: a true duplicate. A cited reading from another
+        measurer is an independent reading and stays, labelled with its measurer
+        and its cited status. A missing or empty ``measured_by`` compares as the
+        empty string, so it matches only another empty one; ``add_evidence``
+        already refuses such rows (``unclassified``), so none reaches here.
+        """
+        def key(sid: str, row: list[Any]) -> tuple[str, str, str]:
+            return (self.subjects[sid]["model"], row[0], str(row[5] or ""))
+
         verified = {
-            (self.subjects[sid]["model"], row[0])
+            key(sid, row)
             for sid, rows in self.evidence.items() for row in rows
             if "citation" not in self.records[row[10]]
         }
         self.evidence = {
             sid: [row for row in rows
                   if "citation" not in self.records[row[10]]
-                  or (self.subjects[sid]["model"], row[0]) not in verified]
+                  or key(sid, row) not in verified]
             for sid, rows in self.evidence.items()
         }
 

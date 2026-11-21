@@ -204,6 +204,31 @@ def test_mixed_cited_score_loses_to_verified_sibling(mixed_first):
     assert CITE_ONLY_WARNING not in answer.warnings
 
 
+@pytest.mark.parametrize("verified_first", [False, True])
+def test_cited_third_party_score_survives_beside_verified_self_report(verified_first):
+    """MODEL-531: a verified reading supersedes only a cited reading from the same measurer."""
+    inputs = score_inputs(outcome="verified")
+    inputs.evidence.append(
+        evidence("lab/cited", BENCHMARK, 60, measured_by="provider_self_report"))
+    if verified_first:
+        inputs.evidence.reverse()
+    index = load(inputs)
+    rows = index.evidence("lab/cited", BENCHMARK)
+    assert sorted((row.measured_by, row.value, row.verified) for row in rows) == [
+        ("independent_evaluator", 90, False), ("provider_self_report", 60, True)]
+    cited = next(row for row in rows if not row.verified)
+    assert index.record(cited.record_id)["citation"]["status"] == "cited"
+
+
+def test_cited_score_from_the_same_measurer_as_a_verified_one_is_dropped():
+    inputs = score_inputs(outcome="verified")
+    inputs.evidence.append(evidence("lab/cited", BENCHMARK, 60))
+    inputs.evidence.append(evidence("lab/cited", BENCHMARK, 55, measured_by="provider_self_report"))
+    rows = load(inputs).evidence("lab/cited", BENCHMARK)
+    assert sorted((row.measured_by, row.value, row.verified) for row in rows) == [
+        ("independent_evaluator", 60, True), ("provider_self_report", 55, True)]
+
+
 @pytest.mark.parametrize("damage", [{"snapshot_ref": "invalid"}, {"resolved_urls": None}])
 def test_mixed_score_with_malformed_retained_ref_is_excluded(damage):
     inputs = score_inputs(outcome="verified")
