@@ -206,7 +206,7 @@ def test_a_named_comparison_titles_only_its_epoch_source() -> None:
          "title": f"{EPOCH_CREDIT} Licence: {EPOCH_LICENCE_URL} Source: {EPOCH_SOURCE_URL}"},
         {"id": "other", "url": OTHER_PAGE},
     ]
-    assert contract.MODEL_COMPARISON_VERSION == "1.2"
+    assert contract.MODEL_COMPARISON_VERSION == "1.3"
     parsed = [contract.ComparisonSource.model_validate(s) for s in body["sources"]]
     assert "title" not in parsed[1].model_dump(mode="json")
     assert parsed[0].model_dump(mode="json")["title"].startswith(EPOCH_CREDIT)

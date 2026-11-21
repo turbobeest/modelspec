@@ -18,7 +18,8 @@
           "formula": null,
           "source_ids": [
             "src-lab-docs"
-          ]
+          ],
+          "verified_at": "2026-09-20"
         },
         {
           "facet": "model.weights_openness",
@@ -29,7 +30,8 @@
           "formula": null,
           "source_ids": [
             "src-lab-docs"
-          ]
+          ],
+          "verified_at": "2026-09-20"
         }
       ],
       "contributions": [],
@@ -115,7 +117,7 @@
       "date": "2026-09-20"
     }
   ],
-  "contract_version": "2.20",
+  "contract_version": "2.21",
   "decision_id": "dec_2b71a63d1c224ac839fa6ef8",
   "snapshot": "snap_d8a4553ece23d74f",
   "signature_verified": false,

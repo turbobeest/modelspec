@@ -45,12 +45,13 @@ from pydantic import (
 )
 from pydantic.fields import FieldInfo
 
+# 2.21 and comparison 1.3 add the optional `verified_at` day to a shown fact (MODEL-521).
 # 2.20 lists invalid_request among the published decide HTTP refusal codes.
 # The service already returned it. The decision shape and every declared
 # range are unchanged. Bounded stays at BOUNDED_VERSION. Named comparison
 # stays at MODEL_COMPARISON_VERSION.
-CONTRACT_VERSION = "2.20"
-MODEL_COMPARISON_VERSION = "1.2"
+CONTRACT_VERSION = "2.21"
+MODEL_COMPARISON_VERSION = "1.3"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -1785,6 +1786,9 @@ class ShownFact(_ExcludeIf):
     #: ``Decision.sources``. Added in 1.4.
     source_ids: list[str] = Field(default_factory=list)
     citation: FactCitation | None = Field(default=None, exclude_if=lambda value: value is None)
+    #: The day of the latest verification of ``record_id``; absent for a cited, computed or
+    #: undated fact. Display only. Added in 2.21.
+    verified_at: Day | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class HardwareEstimate(_ExcludeIf):
@@ -2304,6 +2308,7 @@ class ComparisonFact(_ExcludeIf):
     record_id: str | None = None
     source_ids: list[str] = Field(default_factory=list)
     citation: FactCitation | None = Field(default=None, exclude_if=lambda value: value is None)
+    verified_at: Day | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class ComparisonOffering(_Strict):

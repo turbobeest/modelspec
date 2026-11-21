@@ -11,8 +11,15 @@ import {
   status,
   reason,
 } from "../adapter";
+import { priceStaleLabel } from "../adapter/staleness";
 import { useVocab } from "../vocabulary/context";
 import type { AdapterDecision, Evidence, Row, Spec } from "../adapter";
+
+/** The stale label beside a verified price; the day is read at render, never at module load. */
+function priceNote(verifiedAt: string | undefined) {
+  const label = priceStaleLabel(verifiedAt, new Date());
+  return label ? <small className="stale-label"> {label}</small> : null;
+}
 export function Why({
   decision,
   spec,
@@ -502,8 +509,8 @@ export function Why({
                     {off === row.best && <small>· used for ranking</small>}
                   </td>
                   <td>{off.o.regions?.join(", ") || "not stated"}</td>
-                  <td>{per1M(off.o.in)}</td>
-                  <td>{per1M(off.o.out)}</td>
+                  <td>{per1M(off.o.in)}{priceNote(off.o.inVerified)}</td>
+                  <td>{per1M(off.o.out)}{priceNote(off.o.outVerified)}</td>
                   <td>{money(off.cost)}</td>
                   <td>
                     {off.o.ttft === null ? "unknown" : off.o.ttft + " ms"}

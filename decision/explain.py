@@ -864,7 +864,8 @@ def _full(decision, snapshot, ordered, requested, named, *, comparison=False):
                 unit=unit, record_id=fact.record_id,
                 citation=(checked_record(snapshot, fact.record_id).get("citation")
                           if fact.record_id and (comparison or facet in named) else None),
-                source_ids=source_ids(snapshot, [fact.record_id] if fact.record_id else [])))
+                source_ids=source_ids(snapshot, [fact.record_id] if fact.record_id else []),
+                verified_at=verified_at(snapshot, fact.record_id)))
         for facet in COMPUTED_FACETS:
             if facet in HARDWARE_FACETS:
                 continue
@@ -1066,6 +1067,15 @@ def number_origins(decision, snapshot):
         records = sorted(set(records))
         yield NumberOrigin(
             path=path, basis=basis, records=records, source_ids=source_ids(snapshot, records))
+
+
+def verified_at(snapshot, rid):
+    """The day of a record's verification, or None: cited and computed facts carry none."""
+    if not rid:
+        return None
+    record = snapshot.record(rid)
+    day = (record.get("verification") or {}).get("date")
+    return str(day)[:10] if day else None
 
 
 def source_ids(snapshot, records):

@@ -26,7 +26,9 @@ def test_ordinary_comparison_preserves_known_only_provenance(state):
     expected = {"facet": "model.context_window", "state": state,
                 "value": 128000 if state == "known" else None, "unit": "tokens"}
     if state == "known":
-        expected.update(record_id=record["id"], source_ids=["src-lab-docs"])
+        # An ordinary verified fact also carries its verification day (contract 2.21).
+        expected.update(record_id=record["id"], source_ids=["src-lab-docs"],
+                        verified_at="2026-09-20")
     assert shown == expected
 
 
