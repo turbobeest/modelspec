@@ -166,3 +166,12 @@ env PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q 
 - No enable, disable, or dispatch of `accuracy-nightly`. No fetch of `turbobeest/modelspec-data`, and no GitHub API call with `MODELSPEC_DATA_TOKEN`.
 - No edit, comment, or close of issue 1045. No workflow run or log was deleted.
 - No live Actions log was read.
+
+## Round 3: private alert sink (MODEL-483 E)
+
+A red night, and the synthetic-failure dispatch, now send the full detail to one open issue labelled `accuracy-nightly` in the private data repository. The sink step comments on that issue if one is open and creates one if not. A green night closes it. The public `alert` issue is unchanged: counts and field names only, and it links to nothing private.
+
+- Credential: the fine-grained token `ACCURACY_ALERT_TOKEN` (Issues read and write on the private data repository only). It is a step-level `GH_TOKEN` in the sink step and an `ALERT_TOKEN` in a credential check that runs before the first gate. It appears in no other step, job, workflow or file. `tests/test_accuracy_alert.py` pins both places.
+- Detail: `scripts/accuracy_alert.py --detail-output` writes the full `accuracy.md` (cut at 60000 characters, the issue size limit) to the runner temp directory. Nothing prints it. Every `gh` call and the script write to `/dev/null`. The step has no `set -x`, no step summary, no artifact, no output and no `id`.
+- Failure: an empty token, a script error or any API failure fails the step with the one line "private alert sink unavailable". An empty secret fails the credential check before the gates run.
+- Not observed: no dispatch, enable or disable of `accuracy-nightly`, and no call to the private repository with the token. The first run needs a watched dispatch.

@@ -486,6 +486,40 @@ while read -r number; do
 done
 """
 
+_REQUIRE_SINK_RUN = (
+    'test -n "$ALERT_TOKEN" || { echo "private alert sink unavailable"; exit 1; }'
+)
+
+_SINK_RUN = """\
+fail() { echo "private alert sink unavailable"; exit 1; }
+test -n "$GH_TOKEN" || fail
+case "$JOB_STATUS" in
+  failure)
+    python scripts/accuracy_alert.py --report accuracy-report/accuracy.json \\
+      --run-url "$RUN_URL" --detail-output "$RUNNER_TEMP/red-night.md" >/dev/null 2>&1 || fail
+    gh label create accuracy-nightly --color B60205 -R turbobeest/modelspec-data \\
+      --force >/dev/null 2>&1 || fail
+    number=$(gh issue list -R turbobeest/modelspec-data --label accuracy-nightly \\
+      --state open --json number -q '.[0].number // empty' 2>/dev/null) || fail
+    if [ -n "$number" ]; then
+      gh issue comment "$number" -R turbobeest/modelspec-data \\
+        --body-file "$RUNNER_TEMP/red-night.md" >/dev/null 2>&1 || fail
+    else
+      gh issue create -R turbobeest/modelspec-data --title "Accuracy nightly failed" \\
+        --label accuracy-nightly --body-file "$RUNNER_TEMP/red-night.md" >/dev/null 2>&1 || fail
+    fi
+    ;;
+  success)
+    numbers=$(gh issue list -R turbobeest/modelspec-data --label accuracy-nightly \\
+      --state open --json number -q '.[].number' 2>/dev/null) || fail
+    for number in $numbers; do
+      gh issue close "$number" -R turbobeest/modelspec-data \\
+        --comment "Green again: $RUN_URL" >/dev/null 2>&1 || fail
+    done
+    ;;
+esac
+"""
+
 # Every step the nightly job may run, and the exact command text of each run block.
 _NIGHTLY_STEPS = (
     {
@@ -498,10 +532,12 @@ _NIGHTLY_STEPS = (
     },
     {"name": "Install dependencies", "run": "python -m pip install -e '.[dev]'"},
     {"name": "Require the private checkout credential", "run": 'test -n "$DATA_TOKEN"'},
+    {"name": "Require the private alert sink credential", "run": _REQUIRE_SINK_RUN},
     {"name": "Read private verification records", "run": _FETCH_RUN},
     {"name": "Run network accuracy layers", "run": _LAYERS_RUN},
     {"name": "Alert the orchestrator", "run": _ALERT_RUN},
     {"name": "Close the alert after a green night", "run": _CLOSE_RUN},
+    {"name": "Send the detail to the private alert issue", "run": _SINK_RUN},
 )
 
 _UNLISTED_COMMANDS = (
@@ -1241,7 +1277,7 @@ _SURROUNDING_PINS = {
 }
 _STEP_PINS = {
     ("accuracy-nightly.yml", "accuracy"):
-        "8d375eeb7a57b0011c2dd19bf505ea4dcd9b75dc98e2fd63d21aa81ff0bb43e3",
+        "e95b17b940ec629c378e706283ae9a8c7346103a638c2878bb343f86c940c23e",
     ("data-lag.yml", "lag"):
         "4073d896920e594663d02fadb66fe4e029259f3436f32ab9f2d95602e1c9f835",
     ("rank-api.yml", "deploy-staging"):
@@ -1901,3 +1937,132 @@ def test_a_sibling_job_that_only_uploads_an_artifact_stays_free(filename: str, j
                    "with": {"name": "x", "path": "."}}],
     }
     assert context_guard_problems(filename, job, workflow) == []
+
+
+# ---------------------------------------------------------------------------
+# MODEL-483 E: the private alert sink. ACCURACY_ALERT_TOKEN may appear in the
+# credential check and in the sink step of the nightly, and nowhere else.
+# ---------------------------------------------------------------------------
+
+_SINK_NAME = "Send the detail to the private alert issue"
+_REQUIRE_SINK_NAME = "Require the private alert sink credential"
+_TOKEN_NAME = "ACCURACY_ALERT_TOKEN"
+_ALL_WORKFLOWS = sorted(Path(".github/workflows").glob("*.y*ml"))
+
+
+def _sink_step() -> dict:
+    return next(step for step in _nightly_steps() if step.get("name") == _SINK_NAME)
+
+
+def test_the_token_appears_only_in_the_two_nightly_sink_steps() -> None:
+    holders = []
+    for path in _ALL_WORKFLOWS:
+        document = _load_workflow(path.name)
+        for job_name, job in document["jobs"].items():
+            for index, step in enumerate(job.get("steps") or []):
+                if _TOKEN_NAME in repr(step):
+                    holders.append((path.name, job_name, step.get("name")))
+    assert holders == [
+        ("accuracy-nightly.yml", "accuracy", _REQUIRE_SINK_NAME),
+        ("accuracy-nightly.yml", "accuracy", _SINK_NAME),
+    ]
+    for path in _ALL_WORKFLOWS:
+        text = path.read_text()
+        assert text.count(_TOKEN_NAME) == (2 if path.name == "accuracy-nightly.yml" else 0)
+    # Never at workflow level, job level, or in another file (scripts, docs excepted).
+    document = _load_workflow("accuracy-nightly.yml")
+    assert _TOKEN_NAME not in repr({k: v for k, v in document.items() if k != "jobs"})
+    job = {k: v for k, v in document["jobs"]["accuracy"].items() if k != "steps"}
+    assert _TOKEN_NAME not in repr(job)
+
+
+def test_the_token_is_a_step_env_value_and_nothing_else() -> None:
+    step = _sink_step()
+    assert step["env"]["GH_TOKEN"] == "${{ secrets.ACCURACY_ALERT_TOKEN }}"
+    assert _TOKEN_NAME not in step["run"]
+    assert "with" not in step and "uses" not in step
+    other = {k: v for k, v in step["env"].items() if k != "GH_TOKEN"}
+    assert _TOKEN_NAME not in repr(other)
+    check = next(s for s in _nightly_steps() if s.get("name") == _REQUIRE_SINK_NAME)
+    assert check["env"] == {"ALERT_TOKEN": "${{ secrets.ACCURACY_ALERT_TOKEN }}"}
+    # The check runs before the first gate.
+    names = [s.get("name") for s in _nightly_steps()]
+    assert names.index(_REQUIRE_SINK_NAME) < names.index("Run network accuracy layers")
+
+
+def test_the_sink_step_never_prints_or_publishes_the_detail() -> None:
+    step = _sink_step()
+    run = step["run"]
+    detail_lines = [line for line in run.splitlines() if "red-night" in line]
+    assert detail_lines
+    for line in detail_lines:
+        assert not re.search(r"\b(echo|cat|printf|tee|head|tail|less|more|sed|awk|grep)\b", line)
+    # Every gh call and the script discard their output.
+    calls = re.findall(r"^\s*(?:\S+=\$\()?(?:gh|python) .*?(?=\n\s*(?:gh|python|fi|else|done|;;)|\Z)",
+                       run, flags=re.S | re.M)
+    assert calls
+    for call in calls:
+        assert "/dev/null" in call, call
+    assert not re.search(r"\bset\s+-[a-zA-Z]*x|xtrace", run)
+    assert "GITHUB_STEP_SUMMARY" not in run
+    assert "GITHUB_OUTPUT" not in run
+    assert "id" not in step
+    assert "upload-artifact" not in repr(_nightly_steps())
+    assert "outputs" not in _load_workflow("accuracy-nightly.yml")["jobs"]["accuracy"]
+
+
+def test_a_missing_token_or_failed_call_gives_the_generic_message_and_fails() -> None:
+    run = _sink_step()["run"]
+    assert 'fail() { echo "private alert sink unavailable"; exit 1; }' in run
+    assert 'test -n "$GH_TOKEN" || fail' in run
+    # Every gh call and the script are followed by `|| fail`.
+    for line in run.splitlines():
+        if "/dev/null" in line:
+            assert line.rstrip().endswith("|| fail"), line
+    assert "private alert sink unavailable" in _REQUIRE_SINK_RUN
+
+
+def test_the_sink_posts_to_one_labelled_private_issue() -> None:
+    run = _sink_step()["run"]
+    assert "--label accuracy-nightly" in run
+    assert run.count("-R turbobeest/modelspec-data") >= 4
+    assert "gh issue comment" in run and "gh issue create" in run and "gh issue close" in run
+    assert "turbobeest/modelspec-data" not in Path("scripts/accuracy_alert.py").read_text()
+
+
+def test_the_public_alert_step_links_to_nothing_private() -> None:
+    alert = next(s for s in _nightly_steps() if s.get("name") == "Alert the orchestrator")
+    assert "modelspec-data" not in repr(alert) and _TOKEN_NAME not in repr(alert)
+    text = accuracy_alert.body(None, RUN)
+    assert "modelspec-data" not in text and "red-night" not in text
+
+
+def test_the_detail_is_written_to_a_file_and_not_printed(tmp_path: Path, capfd) -> None:
+    (tmp_path / "accuracy.md").write_text("# full\nper-card rows\n")
+    (tmp_path / "accuracy.json").write_text(json.dumps(_report("fail", [])))
+    out = tmp_path / "detail.md"
+
+    status = accuracy_alert.main([
+        "--report", str(tmp_path / "accuracy.json"), "--run-url", RUN,
+        "--detail-output", str(out),
+    ])
+
+    assert status == 0
+    assert capfd.readouterr() == ("", "")
+    assert out.read_text() == f"# full\nper-card rows\n\nRun: {RUN}\n"
+
+
+def test_the_detail_is_cut_to_the_issue_size_limit(tmp_path: Path) -> None:
+    (tmp_path / "accuracy.md").write_text("x" * 70000)
+    text = accuracy_alert.detail(tmp_path / "accuracy.json", RUN)
+    assert len(text) < 65536 and "[truncated]" in text
+
+
+def test_a_missing_report_still_gives_a_detail_file(tmp_path: Path) -> None:
+    text = accuracy_alert.detail(tmp_path / "accuracy.json", RUN)
+    assert "failed before a report was written" in text
+
+
+def test_main_needs_an_output() -> None:
+    with pytest.raises(SystemExit):
+        accuracy_alert.main(["--report", "x.json", "--run-url", RUN])
