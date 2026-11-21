@@ -249,3 +249,36 @@ def test_the_re_read_uses_no_paid_client_and_no_model(reread):
     assert reread.METHOD == "structured-row-match@1"
     extractors = [v.StructuredDataExtractor()]
     assert {e.actor.model_family for e in extractors} == {"deterministic"}
+
+
+@pytest.mark.parametrize(("target", "kind"), [
+    ("https://refused.example.net/x.json", "forbids"),
+    ("https://www.anthropic.com/x.json", "cite-only"),
+])
+def test_a_redirect_to_a_forbids_or_cite_only_host_is_never_requested(
+        reread, data, tmp_path, target, kind):
+    data.terms["refused.example.net"] = "forbids"
+    data.row(OLD.format("a"))
+    pages = {OLD.format("a"): (302, target, b"")}
+    request = serve(pages)
+    data.write()
+    assert reread.host_class(target, reread.load_terms(data.root)) == kind
+    report = reread.run(data.root, observed_at=TODAY, dry_run=False, store_root=tmp_path / "c",
+                        request=request, pacer=reread.Pacer(0, sleep=lambda s: None))
+    assert request.calls == [OLD.format("a")]
+    assert report.counts["unreachable"] == 1
+    assert data.lines()[-1]["outcome"] == "unreachable"
+    assert not (data.root / reread.COPIES_DIRECTORY).exists()
+
+
+def test_a_cite_only_origin_that_redirects_to_a_refused_host_is_cited(reread, data, tmp_path):
+    data.row(CITE_ONLY)
+    target = "https://www.anthropic.com/moved.json"
+    data.write()
+    request = serve({CITE_ONLY: (302, "https://other.example.net/x", b"")})
+    data.terms["other.example.net"] = "forbids"
+    data.write()
+    report = reread.run(data.root, observed_at=TODAY, dry_run=False, store_root=tmp_path / "c",
+                        request=request, pacer=reread.Pacer(0, sleep=lambda s: None))
+    assert request.calls == [CITE_ONLY] and report.counts["cited"] == 1
+    assert target not in request.calls

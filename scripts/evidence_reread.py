@@ -76,13 +76,20 @@ def host_of(url: str) -> str:
 
 
 def host_class(url: str, terms: dict[str, str]) -> str:
-    """``cite-only``, ``retaining`` or ``unclassed`` (never requested).
+    """``forbids``, ``cite-only``, ``retaining`` or ``unclassed``.
+
+    ``forbids`` (the private register) is kept apart from ``cite-only`` (the public list);
+    the engine keeps no bytes for either. A page of either may be read as an origin, to cite
+    it. Neither is ever requested as a redirect target, and an ``unclassed`` host is
+    never requested at all.
 
     A malformed or non-HTTP origin is ``unclassed``. The engine's cite-only policy
     decides first, so a host the register marks ``forbids`` is ``cite-only``.
     """
     if urlsplit(url).scheme not in {"http", "https"} or not host_of(url):
         return "unclassed"
+    if terms.get(host_of(url)) == "forbids":
+        return "forbids"
     if cite_only(url):
         return "cite-only"
     return "retaining" if terms.get(host_of(url)) in RETAINING_CLASSES else "unclassed"
@@ -171,7 +178,11 @@ def fetch(url: str, terms: dict[str, str], *, request=request_once) -> Fetched:
                            reason=f"{type(error).__name__}")
         if 300 <= status < 400 and location:
             target = urljoin(current, location)
-            if host_class(target, terms) == "unclassed":
+            target_class = host_class(target, terms)
+            if target_class in {"forbids", "cite-only"}:
+                return Fetched("refused", resolved=tuple(resolved),
+                               reason=f"redirect to a {target_class} host; not requested")
+            if target_class == "unclassed":
                 return Fetched("blocked", resolved=tuple(resolved),
                                reason=f"redirect to unclassed host {host_of(target) or '?'}",
                                blocked_host=host_of(target) or "?")
@@ -393,7 +404,11 @@ def run(root: Path, *, observed_at: date, dry_run: bool, store_root: Path,
         results = [pages[url] for url in row.urls]
         bad = next((r for r in results if r.kind != "ok"), None)
         if bad is not None:
-            if bad.kind == "gone":
+            if bad.kind == "refused" and host_class(row.urls[0], terms) in {"forbids", "cite-only"}:
+                _record(v.Result(claim.target, "cited", reason=bad.reason),
+                        queue, log, at, dry_run)
+                report.note("cited", host)
+            elif bad.kind in {"gone", "refused"}:
                 outcome = v.Result(
                     claim.target, "unreachable",
                     v._verification(claim, v.REGION_LOOKUP, "unreachable", observed_at),
