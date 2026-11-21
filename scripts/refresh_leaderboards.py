@@ -294,6 +294,8 @@ class RefreshReport:
     reconfirmed: list[RowObservation] = field(default_factory=list)
     failures: list[RowFailure] = field(default_factory=list)
     quarantined: list[RowFailure] = field(default_factory=list)
+    #: First rows a cite-only board would add: nothing is written and no claim is filed.
+    held_for_review: list[RowFailure] = field(default_factory=list)
     #: Rows whose source listed them with no value, or listed a value again.
     not_published: list[PublicationMark] = field(default_factory=list)
     added: int = 0
@@ -2312,7 +2314,12 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                         report.failures.extend(failures)
                         summary["failures"].extend(failure.reason for failure in failures)
                         _count_refused(summary, failures)
-                        if additions:
+                        if additions and board.cite_only:
+                            report.held_for_review.extend(
+                                RowFailure(model_id, str(row["benchmark_id"]), board.source_url,
+                                           "new row on a cite-only board, held for review")
+                                for row in additions)
+                        elif additions:
                             models_read.add(model_id)
                             pending_additions.setdefault(path, []).extend(additions)
                             claims.extend(
@@ -2732,6 +2739,11 @@ def render_report(report: RefreshReport) -> str:
                       "| Model | Facet | Source | Why |", "|---|---|---|---|"])
         lines.extend(f"| `{row.model_id}` | `{row.benchmark}` | {row.source} | {row.reason} |"
                      for row in report.quarantined)
+    if report.held_for_review:
+        lines.extend(["", "## New rows on a cite-only board, held for review", "",
+                      "| Model | Benchmark | Source |", "|---|---|---|"])
+        lines.extend(f"| `{row.model_id}` | `{row.benchmark}` | {row.source} |"
+                     for row in report.held_for_review)
     return "\n".join(lines)
 
 
@@ -3609,6 +3621,7 @@ def write_report_json(path: Path, report: RefreshReport) -> None:
         "reconfirmed": [row.__dict__ for row in report.reconfirmed],
         "failures": [row.__dict__ for row in report.failures],
         "quarantined": [row.__dict__ for row in report.quarantined],
+        "held_for_review": [row.__dict__ for row in report.held_for_review],
         "not_published_since": _publication_payload(report),
         "added": report.added,
     }
@@ -3687,7 +3700,9 @@ def read_in_memory(url: str, terms: Mapping[str, str], *, request: Callable | No
     """
     from scripts import evidence_reread
 
-    fetched = evidence_reread.fetch(url, dict(terms), request=request or evidence_reread.request_once)
+    if not terms:
+        raise ValueError("the source-terms register is absent or empty; a cite-only read needs it")
+    fetched = evidence_reread.fetch(url, dict(terms), request=request)
     if fetched.kind != "ok":
         raise ValueError(f"cite-only read deferred ({fetched.kind}): {fetched.reason}")
     return fetched.body

@@ -115,14 +115,15 @@ prose stays
 """
 
 
-def run_cited(monkeypatch, tmp_path: Path, body: bytes):
+def run_cited(monkeypatch, tmp_path: Path, body: bytes, *, card_text: str = CARD,
+              add_missing: bool = False, template: dict | None = None):
     root, cache = tmp_path / "repo", tmp_path / "copies"
     (root / "models" / "lab").mkdir(parents=True)
     (root / "registry").mkdir()
     (root / "verification").mkdir()
     (root / "registry" / "sources.yaml").write_text(SOURCES_YAML, encoding="utf-8")
     card = root / "models" / "lab" / "orbit.md"
-    card.write_text(CARD, encoding="utf-8")
+    card.write_text(card_text, encoding="utf-8")
     monkeypatch.setenv("MODELSPEC_ARENA_REVISION", "pinned")
     ref = "sha256:" + hashlib.sha256(body).hexdigest()
     projected = refresh.readers.project_cursorbench(
@@ -130,12 +131,14 @@ def run_cited(monkeypatch, tmp_path: Path, body: bytes):
     board = refresh._reading_from_projection(
         key="cursorbench", source_id="model-160-cursorbench", benchmarks=("cursorbench_4",),
         source_url=URL, projected=projected, observed_at=OBSERVED, value_field="accuracy",
-        store=refresh.CopyStore(cache), card_urls=(URL,), page_ref=ref, cite_only=True)
+    monkeypatch.setattr(
+        refresh, "_fetch", lambda *_a, **_k: (_ for _ in ()).throw(OSError("off")))
     monkeypatch.setattr(refresh, "collect_readings", lambda *_a, **_k: ([board], []))
     report = refresh.run(observed_at=OBSERVED, dry_run=False, root=root, source_cache=cache,
-                         model_ids=("lab/orbit",))
+                         model_ids=("lab/orbit",), add_missing=add_missing)
     front = yaml.safe_load(card.read_text(encoding="utf-8").split("---", 2)[1])
-    return report, front["benchmarks"]["evidence"][0], ref, root, cache
+    evidence = front["benchmarks"]["evidence"]
+    return report, (evidence[0] if evidence else None), ref, root, cache
 
 
 def test_an_unchanged_cited_row_is_dated_by_the_read_and_carries_the_page_hash(
@@ -170,3 +173,47 @@ def test_a_cited_row_whose_value_differs_is_a_mismatch_alert_never_an_overwrite(
     assert [f.reason.split(":")[0] for f in report.quarantined] == ["mismatch"]
     assert any("mismatch" in f.reason for f in report.failures)
     assert report.changes == []
+
+
+NO_ROW_CARD = """---
+model_id: lab/orbit
+display_name: Orbit 9
+version: Orbit 9
+benchmarks:
+  evidence: []
+---
+prose stays
+"""
+
+
+def test_a_new_row_on_a_cite_only_board_is_held_and_nothing_is_written_or_filed(
+        monkeypatch, tmp_path: Path) -> None:
+    report, row, _ref, root, cache = run_cited(
+        monkeypatch, tmp_path, page(), card_text=NO_ROW_CARD, add_missing=True,
+        template={"unit": "percent", "source_kind": "benchmark_author"})
+
+    assert row is None and report.added == 0
+    assert [f.reason for f in report.held_for_review] == [
+        "new row on a cite-only board, held for review"]
+    assert "held for review" in refresh.render_report(report)
+    assert files_under(root / "verification") == [] and files_under(cache) == []
+
+
+def test_an_absent_or_empty_terms_register_is_a_hard_error_for_a_cite_only_read(
+        monkeypatch, tmp_path: Path) -> None:
+    calls: list[str] = []
+    monkeypatch.setattr(evidence_reread, "request_once", served(page(), calls))
+    with pytest.raises(ValueError, match="absent or empty"):
+        refresh.read_in_memory(URL, {})
+    monkeypatch.setattr(refresh, "_fetch", lambda *_a, **_k: (_ for _ in ()).throw(OSError("off")))
+    boards, failures = refresh.collect_readings(
+        OBSERVED, refresh.CopyStore(tmp_path / "c"), (), skip_arena=True, terms={})
+    assert not any(board.key == "cursorbench" for board in boards)
+    assert any(f.benchmark == "cursorbench_4" and "absent or empty" in f.reason for f in failures)
+    assert calls == []
+
+
+def test_the_offline_default_covers_fetch_and_reread() -> None:
+    # No request is passed: the conftest fixture's request_once, looked up at call time, answers.
+    result = evidence_reread.fetch(URL, TERMS)
+    assert result.kind == "deferred" and result.reason == "ConnectionError"

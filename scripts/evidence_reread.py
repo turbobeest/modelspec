@@ -166,8 +166,12 @@ def request_once(url: str) -> tuple[int, str | None, bytes]:
         return error.code, error.headers.get("Location"), b""
 
 
-def fetch(url: str, terms: dict[str, str], *, request=request_once) -> Fetched:
-    """Read ``url``, following at most MAX_HOPS redirects, each to a classed host."""
+def fetch(url: str, terms: dict[str, str], *, request=None) -> Fetched:
+    """Read ``url``, following at most MAX_HOPS redirects, each to a classed host.
+
+    ``request`` defaults to the module's ``request_once``, looked up at call time.
+    """
+    request = request or request_once
     resolved: list[str] = []
     current = url
     for _ in range(MAX_HOPS + 1):
@@ -345,7 +349,7 @@ class Report:
 
 
 def run(root: Path, *, observed_at: date, dry_run: bool, store_root: Path,
-        cap: int = WEEKLY_ROW_CAP, request=request_once, pacer: Pacer | None = None,
+        cap: int = WEEKLY_ROW_CAP, request=None, pacer: Pacer | None = None,
         min_age_days: int = MIN_AGE_DAYS) -> Report:
     from decision import verify as v
     from decision.sources import CopyStore, load_sources
