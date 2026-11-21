@@ -9,8 +9,7 @@ from types import SimpleNamespace
 import pytest
 import yaml
 
-from scripts import accuracy
-from scripts import evidence_reread
+from scripts import accuracy, evidence_reread
 from scripts import refresh_leaderboards as refresh
 
 URL = "https://cursor.com/cursorbench"
@@ -52,7 +51,8 @@ def files_under(root: Path) -> list[Path]:
     return sorted(p for p in root.rglob("*") if p.is_file()) if root.exists() else []
 
 
-def test_a_cite_only_board_is_read_in_memory_with_no_bytes_kept(monkeypatch, tmp_path: Path) -> None:
+def test_a_cite_only_board_is_read_in_memory_with_no_bytes_kept(
+        monkeypatch, tmp_path: Path) -> None:
     cache, scratch = tmp_path / "cache", tmp_path / "scratch"
     scratch.mkdir()
     monkeypatch.setenv("MODELSPEC_SOURCE_CACHE", str(cache))
