@@ -244,6 +244,10 @@ class Claim:
             data["state"] = self.state
         return data
 
+    def same_as(self, other: Claim | None) -> bool:
+        """Equal ignoring ``state``, which claims queued before it existed lack."""
+        return other is not None and replace(self, state=None) == replace(other, state=None)
+
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> Claim:
         return cls(

@@ -5505,3 +5505,11 @@ def test_end_to_end_attestation_absence_on_terms_follows_the_registry(
     claim = _absence_claim(_ATT, "offering.attestation.soc2", "zai-terms")
     result = _outcome(claim, "provider_terms", "zai")
     assert (result.outcome == "verified") is passes, result
+
+
+def test_same_claim_ignores_state_so_old_queued_claims_match_fresh_ones() -> None:
+    fresh = _absence_claim(_ATT, "offering.attestation.soc2", "zai-terms")
+    old = replace(fresh, state=None)
+    assert fresh.state == "not_disclosed" and fresh != old
+    assert fresh.same_as(old) and old.same_as(fresh) and not fresh.same_as(None)
+    assert not fresh.same_as(replace(old, value="type_2"))
