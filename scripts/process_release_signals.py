@@ -201,6 +201,18 @@ def process(
                 "pr_url": recheck.get("pr_url") if recheck else None,
                 "reason": hub.reason,
             }
+        elif hub is not None and hub.hold:
+            # No task on the Hub: identity review decides, not a card draft.
+            result = {
+                "status": "uncertain",
+                "signal_id": signal.signal_id,
+                "model_id": None,
+                "candidates": [],
+                "recheck_day": recheck.get("day") if recheck else None,
+                "recheck_due": recheck.get("due") if recheck else None,
+                "pr_url": recheck.get("pr_url") if recheck else None,
+                "reason": hub.hold,
+            }
         else:
             resolution = resolve_signal(signal, root)
             result = {
