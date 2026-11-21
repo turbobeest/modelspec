@@ -254,10 +254,12 @@ def test_the_re_read_uses_no_paid_client_and_no_model(reread):
 @pytest.mark.parametrize(("target", "kind"), [
     ("https://refused.example.net/x.json", "forbids"),
     ("https://www.anthropic.com/x.json", "cite-only"),
+    ("https://held.example.net/x.json", "cite-only"),
 ])
 def test_a_redirect_to_a_forbids_or_cite_only_host_is_never_requested(
         reread, data, tmp_path, target, kind):
     data.terms["refused.example.net"] = "forbids"
+    data.terms["held.example.net"] = "cite-only"
     data.row(OLD.format("a"))
     pages = {OLD.format("a"): (302, target, b"")}
     request = serve(pages)

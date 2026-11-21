@@ -33,6 +33,11 @@ def _public_cite_only_hosts() -> tuple[str, ...]:
 
 DATA_DIR_ENV = "MODELSPEC_DATA_DIR"
 FORBIDS = "forbids"
+#: The owner holds a host cite-only until counsel reads its terms. This is the
+#: owner's choice, not a reading of the terms, so it is its own class value; for
+#: keeping bytes and for admitting a cited claim it behaves exactly like ``forbids``.
+CITE_ONLY = "cite-only"
+CITE_ONLY_CLASSES = frozenset({FORBIDS, CITE_ONLY})
 
 
 @cache
@@ -49,7 +54,7 @@ def _register_forbidding(data_dir: str) -> tuple[str, ...]:
         logger.warning("the private source-terms register is not an object")
         return ()
     return tuple(sorted(host for host, cls in terms.items()
-                        if cls == FORBIDS and isinstance(host, str) and host
+                        if cls in CITE_ONLY_CLASSES and isinstance(host, str) and host
                         and host == host.lower().rstrip(".")
                         and not any(char in host for char in "/:@ ")))
 
@@ -149,7 +154,7 @@ def using_data_dir(data_dir: object):
 
 
 def forbidding_hosts() -> tuple[str, ...]:
-    """Hosts the private terms register classes ``forbids`` (MODEL-510).
+    """Hosts the private terms register classes ``forbids`` or ``cite-only`` (MODEL-510).
 
     Read from ``registry/source-terms.json`` under ``MODELSPEC_DATA_DIR``.
     With no data directory (a public build) the result is empty, so the
@@ -161,9 +166,9 @@ def forbidding_hosts() -> tuple[str, ...]:
 
 
 def cite_only_hosts() -> tuple[str, ...]:
-    """The public list, plus the hosts the private register classes ``forbids``.
+    """The public list, plus the hosts the private register classes ``forbids`` or ``cite-only``.
 
-    A forbids-class host behaves exactly like a listed one in both directions
+    A forbids-class or cite-only-class host behaves exactly like a listed one in both directions
     (MODEL-510): no bytes kept, and a cited claim from it is admitted. The
     register is read only when a data directory is named; with none the result
     is the public list alone.

@@ -90,7 +90,9 @@ def host_class(url: str, terms: dict[str, str]) -> str:
         return "unclassed"
     if terms.get(host_of(url)) == "forbids":
         return "forbids"
-    if cite_only(url):
+    if terms.get(host_of(url)) == "cite-only" or cite_only(url):
+        # The register's own ``cite-only`` class (the owner holds the host until counsel
+        # reads its terms) is read like the public list, with or without a data directory.
         return "cite-only"
     return "retaining" if terms.get(host_of(url)) in RETAINING_CLASSES else "unclassed"
 
