@@ -6216,6 +6216,45 @@ def claude_extractor(*, cache: LLMCache | None = None,
 
 OLLAMA_URL = "http://100.127.37.30:11434/api/chat"
 MISTRAL_MODEL = "mistral-large:123b-instruct-2411-q4_K_M"
+#: The only models the ollama reader may run, each with its own model family.
+#: A model is added here by a code change that is reviewed, never by
+#: configuration; the family is the lab that trained it and is never
+#: ``anthropic`` (a Claude collector would make it a false second key).
+_OLLAMA_READER_IDS = {
+    "gpt-oss:120b": "openai",
+    "gpt-oss:20b": "openai",
+    "gemma4:31b": "google",
+    "gemma4:26b": "google",
+    "hf.co/aj9o9/nvidia-nemotron-3.5-lightning-30b:Q4_K_M": "nvidia",
+    MISTRAL_MODEL: "mistral",
+}
+#: Lower-cased model id -> family. The id is matched whole: no namespace, tag
+#: or prefix is stripped.
+APPROVED_OLLAMA_READERS = {k.lower(): v for k, v in _OLLAMA_READER_IDS.items()}
+_OLLAMA_CANONICAL = {k.lower(): k for k in _OLLAMA_READER_IDS}
+
+
+def ollama_reader() -> tuple[str, str]:
+    """The ollama reader's ``(model, family)``, from ``APPROVED_OLLAMA_READERS``.
+
+    ``MODELSPEC_OLLAMA_MODEL`` (unset: Mistral Large) must be an approved id,
+    compared lower-cased; anything else is refused. The family is the table's.
+    ``MODELSPEC_OLLAMA_FAMILY`` is not a setting: if it is set and differs, the
+    reader is refused.
+    """
+    model = os.environ.get("MODELSPEC_OLLAMA_MODEL") or MISTRAL_MODEL
+    key = model.lower()
+    family = APPROVED_OLLAMA_READERS.get(key)
+    if family is None:
+        raise ExtractorError(
+            f"ollama model {model!r} is not an approved reader: "
+            f"{sorted(APPROVED_OLLAMA_READERS)}")
+    declared = os.environ.get("MODELSPEC_OLLAMA_FAMILY")
+    if declared and declared.lower() != family:
+        raise ExtractorError(
+            f"MODELSPEC_OLLAMA_FAMILY {declared!r} differs from the table's {family!r} "
+            f"for {model!r}")
+    return _OLLAMA_CANONICAL[key], family
 #: Ollama's ``format: json`` constrains a reply to one JSON object, so a bare
 #: array cannot be returned: Mistral then reports only the first value in a
 #: region. This system turn asks for the array inside an object; ``LLM_PROMPT``
@@ -6252,10 +6291,10 @@ def _as_array(content: str) -> str:
 class OllamaChatCompletion:
     """Call a model served by ollama's ``/api/chat`` at temperature 0, in JSON mode."""
 
-    def __init__(self, *, url: str | None = None, model: str = MISTRAL_MODEL,
+    def __init__(self, *, url: str | None = None, model: str | None = None,
                  max_calls: int = 400, timeout: float = 900) -> None:
         self.url = url or os.environ.get("MODELSPEC_OLLAMA_URL") or OLLAMA_URL
-        self.model = model
+        self.model = model or ollama_reader()[0]
         self.max_calls = max_calls
         self.timeout = timeout
         self.calls = 0
@@ -6296,14 +6335,15 @@ def mistral_extractor(*, cache: LLMCache | None = None,
                       complete: Callable[[str], str] | None = None,
                       max_calls: int = 400) -> LLMExtractor:
     """The local Mistral Large reader: a third model family, for Claude-collected values."""
+    model, family = ollama_reader()
     return LLMExtractor(
         complete or OllamaChatCompletion(max_calls=max_calls),
         agent="ollama",
-        model=MISTRAL_MODEL,
-        model_family="mistral",
+        model=model,
+        model_family=family,
         # The namespace names the request shape too: a reply cached before the
         # JSON-mode system turn read only one value per region.
-        cache=cache or LLMCache(namespace=f"ollama:{MISTRAL_MODEL}:values-object"),
+        cache=cache or LLMCache(namespace=f"ollama:{model}:values-object"),
     )
 
 
@@ -6324,13 +6364,14 @@ def mistral_licence_extractor(*, cache: LLMCache | None = None,
                               complete: Callable[[str], str] | None = None,
                               max_calls: int = 400) -> LicenceExtractor:
     """Licence reader on the same local Mistral completion as ``mistral_extractor``."""
+    model, family = ollama_reader()
     return LicenceExtractor(
         complete or OllamaChatCompletion(max_calls=max_calls),
         agent="ollama",
-        model=MISTRAL_MODEL,
-        model_family="mistral",
+        model=model,
+        model_family=family,
         cache=cache if cache is not None else LLMCache(
-            namespace=f"ollama:{MISTRAL_MODEL}:licence"),
+            namespace=f"ollama:{model}:licence"),
     )
 
 
@@ -8221,7 +8262,7 @@ __all__ = [
     "GovernanceProseExtractor", "KeyValueExtractor", "LLMCache", "LLMCallBudgetExceededError",
     "LabJurisdictionExtractor", "LicenceTermsExtractor",
     "LLMExtractor", "MISTRAL_MODEL", "ModelPageExtractor", "OLLAMA_URL", "OfferingPriceExtractor",
-    "OLLAMA_JSON_MODE", "OllamaChatCompletion", "Quantity", "Queue", "Reading",
+    "APPROVED_OLLAMA_READERS", "OLLAMA_JSON_MODE", "OllamaChatCompletion", "ollama_reader", "Quantity", "Queue", "Reading",
     "Regions", "Result",
     "RunReport", "StoredRegions", "StructuredDataExtractor", "SubscriptionPageExtractor",
     "TableExtractor", "TOLERANCE_RULE",

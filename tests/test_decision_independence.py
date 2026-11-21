@@ -307,3 +307,87 @@ def test_cli_refuses_an_unknown_reader(tmp_path, store):  # noqa: F811
         cli_mod.app, ["verify", "--root", str(_repo(tmp_path, store)), "--llm-reader", "gpt"])
     assert result.exit_code != 0
     assert "claude, mistral" in result.output
+
+
+def test_the_ollama_reader_takes_its_model_and_family_from_the_environment(monkeypatch):
+    monkeypatch.setenv("MODELSPEC_OLLAMA_URL", "http://spark-15:11434/api/chat")
+    monkeypatch.setenv("MODELSPEC_OLLAMA_MODEL", "gpt-oss:120b")
+    monkeypatch.setenv("MODELSPEC_OLLAMA_FAMILY", "openai")
+    seen = _ollama(monkeypatch, PROSE)
+    reader = verify.mistral_licence_extractor()
+    assert reader.actor.model_family == "openai"
+    assert reader.actor.method == "licence-extract:gpt-oss:120b"
+    reader.complete("p")
+    request, _timeout = seen[0]
+    assert request.full_url == "http://spark-15:11434/api/chat"
+    assert json.loads(request.data)["model"] == "gpt-oss:120b"
+
+
+def _configure(monkeypatch, model, family=None):
+    monkeypatch.setenv("MODELSPEC_OLLAMA_MODEL", model)
+    if family is None:
+        monkeypatch.delenv("MODELSPEC_OLLAMA_FAMILY", raising=False)
+    else:
+        monkeypatch.setenv("MODELSPEC_OLLAMA_FAMILY", family)
+
+
+@pytest.mark.parametrize("model", [
+    "claude-opus-4:latest", "hf.co/unsloth/Claude-x:Q4", "unsloth/Claude-x:Q4",
+    "anthropic/claude-x", "huggingface.co/unsloth/claude-x:Q4", "library/gpt-oss:120b",
+    "registry.ollama.ai/library/llama3.3:70b", "qwen3:32b", "deepseek-r1:70b",
+    "grok-2:latest", "Claude-Sonnet-4.5:latest", "gpt-oss:120b-extra", "llama3.3:70b",
+])
+def test_an_ollama_model_outside_the_table_is_refused(monkeypatch, model):
+    _configure(monkeypatch, model, "openai")
+    with pytest.raises(verify.ExtractorError):
+        verify.mistral_licence_extractor()
+    with pytest.raises(verify.ExtractorError):
+        verify.mistral_extractor()
+
+
+@pytest.mark.parametrize("model, family", [
+    ("gpt-oss:120b", "mistral"), (verify.MISTRAL_MODEL, "openai"), ("gemma4:31b", "openai"),
+    ("gpt-oss:120b", "anthropic"),
+])
+def test_a_family_that_differs_from_the_table_is_refused(monkeypatch, model, family):
+    _configure(monkeypatch, model, family)
+    with pytest.raises(verify.ExtractorError):
+        verify.ollama_reader()
+
+
+@pytest.mark.parametrize("model, family, expected", [
+    ("gpt-oss:120b", None, "openai"),
+    ("GPT-OSS:120B", None, "openai"),
+    ("gpt-oss:120b", "openai", "openai"),
+    ("gemma4:31b", "google", "google"),
+    ("hf.co/aj9o9/nvidia-nemotron-3.5-lightning-30b:Q4_K_M", None, "nvidia"),
+])
+def test_an_approved_ollama_model_takes_the_tables_family(monkeypatch, model, family, expected):
+    _configure(monkeypatch, model, family)
+    assert verify.ollama_reader()[1] == expected
+
+
+def test_the_approved_table_names_no_anthropic_reader():
+    assert verify.APPROVED_OLLAMA_READERS
+    assert "anthropic" not in set(verify.APPROVED_OLLAMA_READERS.values())
+    assert all(k == k.lower() for k in verify.APPROVED_OLLAMA_READERS)
+
+
+def test_a_wrong_reply_under_the_configured_model_is_rejected_by_the_quote_guard(
+        monkeypatch, store, regions):  # noqa: F811
+    _configure(monkeypatch, "gpt-oss:120b", "openai")
+    wrong = json.dumps([{"subject": "m", "value": "1,000,000", "unit": None, "effort": None,
+                         "harness": None, "date": None,
+                         "quoted_sentence": "This sentence is not in the source.",
+                         "condition_sentence": None}])
+    reader = verify.mistral_extractor(complete=_FakeLLM(wrong),
+                                      cache=verify.LLMCache(store.root / "llm"))
+    result = verify.verify(_prose_claim(store, VerificationActor(**CLAUDE)), regions,
+                           [*verify.deterministic_extractors(), reader], today=TODAY)
+    assert result.outcome != "verified"
+
+
+def test_the_ollama_reader_defaults_to_mistral_large(monkeypatch):
+    for name in ("MODELSPEC_OLLAMA_MODEL", "MODELSPEC_OLLAMA_FAMILY"):
+        monkeypatch.delenv(name, raising=False)
+    assert verify.ollama_reader() == (verify.MISTRAL_MODEL, "mistral")
