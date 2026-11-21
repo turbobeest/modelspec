@@ -336,6 +336,12 @@ def _configure(monkeypatch, model, family=None):
     (verify.MISTRAL_MODEL, "openai"),
     ("gemma4:31b", "openai"),
     ("gpt-oss:120b", "anthropic"),
+    ("claude-opus-4:latest", "openai"),
+    ("hf.co/unsloth/Claude-x:Q4", "nvidia"),
+    ("qwen3:32b", "openai"),
+    ("llama3.3:70b", "mistral"),
+    ("deepseek-r1:70b", "openai"),
+    ("grok-2:latest", "google"),
     ("unknown-lab:7b", None),
     ("unknown-lab:7b", "made-up"),
 ])

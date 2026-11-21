@@ -93,6 +93,7 @@ from decision.licence_rules import (
     licence_reading_rule,
 )
 from decision.model import (
+    _LINEAGES,
     DETERMINISTIC,
     SourceRef,
     TargetRef,
@@ -6244,7 +6245,8 @@ def ollama_reader() -> tuple[str, str]:
     if family not in OLLAMA_FAMILIES:
         raise ExtractorError(
             f"MODELSPEC_OLLAMA_FAMILY must be one of {sorted(OLLAMA_FAMILIES)}, got {family!r}")
-    if lineage in OLLAMA_FAMILIES and lineage != family:
+    known = set(_LINEAGES.values())
+    if lineage == "anthropic" or (lineage in known and lineage != family):
         raise ExtractorError(
             f"ollama model {model!r} is of the {lineage} family, not {family!r}")
     return model, family
