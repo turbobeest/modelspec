@@ -384,6 +384,8 @@ def test_an_unapproved_model_is_refused_by_the_ollama_client():
 @pytest.mark.parametrize(("collector", "verifier"), [
     ("codex", "gpt-oss"), ("codex-model-143", "openai"), ("codex-model-143", "gpt-5"),
     ("unknown", "mistral"), ("anthropic", "unknown"), ("unknown", "unknown"),
+    ("other", "mistral"), ("anthropic", "other"), ("unrecorded", "gemma4"),
+    ("gpt-5", "unrecorded"), ("Other", "Unrecorded"),
 ])
 def test_codex_is_openai_and_unknown_is_independent_of_no_model(collector, verifier):
     assert not independent_families(collector, verifier)
@@ -391,6 +393,8 @@ def test_codex_is_openai_and_unknown_is_independent_of_no_model(collector, verif
 
 def test_unknown_collector_with_a_deterministic_reader_stays_independent():
     assert independent_families("unknown", "deterministic")
+    assert independent_families("other", "deterministic")
+    assert independent_families("unrecorded", "deterministic")
     assert model_family("codex-model-143") == "openai"
 
 

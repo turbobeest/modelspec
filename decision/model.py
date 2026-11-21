@@ -104,6 +104,10 @@ def model_family(name: str) -> str:
 #: The family recorded when a collector or reader's lineage is not known.
 UNKNOWN = "unknown"
 
+#: Placeholder families that name no lineage ("unrecorded" is the data-trust
+#: placeholder): each is treated as ``unknown``.
+_NO_LINEAGE = frozenset({UNKNOWN, "other", "unrecorded"})
+
 
 def independent_families(collector: str, verifier: str) -> bool:
     """Two keys: the verifier is deterministic, or of another model family (MODEL-140).
@@ -114,7 +118,7 @@ def independent_families(collector: str, verifier: str) -> bool:
     if verifier == DETERMINISTIC:
         return True
     a, b = model_family(collector), model_family(verifier)
-    return UNKNOWN not in (a, b) and a != b
+    return a not in _NO_LINEAGE and b not in _NO_LINEAGE and a != b
 
 
 def verification_counts(outcome: str, collector: str, verifier: str) -> bool:
