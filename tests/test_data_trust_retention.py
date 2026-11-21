@@ -390,6 +390,7 @@ def test_attributed_json_body_is_not_parsed_as_a_manifest(root, monkeypatch):
 # The register here is synthetic. With no data directory the public list alone decides.
 LISTED = "listed.example"
 FORBIDDEN = "forbidden.example"
+HELD = "held.example"
 
 
 @pytest.fixture
@@ -404,7 +405,7 @@ def lists(monkeypatch):
 def forbids_data_dir(tmp_path, monkeypatch):
     (tmp_path / "registry").mkdir()
     (tmp_path / "registry/source-terms.json").write_text(json.dumps({
-        FORBIDDEN: "forbids", "unclear.example": "unclear",
+        FORBIDDEN: "forbids", HELD: "cite-only", "unclear.example": "unclear",
         "restricts.example": "restricts", "permits.example": "permits"}))
     monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))
     return tmp_path
@@ -415,6 +416,18 @@ def test_forbids_host_is_restrictively_cite_only_with_parent_suffix(lists, forbi
     assert retention.is_cite_only_restrictive(f"https://docs.{FORBIDDEN}/a")
     assert not retention.is_cite_only_restrictive(f"https://not{FORBIDDEN}/a")
     assert retention.is_cite_only_restrictive(f"https://{LISTED}/a")
+
+
+def test_cite_only_class_behaves_like_forbids_for_bytes_and_citations(lists, forbids_data_dir):
+    assert HELD in retention.forbidding_hosts()
+    for host in (HELD, f"docs.{HELD}"):
+        assert retention.is_cite_only_restrictive(f"https://{host}/a")
+        assert retention.cite_only_status(f"https://{host}/a") is True
+        assert retention.cite_only_origin_status(f"https://{host}/a") is True
+        assert retention.record_origin_status({"url": f"https://{host}/a"}) is True
+        with pytest.raises(ValueError):
+            retention.refuse_disk_scrape(f"https://{host}/a")
+    assert not retention.is_cite_only_restrictive(f"https://not{HELD}/a")
 
 
 @pytest.mark.parametrize("host", ["unclear.example", "restricts.example", "permits.example"])
@@ -513,7 +526,7 @@ def test_accuracy_private_run_applies_the_forbids_class_and_restores(lists, forb
     monkeypatch.setattr(accuracy, "_publish_profile", lambda args: (
         seen.append(retention.forbidding_hosts()), 0)[1])
     assert accuracy.main(["--private-data-root", str(forbids_data_dir)]) == 0
-    assert seen == [(FORBIDDEN,)]
+    assert seen == [(FORBIDDEN, HELD)]
     assert "MODELSPEC_DATA_DIR" not in os.environ
 
 
@@ -579,7 +592,7 @@ def test_vendor_forbids_data_dir_applies_the_forbids_class(lists, forbids_data_d
     monkeypatch.setattr(sys, "argv", ["vendor.py", "--data-dir", str(forbids_data_dir),
                                       "--export-data", str(forbids_data_dir / "out")])
     assert vendor.main() == 0
-    assert seen and all(hosts == (FORBIDDEN,) for hosts in seen)
+    assert seen and all(hosts == (FORBIDDEN, HELD) for hosts in seen)
 
 
 def test_vendor_bundle_subprocess_inherits_the_forbids_data_dir(lists, forbids_data_dir, monkeypatch):
@@ -609,7 +622,7 @@ def test_build_forbids_data_dir_applies_the_forbids_class(lists, forbids_data_di
     monkeypatch.setattr(build.decision_registry, "use_root", lambda root: None)
     _capture(monkeypatch, build, "build_site", seen)
     assert build.main(["--out", str(forbids_data_dir / "out"), "--data-dir", str(forbids_data_dir)]) == 0
-    assert seen == [(FORBIDDEN,)]
+    assert seen == [(FORBIDDEN, HELD)]
 
 
 def test_copy_store_withholds_bytes_for_a_forbids_host(lists, forbids_data_dir, tmp_path):
