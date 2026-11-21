@@ -8,7 +8,8 @@ const spec = {
   snapshot: "latest" as const,
   task_type: "refactor" as const,
   where: ["model.class = text-generator"],
-  objective: { max: "coding.swe_bench" },
+  optimize: { min: "offering.price.input" },
+  explain: "full" as const,
 };
 
 function serve(body: unknown) {
