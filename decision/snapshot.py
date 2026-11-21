@@ -804,6 +804,8 @@ class _Compiler:
         self.hardware: dict[str, dict[str, Any]] = {}
         #: Counts only: cards with unregistered sources, and those URLs.
         self.unregistered_hardware = [0, 0]
+        #: Refused mismatch supersessions by fixed reason wording; no record ids.
+        self.refused_supersessions: Counter[str] = Counter()
         self.hardware_fit: list[dict[str, Any]] = []
         #: Premier models whose lab recorded a sourced null jurisdiction.
         self.jurisdiction_null_ok: set[str] = set()
@@ -996,7 +998,7 @@ class _Compiler:
             [_as_dict(ref) for ref in refs], self.sources)
         if entry is None:
             if refused:
-                logger.warning("%s: mismatch supersession refused: %s", rid, refused)
+                self.refused_supersessions[str(refused)] += 1
                 return f"quarantined (mismatch; supersession refused: {refused})"
             return "quarantined (mismatch)"
         self.superseded[str(rid)] = [entry]
@@ -1852,6 +1854,12 @@ def _compile(inputs: SnapshotInputs, registry: Any, guard: ExcludedSources | Non
     c.prefer_verified_evidence()
     for device in inputs.hardware:
         c.add_hardware(device)
+    if c.refused_supersessions:
+        # Counts and fixed reason wording only: never a record id.
+        logger.warning(
+            "%d mismatch supersessions refused (%s)",
+            sum(c.refused_supersessions.values()),
+            "; ".join(f"{n} x {reason}" for reason, n in sorted(c.refused_supersessions.items())))
     if c.unregistered_hardware[0]:
         # Public CI logs carry counts only: never a card id or a source URL.
         logger.warning("%d hardware cards cite %d unregistered source URLs",
