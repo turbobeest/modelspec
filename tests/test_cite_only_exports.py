@@ -278,7 +278,7 @@ def test_rank_still_drops_cited_reading_beside_same_measurer_verified(tmp_path):
     assert "humaneval" not in candidate.cited_benchmarks
 
 
-def test_rank_verified_beats_cited_within_one_measurer_then_newest(tmp_path):
+def test_rank_newest_verified_reading_wins_within_one_measurer(tmp_path):
     older = {**SELF_VERIFIED, "score": 80, "evidence_date": "2026-09-01"}
     candidate = _rank_rows(tmp_path, [older, SELF_VERIFIED])
     assert candidate.benchmark_scores["humaneval"] == 95
@@ -296,3 +296,13 @@ def test_rank_scalar_does_not_depend_on_record_order(tmp_path, seed):
     assert shuffled.benchmark_scores == expected.benchmark_scores
     assert shuffled.verified_benchmarks == expected.verified_benchmarks
     assert shuffled.cited_benchmarks == expected.cited_benchmarks
+
+
+@pytest.mark.parametrize("high", ["max", "xHigh"])
+def test_rank_configuration_tie_is_not_settled_by_higher_score(tmp_path, high):
+    indep = {"source_kind": "independent_evaluator", "source_url": "https://lab.example/board"}
+    rows = [{**indep, "configuration": "max", "score": 1655 if high == "max" else 1621},
+            {**indep, "configuration": "xHigh", "score": 1621 if high == "max" else 1655}]
+    picked = _rank_rows(tmp_path, rows).benchmark_scores["humaneval"]
+    by_config = {r["configuration"]: r["score"] for r in rows}
+    assert picked == by_config["xHigh"]  # lexical on configuration, whichever score is higher
