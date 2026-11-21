@@ -29,6 +29,7 @@ not a feature.
 
 from __future__ import annotations
 
+import json
 import math
 from collections.abc import Mapping
 from typing import Any, TextIO
@@ -322,20 +323,59 @@ def parse_request(payload: Any, known_hardware: set[str]) -> dict[str, Any]:
 
 # ── the catalogue ────────────────────────────────────────────────────────────
 
-def candidate_from_row(row: Mapping[str, Any]) -> Candidate:
+class _Shared:
+    """One copy of each distinct value while a rank export is read (MODEL-531).
+
+    The export repeats the same small values on many rows: a citation entry
+    for the same board, the same set of verified benchmarks, the same device
+    table, the same provider string. A parsed row holds its own copy of each,
+    and the isolate keeps every row. `share` returns the first equal value it
+    saw, so equal values are one object. Two values are equal here only when
+    their JSON text is equal, key order included, so the Worker's encoder
+    writes the same bytes it wrote for separate copies. Nothing mutates a
+    candidate's fields. The table lives for one load and is dropped with it.
+    """
+
+    __slots__ = ("_values",)
+
+    def __init__(self) -> None:
+        self._values: dict[tuple[str, Any], Any] = {}
+
+    def share(self, value: Any) -> Any:
+        if isinstance(value, str):
+            return self._values.setdefault(("s", value), value)
+        if isinstance(value, dict):
+            value = {key: self.share(item) for key, item in value.items()}
+            return self._values.setdefault(("d", json.dumps(value)), value)
+        if isinstance(value, list):
+            value = [self.share(item) for item in value]
+            return self._values.setdefault(("l", json.dumps(value)), value)
+        return value
+
+    def share_set(self, members: Any) -> set[str]:
+        ordered = tuple(sorted(members))
+        return self._values.setdefault(("t", ordered), set(ordered))
+
+
+def candidate_from_row(row: Mapping[str, Any], shared: _Shared | None = None) -> Candidate:
     """One ranking record from one `/api/rank/candidates.json` row."""
+    shared = shared or _Shared()
+    share = shared.share
     return Candidate(
-        model_id=row["model_id"], display_name=row["display_name"], provider=row["provider"],
-        model_type=row.get("model_type"), model_subtypes=row.get("model_subtypes") or [],
-        benchmark_scores=row.get("benchmark_scores") or {},
-        capability_tiers=row.get("capability_tiers") or {},
+        model_id=row["model_id"], display_name=row["display_name"],
+        provider=share(row["provider"]),
+        model_type=share(row.get("model_type")),
+        model_subtypes=share(row.get("model_subtypes") or []),
+        benchmark_scores=share(row.get("benchmark_scores") or {}),
+        capability_tiers=share(row.get("capability_tiers") or {}),
         cost_input=row.get("cost_input"), context_window=row.get("context_window"),
-        open_weights=bool(row.get("open_weights")), scores_as_of=row.get("scores_as_of"),
-        fits=row.get("fits") or {},
-        verified_benchmarks=set(row.get("verified_benchmarks") or []),
-        rehost_of=row.get("rehost_of"), release_date=row.get("release_date"),
-        cited_facts=row.get("cited_facts") or _NO_CITED_FACTS,
-        cited_benchmarks=row.get("cited_benchmarks") or _NO_CITED_BENCHMARKS,
+        open_weights=bool(row.get("open_weights")), scores_as_of=share(row.get("scores_as_of")),
+        fits=share(row.get("fits") or {}),
+        verified_benchmarks=shared.share_set(row.get("verified_benchmarks") or []),
+        rehost_of=share(row.get("rehost_of")), release_date=share(row.get("release_date")),
+        cited_facts=share(row["cited_facts"]) if row.get("cited_facts") else _NO_CITED_FACTS,
+        cited_benchmarks=(share(row["cited_benchmarks"]) if row.get("cited_benchmarks")
+                          else _NO_CITED_BENCHMARKS),
     )
 
 
@@ -346,7 +386,8 @@ def candidates_from_export(export: dict[str, Any]) -> list[Candidate]:
     file out of the local snapshot. Both feed the same `Candidate`, which is why
     the rows that come out are the same rows.
     """
-    return [candidate_from_row(row) for row in export["candidates"]]
+    shared = _Shared()
+    return [candidate_from_row(row, shared) for row in export["candidates"]]
 
 
 def load_rank_export(stream: TextIO) -> tuple[dict[str, Any], list[Candidate]]:
@@ -360,8 +401,9 @@ def load_rank_export(stream: TextIO) -> tuple[dict[str, Any], list[Candidate]]:
     """
     from decision.json_stream import Each, JSONStreamReader
 
+    shared = _Shared()
     reader = JSONStreamReader(stream, transforms={
-        "candidates": {None: Each(candidate_from_row)},
+        "candidates": {None: Each(lambda row: candidate_from_row(row, shared))},
     })
     export = reader.read_value()
     reader.finish()

@@ -199,3 +199,48 @@ def test_one_sided_citation_serializes_the_shared_empty_as_json(cited_facts, cit
         assert body["cited_facts"] == (cited_facts or [])
         assert body["cited_benchmarks"] == (cited_benchmarks or {})
     assert type(scored["cited_facts"]) is list and type(scored["cited_benchmarks"]) is dict
+
+
+def _repeating_rows():
+    cited = [{"facet": "model.lifecycle", "citation": {"status": "cited", "sources": [
+        {"source_id": "s", "url": "https://x.ai/p"}]}, "verification": None}]
+    return [{
+        "model_id": f"lab/m{index}", "display_name": f"M{index}", "provider": "lab",
+        "model_type": "llm", "model_subtypes": ["chat"], "scores_as_of": "2026-11-01",
+        "benchmark_scores": {"humaneval": 80.0 + index % 2},
+        "capability_tiers": {"coding": "high"}, "fits": {"gpu-a": 12.5, "gpu-b": None},
+        "verified_benchmarks": ["mmlu", "humaneval"] if index % 2 else ["humaneval", "mmlu"],
+        "cited_facts": json.loads(json.dumps(cited)),
+        "cited_benchmarks": {"gpqa_diamond": {"status": "cited", "url": "https://epoch.ai/b"}},
+    } for index in range(6)]
+
+
+def test_rank_candidates_share_equal_values_and_serialize_as_before():
+    """MODEL-531: repeated citation, device and benchmark-set values are held once."""
+    from api.worker.src import rank_service
+
+    rows = _repeating_rows()
+    prepared = rank_service.candidates_from_export({"candidates": rows})
+    first, *rest = prepared
+    for other in rest:
+        for name in ("provider", "model_type", "model_subtypes", "capability_tiers", "fits",
+                     "cited_facts", "cited_benchmarks", "verified_benchmarks", "scores_as_of"):
+            assert getattr(other, name) is getattr(first, name), name
+    # Different values stay different objects, and every field reads as it did.
+    assert prepared[0].benchmark_scores is not prepared[1].benchmark_scores
+    assert prepared[0].benchmark_scores is prepared[2].benchmark_scores
+    for row, candidate in zip(rows, prepared):
+        assert candidate.to_json() == {**{"total_parameters": None, "active_parameters": None,
+                                          "release_date": None, "cost_input": None,
+                                          "context_window": None, "open_weights": False,
+                                          "rehost_of": None, "model_type": "llm"},
+                                       **{**row, "verified_benchmarks": ["humaneval", "mmlu"]}}
+    # The streamed load shares across rows too, and ranks to the same bytes as a plain copy.
+    meta, streamed = rank_service.load_rank_export(
+        io.StringIO(json.dumps({"build": {}, "authoring_guides": {}, "candidates": rows})))
+    assert streamed[0].fits is streamed[5].fits
+    payload = {"use_case": "coding", "limit": 6}
+    args = (None, "commit", "https://modelspec.test")
+    shared = rank_service.rank(payload, meta, *args, prepared_candidates=streamed)
+    plain = rank_service.rank(payload, {"build": {}, "candidates": rows}, *args)
+    assert json.dumps(shared, indent=2, default=str) == json.dumps(plain, indent=2, default=str)
