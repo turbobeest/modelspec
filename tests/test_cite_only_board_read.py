@@ -51,8 +51,9 @@ def files_under(root: Path) -> list[Path]:
     return sorted(p for p in root.rglob("*") if p.is_file()) if root.exists() else []
 
 
+@pytest.mark.parametrize("held_class", ["forbids", "cite-only"])
 def test_a_cite_only_board_is_read_in_memory_with_no_bytes_kept(
-        monkeypatch, tmp_path: Path) -> None:
+        monkeypatch, tmp_path: Path, held_class: str) -> None:
     cache, scratch = tmp_path / "cache", tmp_path / "scratch"
     scratch.mkdir()
     monkeypatch.setenv("MODELSPEC_SOURCE_CACHE", str(cache))
@@ -66,7 +67,8 @@ def test_a_cite_only_board_is_read_in_memory_with_no_bytes_kept(
 
     monkeypatch.setattr(refresh.CopyStore, "put", no_put)
     boards, failures = refresh.collect_readings(
-        OBSERVED, refresh.CopyStore(cache), (), skip_arena=True, terms=TERMS)
+        OBSERVED, refresh.CopyStore(cache), (), skip_arena=True,
+        terms={**TERMS, "cursor.com": held_class})
 
     cursor = next(board for board in boards if board.key == "cursorbench")
     assert cursor.cite_only is True
