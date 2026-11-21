@@ -323,14 +323,55 @@ def test_the_ollama_reader_takes_its_model_and_family_from_the_environment(monke
     assert json.loads(request.data)["model"] == "gpt-oss:120b"
 
 
-def test_an_ollama_model_without_an_allowed_family_is_refused(monkeypatch):
-    monkeypatch.setenv("MODELSPEC_OLLAMA_MODEL", "gpt-oss:120b")
-    monkeypatch.delenv("MODELSPEC_OLLAMA_FAMILY", raising=False)
+def _configure(monkeypatch, model, family=None):
+    monkeypatch.setenv("MODELSPEC_OLLAMA_MODEL", model)
+    if family is None:
+        monkeypatch.delenv("MODELSPEC_OLLAMA_FAMILY", raising=False)
+    else:
+        monkeypatch.setenv("MODELSPEC_OLLAMA_FAMILY", family)
+
+
+@pytest.mark.parametrize("model, family", [
+    ("gpt-oss:120b", "mistral"),
+    (verify.MISTRAL_MODEL, "openai"),
+    ("gemma4:31b", "openai"),
+    ("gpt-oss:120b", "anthropic"),
+    ("unknown-lab:7b", None),
+    ("unknown-lab:7b", "made-up"),
+])
+def test_an_ollama_family_that_is_not_the_models_own_is_refused(monkeypatch, model, family):
+    _configure(monkeypatch, model, family)
     with pytest.raises(verify.ExtractorError):
         verify.mistral_licence_extractor()
-    monkeypatch.setenv("MODELSPEC_OLLAMA_FAMILY", "made-up")
     with pytest.raises(verify.ExtractorError):
         verify.mistral_extractor()
+
+
+@pytest.mark.parametrize("model, family, expected", [
+    ("gemma4:31b", "google", "google"),
+    ("gemma4:26b", None, "google"),
+    ("gpt-oss:120b", None, "openai"),
+    ("hf.co/aj9o9/nvidia-nemotron-3.5-lightning-30b:Q4_K_M", None, "nvidia"),
+    ("nemotron:70b", "nvidia", "nvidia"),
+    ("unknown-lab:7b", "google", "google"),
+])
+def test_an_ollama_model_of_its_own_family_passes(monkeypatch, model, family, expected):
+    _configure(monkeypatch, model, family)
+    assert verify.ollama_reader() == (model, expected)
+
+
+def test_a_wrong_reply_under_the_configured_model_is_rejected_by_the_quote_guard(
+        monkeypatch, store, regions):  # noqa: F811
+    _configure(monkeypatch, "gpt-oss:120b", "openai")
+    wrong = json.dumps([{"subject": "m", "value": "1,000,000", "unit": None, "effort": None,
+                         "harness": None, "date": None,
+                         "quoted_sentence": "This sentence is not in the source.",
+                         "condition_sentence": None}])
+    reader = verify.mistral_extractor(complete=_FakeLLM(wrong),
+                                      cache=verify.LLMCache(store.root / "llm"))
+    result = verify.verify(_prose_claim(store, VerificationActor(**CLAUDE)), regions,
+                           [*verify.deterministic_extractors(), reader], today=TODAY)
+    assert result.outcome != "verified"
 
 
 def test_the_ollama_reader_defaults_to_mistral_large(monkeypatch):

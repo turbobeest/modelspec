@@ -101,6 +101,7 @@ from decision.model import (
     VerificationTarget,
     evidence_verification_value,
     fact_verification_value,
+    model_family,
     unordered_facet,
     verification_value_hash,
 )
@@ -6220,20 +6221,32 @@ MISTRAL_MODEL = "mistral-large:123b-instruct-2411-q4_K_M"
 OLLAMA_FAMILIES = frozenset({"mistral", "openai", "google", "nvidia"})
 
 
+def ollama_lineage(model: str) -> str:
+    """The lineage an ollama model name belongs to: ``gemma3:27b`` is google's."""
+    name = re.sub(r"^hf\.co/[^/]+/", "", model.strip())
+    return model_family(name.split(":", 1)[0])
+
+
 def ollama_reader() -> tuple[str, str]:
     """The ollama reader's ``(model, family)``.
 
     ``MODELSPEC_OLLAMA_MODEL`` and ``MODELSPEC_OLLAMA_FAMILY`` choose a model
-    served at ``MODELSPEC_OLLAMA_URL``; unset, they are Mistral Large. A model
-    given without its family is refused, so a record never names the wrong one.
+    served at ``MODELSPEC_OLLAMA_URL``; unset, they are Mistral Large. The
+    family must be allowed and must match the model's own lineage, so a record
+    never claims a second family the model does not have. A model whose lineage
+    is unknown needs its family set explicitly.
     """
     model = os.environ.get("MODELSPEC_OLLAMA_MODEL") or MISTRAL_MODEL
-    family = os.environ.get("MODELSPEC_OLLAMA_FAMILY")
-    if model == MISTRAL_MODEL and not family:
-        family = "mistral"
+    family = os.environ.get("MODELSPEC_OLLAMA_FAMILY") or None
+    lineage = ollama_lineage(model)
+    if family is None and lineage in OLLAMA_FAMILIES:
+        family = lineage
     if family not in OLLAMA_FAMILIES:
         raise ExtractorError(
             f"MODELSPEC_OLLAMA_FAMILY must be one of {sorted(OLLAMA_FAMILIES)}, got {family!r}")
+    if lineage in OLLAMA_FAMILIES and lineage != family:
+        raise ExtractorError(
+            f"ollama model {model!r} is of the {lineage} family, not {family!r}")
     return model, family
 #: Ollama's ``format: json`` constrains a reply to one JSON object, so a bare
 #: array cannot be returned: Mistral then reports only the first value in a
