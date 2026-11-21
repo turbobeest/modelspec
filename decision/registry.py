@@ -759,6 +759,9 @@ def _load_providers(err: _Errors, root: Path) -> dict[str, Provider]:
             if not _iso_date(checked):
                 err.add(where, "trust_centre `none` needs trust_centre_checked as an ISO date")
                 trust_centre = None
+            elif date.fromisoformat(str(checked)) > date.today():
+                err.add(where, "trust_centre_checked must not be in the future")
+                trust_centre = None
             if not (isinstance(searched, list) and searched and all(_https(u) for u in searched)):
                 err.add(where, "trust_centre `none` needs trust_centre_searched as a non-empty list of https URLs")
                 trust_centre = None

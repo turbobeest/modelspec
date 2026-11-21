@@ -819,3 +819,9 @@ def test_trust_centre_none_without_a_companion_is_refused(tmp_path, drop):
 def test_companions_without_trust_centre_none_are_refused(tmp_path):
     with pytest.raises(RegistryError, match="need trust_centre: none"):
         _load(_provider_with(tmp_path, trust_centre_checked="2026-11-20"))
+
+
+def test_a_future_trust_centre_checked_date_is_refused(tmp_path):
+    over = {**_NONE, "trust_centre_checked": "2999-01-01"}
+    with pytest.raises(RegistryError, match="must not be in the future"):
+        _load(_provider_with(tmp_path, **over))

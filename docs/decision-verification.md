@@ -335,7 +335,7 @@ and it stays queued. Other facets still verify an absence from a source
 whose kind is unknown. A known kind outside the facet's list is a mismatch
 for every facet.
 
-One exception to the kind list: an `offering.attestation.*` absence (no value)
+One exception to the kind list: an `offering.attestation.*` fact that is not disclosed (`not_disclosed`)
 also verifies from a `provider_terms` source whose `publisher` is the offering's
 provider, when `registry/providers.yaml` records that provider with
 `trust_centre: none`. That field needs `trust_centre_checked` (an ISO date) and

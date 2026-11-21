@@ -10,6 +10,7 @@ exercised with a fake completion.
 from __future__ import annotations
 
 import json
+import shutil
 import re
 import shlex
 import socket
@@ -5471,3 +5472,36 @@ def test_trust_centre_none_does_not_widen_other_facets(monkeypatch) -> None:
     claim = _absence_claim(_ATT, "offering.price.batch_input", "zai-terms")
     facet = verify.default_registry().facet("offering.price.batch_input")
     assert not verify._kind_admitted(claim, facet, "provider_terms", "zai")
+
+
+def test_a_requires_contract_attestation_on_terms_is_refused_with_trust_centre_none(monkeypatch) -> None:
+    _no_trust_centre(monkeypatch, "zai")
+    claim = replace(_absence_claim(_ATT, "offering.attestation.soc2", "zai-terms"),
+                    state="requires_contract")
+    result = _outcome(claim, "provider_terms", "zai")
+    assert result.outcome == "mismatch" and result.diffs[0].field == "source_kind"
+
+
+def _registry_with_zai(tmp_path, none: bool):
+    from decision import registry as reg
+
+    root = tmp_path / "registry"
+    shutil.copytree(Path(__file__).resolve().parent.parent / "registry", root)
+    path = root / "providers.yaml"
+    data = yaml.safe_load(path.read_text())
+    entry = next(p for p in data["providers"] if p["id"] == "zai")
+    if none:
+        entry.update(trust_centre="none", trust_centre_checked="2026-11-20",
+                     trust_centre_searched=["https://z.ai/trust-center"])
+    path.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True))
+    return reg.load(root, repo_root=Path(__file__).resolve().parent.parent)
+
+
+@pytest.mark.parametrize("none, passes", [(True, True), (False, False)])
+def test_end_to_end_attestation_absence_on_terms_follows_the_registry(
+        monkeypatch, tmp_path, none, passes) -> None:
+    registry = _registry_with_zai(tmp_path, none)
+    monkeypatch.setattr(verify, "default_registry", lambda: registry)
+    claim = _absence_claim(_ATT, "offering.attestation.soc2", "zai-terms")
+    result = _outcome(claim, "provider_terms", "zai")
+    assert (result.outcome == "verified") is passes, result
