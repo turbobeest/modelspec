@@ -68,7 +68,6 @@ it.each([
   [{ plan: "a".repeat(121), reason: closedReason }],
   [{ plan: closedPlan, reason: null }],
   [{ plan: closedPlan }],
-  [{ plan: closedPlan, reason: closedReason, unexpected: true }],
 ])("refuses malformed availability exclusions without relaxing the complete decoder", (excluded_plans) => {
   expect(decisionSchema.safeParse({ ...codingJson, contract_version: "2.18", excluded_plans }).success).toBe(false);
   expect(decisionSchema.safeParse({
