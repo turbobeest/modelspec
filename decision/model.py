@@ -86,7 +86,6 @@ _LINEAGES = {
     "xai": "xai", "grok": "xai",
     "mistral": "mistral", "mixtral": "mistral", "codestral": "mistral",
     "deepseek": "deepseek",
-    "nvidia": "nvidia", "nemotron": "nvidia",
 }
 
 

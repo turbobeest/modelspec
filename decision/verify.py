@@ -93,7 +93,6 @@ from decision.licence_rules import (
     licence_reading_rule,
 )
 from decision.model import (
-    _LINEAGES,
     DETERMINISTIC,
     SourceRef,
     TargetRef,
@@ -102,7 +101,6 @@ from decision.model import (
     VerificationTarget,
     evidence_verification_value,
     fact_verification_value,
-    model_family,
     unordered_facet,
     verification_value_hash,
 )
@@ -6218,38 +6216,45 @@ def claude_extractor(*, cache: LLMCache | None = None,
 
 OLLAMA_URL = "http://100.127.37.30:11434/api/chat"
 MISTRAL_MODEL = "mistral-large:123b-instruct-2411-q4_K_M"
-#: Families the ollama reader may record. ``MODELSPEC_OLLAMA_FAMILY`` must be one.
-OLLAMA_FAMILIES = frozenset({"mistral", "openai", "google", "nvidia"})
-
-
-def ollama_lineage(model: str) -> str:
-    """The lineage an ollama model name belongs to: ``gemma3:27b`` is google's."""
-    name = re.sub(r"^hf\.co/[^/]+/", "", model.strip())
-    return model_family(name.split(":", 1)[0])
+#: The only models the ollama reader may run, each with its own model family.
+#: A model is added here by a code change that is reviewed, never by
+#: configuration; the family is the lab that trained it and is never
+#: ``anthropic`` (a Claude collector would make it a false second key).
+_OLLAMA_READER_IDS = {
+    "gpt-oss:120b": "openai",
+    "gpt-oss:20b": "openai",
+    "gemma4:31b": "google",
+    "gemma4:26b": "google",
+    "hf.co/aj9o9/nvidia-nemotron-3.5-lightning-30b:Q4_K_M": "nvidia",
+    MISTRAL_MODEL: "mistral",
+}
+#: Lower-cased model id -> family. The id is matched whole: no namespace, tag
+#: or prefix is stripped.
+APPROVED_OLLAMA_READERS = {k.lower(): v for k, v in _OLLAMA_READER_IDS.items()}
+_OLLAMA_CANONICAL = {k.lower(): k for k in _OLLAMA_READER_IDS}
 
 
 def ollama_reader() -> tuple[str, str]:
-    """The ollama reader's ``(model, family)``.
+    """The ollama reader's ``(model, family)``, from ``APPROVED_OLLAMA_READERS``.
 
-    ``MODELSPEC_OLLAMA_MODEL`` and ``MODELSPEC_OLLAMA_FAMILY`` choose a model
-    served at ``MODELSPEC_OLLAMA_URL``; unset, they are Mistral Large. The
-    family must be allowed and must match the model's own lineage, so a record
-    never claims a second family the model does not have. A model whose lineage
-    is unknown needs its family set explicitly.
+    ``MODELSPEC_OLLAMA_MODEL`` (unset: Mistral Large) must be an approved id,
+    compared lower-cased; anything else is refused. The family is the table's.
+    ``MODELSPEC_OLLAMA_FAMILY`` is not a setting: if it is set and differs, the
+    reader is refused.
     """
     model = os.environ.get("MODELSPEC_OLLAMA_MODEL") or MISTRAL_MODEL
-    family = os.environ.get("MODELSPEC_OLLAMA_FAMILY") or None
-    lineage = ollama_lineage(model)
-    if family is None and lineage in OLLAMA_FAMILIES:
-        family = lineage
-    if family not in OLLAMA_FAMILIES:
+    key = model.lower()
+    family = APPROVED_OLLAMA_READERS.get(key)
+    if family is None:
         raise ExtractorError(
-            f"MODELSPEC_OLLAMA_FAMILY must be one of {sorted(OLLAMA_FAMILIES)}, got {family!r}")
-    known = set(_LINEAGES.values())
-    if lineage == "anthropic" or (lineage in known and lineage != family):
+            f"ollama model {model!r} is not an approved reader: "
+            f"{sorted(APPROVED_OLLAMA_READERS)}")
+    declared = os.environ.get("MODELSPEC_OLLAMA_FAMILY")
+    if declared and declared.lower() != family:
         raise ExtractorError(
-            f"ollama model {model!r} is of the {lineage} family, not {family!r}")
-    return model, family
+            f"MODELSPEC_OLLAMA_FAMILY {declared!r} differs from the table's {family!r} "
+            f"for {model!r}")
+    return _OLLAMA_CANONICAL[key], family
 #: Ollama's ``format: json`` constrains a reply to one JSON object, so a bare
 #: array cannot be returned: Mistral then reports only the first value in a
 #: region. This system turn asks for the array inside an object; ``LLM_PROMPT``
@@ -8257,7 +8262,7 @@ __all__ = [
     "GovernanceProseExtractor", "KeyValueExtractor", "LLMCache", "LLMCallBudgetExceededError",
     "LabJurisdictionExtractor", "LicenceTermsExtractor",
     "LLMExtractor", "MISTRAL_MODEL", "ModelPageExtractor", "OLLAMA_URL", "OfferingPriceExtractor",
-    "OLLAMA_FAMILIES", "OLLAMA_JSON_MODE", "OllamaChatCompletion", "ollama_reader", "Quantity", "Queue", "Reading",
+    "APPROVED_OLLAMA_READERS", "OLLAMA_JSON_MODE", "OllamaChatCompletion", "ollama_reader", "Quantity", "Queue", "Reading",
     "Regions", "Result",
     "RunReport", "StoredRegions", "StructuredDataExtractor", "SubscriptionPageExtractor",
     "TableExtractor", "TOLERANCE_RULE",
