@@ -307,3 +307,33 @@ def test_cli_refuses_an_unknown_reader(tmp_path, store):  # noqa: F811
         cli_mod.app, ["verify", "--root", str(_repo(tmp_path, store)), "--llm-reader", "gpt"])
     assert result.exit_code != 0
     assert "claude, mistral" in result.output
+
+
+def test_the_ollama_reader_takes_its_model_and_family_from_the_environment(monkeypatch):
+    monkeypatch.setenv("MODELSPEC_OLLAMA_URL", "http://spark-15:11434/api/chat")
+    monkeypatch.setenv("MODELSPEC_OLLAMA_MODEL", "gpt-oss:120b")
+    monkeypatch.setenv("MODELSPEC_OLLAMA_FAMILY", "openai")
+    seen = _ollama(monkeypatch, PROSE)
+    reader = verify.mistral_licence_extractor()
+    assert reader.actor.model_family == "openai"
+    assert reader.actor.method == "licence-extract:gpt-oss:120b"
+    reader.complete("p")
+    request, _timeout = seen[0]
+    assert request.full_url == "http://spark-15:11434/api/chat"
+    assert json.loads(request.data)["model"] == "gpt-oss:120b"
+
+
+def test_an_ollama_model_without_an_allowed_family_is_refused(monkeypatch):
+    monkeypatch.setenv("MODELSPEC_OLLAMA_MODEL", "gpt-oss:120b")
+    monkeypatch.delenv("MODELSPEC_OLLAMA_FAMILY", raising=False)
+    with pytest.raises(verify.ExtractorError):
+        verify.mistral_licence_extractor()
+    monkeypatch.setenv("MODELSPEC_OLLAMA_FAMILY", "made-up")
+    with pytest.raises(verify.ExtractorError):
+        verify.mistral_extractor()
+
+
+def test_the_ollama_reader_defaults_to_mistral_large(monkeypatch):
+    for name in ("MODELSPEC_OLLAMA_MODEL", "MODELSPEC_OLLAMA_FAMILY"):
+        monkeypatch.delenv(name, raising=False)
+    assert verify.ollama_reader() == (verify.MISTRAL_MODEL, "mistral")

@@ -57,7 +57,7 @@ first. Deterministic extractors always run first:
   (`mistral-large:123b-instruct-2411-q4_K_M`) on the local ollama host
   (`http://100.127.37.30:11434/api/chat`, or `MODELSPEC_OLLAMA_URL`) at
   temperature 0 in JSON mode. Its actor is `ollama`, model family `mistral`: the
-  reader for values a Claude collector filed. Both readers get the same prompt.
+  reader for values a Claude collector filed. `MODELSPEC_OLLAMA_MODEL` and `MODELSPEC_OLLAMA_FAMILY` (mistral, openai, google or nvidia) pick another served model and its family. Both readers get the same prompt.
   It asks for the value, unit, conditions and a source sentence. The verifier
   checks that sentence against the retained cited region. A region can state
   a condition once for a whole table, in a heading ("Comparison with frontier

@@ -6216,6 +6216,25 @@ def claude_extractor(*, cache: LLMCache | None = None,
 
 OLLAMA_URL = "http://100.127.37.30:11434/api/chat"
 MISTRAL_MODEL = "mistral-large:123b-instruct-2411-q4_K_M"
+#: Families the ollama reader may record. ``MODELSPEC_OLLAMA_FAMILY`` must be one.
+OLLAMA_FAMILIES = frozenset({"mistral", "openai", "google", "nvidia"})
+
+
+def ollama_reader() -> tuple[str, str]:
+    """The ollama reader's ``(model, family)``.
+
+    ``MODELSPEC_OLLAMA_MODEL`` and ``MODELSPEC_OLLAMA_FAMILY`` choose a model
+    served at ``MODELSPEC_OLLAMA_URL``; unset, they are Mistral Large. A model
+    given without its family is refused, so a record never names the wrong one.
+    """
+    model = os.environ.get("MODELSPEC_OLLAMA_MODEL") or MISTRAL_MODEL
+    family = os.environ.get("MODELSPEC_OLLAMA_FAMILY")
+    if model == MISTRAL_MODEL and not family:
+        family = "mistral"
+    if family not in OLLAMA_FAMILIES:
+        raise ExtractorError(
+            f"MODELSPEC_OLLAMA_FAMILY must be one of {sorted(OLLAMA_FAMILIES)}, got {family!r}")
+    return model, family
 #: Ollama's ``format: json`` constrains a reply to one JSON object, so a bare
 #: array cannot be returned: Mistral then reports only the first value in a
 #: region. This system turn asks for the array inside an object; ``LLM_PROMPT``
@@ -6252,10 +6271,10 @@ def _as_array(content: str) -> str:
 class OllamaChatCompletion:
     """Call a model served by ollama's ``/api/chat`` at temperature 0, in JSON mode."""
 
-    def __init__(self, *, url: str | None = None, model: str = MISTRAL_MODEL,
+    def __init__(self, *, url: str | None = None, model: str | None = None,
                  max_calls: int = 400, timeout: float = 900) -> None:
         self.url = url or os.environ.get("MODELSPEC_OLLAMA_URL") or OLLAMA_URL
-        self.model = model
+        self.model = model or ollama_reader()[0]
         self.max_calls = max_calls
         self.timeout = timeout
         self.calls = 0
@@ -6296,14 +6315,15 @@ def mistral_extractor(*, cache: LLMCache | None = None,
                       complete: Callable[[str], str] | None = None,
                       max_calls: int = 400) -> LLMExtractor:
     """The local Mistral Large reader: a third model family, for Claude-collected values."""
+    model, family = ollama_reader()
     return LLMExtractor(
         complete or OllamaChatCompletion(max_calls=max_calls),
         agent="ollama",
-        model=MISTRAL_MODEL,
-        model_family="mistral",
+        model=model,
+        model_family=family,
         # The namespace names the request shape too: a reply cached before the
         # JSON-mode system turn read only one value per region.
-        cache=cache or LLMCache(namespace=f"ollama:{MISTRAL_MODEL}:values-object"),
+        cache=cache or LLMCache(namespace=f"ollama:{model}:values-object"),
     )
 
 
@@ -6324,13 +6344,14 @@ def mistral_licence_extractor(*, cache: LLMCache | None = None,
                               complete: Callable[[str], str] | None = None,
                               max_calls: int = 400) -> LicenceExtractor:
     """Licence reader on the same local Mistral completion as ``mistral_extractor``."""
+    model, family = ollama_reader()
     return LicenceExtractor(
         complete or OllamaChatCompletion(max_calls=max_calls),
         agent="ollama",
-        model=MISTRAL_MODEL,
-        model_family="mistral",
+        model=model,
+        model_family=family,
         cache=cache if cache is not None else LLMCache(
-            namespace=f"ollama:{MISTRAL_MODEL}:licence"),
+            namespace=f"ollama:{model}:licence"),
     )
 
 
@@ -8221,7 +8242,7 @@ __all__ = [
     "GovernanceProseExtractor", "KeyValueExtractor", "LLMCache", "LLMCallBudgetExceededError",
     "LabJurisdictionExtractor", "LicenceTermsExtractor",
     "LLMExtractor", "MISTRAL_MODEL", "ModelPageExtractor", "OLLAMA_URL", "OfferingPriceExtractor",
-    "OLLAMA_JSON_MODE", "OllamaChatCompletion", "Quantity", "Queue", "Reading",
+    "OLLAMA_FAMILIES", "OLLAMA_JSON_MODE", "OllamaChatCompletion", "ollama_reader", "Quantity", "Queue", "Reading",
     "Regions", "Result",
     "RunReport", "StoredRegions", "StructuredDataExtractor", "SubscriptionPageExtractor",
     "TableExtractor", "TOLERANCE_RULE",
