@@ -13,8 +13,8 @@ const citationSchema = z.object({
     snapshot_ref: z.string().regex(/^sha256:[0-9a-f]{64}$/),
     retrieved_at: z.string().nullable(),
     resolved_urls: z.array(z.url()).optional(),
-  }).strict()).min(1),
-}).strict();
+  }).strip()).min(1),
+}).strip();
 
 export const offeringRefSchema = z
   .object({
@@ -25,7 +25,7 @@ export const offeringRefSchema = z
     api_model_id: nullableString.optional(),
     router_slug: nullableString.optional(),
   })
-  .strict();
+  .strip();
 
 export const evidenceItemSchema = z
   .object({
@@ -66,7 +66,7 @@ export const evidenceItemSchema = z
     recency_weight: z.number().min(0).max(1).nullable().optional(),
     citation: citationSchema.optional(),
   })
-  .strict();
+  .strip();
 
 const estimateSchema = z
   .object({
@@ -76,7 +76,7 @@ const estimateSchema = z
     harness: nullableString,
     effort: nullableString,
   })
-  .strict();
+  .strip();
 
 // 2.4 (MODEL-190): a refinement estimate nested in its parent domain.
 const refinementEstimateSchema = z
@@ -88,7 +88,7 @@ const refinementEstimateSchema = z
     interval: z.tuple([z.number().finite(), z.number().finite()]),
     evidence_count: z.number().int().nonnegative(),
   })
-  .strict();
+  .strip();
 
 const contributionSchema = z
   .object({
@@ -108,7 +108,7 @@ const contributionSchema = z
       .optional(),
     refinement: facetId.nullish(),
   })
-  .strict();
+  .strip();
 
 // 2.6 (MODEL-200): a subscription plan that reaches a result on the spec's
 // `access`. Each part the plan page does not publish is null.
@@ -118,7 +118,7 @@ const planPriceSchema = z
     currency: z.literal("USD"),
     period: z.enum(["monthly", "annual"]),
   })
-  .strict();
+  .strip();
 
 export const planCoverageSchema = z
   .object({
@@ -127,7 +127,7 @@ export const planCoverageSchema = z
     resolves_to: z.array(modelId).optional().default([]),
     rule: z.string(),
   })
-  .strict();
+  .strip();
 
 const planAllowanceSchema = z
   .object({
@@ -136,7 +136,7 @@ const planAllowanceSchema = z
     window: nullableString.optional(),
     tokens: z.number().nonnegative().nullable().optional(),
   })
-  .strict();
+  .strip();
 
 const planRouteSchema = z
   .object({
@@ -150,14 +150,14 @@ const planRouteSchema = z
     break_even_tasks_per_month: z.number().nonnegative().nullable().optional(),
     basis: z.string(),
   })
-  .strict();
+  .strip();
 
 const planExclusionSchema = z
   .object({
     plan: z.string().min(1).max(120),
     reason: z.string(),
   })
-  .strict();
+  .strip();
 
 const resultSchema = z
   .object({
@@ -170,7 +170,7 @@ const resultSchema = z
     harness: nullableString,
     effort: nullableString,
     evidence: z.array(
-      z.object({ domain: facetId, items: z.array(evidenceItemSchema) }).strict(),
+      z.object({ domain: facetId, items: z.array(evidenceItemSchema) }).strip(),
     ),
     estimates: z.array(estimateSchema).nullable(),
     refinement_estimates: z.array(refinementEstimateSchema).nullish(),
@@ -182,7 +182,7 @@ const resultSchema = z
     // 2.6: absent without `access`.
     plans: z.array(planRouteSchema).optional(),
   })
-  .strict();
+  .strip();
 
 const modelRowStatus = z.enum(["ranked", "may_qualify", "eliminated"]);
 
@@ -196,7 +196,7 @@ const modelOfferingSchema = z
     reason: z.string().nullable(),
     warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional(),
   })
-  .strict();
+  .strip();
 
 const modelRowSchema = z
   .object({
@@ -206,7 +206,7 @@ const modelRowSchema = z
     cost_per_task: z.number().nullable(),
     offerings: z.array(modelOfferingSchema),
   })
-  .strict();
+  .strip();
 
 const tieBreakersSchema = z
   .object({
@@ -215,7 +215,7 @@ const tieBreakersSchema = z
     most_independently_measured: modelId.nullable(),
     fastest: modelId.nullable(),
   })
-  .strict();
+  .strip();
 
 const answerSchema = z.discriminatedUnion("kind", [
   z
@@ -227,7 +227,7 @@ const answerSchema = z.discriminatedUnion("kind", [
       tie_breakers: tieBreakersSchema,
       deterministic_order: z.array(modelId).length(1),
     })
-    .strict(),
+    .strip(),
   z
     .object({
       kind: z.literal("tied"),
@@ -236,7 +236,7 @@ const answerSchema = z.discriminatedUnion("kind", [
       tie_breakers: tieBreakersSchema,
       deterministic_order: z.array(modelId).min(2),
     })
-    .strict(),
+    .strip(),
 ]);
 
 // 2.7 (MODEL-206): the ranked models in three bands, and the named blend.
@@ -259,10 +259,10 @@ const bandEntrySchema = z
           benchmarks: z.number().int().nonnegative(),
           direct_benchmarks: z.number().int().nonnegative(),
         })
-        .strict(),
+        .strip(),
     ),
   })
-  .strict();
+  .strip();
 
 const bandsSchema = z
   .object({
@@ -274,7 +274,7 @@ const bandsSchema = z
     rest: z.array(bandEntrySchema),
     thin: z.array(bandEntrySchema),
   })
-  .strict();
+  .strip();
 
 const blendTermSchema = z
   .object({
@@ -290,7 +290,7 @@ const blendTermSchema = z
     order: z.array(modelId),
     thin: z.array(modelId),
   })
-  .strict();
+  .strip();
 
 const accessKind = z.enum(["chat_app", "coding_tool", "own_software", "own_hardware"]);
 
@@ -299,7 +299,7 @@ const truncatedSchema = z
     offerings: z.number().int().nonnegative(),
     models: z.number().int().nonnegative(),
   })
-  .strict();
+  .strip();
 
 const mayQualifySchema = z
   .object({
@@ -308,7 +308,7 @@ const mayQualifySchema = z
     unknown: z.array(facetId),
     warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional(),
   })
-  .strict();
+  .strip();
 
 const decisionStatus = z.enum(["answered", "partial", "no_feasible"]);
 
@@ -316,7 +316,7 @@ const decisionStatus = z.enum(["answered", "partial", "no_feasible"]);
 // 2.6 (MODEL-200): a plan mark carries its coverage; `warnings` is new.
 const estateHoldSchema = z
   .object({ kind: z.enum(["provider", "plan", "device"]), id: z.string() })
-  .strict();
+  .strip();
 
 const estateMarkSchema = z
   .object({
@@ -326,7 +326,7 @@ const estateMarkSchema = z
     coverage: planCoverageSchema.nullable().optional(),
     availability: z.enum(["open", "existing_subscribers_only", "retired"]).nullish(),
   })
-  .strict();
+  .strip();
 
 export const withEstateSchema = z
   .object({
@@ -342,7 +342,7 @@ export const withEstateSchema = z
             soft_penalty: z.number().nonnegative().optional().default(0),
             warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional().default([]),
           })
-          .strict(),
+          .strip(),
       )
       .optional()
       .default([]),
@@ -354,7 +354,7 @@ export const withEstateSchema = z
         unreachable_models: z.array(modelId).optional().default([]),
         summary: z.string(),
       })
-      .strict(),
+      .strip(),
     gain: z
       .array(
         z
@@ -364,14 +364,14 @@ export const withEstateSchema = z
             leader: modelId.nullable().optional(),
             answer: answerSchema.nullable().optional(),
           })
-          .strict(),
+          .strip(),
       )
       .optional()
       .default([]),
     warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional().default([]),
     excluded_plans: z.array(planExclusionSchema).optional(),
   })
-  .strict();
+  .strip();
 
 /** The feedback ratings, in the order a person sees them (MODEL-221). */
 export const FEEDBACK_RATINGS = [
@@ -391,7 +391,7 @@ export const feedbackPointerSchema = z
     ratings: z.array(z.enum(FEEDBACK_RATINGS)),
     cli: z.literal("modelspec feedback <decision_id> --rating <rating>"),
   })
-  .strict();
+  .strip();
 
 export const decisionSchema = z
   .object({
@@ -409,7 +409,7 @@ export const decisionSchema = z
             records: z.array(z.string()),
             formula: nullableString.optional(),
           })
-          .strict(),
+          .strip(),
       )
       .optional()
       .default([]),
@@ -433,7 +433,7 @@ export const decisionSchema = z
                   // 2.21: the day of the fact's latest verification. Display only.
                   verified_at: z.iso.date().optional(),
                 })
-                .strict(),
+                .strip(),
             ),
             unknown_facets: z.array(facetId).optional(),
             hardware_estimates: z.array(z.object({
@@ -445,12 +445,12 @@ export const decisionSchema = z
               interval: z.object({
                 low: z.number().finite().nonnegative(),
                 high: z.number().finite().nonnegative(),
-              }).strict().refine((value) => value.high >= value.low).optional(),
+              }).strip().refine((value) => value.high >= value.low).optional(),
               unknown_reason: z.string().optional(),
               formula: z.string(),
               records: z.array(z.string()),
               source_ids: z.array(z.string()),
-            }).strict()).optional(),
+            }).strip()).optional(),
             contributions: z.array(contributionSchema),
             evidence: z.array(
               z
@@ -458,10 +458,10 @@ export const decisionSchema = z
                   domain: facetId,
                   items: z.array(evidenceItemSchema),
                 })
-                .strict(),
+                .strip(),
             ),
           })
-          .strict(),
+          .strip(),
       )
       .optional()
       .default([]),
@@ -477,7 +477,7 @@ export const decisionSchema = z
             sources: z.array(z.url()),
             source_ids: z.array(z.string()).optional().default([]),
           })
-          .strict(),
+          .strip(),
       )
       .optional()
       .default([]),
@@ -491,7 +491,7 @@ export const decisionSchema = z
             title: nullableString,
             date: z.iso.date().nullable(),
           })
-          .strict(),
+          .strip(),
       )
       .optional()
       .default([]),
@@ -510,46 +510,18 @@ export const decisionSchema = z
               after: estimateSchema.nullable(),
               removed_drivers: z.array(evidenceItemSchema),
             })
-            .strict(),
+            .strip(),
         ),
       })
-      .strict()
+      .strip()
       .nullish(),
-    contract_version: z.enum([
-      "1.1",
-      "1.2",
-      "1.3",
-      "1.4",
-      "1.5",
-      "1.6",
-      "1.7",
-      "1.8",
-      "1.9",
-      "1.10",
-      "1.11",
-      "1.12",
-      "2.0",
-      "2.1",
-      "2.2",
-      "2.3",
-      "2.4",
-      "2.5",
-      "2.6",
-      "2.7",
-      "2.8",
-      "2.9",
-      "2.10",
-      "2.11",
-      "2.12",
-      "2.13",
-      "2.14",
-      "2.15",
-      "2.16",
-      "2.17",
-      "2.18",
-      "2.19",
-      "2.20",
-      "2.21",
+    // Any 2.<minor> response is readable (MODEL-521 follow-up). A minor only
+    // adds optional fields, and every field the page reads that arrived in a
+    // 2.x minor is optional here with a fallback, so 2.0 is the floor. A major
+    // other than 1 or 2 is rejected. 1.x stays for saved decisions.
+    contract_version: z.union([
+      z.enum(["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "1.10", "1.11", "1.12"]),
+      z.string().regex(/^2\.(0|[1-9][0-9]*)$/),
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
@@ -584,7 +556,7 @@ export const decisionSchema = z
               models_may_qualify: z.number().int().nonnegative().optional().default(0),
               offerings_may_qualify: z.number().int().nonnegative().optional().default(0),
             })
-            .strict(),
+            .strip(),
         ),
         models: z.array(
           z
@@ -599,7 +571,7 @@ export const decisionSchema = z
               formula: nullableString.optional(),
               warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional(),
             })
-            .strict(),
+            .strip(),
         ),
         model_groups: z
           .array(
@@ -618,7 +590,7 @@ export const decisionSchema = z
                     formula: nullableString.optional(),
                     warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional(),
                   })
-                  .strict()
+                  .strip()
                   .nullable(),
                 offerings: z.array(
                   z
@@ -632,15 +604,15 @@ export const decisionSchema = z
                       formula: nullableString.optional(),
                       warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional(),
                     })
-                    .strict(),
+                    .strip(),
                 ),
               })
-              .strict(),
+              .strip(),
           )
           .optional()
           .default([]),
       })
-      .strict(),
+      .strip(),
     truncated: truncatedSchema
       .optional()
       .default({ offerings: 0, models: 0 }),
@@ -656,11 +628,11 @@ export const decisionSchema = z
             .array(
               z
                 .object({ dimension: facetId, refinement: facetId, gain: z.number().finite() })
-                .strict(),
+                .strip(),
             )
             .optional(),
         })
-        .strict(),
+        .strip(),
     ),
     tipping_points: z.array(
       z
@@ -671,7 +643,7 @@ export const decisionSchema = z
           new_top: modelId.nullable(),
           refinement: facetId.nullish(),
         })
-        .strict(),
+        .strip(),
     ),
     relax: z.array(z.string()),
     // 1.5: the smallest change to each numeric cap or floor that admits a model.
@@ -686,7 +658,7 @@ export const decisionSchema = z
             unit: z.string().nullable(),
             admits: z.number().int().positive(),
           })
-          .strict(),
+          .strip(),
       )
       .optional()
       .default([]),
@@ -702,7 +674,7 @@ export const decisionSchema = z
     // 2.15 (MODEL-356): which single stated gate admits a model. The page does not render it.
     relax_single: z.unknown().optional(),
   })
-  .strict()
+  .strip()
   .transform(({ reading, coverage, relax_task_tokens, relax_single, ...decision }) => {
     void reading;
     void coverage;
