@@ -131,8 +131,8 @@ def run_cited(monkeypatch, tmp_path: Path, body: bytes, *, card_text: str = CARD
     board = refresh._reading_from_projection(
         key="cursorbench", source_id="model-160-cursorbench", benchmarks=("cursorbench_4",),
         source_url=URL, projected=projected, observed_at=OBSERVED, value_field="accuracy",
-    monkeypatch.setattr(
-        refresh, "_fetch", lambda *_a, **_k: (_ for _ in ()).throw(OSError("off")))
+        store=refresh.CopyStore(cache), card_urls=(URL,), page_ref=ref, cite_only=True,
+        row_template=template)
     monkeypatch.setattr(refresh, "collect_readings", lambda *_a, **_k: ([board], []))
     report = refresh.run(observed_at=OBSERVED, dry_run=False, root=root, source_cache=cache,
                          model_ids=("lab/orbit",), add_missing=add_missing)
