@@ -369,8 +369,33 @@ def test_an_approved_ollama_model_takes_the_tables_family(monkeypatch, model, fa
 
 def test_the_approved_table_names_no_anthropic_reader():
     assert verify.APPROVED_OLLAMA_READERS
-    assert "anthropic" not in set(verify.APPROVED_OLLAMA_READERS.values())
-    assert all(k == k.lower() for k in verify.APPROVED_OLLAMA_READERS)
+    assert all(model_family(v) != "anthropic" for v in verify.APPROVED_OLLAMA_READERS.values())
+    assert verify.APPROVED_OLLAMA_READERS == {
+        k.lower(): v for k, v in verify._OLLAMA_READER_IDS.items()}
+    assert set(verify._OLLAMA_CANONICAL) == set(verify.APPROVED_OLLAMA_READERS)
+
+
+def test_an_unapproved_model_is_refused_by_the_ollama_client():
+    with pytest.raises(verify.ExtractorError):
+        verify.OllamaChatCompletion(model="llama3:8b")
+    assert verify.OllamaChatCompletion(model="GPT-OSS:120B").model == "gpt-oss:120b"
+
+
+@pytest.mark.parametrize(("collector", "verifier"), [
+    ("codex", "gpt-oss"), ("codex-model-143", "openai"), ("codex-model-143", "gpt-5"),
+    ("unknown", "mistral"), ("anthropic", "unknown"), ("unknown", "unknown"),
+    ("other", "mistral"), ("anthropic", "other"), ("unrecorded", "gemma4"),
+    ("gpt-5", "unrecorded"), ("Other", "Unrecorded"),
+])
+def test_codex_is_openai_and_unknown_is_independent_of_no_model(collector, verifier):
+    assert not independent_families(collector, verifier)
+
+
+def test_unknown_collector_with_a_deterministic_reader_stays_independent():
+    assert independent_families("unknown", "deterministic")
+    assert independent_families("other", "deterministic")
+    assert independent_families("unrecorded", "deterministic")
+    assert model_family("codex-model-143") == "openai"
 
 
 def test_a_wrong_reply_under_the_configured_model_is_rejected_by_the_quote_guard(

@@ -6304,7 +6304,14 @@ class OllamaChatCompletion:
     def __init__(self, *, url: str | None = None, model: str | None = None,
                  max_calls: int = 400, timeout: float = 900) -> None:
         self.url = url or os.environ.get("MODELSPEC_OLLAMA_URL") or OLLAMA_URL
-        self.model = model or ollama_reader()[0]
+        if model is None:
+            self.model = ollama_reader()[0]
+        elif model.lower() in APPROVED_OLLAMA_READERS:
+            self.model = _OLLAMA_CANONICAL[model.lower()]
+        else:
+            raise ExtractorError(
+                f"ollama model {model!r} is not an approved reader: "
+                f"{sorted(APPROVED_OLLAMA_READERS)}")
         self.max_calls = max_calls
         self.timeout = timeout
         self.calls = 0
