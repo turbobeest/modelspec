@@ -8,7 +8,7 @@ from typing import Any
 from decision.contract import MODEL_COMPARISON_VERSION, FacetLookup
 from decision.credit import credit_text, is_epoch_url
 from decision.engine import offering_ref
-from decision.explain import DISPLAY_FACETS, source_ids
+from decision.explain import DISPLAY_FACETS, source_ids, verified_at
 from decision.registry import facet as registry_facet
 from decision.snapshot import ExplanationIndex
 
@@ -47,6 +47,9 @@ def collect_models(
             if found.state == "known" or citation is not None:
                 row["record_id"] = found.record_id
                 row["source_ids"] = source_ids(snapshot, [found.record_id])
+                day = verified_at(snapshot, found.record_id)
+                if day:
+                    row["verified_at"] = day
                 if citation is not None:
                     row["citation"] = citation
             rows.append(row)

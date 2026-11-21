@@ -91,3 +91,44 @@ def test_no_module_scope_clock_read():
     for node in tree.body:
         if isinstance(node, (ast.Assign, ast.Expr)):
             assert "today" not in ast.dump(node) or isinstance(node, ast.Expr)
+
+
+# ── verified_at on shown and comparison facts (contract 2.21, comparison 1.3) ──────────────
+
+
+class _Snap:
+    def __init__(self, records):
+        self.records = records
+
+    def record(self, rid):
+        return self.records[rid]
+
+
+def test_verified_at_is_the_record_verification_day_or_none():
+    from decision.explain import verified_at
+
+    snap = _Snap({"a": {"verification": {"date": "2026-10-01"}}, "b": {"citation": {}}})
+    assert verified_at(snap, "a") == "2026-10-01"
+    assert verified_at(snap, "b") is None
+    assert verified_at(snap, None) is None
+
+
+def test_verified_at_is_optional_and_absent_when_unset():
+    from decision.contract import ComparisonFact, ShownFact
+
+    old = ShownFact.model_validate({"facet": "offering.price.input", "value": 1})
+    assert "verified_at" not in old.model_dump(mode="json")
+    new = ShownFact(facet="offering.price.input", value=1, verified_at=date(2026, 10, 1))
+    assert new.model_dump(mode="json")["verified_at"] == "2026-10-01"
+    fact = {"facet": "offering.price.input", "state": "known", "value": 1, "unit": None}
+    assert "verified_at" not in ComparisonFact.model_validate(fact).model_dump(mode="json")
+    assert ComparisonFact.model_validate(fact | {"verified_at": "2026-10-01"}).verified_at == date(2026, 10, 1)
+
+
+def test_price_label_boundaries_use_the_45_day_line_with_the_facet_passed():
+    today = date(2026, 11, 21)
+    for facet in ("offering.price.input", "offering.subscription.price"):
+        assert not is_stale(_checked(today, 45), facet, today)
+        assert is_stale(_checked(today, 46), facet, today)
+    day = _checked(today, 46)
+    assert label(day) == f"Last checked {day}, may be out of date"

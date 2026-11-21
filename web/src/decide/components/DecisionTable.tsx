@@ -8,10 +8,16 @@ import {
   status,
   reason,
 } from "../adapter";
+import { priceStaleLabel } from "../adapter/staleness";
 import { useVocab } from "../vocabulary/context";
 import type { AdapterDecision, Row, Spec } from "../adapter";
 import { boardHasPreference } from "../facet-board/model";
 import { groupRowsByClass } from "../facet-board/class-groups";
+/** The stale label beside a verified price; the day is read at render, never at module load. */
+function staleNote(verifiedAt: string | undefined) {
+  const label = priceStaleLabel(verifiedAt, new Date());
+  return label ? <small className="stale-label"> {label}</small> : null;
+}
 const unavailable = <span role="img" aria-label="not yet researched or not published">–</span>;
 const columns: [string, string, (r: Row) => number | string][] = [
   ["rank", "#", (r) => r.rank ?? (r.status === 0 ? 500 : 1000 + r.dropAt)],
@@ -148,8 +154,8 @@ export function DecisionTable({
                   </small>
                 </td>
                 <td>{r.cost === null ? unavailable : money(r.cost)}</td>
-                <td>{r.best.o.in === null ? unavailable : per1M(r.best.o.in)}</td>
-                <td>{r.best.o.out === null ? unavailable : per1M(r.best.o.out)}</td>
+                <td>{r.best.o.in === null ? unavailable : per1M(r.best.o.in)}{staleNote(r.best.o.inVerified)}</td>
+                <td>{r.best.o.out === null ? unavailable : per1M(r.best.o.out)}{staleNote(r.best.o.outVerified)}</td>
                 <td>
                   {r.best.o.ttft === null ? unavailable : r.best.o.ttft + " ms"}
                 </td>

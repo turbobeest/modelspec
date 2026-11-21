@@ -56,6 +56,9 @@ export interface Offering {
   regions: string[] | null;
   in: number | null;
   out: number | null;
+  /** Day the input and output prices were last verified; absent when the fact carries none. */
+  inVerified?: string;
+  outVerified?: string;
   ttft: number | null;
   tps: number | null;
   ret: Retention;

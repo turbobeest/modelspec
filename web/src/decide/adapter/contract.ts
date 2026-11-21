@@ -430,6 +430,8 @@ export const decisionSchema = z
                   // 1.4: the fact's sources, as IDs into the decision's `sources`.
                   source_ids: z.array(z.string()).optional().default([]),
                   citation: citationSchema.optional(),
+                  // 2.21: the day of the fact's latest verification. Display only.
+                  verified_at: z.iso.date().optional(),
                 })
                 .strict(),
             ),
@@ -547,6 +549,7 @@ export const decisionSchema = z
       "2.18",
       "2.19",
       "2.20",
+      "2.21",
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
