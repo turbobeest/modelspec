@@ -1854,6 +1854,8 @@ def _compile(inputs: SnapshotInputs, registry: Any, guard: ExcludedSources | Non
     c.prefer_verified_evidence()
     for device in inputs.hardware:
         c.add_hardware(device)
+    for record in inputs.hardware_fit_records:
+        c.add_hardware_fit(record)
     if c.refused_supersessions:
         # Counts and fixed reason wording only: never a record id.
         logger.warning(
@@ -1864,8 +1866,6 @@ def _compile(inputs: SnapshotInputs, registry: Any, guard: ExcludedSources | Non
         # Public CI logs carry counts only: never a card id or a source URL.
         logger.warning("%d hardware cards cite %d unregistered source URLs",
                        *c.unregistered_hardware)
-    for record in inputs.hardware_fit_records:
-        c.add_hardware_fit(record)
     return c
 
 
