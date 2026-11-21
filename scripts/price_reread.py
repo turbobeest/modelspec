@@ -1425,20 +1425,25 @@ def main(argv: list[str] | None = None) -> int:
             except (OSError, ValueError) as exc:
                 parser.error(f"invalid rendered artifact: {exc}")
         if args.fallback_from_render is not None:
-            from decision.firecrawl import FakeFirecrawlFetcher, FirecrawlFetcher
+            from decision.firecrawl import (
+                DisabledFirecrawlFetcher, FakeFirecrawlFetcher, FirecrawlFetcher, firecrawl_opted_in,
+            )
             from scripts.price_reread_fallback import fallback_to, monthly_budget, read_fallback
 
             try:
                 rendered = RenderedReplayFetcher(args.fallback_from_render)
                 month = datetime.now(UTC).strftime("%Y-%m")
                 budget = monthly_budget(args.fallback_ledger, month)
+                # Default OFF: only an explicit opt-in constructs the paid client.
+                paid = (FakeFirecrawlFetcher() if args.fallback_fake else
+                        FirecrawlFetcher(allowance=budget.allowance) if firecrawl_opted_in()
+                        else DisabledFirecrawlFetcher())
                 fallback_to(root=ROOT, rendered=rendered, directory=args.fallback_to, month=month,
                             # Missing plain entries are unavailable in a fake run.
                             # Demo eligibility never makes a primary HTTP request.
                             plain=(rendered if args.fallback_fake else
                                    Fetcher(user_agent=USER_AGENT)),
-                            firecrawl=FakeFirecrawlFetcher() if args.fallback_fake else
-                            FirecrawlFetcher(allowance=budget.allowance), budget=budget)
+                            firecrawl=paid, budget=budget)
                 replay, _ = read_fallback(args.fallback_to)
                 print(replay.spend_line)
                 if summary := os.environ.get("GITHUB_STEP_SUMMARY"):
