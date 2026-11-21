@@ -150,6 +150,8 @@ jobs:
             ${{ runner.temp }}/report.md
             ${{ runner.temp }}/report.json
             ${{ runner.temp }}/audit.json
+            ${{ runner.temp }}/evidence-reread.md
+            ${{ runner.temp }}/evidence-reread.json
       - name: Prove the generated diff is score-only
         id: guard
         if: inputs.dry_run != true
@@ -168,29 +170,56 @@ jobs:
               raise SystemExit(1)
           PY
           echo "score_only=true" >> "$GITHUB_OUTPUT"
+      - name: Re-read the evidence rows no live board covers
+        id: reread
+        # A crash here must not stop the board refresh; the last step turns it red.
+        continue-on-error: true
+        timeout-minutes: 20
+        # MODEL-534: a rolling window of the oldest-verified rows, at most 400 a run, read
+        # with the same deterministic reader. It appends verification lines and keeps copies
+        # where a host's terms allow; it never edits a card. No paid client, no model.
+        env:
+          MODELSPEC_SOURCE_CACHE: ${{ runner.temp }}/reread-copies
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=(--root . --observed-at "$(date -u +%F)" --source-cache "$MODELSPEC_SOURCE_CACHE" --report-json "$RUNNER_TEMP/evidence-reread.json")
+          if [ "$DRY_RUN" = "true" ]; then
+            args+=(--dry-run)
+          fi
+          python -I -m scripts.evidence_reread "${args[@]}" > "$RUNNER_TEMP/evidence-reread.md"
+          cat "$RUNNER_TEMP/evidence-reread.md" >> "$GITHUB_STEP_SUMMARY"
       - name: Count changes and verification failures
         id: result
         run: |
-          python -I - "$RUNNER_TEMP/report.json" "$GITHUB_OUTPUT" <<'PY'
+          python -I - "$RUNNER_TEMP/report.json" "$RUNNER_TEMP/evidence-reread.json" "$GITHUB_OUTPUT" <<'PY'
           import json, sys
           report = json.load(open(sys.argv[1]))
-          with open(sys.argv[2], "a") as out:
+          try:
+              reread = json.load(open(sys.argv[2]))["counts"]
+          except OSError:
+              reread = dict.fromkeys(("verified", "mismatch", "unreachable", "cited"), 0)
+          written = sum(reread[key] for key in ("verified", "mismatch", "unreachable", "cited"))
+          with open(sys.argv[3], "a") as out:
               print(f"changes={len(report['changes'])}", file=out)
               print(f"reconfirmed={len(report['reconfirmed'])}", file=out)
-              print(f"updates={len(report['changes']) + len(report['reconfirmed'])}", file=out)
+              print(f"reread={written}", file=out)
+              print(f"reread_mismatch={reread['mismatch']}", file=out)
+              print(f"updates={len(report['changes']) + len(report['reconfirmed']) + written}", file=out)
               print(f"failures={len(report['failures'])}", file=out)
               print(f"quarantined={len(report['quarantined'])}", file=out)
           PY
       - name: Prepare the pull-request body
         if: inputs.dry_run != true && steps.result.outputs.updates != '0'
         run: |
-          python -I - "$RUNNER_TEMP/report.md" "$RUNNER_TEMP/pr-body.md" <<'PY'
+          python -I - "$RUNNER_TEMP/report.md" "$RUNNER_TEMP/pr-body.md" "$RUNNER_TEMP/evidence-reread.md" <<'PY'
           import sys
           from pathlib import Path
           from scripts.refresh_leaderboards import fit_pull_request_body
 
-          report_path, body_path = sys.argv[1:]
+          report_path, body_path, reread_path = sys.argv[1:]
           report = Path(report_path).read_text(encoding="utf-8")
+          if Path(reread_path).is_file():
+              report += "\n" + Path(reread_path).read_text(encoding="utf-8")
           opening = (
               "This weekly job re-read the registered live boards for existing models "
               "in the premier set.\n\n"
@@ -214,6 +243,7 @@ jobs:
           delete-branch: true
           add-paths: |
             models/**
+            reports/evidence-reread/**
             verification/log.jsonl
             verification/queue/events.jsonl
           signoff: true
@@ -251,13 +281,15 @@ jobs:
         env:
           PR_URL: ${{ steps.pr.outputs.pull-request-url }}
         run: |
-          python -I - "$RUNNER_TEMP/report.md" "$RUNNER_TEMP/pr-body.md" <<'PY'
+          python -I - "$RUNNER_TEMP/report.md" "$RUNNER_TEMP/pr-body.md" "$RUNNER_TEMP/evidence-reread.md" <<'PY'
           import os, sys
           from pathlib import Path
           from scripts.refresh_leaderboards import fit_pull_request_body
 
-          report_path, body_path = sys.argv[1:]
+          report_path, body_path, reread_path = sys.argv[1:]
           report = Path(report_path).read_text(encoding="utf-8")
+          if Path(reread_path).is_file():
+              report += "\n" + Path(reread_path).read_text(encoding="utf-8")
           opening = (
               "This weekly job re-read the registered live boards for existing models "
               "in the premier set.\n\n"
@@ -281,6 +313,16 @@ jobs:
             echo "::warning::Could not update the pull request body. The full report is in the leaderboard-refresh-report artifact."
             exit 1
           fi
+      - name: Fail a run where the evidence re-read crashed
+        if: steps.reread.outcome == 'failure'
+        run: |
+          echo "::error::The evidence re-read step failed; see its log. The board refresh above is unaffected."
+          exit 1
+      - name: Fail a run where a re-read evidence row no longer matches its source
+        if: steps.result.outputs.reread_mismatch != '' && steps.result.outputs.reread_mismatch != '0'
+        run: |
+          echo "::error::One or more evidence rows no longer match their source; see the run summary. The mismatch lines are in the pull request."
+          exit 1
       - name: Fail a no-update run that could not read every board
         if: steps.result.outputs.updates == '0' && steps.result.outputs.failures != '0'
         run: |
