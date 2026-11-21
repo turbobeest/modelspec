@@ -421,6 +421,7 @@ class HubScope:
 
     reason: str | None = None
     unread: bool = False
+    hold: str | None = None
 
 
 def hub_metadata_url(org: str, repo: str) -> str:
@@ -543,7 +544,7 @@ def hub_scope_for_signal(
     ):
         return HubScope(unread=True)
 
-    from release_signals.scope import hub_metadata
+    from release_signals.scope import hub_hold_reason, hub_metadata
     from release_signals.watch import Seen, Source
     from scripts.release_watch_filter import _hub_scope_reason
 
@@ -561,7 +562,7 @@ def hub_scope_for_signal(
     reason = _hub_scope_reason(seen, source)
     if reason:
         return HubScope(reason=reason)
-    return HubScope()
+    return HubScope(hold=hub_hold_reason(pipeline_tag, tags))
 
 
 def _accepted_page_kind(url: str, lab_hosts: frozenset[str], hf_orgs: frozenset[str]) -> str:

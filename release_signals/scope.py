@@ -287,6 +287,19 @@ _ENCODER_NAME = re.compile(
     r"|radio(?:v?\d+)?|feature-extractor)(?![a-z0-9])"
 )
 ADAPTER_CONFIG_FILE_TAG = "file:adapter_config.json"
+# Libraries of domain simulators and emulators, not language or embedding
+# models. Keep this list explicit and short.
+_SIMULATOR_LIBRARIES = frozenset({"fme", "earth2studio", "neuralgcm"})
+# Tags of research-checkpoint repositories. A task tag that keeps a
+# repository outranks them.
+_CHECKPOINT_TAGS = frozenset({"speculative-decoding", "latent-feedback"})
+# An intermediate training checkpoint: a run hash after `-sft-` or `-dpo-`
+# (seven or more hex digits, at least one a digit), or a name that ends in
+# `checkpoints`. Matched on `_scope_key` of the repository name.
+_CHECKPOINT_NAME = re.compile(
+    r"-(?:sft|dpo)-(?:[a-z0-9]+-)*(?=[0-9a-f]*\d)[0-9a-f]{7,}$"
+    r"|(?<![a-z0-9])checkpoints$"
+)
 
 
 def _is_detection_key(value: str) -> bool:
@@ -332,6 +345,15 @@ def hub_artefact_reason(
         text = _text(candidate)
         if text and _is_detection_key(text):
             return "forensics or detection"
+    if _CHECKPOINT_NAME.search(_scope_key(name)):
+        return "intermediate checkpoint"
+    if _keeping_task_tag(tags) is None:
+        for candidate in (library_name or "", *tags):
+            text = _text(candidate)
+            if text and _scope_key(text) in _SIMULATOR_LIBRARIES:
+                return "domain simulator library"
+            if text and _scope_key(text) in _CHECKPOINT_TAGS:
+                return "research checkpoint"
     if _text(pipeline_tag) is None and _keeping_task_tag(tags) is None:
         for tag in tags:
             text = _text(tag)
@@ -340,6 +362,22 @@ def hub_artefact_reason(
         if _ENCODER_NAME.search(_scope_key(name)):
             return "feature encoder without a pipeline tag"
     return None
+
+
+def hub_hold_reason(pipeline_tag: str | None, tags: Sequence[str] = ()) -> str | None:
+    """Hold for identity review: the repository states no task.
+
+    Not out of scope. No pipeline tag and no task-implying tag, so nothing
+    says the repository is a model the catalogue ranks. Call it only after
+    the out-of-scope rules found nothing, and only on a readable Hub row.
+    """
+    if _text(pipeline_tag) is not None:
+        return None
+    for tag in tags:
+        text = _text(tag)
+        if text and (in_scope_pipeline_tag(text) or _folded(text) in _TASK_TAGS_THAT_KEEP):
+            return None
+    return "Hub repository states no task"
 
 
 def tag_scope(pipeline_tag: str | None, tags: Sequence[str] = ()) -> TagDecision:
@@ -464,6 +502,7 @@ def relevant_hub_tags(
             or _artefact_key(text) in _ARTEFACT_TAGS
             or _is_detection_key(text)
             or _scope_key(text) in _ENCODER_TAGS
+            or _scope_key(text) in _CHECKPOINT_TAGS
         ):
             add(text)
     return tuple(kept)

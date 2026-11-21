@@ -293,7 +293,7 @@ def test_a_text_generation_repository_is_processed_as_it_is_today(
     assert (tmp_path / "models" / "acme" / "orbit-9.md").is_file()
 
 
-def test_a_repository_with_no_pipeline_tag_and_no_artefact_tag_is_processed_as_today(
+def test_a_repository_with_no_pipeline_tag_and_no_task_tag_is_held(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
 ) -> None:
     result, seen = _run(
@@ -302,8 +302,9 @@ def test_a_repository_with_no_pipeline_tag_and_no_artefact_tag_is_processed_as_t
         {"id": f"{ORG}/orbit-9", "tags": ["transformers", "en", "license:mit"]},
     )
 
-    assert result["status"] == "new"
-    assert result["model_id"] == "acme/orbit-9"
+    assert result["status"] == "uncertain"
+    assert result["model_id"] is None
+    assert result["reason"] == "Hub repository states no task"
     assert "hub_metadata" not in result
     assert _meta("orbit-9") in seen
 
@@ -637,3 +638,21 @@ def test_absent_or_null_pipeline_tag_with_a_tag_list_stays_a_valid_read(
     assert "hub_metadata" not in result
     assert seen == [_meta("canvas-1")]
     assert not (tmp_path / "models" / "acme" / "canvas-1.md").exists()
+
+
+def test_a_hub_repository_that_states_no_task_is_held_for_identity_review(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    """No pipeline tag and no task tag: identity review, not a card draft."""
+    metadata = {
+        "id": f"{ORG}/orbit-lab-9b",
+        "library_name": "transformers",
+        "tags": ["transformers", "license:apache-2.0"],
+    }
+    result, seen = _run(monkeypatch, tmp_path, _signal("Orbit Lab 9B", "orbit-lab-9b"), metadata)
+
+    assert result["status"] == "uncertain"
+    assert result["reason"] == "Hub repository states no task"
+    assert result["model_id"] is None
+    assert seen == [_meta("orbit-lab-9b")]
+    assert not (tmp_path / "models" / "acme" / "orbit-lab-9b.md").exists()

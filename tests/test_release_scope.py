@@ -16,6 +16,7 @@ from release_signals.scope import (
     OUT_OF_SCOPE_PIPELINE_TAGS,
     TagDecision,
     derivative_reason,
+    hub_hold_reason,
     hub_metadata,
     known_pipeline_tag,
     out_of_scope_reason,
@@ -662,9 +663,79 @@ def test_a_base_llm_checkpoint_is_kept() -> None:
 
 
 def test_an_untagged_repository_without_an_encoder_name_is_kept() -> None:
-    assert _hub_reason("acme-lab/checkpoints", {"tags": []}) is None
+    assert _hub_reason("acme-lab/plain-lm", {"tags": []}) is None
     # A bare `encoder` in a name is an encoder-decoder language model.
     assert _hub_reason("acme-lab/bert-seq-encoder", {"tags": []}) is None
     # An embedding model that names itself an encoder keeps its task tag.
     row = {"pipeline_tag": None, "tags": ["sentence-similarity"]}
     assert _hub_reason("acme-lab/text-encoder", row) is None
+
+
+def test_a_research_checkpoint_with_no_task_is_out_of_scope() -> None:
+    row = {
+        "pipeline_tag": None,
+        "library_name": "pytorch",
+        "tags": ["pytorch", "speculative-decoding", "latent-feedback", "license:mit"],
+    }
+    assert _hub_reason("acme-lab/lab-notes-7b", row) == "research checkpoint"
+
+
+def test_a_checkpoint_tag_beside_a_task_tag_is_kept() -> None:
+    row = {
+        "pipeline_tag": "text-generation",
+        "tags": ["text-generation", "speculative-decoding"],
+    }
+    assert _hub_reason("acme-lab/draft-head-7b", row) is None
+
+
+def test_an_intermediate_sft_checkpoint_name_is_out_of_scope() -> None:
+    assert _hub_reason("acme-lab/chat-joint-sft-9b-3fa91c2d", {"tags": []}) == (
+        "intermediate checkpoint"
+    )
+    assert _hub_reason("acme-lab/chat-dpo-a1b2c3d4e", {"tags": []}) == (
+        "intermediate checkpoint"
+    )
+    assert _hub_reason("acme-lab/checkpoints", {"tags": []}) == "intermediate checkpoint"
+    assert _hub_reason("acme-lab/chat-7b-checkpoints", {"tags": []}) == (
+        "intermediate checkpoint"
+    )
+
+
+def test_a_released_sft_or_dpo_name_without_a_run_hash_is_kept() -> None:
+    row = {"pipeline_tag": "text-generation", "tags": ["text-generation"]}
+    for name in ("chat-sft", "chat-sft-9b", "chat-dpo-decaded", "chat-sft-instruct-v2"):
+        assert _hub_reason(f"acme-lab/{name}", row) is None
+
+
+def test_a_domain_emulator_library_is_out_of_scope() -> None:
+    row = {"pipeline_tag": None, "library_name": "fme", "tags": ["fme", "license:apache-2.0"]}
+    assert _hub_reason("acme-lab/climate-emulator-v1", row) == "domain simulator library"
+
+
+def test_a_repository_that_states_no_task_is_held_not_out() -> None:
+    row = {"pipeline_tag": None, "library_name": "transformers", "tags": ["transformers"]}
+    assert _hub_reason("acme-lab/mystery-7b", row) is None
+    assert hub_hold_reason(*hub_metadata(row, "acme-lab/mystery-7b")[:2]) == (
+        "Hub repository states no task"
+    )
+
+
+def test_tasks_that_name_a_ranked_model_are_neither_out_nor_held() -> None:
+    shapes = {
+        "acme-lab/video-lm": {"pipeline_tag": "video-text-to-text", "tags": ["video-text-to-text"]},
+        "acme-lab/distill-8b": {"pipeline_tag": "text-generation", "tags": ["text-generation"]},
+        "acme-lab/lm-4b": {"pipeline_tag": "text-generation", "tags": ["text-generation"]},
+        "acme-lab/base-vl": {"pipeline_tag": "image-text-to-text", "tags": ["image-text-to-text"]},
+        "acme-lab/embed-v2": {"pipeline_tag": "sentence-similarity", "tags": ["sentence-similarity"]},
+        "acme-lab/embed-base": {"pipeline_tag": None, "tags": ["feature-extraction"]},
+    }
+    for repository, row in shapes.items():
+        assert _hub_reason(repository, row) is None, repository
+        assert hub_hold_reason(*hub_metadata(row, repository)[:2]) is None, repository
+
+
+def test_an_untagged_run_id_name_with_empty_metadata_is_held() -> None:
+    row = {"pipeline_tag": None, "tags": []}
+    name = "acme-lab/agent-joint-sft-9b-ab12cd-2n"
+    assert _hub_reason(name, row) is None
+    assert hub_hold_reason(None, ()) == "Hub repository states no task"
