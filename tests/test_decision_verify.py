@@ -5493,6 +5493,9 @@ def _registry_with_zai(tmp_path, none: bool):
     if none:
         entry.update(trust_centre="none", trust_centre_checked="2026-11-20",
                      trust_centre_searched=["https://z.ai/trust-center"])
+    else:
+        for key in ("trust_centre", "trust_centre_checked", "trust_centre_searched"):
+            entry.pop(key, None)
     path.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True))
     return reg.load(root, repo_root=Path(__file__).resolve().parent.parent)
 
