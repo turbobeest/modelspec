@@ -222,13 +222,17 @@ def test_p4_old_snapshot_has_an_explicit_missing_device_reason():
 
 @pytest.mark.parametrize("missing", [("spark-spec",), ("spark-spec", "spark-manual")])
 def test_unregistered_hardware_sources_produce_unknowns_without_invented_ids(missing, caplog):
+    caplog.set_level("WARNING")
     sources = {k: v for k, v in SOURCES_WITH_HARDWARE.items() if k not in missing}
     built = build_snapshot(SnapshotInputs(models=[generator("lab/a")], hardware=[spark()],
                                          sources=sources), gate=False)
     for sid in missing:
         url = SOURCES_WITH_HARDWARE[sid]
         assert url not in json.dumps(built.content)
-        assert url in caplog.text
+        assert url not in caplog.text
+    assert SPARK not in caplog.text
+    assert "http" not in caplog.text
+    assert f"1 hardware cards cite {len(missing)} unregistered source URLs" in caplog.text
     index = load_built_snapshot(built, include_archive=False)
     reason = f"{len(missing)} hardware source URLs are not registered"
     assert index.hardware_device(SPARK) == {"unknown_reason": reason, "record_id": None, "source_ids": []}
