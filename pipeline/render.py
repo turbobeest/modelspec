@@ -24,6 +24,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from decision.staleness import is_stale, label as stale_label
 from decision.credit import credit_html, is_epoch_url, credit_text, EPOCH_CREDIT
 from pipeline import landing_chrome
 from pipeline.export import Build, build_day, models_reporting
@@ -1117,7 +1118,14 @@ def competitors_section(relations: Any, pages: Collection[str] | None = None) ->
                     note + f'<div class="grid">{"".join(cards)}</div>')
 
 
-def evidence_section(model: Model) -> str:
+def _stale_note(rec: dict[str, Any], today: date | None) -> str:
+    """The stale label beside a verified record's date; cited rows are not verified."""
+    if today is None or not rec.get("verified_at") or not is_stale(rec["verified_at"], None, today):
+        return ""
+    return f' <span class="pill unverified">{esc(stale_label(rec["verified_at"]))}</span>'
+
+
+def evidence_section(model: Model, today: date | None = None) -> str:
     """Per-score evidence: the reviewed kind, with a source and a date each."""
     block = model.front.get("benchmarks") or {}
     records = block.get("evidence") if isinstance(block, dict) else None
@@ -1139,7 +1147,7 @@ def evidence_section(model: Model) -> str:
             f'<td>{esc(rec.get("model_id_as_evaluated"))}</td>'
             f'<td class="num">{score}</td>'
             f'<td>{esc(rec.get("evidence_date"))} '
-            f'<span class="pill">{esc(rec.get("date_type"))}</span></td>'
+            f'<span class="pill">{esc(rec.get("date_type"))}</span>{_stale_note(rec, today)}</td>'
             f'<td><span class="pill">{esc(kind.replace("_", " "))}</span>'
             + (' <span class="pill">Cited, not machine-verified</span>' if rec in cited else '')
             + '</td>'
@@ -1488,7 +1496,7 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
 {chips}
 {stat_strip(model)}{cited_facts_section(model)}
 {sections}{authoring_guide_section(front)}{strips}
-{evidence_section(model)}
+{evidence_section(model, build_day(build))}
 <h2>Reported benchmark scores</h2>
 {stale if scores else NO_SCORES}
 <div class="scroll"><table>
@@ -1984,7 +1992,8 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
             f'<tr><td>{esc(r.get("model_id"))}</td>'
             f'<td class="num">{esc(format_score(r.get("score"), r.get("unit")))}</td>'
             f'<td>{esc(r.get("evidence_date"))} '
-            f'<span class="pill">{esc(r.get("date_type"))}</span></td>'
+            f'<span class="pill">{esc(r.get("date_type"))}</span>'
+            f'{_stale_note(r, build_day(build)) if title == "Verified results" else ""}</td>'
             f'<td>{esc(r.get("source_kind"))}</td>'
             f'<td><a href="{esc(r.get("source_url"))}" rel="nofollow noopener">source</a></td></tr>'
             for r in results

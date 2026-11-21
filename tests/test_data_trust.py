@@ -1378,7 +1378,7 @@ def test_trust_line_counts_stale_by_group_and_change(tmp_path):
     assert s["by_group"]["offering price"] == {"verified": 2, "older": 1}
     assert s["by_group"]["benchmark evidence"] == {"verified": 1, "older": 0}
     assert trust_line.stale(c, TODAY, 200, 200)["older"] == 0  # the age line is a parameter
-    line = trust_line.compute(c, tmp_path, TODAY)
+    line = trust_line.compute(c, tmp_path, TODAY, 90, 45)
     assert line["moved_hosts"] == {"recorded": False, "moved": 0, "source_ids": []}
     assert "not recorded yet" in trust_line.text(line)
     first = trust_line.with_change(line, tmp_path, TODAY)
