@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import difflib
 import re
+import sys
 from dataclasses import dataclass, replace
 from datetime import date
 from functools import cache
@@ -524,6 +525,19 @@ def _keys(err: _Errors, where: str, entry: dict, required: set[str], optional: s
         err.add(where, f"unknown field {k!r}")
 
 
+def _wall_clock_is_trusted() -> bool:
+    """False in the Worker's Pyodide runtime, true everywhere else.
+
+    The Worker loads the registry at module scope, which Cloudflare runs at
+    deploy validation and again in its memory snapshot. Workers freeze the
+    clock outside a request, so `date.today()` there is not today's date, and
+    a "must not be in the future" comparison against it rejects a valid
+    record and fails the version upload (error 10021). Data CI, the build and
+    the tests all run on a real clock and keep the check.
+    """
+    return sys.platform != "emscripten"
+
+
 def _iso_date(value: Any) -> bool:
     try:
         date.fromisoformat(str(value))
@@ -759,7 +773,7 @@ def _load_providers(err: _Errors, root: Path) -> dict[str, Provider]:
             if not _iso_date(checked):
                 err.add(where, "trust_centre `none` needs trust_centre_checked as an ISO date")
                 trust_centre = None
-            elif date.fromisoformat(str(checked)) > date.today():
+            elif _wall_clock_is_trusted() and date.fromisoformat(str(checked)) > date.today():
                 err.add(where, "trust_centre_checked must not be in the future")
                 trust_centre = None
             if not (isinstance(searched, list) and searched and all(_https(u) for u in searched)):
