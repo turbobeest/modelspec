@@ -165,6 +165,7 @@ jobs:
               out.write(aggregate)
           with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
               out.write(f"errors={report['invariants']['errors']}\n")
+              out.write(f"redirect_unclassified={report['sample']['redirect_unclassified']}\n")
           body = (
               f'Weekly data trust audit for {day} (MODEL-267).\n\n' + aggregate + '\n'
               f'Full private report: `reports/data-trust/{day}.md` and `.json`. '
@@ -172,7 +173,8 @@ jobs:
               'defects are an append-only stream in `defects*.jsonl`. '
               'Unreadable claims are excluded from the Wilson interval. '
               'This sample cannot establish five-nines accuracy.\n\n'
-              'Served-tier invariant errors fail the job after this PR is created. '
+              'Served-tier invariant errors, including a retained text extract from a cite-only host, '
+              'and fetches refused at the terms register (redirect_unclassified) fail the job after this PR is created. '
               'Legacy provenance gaps, reader gaps, source mismatches and unreadable sources do not fail it. '
               'Guard assignments remain null until preventive fixes are tested. '
               'A human reviews and merges this PR.\n'
@@ -198,6 +200,11 @@ jobs:
         if: steps.counts.outputs.errors != '0'
         run: |
           echo '::error::Served invariant errors found. The private report PR contains the findings.'
+          exit 1
+      - name: Fail on fetches refused at the terms register after retaining the report
+        if: steps.counts.outputs.redirect_unclassified != '0'
+        run: |
+          echo '::error::A fetch was refused at the terms register (redirect_unclassified). The private report PR names each host.'
           exit 1
   recall-dispatch:
     # MODEL-476: a pull request opened with the repository token starts no pull_request
