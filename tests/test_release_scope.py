@@ -739,3 +739,11 @@ def test_an_untagged_run_id_name_with_empty_metadata_is_held() -> None:
     name = "acme-lab/agent-joint-sft-9b-ab12cd-2n"
     assert _hub_reason(name, row) is None
     assert hub_hold_reason(None, ()) == "Hub repository states no task"
+
+
+def test_a_date_suffix_after_sft_is_not_a_run_hash() -> None:
+    row = {"pipeline_tag": "text-generation", "tags": ["text-generation"]}
+    assert _hub_reason("acme/model-sft-20241105", row) is None
+    assert _hub_reason("acme/model-sft-3f9a2c1", row) == "intermediate checkpoint"
+    for name in ("model-SFT", "model-sft-v2", "model-dpo-2024"):
+        assert _hub_reason(f"acme/{name}", row) is None

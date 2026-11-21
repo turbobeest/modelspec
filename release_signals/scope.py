@@ -294,10 +294,10 @@ _SIMULATOR_LIBRARIES = frozenset({"fme", "earth2studio", "neuralgcm"})
 # repository outranks them.
 _CHECKPOINT_TAGS = frozenset({"speculative-decoding", "latent-feedback"})
 # An intermediate training checkpoint: a run hash after `-sft-` or `-dpo-`
-# (seven or more hex digits, at least one a digit), or a name that ends in
-# `checkpoints`. Matched on `_scope_key` of the repository name.
+# (seven or more hex characters with a digit and an a-f letter, so a date is not
+# one), or a name that ends in `checkpoints`. Matched on `_scope_key` of the repository name.
 _CHECKPOINT_NAME = re.compile(
-    r"-(?:sft|dpo)-(?:[a-z0-9]+-)*(?=[0-9a-f]*\d)[0-9a-f]{7,}$"
+    r"-(?:sft|dpo)-(?:[a-z0-9]+-)*(?=[0-9a-f]*\d)(?=\d*[a-f])[0-9a-f]{7,}$"
     r"|(?<![a-z0-9])checkpoints$"
 )
 
