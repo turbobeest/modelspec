@@ -266,19 +266,21 @@ def test_a_redirect_to_a_forbids_or_cite_only_host_is_never_requested(
     report = reread.run(data.root, observed_at=TODAY, dry_run=False, store_root=tmp_path / "c",
                         request=request, pacer=reread.Pacer(0, sleep=lambda s: None))
     assert request.calls == [OLD.format("a")]
-    assert report.counts["unreachable"] == 1
-    assert data.lines()[-1]["outcome"] == "unreachable"
+    assert report.counts["deferred"] == 1 and not report.counts["unreachable"]
+    assert report.blocked_hosts == {reread.host_of(target): 1}
+    assert len(data.lines()) == 1
     assert not (data.root / reread.COPIES_DIRECTORY).exists()
 
 
-def test_a_cite_only_origin_that_redirects_to_a_refused_host_is_cited(reread, data, tmp_path):
+def test_a_cite_only_origin_that_redirects_is_deferred_not_cited(reread, data, tmp_path):
     data.row(CITE_ONLY)
-    target = "https://www.anthropic.com/moved.json"
-    data.write()
-    request = serve({CITE_ONLY: (302, "https://other.example.net/x", b"")})
     data.terms["other.example.net"] = "forbids"
     data.write()
+    events = (data.root / "verification/queue/events.jsonl").read_bytes()
+    request = serve({CITE_ONLY: (302, "https://other.example.net/x", b"")})
     report = reread.run(data.root, observed_at=TODAY, dry_run=False, store_root=tmp_path / "c",
                         request=request, pacer=reread.Pacer(0, sleep=lambda s: None))
-    assert request.calls == [CITE_ONLY] and report.counts["cited"] == 1
-    assert target not in request.calls
+    assert request.calls == [CITE_ONLY]
+    assert report.counts["deferred"] == 1 and not report.counts["cited"]
+    assert len(data.lines()) == 1
+    assert (data.root / "verification/queue/events.jsonl").read_bytes() == events
