@@ -141,6 +141,7 @@ def test_model_164_approved_expected_answer_changes_are_preserved() -> None:
             "anthropic/claude-opus-4-6",
             "meta/muse-spark-1-3",
             "meta/muse-spark-1-1",
+            "google/gemini-2-5-flash",
         },
         "Q15": {
             "IEITYuan/Yuan-embedding-2.0-en",
