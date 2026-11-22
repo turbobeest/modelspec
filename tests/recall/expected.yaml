@@ -963,7 +963,7 @@ questions:
           - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
             read: "2026-09-25"
       - model_id: google/gemini-2-5-flash
-        reason: "Admitted Arena vision rating, 1235.3. The model is deprecated, and deprecated models rank with a deprecated warning by design (only a retired model is excluded)."
+        reason: "Admitted Arena vision rating, 1235.3. Deprecated models rank with a warning by design."
         sources:
           - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
             read: "2026-11-21"
