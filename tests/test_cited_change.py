@@ -651,4 +651,8 @@ def test_a_silent_page_is_no_conflict_with_an_earlier_agreed_value(data):
 def test_a_seeded_agreement_on_another_value_blocks(data):
     seed(data, harness=False, agreed=True, agreed_value=999, url="https://docs.x.ai/docs/another-page")
     refused("prior_attempt_disagreed")  # the live pair agrees on 262144, not 999
-    assert run(readers=pair(value=999)).changed  # the same value is no conflict
+
+
+def test_a_seeded_agreement_on_the_same_value_is_no_conflict(data):
+    seed(data, harness=False, agreed=True, agreed_value=262144, url="https://docs.x.ai/docs/another-page")
+    assert run().changed
