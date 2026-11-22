@@ -34,7 +34,7 @@ PIN_REF = "${{ steps.engine_pin.outputs.sha }}"
 ENGINE_REPOSITORY = "turbobeest/modelspec"
 PRICE_WORKFLOW_NAME = "Weekly price and plan re-read"
 PLAYWRIGHT_INSTALL = [
-    "python", "-I", "-m", "playwright", "install", "--with-deps", "--only-shell", "chromium",
+    "python", "-I", "-m", "playwright", "install", "--only-shell", "chromium",
 ]
 HASHED_RENDER_INSTALL = [
     "python", "-I", "-m", "pip", "install", "--require-hashes", "--no-deps", "-r",
@@ -1713,21 +1713,22 @@ def test_a_writer_command_outside_the_allowlist_is_rejected(
 @pytest.mark.parametrize(
     "command",
     [
-        "python -m playwright install --with-deps --only-shell chromium",
-        "playwright install --with-deps --only-shell chromium",
+        "python -I -m playwright install --with-deps --only-shell chromium",
+        "python -m playwright install --only-shell chromium",
+        "playwright install --only-shell chromium",
         "python -I -m playwright",
         "python -I -m playwright install",
-        "python -I -m playwright install --with-deps chromium",
-        "python -I -m playwright install --with-deps --only-shell firefox",
-        "python -I -m playwright install --with-deps --only-shell chromium firefox",
-        "python -I -m playwright install --with-deps --only-shell chromium --force",
+        "python -I -m playwright install chromium",
+        "python -I -m playwright install --only-shell firefox",
+        "python -I -m playwright install --only-shell chromium firefox",
+        "python -I -m playwright install --only-shell chromium --force",
         "python -I -m playwright install-deps chromium",
         "python -I -m playwright codegen https://example.invalid",
-        "python -I -m playwright.__main__ install --with-deps --only-shell chromium",
+        "python -I -m playwright.__main__ install --only-shell chromium",
     ],
 )
 def test_render_rejects_other_playwright_commands(command: str) -> None:
-    install = "python -I -m playwright install --with-deps --only-shell chromium"
+    install = "python -I -m playwright install --only-shell chromium"
     text = _text("price-reread")
     assert text.count(install) == 1
     problems = isolation_problems(text.replace(install, command, 1), workflow_file="price-reread.yml")
@@ -1962,7 +1963,7 @@ def test_fallback_cannot_install_a_browser(command) -> None:
 
 def test_other_writer_jobs_cannot_install_chromium() -> None:
     problems = isolation_problems(_with_command(
-        "python -I -m playwright install --with-deps --only-shell chromium"
+        "python -I -m playwright install --only-shell chromium"
     ), workflow_file="daily-research.yml")
     assert "research: rejected playwright invocation" in problems
 

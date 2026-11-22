@@ -12,8 +12,11 @@ env:
 jobs:
   probe:
     name: Speed probe (${{ inputs.mode }})
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, modelspec-private]
     timeout-minutes: 45
+    concurrency:
+      group: private-runner-long-manual
+      cancel-in-progress: false
     outputs:
       pr_branch: ${{ (steps.pr.outputs.pull-request-operation == 'created' || steps.pr.outputs.pull-request-operation == 'updated') && steps.pr.outputs.pull-request-branch || '' }}
     permissions:

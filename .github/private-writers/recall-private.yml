@@ -16,7 +16,7 @@ concurrency:
 jobs:
   recall:
     name: Approved answers on private data
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, modelspec-private]
     timeout-minutes: 20
     env:
       MODELSPEC_REQUIRE_DATA_DIR: '1'

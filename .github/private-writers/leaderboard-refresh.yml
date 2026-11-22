@@ -8,7 +8,8 @@ concurrency:
 jobs:
   refresh:
     name: Re-read live boards
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, modelspec-private]
+    timeout-minutes: 45
     outputs:
       pr_branch: ${{ (steps.pr.outputs.pull-request-operation == 'created' || steps.pr.outputs.pull-request-operation == 'updated') && steps.pr.outputs.pull-request-branch || '' }}
     permissions:

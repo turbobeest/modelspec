@@ -9,7 +9,8 @@ jobs:
     concurrency:
       group: daily-research
       cancel-in-progress: false
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, modelspec-private]
+    timeout-minutes: 45
     permissions:
       contents: write
       pull-requests: write

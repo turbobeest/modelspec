@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   scan:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, modelspec-private]
     timeout-minutes: 15
     outputs:
       status: ${{ steps.guard.outputs.status }}

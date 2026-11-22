@@ -8,7 +8,7 @@ concurrency:
 jobs:
   gate:
     name: Trial gate
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, modelspec-private]
     timeout-minutes: 5
     permissions:
       contents: read
@@ -159,7 +159,7 @@ jobs:
       contents: read
       actions: read
     if: needs.gate.outputs.run == 'true'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, modelspec-private]
     timeout-minutes: 30
     outputs:
       has_changes: ${{ steps.plan.outputs.has_changes }}
@@ -342,8 +342,11 @@ jobs:
     needs: watch
     if: |
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && needs.watch.outputs.has_work == 'true'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, modelspec-private]
     timeout-minutes: 60
+    concurrency:
+      group: private-runner-long-manual
+      cancel-in-progress: false
     outputs:
       pr_branches: ${{ steps.opened.outputs.branches }}
     permissions:
@@ -525,7 +528,7 @@ jobs:
     name: Dead-leaderboard issues
     needs: watch
     if: needs.watch.outputs.has_dead == 'true'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, modelspec-private]
     timeout-minutes: 10
     permissions:
       contents: read
