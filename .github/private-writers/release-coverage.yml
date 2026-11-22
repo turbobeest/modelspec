@@ -21,7 +21,7 @@ concurrency:
 jobs:
   measure:
     name: Measure release stages and keep private breach issues
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, modelspec-private]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4

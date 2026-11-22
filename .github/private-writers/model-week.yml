@@ -21,7 +21,7 @@ jobs:
   draft:
     name: Draft the weekly digest for human review
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux, modelspec-private]
     timeout-minutes: 20
     outputs:
       pr_branch: ${{ (steps.pr.outputs.pull-request-operation == 'created' || steps.pr.outputs.pull-request-operation == 'updated') && steps.pr.outputs.pull-request-branch || '' }}

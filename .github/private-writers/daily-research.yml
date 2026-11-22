@@ -9,7 +9,7 @@ jobs:
     concurrency:
       group: daily-research
       cancel-in-progress: false
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, modelspec-private]
     permissions:
       contents: write
       pull-requests: write

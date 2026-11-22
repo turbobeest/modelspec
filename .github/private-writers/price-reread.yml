@@ -8,7 +8,7 @@ concurrency:
 jobs:
   render:
     name: Render price and plan pages
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux, modelspec-private]
     timeout-minutes: 15
     permissions:
       contents: read
@@ -126,7 +126,7 @@ jobs:
         run: |
           python -I -m pip install pydantic pyyaml httpx
           python -I -m pip install --require-hashes --no-deps -r "$GITHUB_WORKSPACE/engine/scripts/price-reread-render.requirements.txt"
-          python -I -m playwright install --with-deps --only-shell chromium
+          python -I -m playwright install --only-shell chromium
       - name: Render eligible pages once
         run: python -I -m scripts.price_reread --render-to "$RUNNER_TEMP/rendered"
       - name: Pass rendered pages to the re-read job
@@ -147,7 +147,7 @@ jobs:
       github.ref == 'refs/heads/main' &&
       ((github.event_name == 'schedule' && vars.PRICE_REREAD_FIRECRAWL == 'true' && github.run_attempt == 1) ||
       (github.event_name == 'workflow_dispatch' && inputs.fallback_fake))
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux, modelspec-private]
     timeout-minutes: 15
     permissions:
       contents: read
@@ -319,7 +319,7 @@ jobs:
     name: Re-read price and plan pages
     needs: [render, fallback]
     if: always() && needs.render.result == 'success' && (needs.fallback.result == 'success' || needs.fallback.result == 'skipped')
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, modelspec-private]
     timeout-minutes: 15
     outputs:
       pr_branch: ${{ (steps.pr.outputs.pull-request-operation == 'created' || steps.pr.outputs.pull-request-operation == 'updated') && steps.pr.outputs.pull-request-branch || '' }}
