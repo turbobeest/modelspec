@@ -87,6 +87,10 @@ from urllib.parse import urljoin, urlsplit
 import yaml
 from pydantic import JsonValue, ValidationError
 
+from decision.cited_change import (  # noqa: F401  (the cite-only value-change gate, MODEL-531)
+    CitedChange, CitedSource, ReaderAnswer, RegisteredSource, cited_change, reread,
+    reread_required,
+)
 from decision.licence_rules import (
     LICENCE_CONDITION_RULE,
     LICENCE_READING_RULES,
@@ -133,6 +137,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DIRECTORY = REPO_ROOT / "verification"
 
 Outcome = Literal["verified", "mismatch", "unreachable", "skipped", "cited"]
+#: ``decision.cited_change.cited_change`` returns "cited_change" (a value written as cited,
+#: Jamie 2026-11-22) or "refused"; ``verify`` itself never produces either.
 CONDITION_KEYS = ("effort", "harness", "date", "effective_from", "effective_until")
 
 # --- claims --------------------------------------------------------------------------------------

@@ -83,6 +83,24 @@ Learned expensively during 2026-09-09/10.
     carries no machine verification: the engine returns `cited` and logs no
     record. Never write a verification record by hand.
 
+15. **A cite-only page may change a value when two readers of different families
+    agree** (MODEL-531, Jamie 2026-11-22). Rule 14 files a fact as cited and
+    leaves its value as it is. A value changes on a cite-only page only through
+    `decision.cited_change.cited_change`, and only when every condition holds:
+    the host is cite-only (`forbids` or `cite-only` class); the page is
+    first-party for the facet, of a kind the facet's `permitted_source_kinds`
+    allows; two readers of different model families each read the page in memory,
+    blind to each other and to the filed value, and return the same normalised
+    value; each reader's id, family and version are recorded; and no source
+    registered for that subject and facet sits on a host that retains copies (a
+    retaining source wins: verify there instead). A failed condition is a named
+    refusal and nothing is written. A disagreement leaves the fact as filed and
+    flags it. The fact is served as cited, never verified: the record keeps the
+    URL, read date, sha256 and both readers' answers, no page text, no excerpt, no
+    `Verification`. The rolling re-read calls `reread_required` on such a fact:
+    when the page's sha256 changed, two readers read it again (`reread`); fewer
+    than two flags the fact.
+
 Public PR bodies and evidence must not contain private modelspec-data commit SHAs or per-card private values. Private PR numbers, ages and clone URLs are not sensitive.
 
 ## Pytest CI shards
