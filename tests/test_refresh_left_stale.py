@@ -129,6 +129,11 @@ def test_run_stops_before_any_request_without_a_terms_register(monkeypatch, tmp_
                     source_cache=tmp_path / "copies")
 
 
+def _page_files(copies: Path) -> list[Path]:
+    """Files in the store that hold page bytes (citation and url records are metadata)."""
+    return [p for p in copies.rglob("*") if p.is_file() and p.suffix not in {".json", ".jsonl"}]
+
+
 def test_a_cite_only_page_never_reaches_the_copy_store(tmp_path):
     terms = {"epoch.ai": "cite-only", "cursor.com": "forbids", "example.test": "retaining"}
     store = refresh.TermsStore(tmp_path / "copies", terms)
@@ -137,19 +142,72 @@ def test_a_cite_only_page_never_reaches_the_copy_store(tmp_path):
         ref = store.put(body, source_url=url)
         assert ref == refresh.fingerprint_bytes(body)
         assert not store.has(ref)
-    assert not (tmp_path / "copies").exists() or not any((tmp_path / "copies").rglob("*"))
-    assert store.has(store.put(body, source_url="https://example.test/board"))
+        assert store.citations(ref)  # the citation record CopyStore.put also makes
+    assert _page_files(tmp_path / "copies") == []
+    assert store.has(store.put(b"retained page", source_url="https://example.test/board"))
 
 
-def test_a_board_on_a_cite_only_host_is_read_as_cited_with_no_copy(tmp_path):
+def test_a_board_on_a_cite_only_host_is_cited_by_the_page_hash_with_no_copy(tmp_path):
     store = refresh.TermsStore(tmp_path / "copies", {"andonlabs.com": "cite-only"})
     projected = refresh.readers.document(
         [{"model": "M", "money_balance": "1 USD"}], url="https://andonlabs.com/evals/x",
         page_ref="p", read_date="2026-11-22", note="n")
+    page = b"the page"
     board = refresh._reading_from_projection(
         key="vending", source_id="s", benchmarks=("vending_bench_2",),
         source_url="https://andonlabs.com/evals/x", projected=projected,
-        observed_at="2026-11-22", value_field="money_balance", store=store)
+        observed_at="2026-11-22", value_field="money_balance", store=store,
+        raw_ref=refresh.fingerprint_bytes(page))
     assert board.cite_only is True
-    assert board.snapshot_ref == refresh.fingerprint_bytes(projected)
-    assert not (tmp_path / "copies").exists() or not any((tmp_path / "copies").rglob("*"))
+    assert board.snapshot_ref == refresh.fingerprint_bytes(page)  # the page, not the projection
+    assert _page_files(tmp_path / "copies") == []
+    with pytest.raises(ValueError, match="page's own hash"):
+        refresh._reading_from_projection(
+            key="vending", source_id="s", benchmarks=("vending_bench_2",),
+            source_url="https://andonlabs.com/evals/x", projected=projected,
+            observed_at="2026-11-22", value_field="money_balance", store=store)
+
+
+def test_the_register_is_found_under_the_data_dir_before_the_engine_root(monkeypatch, tmp_path):
+    root = _root(tmp_path, None)
+    data = tmp_path / "data"
+    (data / "registry").mkdir(parents=True)
+    (data / "registry" / "source-terms.json").write_text('{"epoch.ai": "cite-only"}')
+    monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)
+    assert refresh.load_terms(root) == {}
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(data))
+    assert refresh.load_terms(root) == {"epoch.ai": "cite-only"}
+
+
+def test_a_held_back_board_is_read_in_memory_with_the_data_dir_set(monkeypatch, tmp_path):
+    """MODELSPEC_DATA_DIR makes ``_fetch`` refuse every held-back host; the board read must not."""
+    from scripts import evidence_reread
+
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))
+    terms = {"andonlabs.com": "cite-only", "labs.scale.com": "cite-only"}
+    calls: list[str] = []
+
+    def served(url):
+        calls.append(url)
+        return 200, None, b"body"
+
+    monkeypatch.setattr(evidence_reread, "request_once", served)
+    monkeypatch.setattr(refresh, "_fetch", lambda *a, **k: pytest.fail("went through _fetch"))
+    assert refresh._fetch_board("https://andonlabs.com/evals/vending-bench-2", terms) == b"body"
+    # The one declared Scale Pro redirect is read at its declared address, never followed.
+    assert refresh._fetch_board(refresh.readers.SCALE_URL, terms, scale_pro=True) == b"body"
+    assert calls == ["https://andonlabs.com/evals/vending-bench-2", refresh.SCALE_PRO_FINAL]
+
+
+def test_a_cite_only_read_never_requests_a_redirect_target(monkeypatch):
+    calls: list[str] = []
+
+    def redirecting(url):
+        calls.append(url)
+        return 301, "https://retaining.example/x", b""
+
+    with pytest.raises(ValueError, match="not followed"):
+        refresh.read_in_memory("https://epoch.ai/a", {"epoch.ai": "cite-only",
+                                                      "retaining.example": "retaining"},
+                               request=redirecting)
+    assert calls == ["https://epoch.ai/a"]

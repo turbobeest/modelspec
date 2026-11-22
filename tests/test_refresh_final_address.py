@@ -21,6 +21,8 @@ from decision.sources import CopyStore
 from scripts import refresh_leaderboards as refresh
 from tests.test_leaderboard_refresh import FINANCE_CARDS, FIXTURES, _finance_repo
 
+pytestmark = pytest.mark.usefixtures("terms_register_present")
+
 OBSERVED = "2026-11-14"
 PINNED = "a" * 40
 CDN = "https://us.aws.cdn.hf.co/repos/xx/file.parquet"
@@ -276,9 +278,10 @@ def test_every_fetch_use_is_the_default_or_a_declared_exception():
                 assert function == DECLARED[kwargs[0]], (path.name, function, kwargs)
                 declared[kwargs[0]] = function
         if path.name == "refresh_leaderboards.py":
-            # ``_fetch`` named but not called: handed to the revision resolver (in choose_arena_revision) and
-            # the default reader of ``collect``.
-            assert sorted(set(uses.references) - {fn for fn, _ in uses.calls}) == ["choose_arena_revision", "collect"]
-            assert sum(1 for _, kwargs in uses.calls if not kwargs) == 7
+            # ``_fetch`` named but not called: handed to the revision resolver (in choose_arena_revision).
+            # Board reads go through ``_fetch_board``, the one default call, which sends a
+            # held-back host to ``read_in_memory`` instead (S7).
+            assert sorted(set(uses.references) - {fn for fn, _ in uses.calls}) == ["choose_arena_revision"]
+            assert [fn for fn, kwargs in uses.calls if not kwargs] == ["_fetch_board"]
     assert declared == DECLARED
     assert "refresh_leaderboards.py" in scanned and "model_233_matharena.py" in scanned

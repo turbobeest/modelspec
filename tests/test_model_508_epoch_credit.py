@@ -16,6 +16,8 @@ from pipeline.load import Benchmark, Catalogue, Model
 from scripts import refresh_leaderboards as refresh
 from tests.test_leaderboard_refresh import _card
 
+pytestmark = pytest.mark.usefixtures("terms_register_present")
+
 EPOCH_PAGE = "https://epoch.ai/benchmarks/gpqa-diamond"
 OTHER_PAGE = "https://example.test/gpqa"
 

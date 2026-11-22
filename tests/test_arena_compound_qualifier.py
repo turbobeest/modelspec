@@ -24,6 +24,9 @@ from tests.test_leaderboard_refresh import (
     _run_arena_effort_refresh,
     _verification_log,
 )
+import pytest
+
+pytestmark = pytest.mark.usefixtures("terms_register_present")
 
 _BARE = "Acme Orbit 4.5 (20251101)"
 _HIGH = "Acme Orbit 4.5 (High, 32K, 20251101)"

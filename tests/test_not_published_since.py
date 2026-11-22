@@ -14,6 +14,8 @@ from schema.evidence import BenchmarkEvidence
 from scripts.model_143_evidence import evidence_id
 from scripts import refresh_leaderboards as refresh
 
+pytestmark = pytest.mark.usefixtures("terms_register_present")
+
 SOURCE_URL = "https://example.test/leaderboard.json"
 OBSERVED = "2026-11-13"
 LAST_SEEN = "2026-10-12"

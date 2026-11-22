@@ -45,10 +45,11 @@ def _no_live_cite_only_reads(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(evidence_reread, "request_once", offline)
 
 
-@pytest.fixture(autouse=True)
-def _terms_register_present(monkeypatch):
+@pytest.fixture
+def terms_register_present(monkeypatch):
     """``run`` stops without a source-terms register (MODEL-482). Test roots carry none,
-    so give them a one-line register that holds back no host these tests read."""
+    so a refresh test module opts in (``pytest.mark.usefixtures``) to a one-line register that
+    holds back no host it reads. The suite as a whole does not get it."""
     from scripts import evidence_reread, refresh_leaderboards as refresh
 
     real = evidence_reread.load_terms
