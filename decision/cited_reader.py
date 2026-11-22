@@ -65,12 +65,22 @@ def sha256(data: bytes | str) -> str:
     return hashlib.sha256(data.encode("utf-8") if isinstance(data, str) else data).hexdigest()
 
 
-def page_text(page_bytes: bytes) -> str:
-    """The visible text of an HTML page, in memory."""
+def normalised_text(page_bytes: bytes) -> str:
+    """The whole visible text of an HTML page, whitespace folded, in memory only."""
     text = page_bytes.decode("utf-8", "replace")
     text = re.sub(r"(?is)<(script|style).*?</\1>", " ", text)
     text = html.unescape(re.sub(r"<[^>]+>", " ", text))
-    return re.sub(r"\s+", " ", text).strip()[:MAX_PAGE_CHARS]
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def text_sha256(page_bytes: bytes) -> str:
+    """The sha256 of the normalised visible text: stable across fetch-to-fetch byte churn."""
+    return sha256(normalised_text(page_bytes))
+
+
+def page_text(page_bytes: bytes) -> str:
+    """The visible text a reader is shown, in memory."""
+    return normalised_text(page_bytes)[:MAX_PAGE_CHARS]
 
 
 def facet_definition(facet_id: str) -> str:
@@ -162,9 +172,9 @@ def _attempts_path(data_dir: str | Path | None) -> Path:
     return Path(root) / ATTEMPTS_FILE
 
 
-def attempts(subject: str, facet_id: str, url: str, epoch: str = "initial", *,
+def attempts(subject: str, facet_id: str, epoch: str = "initial", *,
              data_dir: str | Path | None = None) -> list[dict]:
-    """The logged attempts for one subject, facet, page and epoch, in file order."""
+    """The logged attempts for one subject, facet and epoch, across every page, in file order."""
     path = _attempts_path(data_dir)
     if not path.is_file():
         return []
@@ -173,8 +183,8 @@ def attempts(subject: str, facet_id: str, url: str, epoch: str = "initial", *,
         if not line.strip():
             continue
         entry = json.loads(line)
-        if (entry.get("subject"), entry.get("facet"), entry.get("url"), entry.get("epoch")) \
-                == (subject, facet_id, url, epoch):
+        if (entry.get("subject"), entry.get("facet"), entry.get("epoch")) \
+                == (subject, facet_id, epoch):
             out.append(entry)
     return out
 
@@ -193,9 +203,9 @@ def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_
     """Ask each reader the same prompt; record the hash of what was sent and the manifest.
 
     Every attempt, complete or not, is appended to the attempt log (``ATTEMPTS_FILE``)
-    keyed by subject, facet, URL and epoch, with both raw values, the readers' ids,
+    keyed by subject, facet and epoch (across every page), with both raw values, the readers' ids,
     families and versions, the prompt and page sha256 and the time. ``cited_change``
-    refuses unless the first complete attempt for its key agreed.
+    refuses when any counted attempt for its key disagreed.
     """
     prompt = build_prompt(url=url, facet_id=facet_id, subject_name=subject_name,
                           page_bytes=page_bytes)

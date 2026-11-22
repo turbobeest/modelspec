@@ -12,11 +12,11 @@ import yaml
 from decision import cited_change as gate
 from decision.cited_change import (
     KNOWN_FAMILIES, REFUSALS, _check_readers, cited_change, cited_change_block,
-    cited_change_facts, lookup, reread, reread_required,
+    cited_change_facts, lookup, reread, reread_due, reread_required,
 )
 from decision.cited_reader import (
     ATTEMPTS_FILE, Reader, ReaderAnswer, ReaderError, attempts, build_prompt, input_manifest,
-    parse_answer, read_page, sha256,
+    parse_answer, read_page, sha256, text_sha256,
 )
 
 FACET = "model.context_window"
@@ -344,7 +344,7 @@ def test_an_agreement_after_a_disagreement_is_refused(data):
     refused("readers_disagree", readers=[reader("codex", "gpt-5", 1), reader("grok", "xai", 2)])
     refused("prior_attempt_disagreed")  # a clean second read agrees, and still cannot be used
     assert len(data.log()) == 2 - 1  # the second attempt never read: the gate refused first
-    assert attempts(SUBJECT, FACET, URL)[0]["agreed"] is False
+    assert attempts(SUBJECT, FACET)[0]["agreed"] is False
 
 
 def test_a_second_attempt_after_an_agreement_must_return_the_same_value(data):
@@ -359,14 +359,42 @@ def test_an_incomplete_attempt_is_logged_and_does_not_count(data):
     assert run().changed  # an incomplete attempt is no first complete attempt
 
 
-def test_a_seeded_disagreement_blocks_a_later_agreement(data):
+def seed(data, **kw):
     path = data.root / ATTEMPTS_FILE
     path.parent.mkdir(exist_ok=True)
-    seed = {"subject": SUBJECT, "facet": FACET, "url": URL, "epoch": "initial",
-            "complete": True, "agreed": False, "seeded": True}
-    path.write_text(json.dumps({**seed, "harness": False}) + "\n")
-    assert run().changed  # reads whose blindness was never proven do not count
-    path.write_text(json.dumps({**seed, "harness": True}) + "\n")
+    entry = {"subject": SUBJECT, "facet": FACET, "url": URL, "epoch": "initial", "complete": True,
+             "seeded": True, **kw}
+    with path.open("a") as fh:
+        fh.write(json.dumps(entry) + "\n")
+
+
+def test_a_seeded_disagreement_blocks_but_a_seeded_agreement_authorises_nothing(data):
+    seed(data, harness=False, agreed=True, agreed_value=262144)
+    assert run().changed  # a seeded agreement does not block; the live attempt must itself agree
+    assert [e.get("seeded") for e in data.log()] == [True, None]
+
+
+def test_a_disagreement_on_any_page_blocks_the_facet(data):
+    seed(data, harness=False, agreed=False, url="https://docs.x.ai/docs/another-page")
+    refused("prior_attempt_disagreed")
+    assert len(data.log()) == 1  # no reader was asked
+
+
+def test_disagree_then_seeded_agree_then_live_disagree_then_live_agree_is_refused(data):
+    refused("readers_disagree", readers=[reader("codex", "gpt-5", 1), reader("grok", "xai", 2)])
+    seed(data, harness=False, agreed=True, agreed_value=262144)
+    refused("prior_attempt_disagreed", readers=[reader("codex", "gpt-5", 1), reader("grok", "xai", 2)])
+    refused("prior_attempt_disagreed")
+    assert not any(e.get("agreed") and not e.get("seeded") for e in data.log())
+
+
+def test_a_live_agreement_after_a_disagreeing_seed_from_unproven_reads_is_refused(data):
+    seed(data, harness=False, agreed=False)
+    refused("prior_attempt_disagreed")
+
+
+def test_a_later_agreed_attempt_on_another_page_must_return_the_same_value(data):
+    seed(data, harness=True, agreed=True, agreed_value=999, url="https://docs.x.ai/docs/another-page")
     refused("prior_attempt_disagreed")
 
 
@@ -453,10 +481,32 @@ def test_runtime_record_is_found_and_reread_triggers_on_a_changed_sha(data):
     assert cited_change_block({"derivation": record["derivation"]}) is not None
     fact = cited_card(data, record)
     assert [(f["subject"], f["facet"]) for f in cited_change_facts(data.root)] == [(SUBJECT, FACET)]
-    assert not reread_required(fact, sha256(PAGE))
-    assert reread_required(fact, sha256(PAGE + b" changed"))
-    assert not reread_required({"subject": SUBJECT, "facet": FACET, "value": 1}, "f" * 64)
+    assert not reread_required(fact, PAGE)
+    assert reread_required(fact, PAGE + b" changed")
+    assert not reread_required({"subject": SUBJECT, "facet": FACET, "value": 1}, PAGE)
     assert lookup(SUBJECT, FACET).fact["derivation"]["cited_change"]["sha256"] == sha256(PAGE)
+
+
+def test_byte_churn_is_not_a_change_but_a_text_change_is(data):
+    fact = cited_card(data, run().record)
+    assert fact["derivation"]["cited_change"]["text_sha256"] == text_sha256(PAGE)
+    churned = PAGE.replace(b"<html>", b"<html><script>var t=987654321;</script><!-- 2026-11-23T01:02 -->")
+    assert sha256(churned) != sha256(PAGE) and not reread_required(fact, churned)
+    assert not reread_required(fact, PAGE.replace(b"<body>", b"<body>\n   "))  # whitespace folds
+    assert reread_required(fact, PAGE.replace(b"262144", b"524288"))
+    assert reread_required({"derivation": {"cited_change": {"sha256": "x"}}}, PAGE)  # no text hash
+
+
+def test_a_reread_is_due_only_after_seven_days_since_the_read_and_the_last_request(data):
+    fact = cited_card(data, run().record)
+    changed = PAGE + b" new"
+    now = datetime.now(UTC)
+    assert not reread_due(fact, changed, now=now)  # read today
+    assert not reread_due(fact, PAGE, now=now + timedelta(days=30))  # nothing changed
+    assert reread_due(fact, changed, now=now + timedelta(days=8))
+    assert not reread_due(fact, changed, now=now + timedelta(days=8),
+                          last_request=now + timedelta(days=3))
+    assert reread_due(fact, changed, now=now + timedelta(days=11), last_request=now + timedelta(days=3))
 
 
 def reread_with(fact, page, readers=None):
@@ -509,26 +559,51 @@ def sweep_script(data):
     return script
 
 
-def test_the_rolling_reread_flags_a_cited_change_fact_whose_page_hash_changed(data):
+def sweep(script, data, body, days, dry_run=True):
+    from datetime import date
+
+    report = script.Report("x", dry_run)
+    script.cited_change_rereads(data.root, script.load_terms(data.root), report,
+                                request=serve({URL: body}), pacer=script.Pacer(0, sleep=lambda s: None),
+                                observed_at=date.today() + timedelta(days=days), dry_run=dry_run)
+    return report
+
+
+def test_the_rolling_reread_flags_a_cited_change_fact_whose_page_text_changed(data):
     script = sweep_script(data)
     cited_card(data, run().record)
-
-    def sweep(body):
-        report = script.Report("2026-11-23", True)
-        script.cited_change_rereads(data.root, script.load_terms(data.root), report,
-                                    request=serve({URL: body}), pacer=script.Pacer(0, sleep=lambda s: None))
-        return report
-
-    assert sweep(PAGE).cited_change_rereads == []
-    report = sweep(PAGE + b" new")
+    assert sweep(script, data, PAGE, 8).cited_change_rereads == []
+    churned = PAGE.replace(b"<html>", b"<html><script>var t=1;</script>")
+    assert sweep(script, data, churned, 8).cited_change_rereads == [], "byte churn is no change"
+    report = sweep(script, data, PAGE + b" new", 8)
     assert report.cited_change_rereads == [f"{SUBJECT}#{FACET}"]
     assert report.to_dict()["cited_change_rereads_required"] == [f"{SUBJECT}#{FACET}"]
+    assert sweep(script, data, PAGE + b" new", 3).cited_change_rereads == [], "read less than 7 days ago"
+
+
+def test_the_rolling_reread_asks_at_most_once_in_seven_days(data):
+    script = sweep_script(data)
+    cited_card(data, run().record)
+    changed = PAGE + b" new"
+    assert sweep(script, data, changed, 8, dry_run=False).cited_change_rereads
+    assert (data.root / script.REREAD_REQUESTS).is_file()
+    assert sweep(script, data, changed, 12, dry_run=False).cited_change_rereads == []
+    assert sweep(script, data, changed, 16, dry_run=False).cited_change_rereads
+    lines = (data.root / script.REREAD_REQUESTS).read_text().splitlines()
+    assert len(lines) == 2
+
+
+def test_a_dry_run_logs_no_reread_request(data):
+    script = sweep_script(data)
+    cited_card(data, run().record)
+    assert sweep(script, data, PAGE + b" new", 8).cited_change_rereads
+    assert not (data.root / script.REREAD_REQUESTS).exists()
 
 
 def test_the_rolling_reread_run_reports_it(data, tmp_path):
     script = sweep_script(data)
     cited_card(data, run().record)
-    report = script.run(data.root, observed_at=datetime.now(UTC).date(), dry_run=True,
+    report = script.run(data.root, observed_at=datetime.now(UTC).date() + timedelta(days=8), dry_run=True,
                         store_root=tmp_path / "cache", request=lambda url: (200, None, PAGE + b"!"),
                         pacer=script.Pacer(0, sleep=lambda s: None))
     assert report.cited_change_rereads == [f"{SUBJECT}#{FACET}"]

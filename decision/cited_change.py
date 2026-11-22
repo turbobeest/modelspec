@@ -16,8 +16,9 @@ Jamie, 2026-11-22 (MODEL-531). The rule, as it is built here:
    sha256 and both readers' answers, with their reader ids, families, versions, prompt
    hashes and input manifests. It keeps no page text and no excerpt, and no
    ``Verification`` is logged. The block is ``record["derivation"]["cited_change"]``.
-4. The rolling re-read re-reads such a fact. When the page's sha256 changes, two
-   readers read the page again (``reread_required``, ``reread``).
+4. The rolling re-read re-reads such a fact. When the page's visible text changes (a hash
+   of the normalised text, so byte churn does not count; at most one request per fact per
+   7 days), two readers read the page again (``reread_required``, ``reread_due``, ``reread``).
 5. A retaining source wins. The gate itself looks up, in the data directory's source
    registry and the subject's card, every source registered for the subject and facet;
    any of them on a host that retains copies makes it refuse. A lookup that fails is a
@@ -49,7 +50,7 @@ from pydantic import JsonValue
 
 from decision.cited_reader import (
     INPUT_FIELDS, Reader, ReaderAnswer, ReaderError, attempts, build_prompt, canonical,
-    input_manifest, read_page, sha256,
+    input_manifest, read_page, sha256, text_sha256,
 )
 from decision.model import _LINEAGES, _NO_LINEAGE, DETERMINISTIC, model_family
 from decision.retention import DATA_DIR_ENV, cite_only_origin_status, cite_only_status
@@ -311,7 +312,7 @@ def _retrieved_at(read_at: datetime) -> str:
 
 
 def _record(subject: str, facet_id: str, value: JsonValue, row: Mapping[str, Any], source_id: str,
-            read_at: datetime, page_sha: str, answers: Sequence[ReaderAnswer],
+            read_at: datetime, page_sha: str, page_text_sha: str, answers: Sequence[ReaderAnswer],
             previous: JsonValue, previous_sources: Sequence[str],
             resolved: Sequence[str]) -> dict[str, JsonValue]:
     """The record: values, URL, date, sha256 and the readers. No page text."""
@@ -332,6 +333,7 @@ def _record(subject: str, facet_id: str, value: JsonValue, row: Mapping[str, Any
             "decided_by": DECIDED_BY,
             "read_date": read_at.astimezone(UTC).date().isoformat(),
             "sha256": page_sha,
+            "text_sha256": page_text_sha,
             "url": row["url"],
             "previous_value": previous,
             "previous_sources": list(previous_sources),
@@ -410,14 +412,15 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     refusal = _check_identities(readers)  # before any read: a bad pair is never an attempt
     if refusal is not None:
         return refusal
-    # No retry-shopping: the first complete attempt for this key must have agreed.
-    #: Only attempts made through this harness count (``harness`` true); an entry seeded from
-    #: reads whose blindness was never proven is kept in the log for the record and is skipped.
-    prior = [a for a in attempts(subject, facet, row["url"], epoch)
-             if a.get("complete") and a.get("harness") is True]
-    if prior and not prior[0].get("agreed"):
+    # No retry-shopping. Every complete attempt at this subject, facet and epoch, on any page,
+    # is counted: any disagreement blocks. An agreement authorises only if it was made through
+    # this harness (``harness`` true); an agreement from reads whose blindness was never proven
+    # (``harness`` false, seeded) authorises nothing, but a disagreement from them still blocks.
+    history = [a for a in attempts(subject, facet, epoch) if a.get("complete")]
+    if any(not a.get("agreed") for a in history):
         return _refuse("prior_attempt_disagreed",
-                       "the first complete attempt at this fact and page did not agree")
+                       "an earlier complete attempt at this fact did not agree")
+    prior = [a for a in history if a.get("harness") is True]
     if page is None:
         fetched = _fetch(row["url"], request or _http_once)
         if isinstance(fetched, CitedChange):
@@ -440,8 +443,10 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     if refusal is not None:
         return refusal
     value = answers[0].value
-    if prior and _canonical(prior[0].get("agreed_value"), facet_def) != _canonical(value, facet_def):
-        return _refuse("prior_attempt_disagreed", "the first agreed attempt returned another value")
+    if any(a.get("agreed_value") is not None
+           and _canonical(a.get("agreed_value"), facet_def) != _canonical(value, facet_def)
+           for a in prior):
+        return _refuse("prior_attempt_disagreed", "an earlier agreed attempt returned another value")
     if value is None:
         return _refuse("no_value", "the readers agree the page states nothing; that is not a change")
     problem = _value_fits(value, facet_def)
@@ -452,7 +457,8 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
             and _canonical(value, facet_def) == _canonical(filed, facet_def):
         return _refuse("value_unchanged", "the agreed value is the filed value")
     return CitedChange("cited_change", None, "", _record(
-        subject, facet, value, row, source_id, now, sha256(page_bytes), answers, filed,
+        subject, facet, value, row, source_id, now, sha256(page_bytes), text_sha256(page_bytes),
+        answers, filed,
         found.registered_ids, resolved))
 
 
@@ -481,15 +487,34 @@ def cited_change_block(fact: Mapping[str, Any]) -> Mapping[str, Any] | None:
     return block if isinstance(block, Mapping) else None
 
 
-def reread_required(fact: Mapping[str, Any], current_sha256: str) -> bool:
-    """Whether the rolling re-read must have two readers read the page again.
+REREAD_INTERVAL = timedelta(days=7)
 
-    True for a cited-change fact whose recorded sha256 differs from the page's now (a
-    missing or malformed recorded sha256 counts as a difference). False for a fact that
-    is not a cited change, and for a page whose sha256 has not changed.
+
+def reread_required(fact: Mapping[str, Any], page_bytes: bytes) -> bool:
+    """Whether the page's visible text differs from the text the readers read.
+
+    The test hashes the normalised visible text in memory, so byte churn between two
+    fetches (embedded timestamps, script bodies) does not count. True for a cited-change
+    fact whose recorded ``text_sha256`` differs from the page's now (a missing one counts
+    as a difference). False for a fact that is not a cited change.
     """
     block = cited_change_block(fact)
-    return block is not None and block.get("sha256") != current_sha256
+    return block is not None and block.get("text_sha256") != text_sha256(page_bytes)
+
+
+def reread_due(fact: Mapping[str, Any], page_bytes: bytes, *, now: datetime,
+               last_request: datetime | None = None) -> bool:
+    """A re-read is requested only when the text changed AND at least ``REREAD_INTERVAL``
+    has passed since the fact was read and since the last re-read request for it."""
+    if not reread_required(fact, page_bytes):
+        return False
+    block = cited_change_block(fact) or {}
+    marks = [last_request]
+    try:
+        marks.append(datetime.fromisoformat(str(block["read_date"])).replace(tzinfo=UTC))
+    except (KeyError, ValueError):
+        pass
+    return all(m is None or now - m >= REREAD_INTERVAL for m in marks)
 
 
 def cited_change_facts(data_dir: str | Path) -> list[dict[str, Any]]:
@@ -548,11 +573,11 @@ def reread(fact: Mapping[str, Any], *, source_id: str, readers: Sequence[Reader]
     fetched = _fetch(row["url"], request or _http_once)
     if isinstance(fetched, CitedChange):
         return Reread("flagged", fetched.reason, None, fetched.detail)
-    if not reread_required(fact, sha256(fetched[0])):
+    if not reread_required(fact, fetched[0]):
         return Reread("current")
     outcome = _gate(subject=subject, facet=facet, source_id=source_id, readers=readers,
                     request=request, allow_unchanged=True, page=fetched,
-                    epoch=f"reread:{block.get('sha256')}")
+                    epoch=f"reread:{block.get('text_sha256') or block.get('sha256')}")
     if not outcome.changed:
         return Reread("flagged", outcome.reason, None, outcome.detail)
     facet_def = _facet(facet)

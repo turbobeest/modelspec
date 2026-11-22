@@ -105,9 +105,12 @@ Learned expensively during 2026-09-09/10.
     `Reader` objects and runs the harness itself, so no caller supplies answers,
     hashes or manifests. It fetches the page itself, in memory, redirects off,
     and refuses any hop to a retaining host. Every attempt is appended to
-    `verification/cited-attempts.jsonl` (no page text); the first complete
-    attempt for a subject, facet and page made through the harness must have agreed
-    (`prior_attempt_disagreed`), so a retry cannot shop for agreement. A
+    `verification/cited-attempts.jsonl` (no page text), keyed by subject, facet
+    and epoch across every page. Any disagreement among the counted attempts
+    blocks (`prior_attempt_disagreed`), so a retry cannot shop for agreement; an
+    agreement authorises only if made through the harness, and a seeded
+    agreement from unproven reads authorises nothing while a seeded
+    disagreement still blocks. A
     `registry/source-redirects.json` entry exempts a retaining-host source only
     if its `to` is a registered cite-only source URL and it was checked within 7
     days; the rolling re-read re-probes each entry and drops it unless the
@@ -118,8 +121,11 @@ Learned expensively during 2026-09-09/10.
     keeps the URL, read date, sha256, both readers' answers, prompt hashes and
     manifests under `derivation.cited_change`; no page text, no excerpt, no
     `Verification`. The rolling re-read (`scripts/evidence_reread.py`) flags each
-    such fact whose page sha256 changed (`reread_required`); two readers then
-    read it again (`reread`), and fewer than two flags the fact.
+    such fact whose page's visible text changed (`reread_required` hashes the
+    normalised text in memory, so byte churn is no change), at most once in 7
+    days per fact (`reread_due`, requests logged in
+    `verification/cited-reread-requests.jsonl`); two readers then read it again
+    (`reread`), and fewer than two flags the fact.
 
 Public PR bodies and evidence must not contain private modelspec-data commit SHAs or per-card private values. Private PR numbers, ages and clone URLs are not sensitive.
 
