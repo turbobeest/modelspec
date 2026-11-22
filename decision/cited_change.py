@@ -443,12 +443,12 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     if refusal is not None:
         return refusal
     value = answers[0].value
+    if value is None:
+        return _refuse("no_value", "the readers agree the page states nothing; that is not a change")
     if any(a.get("agreed_value") is not None
            and _canonical(a.get("agreed_value"), facet_def) != _canonical(value, facet_def)
            for a in prior):
         return _refuse("prior_attempt_disagreed", "an earlier agreed attempt returned another value")
-    if value is None:
-        return _refuse("no_value", "the readers agree the page states nothing; that is not a change")
     problem = _value_fits(value, facet_def)
     if problem is not None:
         return _refuse("value_invalid", problem)

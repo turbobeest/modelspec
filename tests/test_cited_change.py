@@ -641,3 +641,8 @@ def test_a_dry_run_leaves_the_redirect_file_alone(data):
     data.write()
     _, entries = refresh(data, 200, None, dry_run=True)
     assert entries["hf"]["checked"] == "2026-11-01"
+
+
+def test_a_silent_page_is_no_conflict_with_an_earlier_agreed_value(data):
+    seed(data, harness=True, agreed=True, agreed_value=262144, url="https://docs.x.ai/docs/another-page")
+    refused("no_value", readers=pair(value=None))
