@@ -97,6 +97,7 @@ def test_all_conditions_hold_writes_cited_record_with_manifests(data):
     assert rec["value"] == 262144 and rec["resolution"] == "cited" and rec["state"] == "known"
     assert rec["source"]["snapshot_ref"] == "sha256:" + sha256(PAGE)
     assert rec["source"]["retrieved_at"] == "2026-11-20T12:00:00+00:00"
+    assert set(rec["source"]) == {"source_id", "snapshot_ref", "retrieved_at", "cited_regions"}  # a SourceRef
     block = rec["derivation"]["cited_change"]
     assert "cited_change" not in rec
     assert block["sha256"] == sha256(PAGE) and block["url"] == URL and block["read_date"] == "2026-11-20"
@@ -394,3 +395,15 @@ def test_the_rolling_reread_run_reports_it(data, tmp_path):
                         pacer=script.Pacer(0, sleep=lambda s: None))
     assert report.cited_change_rereads == [f"{SUBJECT}#{FACET}"]
     assert not [p for p in (tmp_path / "cache").rglob("*") if p.is_file()], "no page bytes kept"
+
+
+def test_the_record_round_trips_into_a_valid_fact(data):
+    """The fact a card would hold validates against the real Fact model."""
+    from decision.model import Fact
+    from decision import registry
+
+    record = run().record
+    fact = {"id": "x", "subject": {"kind": "model", "id": SUBJECT}, "facet": FACET,
+            "value": record["value"], "state": "known", "sources": [record["source"]],
+            "derivation": record["derivation"]}
+    assert Fact.model_validate(fact, context={"registry": registry}).derivation

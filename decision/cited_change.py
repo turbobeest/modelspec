@@ -285,7 +285,6 @@ def _record(subject: str, facet_id: str, value: JsonValue, row: Mapping[str, Any
         "resolution": "cited",
         "source": {
             "source_id": source_id,
-            "url": row["url"],
             "snapshot_ref": f"sha256:{page_sha}",
             "retrieved_at": _retrieved_at(read_at),
             "cited_regions": [r["id"] for r in row.get("cited_regions") or []] or ["page"],
