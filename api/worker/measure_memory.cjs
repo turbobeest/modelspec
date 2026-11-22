@@ -42,20 +42,27 @@ const GROWTH_FACTOR = 1.2;
 const WASM_PAGE = 65536;
 const MARGIN_WARN_MIB = 8;
 
+// The allocator break, or null when it cannot be read. Never throws.
+function readHeapBreak(module) {
+  let brk = null;
+  try { if (typeof module._sbrk === 'function') brk = module._sbrk(0) >>> 0; } catch { brk = null; }
+  return brk;
+}
+
 function nextHeapStep(wasmBytes) {
   return Math.ceil(wasmBytes * GROWTH_FACTOR / WASM_PAGE) * WASM_PAGE;
 }
 
 // marginBytes: the room left in the current heap before it must grow (heap size
 // minus the allocator break), measured by the probe. When the probe could not
-// measure it, the margin counts as 0: the warning then fires on the step alone.
+// measure it the margin is unknown (null) and no warning is given.
 function heapHeadroom(result, limitMiB) {
   if (!Number.isFinite(result.wasm_bytes) || result.wasm_bytes <= 0) return { warn: false };
   const nextBytes = nextHeapStep(result.wasm_bytes);
   const stepBytes = nextBytes - result.wasm_bytes;
-  const marginBytes = Number.isFinite(result.heap_margin_bytes) ? Math.max(0, result.heap_margin_bytes) : 0;
+  const marginBytes = Number.isFinite(result.heap_margin_bytes) ? Math.max(0, result.heap_margin_bytes) : null;
   const steppedSteadyBytes = result.steady_bytes + stepBytes;
-  return { warn: steppedSteadyBytes > limitMiB * 1048576 && marginBytes < MARGIN_WARN_MIB * 1048576,
+  return { warn: marginBytes !== null && steppedSteadyBytes > limitMiB * 1048576 && marginBytes < MARGIN_WARN_MIB * 1048576,
     wasmBytes: result.wasm_bytes, nextHeapBytes: nextBytes, stepBytes, marginBytes, steppedSteadyBytes };
 }
 
@@ -189,7 +196,7 @@ record_stage('after_policy_check')
   const liveNonWasm = live.heapUsed + Math.max(0, live.external - wasm);
   const steady = wasm + liveNonWasm;
   // Allocator break: the heap beyond it is the margin before the next growth.
-  const brk = typeof py._module._sbrk === 'function' ? py._module._sbrk(0) >>> 0 : null;
+  const brk = readHeapBreak(py._module);
   const result = { runtime: 'Pyodide 0.28.3', period, before_bytes: before,
     heap_margin_bytes: brk !== null && brk <= wasm ? wasm - brk : null,
     peak_bytes: peak, peak_mib: peak / 1048576,
@@ -278,7 +285,7 @@ json.dumps({'kind': 'python_retained_graph_bytes', 'categories_overlap': True, '
   const headroom = assessment.headroom;
   const mib = bytes => (bytes / 1048576).toFixed(2);
   if (headroom.wasmBytes !== undefined) {
-    console.log(`headroom: steady ${mib(result.steady_bytes)} MiB; wasm heap ${mib(headroom.wasmBytes)} MiB; next step to ${mib(headroom.nextHeapBytes)} MiB (+${mib(headroom.stepBytes)} MiB, estimated at 20%); live-object margin ${mib(headroom.marginBytes)} MiB`);
+    console.log(`headroom: steady ${mib(result.steady_bytes)} MiB; wasm heap ${mib(headroom.wasmBytes)} MiB; next step to ${mib(headroom.nextHeapBytes)} MiB (+${mib(headroom.stepBytes)} MiB, estimated at 20%); live-object margin ${headroom.marginBytes === null ? 'unknown' : mib(headroom.marginBytes) + ' MiB'}`);
   }
   console.log(JSON.stringify(result));
   if (peak > result.peak_warning_bytes) console.warn('::warning::Memory probe noisy peak exceeds 112 MiB');
@@ -289,7 +296,7 @@ json.dumps({'kind': 'python_retained_graph_bytes', 'categories_overlap': True, '
   }
 }
 
-module.exports = { assessMemory, heapHeadroom, nextHeapStep };
+module.exports = { assessMemory, heapHeadroom, nextHeapStep, readHeapBreak };
 if (require.main === module) {
   main().catch(error => { console.error('Memory probe failed:', error.name); process.exitCode = 1; });
 }

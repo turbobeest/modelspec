@@ -449,12 +449,34 @@ assert.match(out.warnings[0], /over 120 MiB/);
 // A margin of 8 MiB or more, or a step that stays under the limit: no warning.
 assert.deepEqual(run(105, 100, 8).warnings, []);
 assert.deepEqual(run(90, 80, 0).warnings, []);
-// An unmeasured margin counts as 0.
-assert.equal(run(105, 100, null).warnings.length, 1);
+// An unmeasured margin is unknown: no warning.
+assert.deepEqual(run(105, 100, null).warnings, []);
 // Over the limit still fails; the threshold is unchanged.
 assert.equal(run(121, 100, 20).passed, false);
 // No wasm size, no headroom report.
 assert.deepEqual(assessMemory({steady_bytes: 105 * MiB}, {limitMiB: 120}).warnings, []);
+"""
+    result = subprocess.run([node, "-e", program], cwd=ROOT, text=True, capture_output=True)
+    assert result.returncode == 0, result.stderr
+
+
+def test_a_throwing_sbrk_does_not_fail_the_probe():
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node is required for the Worker memory probe")
+    program = """
+const assert = require('node:assert/strict');
+const { assessMemory, readHeapBreak } = require('./api/worker/measure_memory.cjs');
+const MiB = 1048576;
+const brk = readHeapBreak({ _sbrk() { throw new Error('no sbrk'); } });
+assert.equal(brk, null);
+assert.equal(readHeapBreak({}), null);
+const out = assessMemory(
+  {steady_bytes: 105 * MiB, wasm_bytes: 100 * MiB, heap_margin_bytes: brk},
+  {limitMiB: 120});
+assert.equal(out.passed, true);
+assert.deepEqual(out.warnings, []);
+assert.equal(out.headroom.marginBytes, null);
 """
     result = subprocess.run([node, "-e", program], cwd=ROOT, text=True, capture_output=True)
     assert result.returncode == 0, result.stderr
