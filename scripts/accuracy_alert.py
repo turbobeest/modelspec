@@ -9,7 +9,8 @@ workflow makes the `gh` calls.
 
 The issue is public. Its body is the public form of the report (layer status,
 gate, and counts) plus where to read the detail. MODELSPEC_DATA_TOKEN cannot
-open an issue in the private repository.
+open an issue in the private repository. The detail goes to a separate token,
+ACCURACY_ALERT_TOKEN, in one workflow step (MODEL-483 E), and is never printed.
 """
 
 from __future__ import annotations
@@ -48,16 +49,47 @@ def body(
     return f"{table}\n\n{location}{_UNPUBLISHED}\n\nRun: {run_url}\n"
 
 
+# GitHub rejects an issue body or comment over 65536 characters.
+DETAIL_LIMIT = 60000
+
+
+def detail(report_path: Path, run_url: str) -> str:
+    """The full report for the private sink: per-card ids, fields, values, URLs.
+
+    This is the written `accuracy.md` next to the report, or the report JSON if
+    that file is missing. The text is private. The workflow posts it to an issue
+    in the private repository and never prints it.
+    """
+    markdown = report_path.parent / "accuracy.md"
+    if markdown.exists():
+        text = markdown.read_text(encoding="utf-8")
+    elif report_path.exists():
+        text = "```json\n" + report_path.read_text(encoding="utf-8") + "\n```\n"
+    else:
+        text = "the run failed before a report was written\n"
+    if len(text) > DETAIL_LIMIT:
+        text = text[:DETAIL_LIMIT] + "\n\n[truncated]\n"
+    return f"{text}\nRun: {run_url}\n"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--run-url", required=True)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--detail-output", type=Path)
     args = parser.parse_args(argv)
-    report = json.loads(args.report.read_text(encoding="utf-8")) if args.report.exists() else None
-    args.output.write_text(
-        body(report, args.run_url, output_dir=args.report.parent), encoding="utf-8",
-    )
+    if args.output is None and args.detail_output is None:
+        parser.error("give --output, --detail-output, or both")
+    if args.output is not None:
+        report = (
+            json.loads(args.report.read_text(encoding="utf-8")) if args.report.exists() else None
+        )
+        args.output.write_text(
+            body(report, args.run_url, output_dir=args.report.parent), encoding="utf-8",
+        )
+    if args.detail_output is not None:
+        args.detail_output.write_text(detail(args.report, args.run_url), encoding="utf-8")
     return 0
 
 

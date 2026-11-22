@@ -51,6 +51,13 @@ jobs:
           DATA_TOKEN: ${{ secrets.MODELSPEC_DATA_TOKEN }}
         run: test -n "$DATA_TOKEN"
 
+      # Fail before the gates if the private alert sink has no credential
+      # (MODEL-483 E). The token appears in this step and in the sink step only.
+      - name: Require the private alert sink credential
+        env:
+          ALERT_TOKEN: ${{ secrets.ACCURACY_ALERT_TOKEN }}
+        run: test -n "$ALERT_TOKEN" || { echo "private alert sink unavailable"; exit 1; }
+
       # actions/checkout logs `git log -1 --format=%H` (not silent). Fetch the
       # branch and discard the output so the private commit is not in the log.
       - name: Read private verification records
@@ -111,3 +118,41 @@ jobs:
           while read -r number; do
             gh issue close "$number" --comment "Green again: $RUN_URL"
           done
+
+      # The detail of a red night goes to one open private issue labelled
+      # accuracy-nightly, and a green night closes it. Nothing here prints the
+      # detail, uploads it, or sets an output (MODEL-483 E).
+      - name: Send the detail to the private alert issue
+        if: always() && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.ACCURACY_ALERT_TOKEN }}
+          JOB_STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          fail() { echo "private alert sink unavailable"; exit 1; }
+          test -n "$GH_TOKEN" || fail
+          case "$JOB_STATUS" in
+            failure)
+              python scripts/accuracy_alert.py --report accuracy-report/accuracy.json \
+                --run-url "$RUN_URL" --detail-output "$RUNNER_TEMP/red-night.md" >/dev/null 2>&1 || fail
+              gh label create accuracy-nightly --color B60205 -R turbobeest/modelspec-data \
+                --force >/dev/null 2>&1 || fail
+              number=$(gh issue list -R turbobeest/modelspec-data --label accuracy-nightly \
+                --state open --json number -q '.[0].number // empty' 2>/dev/null) || fail
+              if [ -n "$number" ]; then
+                gh issue comment "$number" -R turbobeest/modelspec-data \
+                  --body-file "$RUNNER_TEMP/red-night.md" >/dev/null 2>&1 || fail
+              else
+                gh issue create -R turbobeest/modelspec-data --title "Accuracy nightly failed" \
+                  --label accuracy-nightly --body-file "$RUNNER_TEMP/red-night.md" >/dev/null 2>&1 || fail
+              fi
+              ;;
+            success)
+              numbers=$(gh issue list -R turbobeest/modelspec-data --label accuracy-nightly \
+                --state open --json number -q '.[].number' 2>/dev/null) || fail
+              for number in $numbers; do
+                gh issue close "$number" -R turbobeest/modelspec-data \
+                  --comment "Green again: $RUN_URL" >/dev/null 2>&1 || fail
+              done
+              ;;
+          esac
