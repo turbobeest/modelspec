@@ -17,7 +17,10 @@ from __future__ import annotations
 import hashlib
 import html
 import json
+import os
 import re
+from datetime import UTC, datetime
+from pathlib import Path
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
@@ -135,16 +138,92 @@ def parse_answer(raw: str) -> JsonValue:
     return obj["value"]
 
 
-def read_page(*, url: str, facet_id: str, subject_name: str, page_bytes: bytes,
-              readers: Sequence[Reader]) -> list[ReaderAnswer]:
-    """Ask each reader the same prompt; record the hash of what was sent and the manifest."""
+#: The append-only attempt log, under the data directory. One line per attempt; no page text.
+ATTEMPTS_FILE = "verification/cited-attempts.jsonl"
+
+
+def canonical(value: JsonValue, facet_id: str) -> str:
+    """A value in one spelling: a set facet's members are sorted."""
+    from decision.registry import default
+
+    try:
+        kind = default().facet(facet_id).value_type.kind
+    except KeyError:
+        kind = None
+    if isinstance(value, list) and kind in {"set", "string_set"}:
+        value = sorted(value, key=lambda item: json.dumps(item, sort_keys=True))
+    return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+
+
+def _attempts_path(data_dir: str | Path | None) -> Path:
+    root = data_dir or os.environ.get("MODELSPEC_DATA_DIR", "").strip()
+    if not root:
+        raise ReaderError("no data directory is named for the attempt log")
+    return Path(root) / ATTEMPTS_FILE
+
+
+def attempts(subject: str, facet_id: str, url: str, epoch: str = "initial", *,
+             data_dir: str | Path | None = None) -> list[dict]:
+    """The logged attempts for one subject, facet, page and epoch, in file order."""
+    path = _attempts_path(data_dir)
+    if not path.is_file():
+        return []
+    out = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        entry = json.loads(line)
+        if (entry.get("subject"), entry.get("facet"), entry.get("url"), entry.get("epoch")) \
+                == (subject, facet_id, url, epoch):
+            out.append(entry)
+    return out
+
+
+def log_attempt(entry: dict, *, data_dir: str | Path | None = None) -> None:
+    """Append one attempt. The log is append-only and keeps no page text."""
+    path = _attempts_path(data_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(entry, sort_keys=True, ensure_ascii=False) + "\n")
+
+
+def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_bytes: bytes,
+              readers: Sequence[Reader], epoch: str = "initial",
+              data_dir: str | Path | None = None) -> list[ReaderAnswer]:
+    """Ask each reader the same prompt; record the hash of what was sent and the manifest.
+
+    Every attempt, complete or not, is appended to the attempt log (``ATTEMPTS_FILE``)
+    keyed by subject, facet, URL and epoch, with both raw values, the readers' ids,
+    families and versions, the prompt and page sha256 and the time. ``cited_change``
+    refuses unless the first complete attempt for its key agreed.
+    """
     prompt = build_prompt(url=url, facet_id=facet_id, subject_name=subject_name,
                           page_bytes=page_bytes)
     manifest = input_manifest(url=url, facet_id=facet_id, subject_name=subject_name,
                               page_bytes=page_bytes)
-    answers = []
-    for reader in readers:
-        value = parse_answer(reader.ask(prompt))
-        answers.append(ReaderAnswer(reader.reader_id, reader.family, reader.version, value,
-                                    sha256(prompt), dict(manifest)))
+    answers: list[ReaderAnswer] = []
+    entry = {"subject": subject, "facet": facet_id, "url": url, "epoch": epoch,
+             "page_sha256": sha256(page_bytes), "prompt_sha256": sha256(prompt),
+             "at": datetime.now(UTC).replace(microsecond=0).isoformat(), "complete": False,
+             "agreed": None, "readers": []}
+    try:
+        for reader in readers:
+            try:
+                raw = reader.ask(prompt)
+            except Exception as error:  # a CLI, timeout or transport failure is an incomplete attempt
+                raise ReaderError(type(error).__name__) from None
+            value = parse_answer(raw)
+            entry["readers"].append({"reader_id": reader.reader_id, "family": reader.family,
+                                     "version": reader.version, "value": value})
+            answers.append(ReaderAnswer(reader.reader_id, reader.family, reader.version, value,
+                                        sha256(prompt), dict(manifest)))
+    except ReaderError as error:
+        entry["error"] = str(error)
+        log_attempt(entry, data_dir=data_dir)
+        raise
+    entry["complete"] = True
+    entry["agreed"] = len(answers) == 2 and (canonical(answers[0].value, facet_id)
+                                             == canonical(answers[1].value, facet_id))
+    entry["agreed_value"] = answers[0].value if entry["agreed"] else None
+    log_attempt(entry, data_dir=data_dir)
     return answers

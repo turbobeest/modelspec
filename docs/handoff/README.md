@@ -101,7 +101,18 @@ Learned expensively during 2026-09-09/10.
     built: `decision.cited_reader` makes one prompt from the URL, the facet
     definition, the subject's name and the page bytes only, records each
     reader's prompt sha256 and an input manifest, and the gate rebuilds the
-    prompt from the page bytes and refuses unless both match. A failed condition
+    prompt from the page bytes and refuses unless both match. The gate takes
+    `Reader` objects and runs the harness itself, so no caller supplies answers,
+    hashes or manifests. It fetches the page itself, in memory, redirects off,
+    and refuses any hop to a retaining host. Every attempt is appended to
+    `verification/cited-attempts.jsonl` (no page text); the first complete
+    attempt for a subject, facet and page must have agreed
+    (`prior_attempt_disagreed`), so a retry cannot shop for agreement. A
+    `registry/source-redirects.json` entry exempts a retaining-host source only
+    if its `to` is a registered cite-only source URL and it was checked within 7
+    days; the rolling re-read re-probes each entry and drops it unless the
+    source still answers 3xx to that URL. The block's `previous_sources` keeps
+    the sources the fact cited before, so later re-reads still see them. A failed condition
     is a named refusal and nothing is written. A disagreement leaves the fact as
     filed and flags it. The fact is served as cited, never verified: the record
     keeps the URL, read date, sha256, both readers' answers, prompt hashes and

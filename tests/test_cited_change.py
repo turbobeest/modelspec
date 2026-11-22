@@ -2,18 +2,21 @@
 
 import json
 import socket
+import inspect
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 import yaml
 
+from decision import cited_change as gate
 from decision.cited_change import (
-    KNOWN_FAMILIES, REFUSALS, cited_change, cited_change_block, cited_change_facts, lookup,
-    reread, reread_required,
+    KNOWN_FAMILIES, REFUSALS, _check_readers, cited_change, cited_change_block,
+    cited_change_facts, lookup, reread, reread_required,
 )
 from decision.cited_reader import (
-    Reader, ReaderAnswer, ReaderError, build_prompt, input_manifest, parse_answer, read_page, sha256,
+    ATTEMPTS_FILE, Reader, ReaderAnswer, ReaderError, attempts, build_prompt, input_manifest,
+    parse_answer, read_page, sha256,
 )
 
 FACET = "model.context_window"
@@ -21,7 +24,6 @@ SUBJECT = "xai/grok-x"
 URL = "https://docs.x.ai/docs/models/grok-x"
 HF = "https://huggingface.co/xai/grok-x"
 PAGE = b"<html><body>Grok X token limit 262144 SECRET-PAGE-MARKER</body></html>"
-READ_AT = datetime(2026, 11, 20, 12, 0, tzinfo=UTC)
 
 
 @pytest.fixture(autouse=True)
@@ -31,6 +33,29 @@ def offline(monkeypatch):
 
 def reader(rid, family, value=262144, version="1.0"):
     return Reader(rid, family, version, lambda prompt: f'<<<JSON {{"value": {json.dumps(value)}}} JSON>>>')
+
+
+def failing(rid, family):
+    def ask(prompt):
+        raise TimeoutError("slow")
+    return Reader(rid, family, "1.0", ask)
+
+
+def pair(value=262144, a=("codex", "gpt-5"), b=("grok", "xai"), version="1.0"):
+    return [reader(a[0], a[1], value, version), reader(b[0], b[1], value, version)]
+
+
+def serve(pages=None):
+    """The HTTP transport: URL -> (status, Location, body). Records every URL requested."""
+    pages = {URL: PAGE} if pages is None else pages
+    calls = []
+
+    def request(url):
+        calls.append(url)
+        page = pages[url]
+        return page if isinstance(page, tuple) else (200, None, page)
+    request.calls = calls
+    return request
 
 
 class Data:
@@ -63,20 +88,18 @@ class Data:
         next(s for s in self.sources if s["id"] == sid).update(kw)
         self.write()
 
+    def log(self):
+        path = self.root / ATTEMPTS_FILE
+        return [json.loads(x) for x in path.read_text().splitlines()] if path.is_file() else []
+
 
 @pytest.fixture
 def data(tmp_path, monkeypatch):
     return Data(tmp_path / "data", monkeypatch)
 
 
-def answers(value=262144, page=PAGE, a=("codex", "gpt-5"), b=("grok", "xai")):
-    return read_page(url=URL, facet_id=FACET, subject_name="Grok X", page_bytes=page,
-                     readers=[reader(a[0], a[1], value), reader(b[0], b[1], value)])
-
-
 def run(**kw):
-    args = dict(subject=SUBJECT, facet=FACET, source_id="s1", read_at=READ_AT, page_bytes=PAGE,
-                answers=answers())
+    args = dict(subject=SUBJECT, facet=FACET, source_id="s1", readers=pair(), request=serve())
     args.update(kw)
     return cited_change(**args)
 
@@ -85,6 +108,10 @@ def refused(reason, **kw):
     out = run(**kw)
     assert out.outcome == "refused" and out.reason == reason, (out.reason, out.detail)
     assert out.record is None and reason in REFUSALS
+
+
+def today():
+    return datetime.now(UTC).date().isoformat()
 
 
 # --- every condition holds -----------------------------------------------------------------------
@@ -96,22 +123,40 @@ def test_all_conditions_hold_writes_cited_record_with_manifests(data):
     rec = out.record
     assert rec["value"] == 262144 and rec["resolution"] == "cited" and rec["state"] == "known"
     assert rec["source"]["snapshot_ref"] == "sha256:" + sha256(PAGE)
-    assert rec["source"]["retrieved_at"] == "2026-11-20T12:00:00+00:00"
-    assert set(rec["source"]) == {"source_id", "snapshot_ref", "retrieved_at", "cited_regions"}  # a SourceRef
+    assert datetime.fromisoformat(rec["source"]["retrieved_at"]).tzinfo is not None
+    assert set(rec["source"]) == {"source_id", "snapshot_ref", "retrieved_at", "cited_regions"}
     block = rec["derivation"]["cited_change"]
     assert "cited_change" not in rec
-    assert block["sha256"] == sha256(PAGE) and block["url"] == URL and block["read_date"] == "2026-11-20"
+    assert block["sha256"] == sha256(PAGE) and block["url"] == URL and block["read_date"] == today()
+    assert block["previous_sources"] == ["s1"] and block["resolved_urls"] == []
     assert [r["family"] for r in block["readers"]] == ["gpt-5", "xai"]
     for r in block["readers"]:
         assert r["reader_id"] and r["version"] and r["prompt_sha256"]
         assert r["manifest"]["fields"] == ["url", "facet", "facet_definition", "subject_name", "page"]
-        assert "filed_value" not in json.dumps(r["manifest"])
     assert "SECRET-PAGE-MARKER" not in json.dumps(rec)
+
+
+def test_no_public_path_accepts_answers_pages_hashes_or_manifests():
+    for fn in (cited_change, reread):
+        names = set(inspect.signature(fn).parameters)
+        assert not names & {"answers", "page_bytes", "manifest", "prompt_sha256", "read_at"}, names
+    assert "readers" in inspect.signature(cited_change).parameters
+
+
+def test_the_record_round_trips_into_a_valid_fact(data):
+    from decision import registry
+    from decision.model import Fact
+
+    record = run().record
+    fact = {"id": "x", "subject": {"kind": "model", "id": SUBJECT}, "facet": FACET,
+            "value": record["value"], "state": "known", "sources": [record["source"]],
+            "derivation": record["derivation"]}
+    assert Fact.model_validate(fact, context={"registry": registry}).derivation
 
 
 def test_prompt_holds_only_the_four_inputs(data):
     prompt = build_prompt(url=URL, facet_id=FACET, subject_name="Grok X", page_bytes=PAGE)
-    assert "131072" not in prompt and "262144" in prompt  # the page's own number, never the filed one
+    assert "131072" not in prompt and "262144" in prompt
     assert input_manifest(url=URL, facet_id=FACET, subject_name="Grok X", page_bytes=PAGE)["fields"]
     with pytest.raises(ReaderError):
         parse_answer("no markers")
@@ -129,21 +174,55 @@ def test_refuse_when_the_registry_lookup_fails(data, monkeypatch):
     refused("unknown_facet", facet="no.such.facet")
     data.fact["facet"] = "model.max_output_tokens"
     data.write()
-    refused("registry_lookup_failed")  # the card has no such fact for this facet
+    refused("registry_lookup_failed")
     monkeypatch.delenv("MODELSPEC_DATA_DIR")
     refused("registry_lookup_failed")
 
 
-# --- condition 1: the host -----------------------------------------------------------------------
+# --- condition 1: the host, and the redirects at the gate ----------------------------------------
 
 
 def test_refuse_host_retains_copies(data):
-    refused("host_not_cite_only", source_id="hf")
+    refused("host_not_cite_only", source_id="hf", request=serve({HF: PAGE}))
 
 
 def test_refuse_malformed_url(data):
     data.source(url="https://")
     refused("host_unreadable")
+
+
+def test_the_gate_follows_a_redirect_only_to_cite_only_hosts_and_records_the_hops(data):
+    other = "https://docs.x.ai/docs/models/grok-x-moved"
+    request = serve({URL: (301, "/docs/models/grok-x-moved", b""), other: PAGE})
+    out = run(request=request)
+    assert out.changed and request.calls == [URL, other]
+    assert out.record["derivation"]["cited_change"]["resolved_urls"] == [other]
+
+
+def test_the_gate_refuses_a_redirect_to_a_retaining_host_and_never_requests_it(data):
+    request = serve({URL: (302, HF, b""), HF: PAGE})
+    refused("redirect_to_retaining_host", request=request)
+    assert request.calls == [URL]
+    assert not data.log()  # no reader was asked
+
+
+def test_the_gate_refuses_an_unreadable_page_and_a_redirect_loop(data):
+    refused("page_unreadable", request=serve({URL: (404, None, b"")}))
+    refused("page_unreadable", request=serve({URL: (200, None, b"")}))
+    refused("page_unreadable", request=serve({URL: (301, URL, b"")}))
+
+    def boom(url):
+        raise OSError("down")
+    refused("page_unreadable", request=boom)
+    refused("host_unreadable", request=serve({URL: (301, "https://docs.x.ai:99999/x", b"")}))
+
+
+def test_the_page_bytes_come_only_from_the_gates_fetch(data):
+    seen = []
+    spy = Reader("codex", "gpt-5", "1.0", lambda p: seen.append(p) or '<<<JSON {"value": 5} JSON>>>')
+    spy2 = Reader("grok", "xai", "1.0", lambda p: '<<<JSON {"value": 5} JSON>>>')
+    assert run(readers=[spy, spy2], request=serve({URL: b"<html>only this page 5</html>"})).changed
+    assert "only this page 5" in seen[0] and "SECRET-PAGE-MARKER" not in seen[0]
 
 
 # --- condition 2: kind and first party -----------------------------------------------------------
@@ -164,99 +243,128 @@ def test_refuse_not_first_party(data):
     refused("not_first_party")
 
 
-# --- condition 3: two readers, distinct known families, blind ------------------------------------
+# --- condition 3: two readers, distinct known families -------------------------------------------
 
 
 def test_refuse_reader_count(data):
-    refused("reader_count", answers=answers()[:1])
-    refused("reader_count", answers=answers() * 2)
+    refused("reader_count", readers=pair()[:1])
+    refused("reader_count", readers=pair() + [reader("q", "qwen")])
 
 
 def test_refuse_reader_metadata_missing(data):
-    a, b = answers()
-    refused("reader_metadata_missing", answers=[a, ReaderAnswer(b.reader_id, b.family, "", b.value,
-                                                                b.prompt_sha256, b.manifest)])
-    refused("reader_metadata_missing", answers=[a, ReaderAnswer("", b.family, b.version, b.value,
-                                                                b.prompt_sha256, b.manifest)])
+    refused("reader_metadata_missing", readers=pair(version=""))
+    refused("reader_metadata_missing", readers=[reader("", "gpt-5"), reader("g", "xai")])
 
 
 @pytest.mark.parametrize("family", ["gpt-5", "openai", "unknown", "other", "unrecorded",
                                     "deterministic", "foobar-lab", "Unlisted-Family"])
 def test_refuse_a_family_that_is_not_a_distinct_known_lineage(data, family):
-    refused("reader_families_not_distinct", answers=answers(a=("codex", "gpt-5"), b=("x", family)))
+    refused("reader_families_not_distinct", readers=pair(b=("x", family)))
 
 
 def test_known_families_are_the_lineages(data):
     assert {"openai", "anthropic", "xai"} <= KNOWN_FAMILIES
-    assert run(answers=answers(a=("codex", "openai"), b=("claude", "anthropic"))).changed
+    assert run(readers=pair(a=("codex", "openai"), b=("claude", "anthropic"))).changed
 
 
 def test_refuse_same_reader_id(data):
-    refused("reader_families_not_distinct", answers=answers(a=("same", "gpt-5"), b=("same", "xai")))
+    refused("reader_families_not_distinct", readers=pair(a=("same", "gpt-5"), b=("same", "xai")))
 
 
-def test_refuse_missing_input_records(data):
-    a, b = answers()
-    refused("reader_input_missing", answers=[a, ReaderAnswer(b.reader_id, b.family, b.version, b.value)])
-    refused("reader_input_missing", answers=[a, ReaderAnswer(b.reader_id, b.family, b.version, b.value,
-                                                             b.prompt_sha256, None)])
+def forged(data):
+    """Answers as a caller could forge them: only the private defence in depth sees these."""
+    answers = read_page(subject=SUBJECT, url=URL, facet_id=FACET, subject_name="Grok X",
+                        page_bytes=PAGE, readers=pair())
+    return answers, gate._facet(FACET)
 
 
-def test_refuse_a_reader_shown_the_filed_value_or_the_other_answer(data):
-    a, b = answers()
+def check(answers, facet, page=PAGE):
+    return _check_readers(answers, facet, url=URL, subject_name="Grok X", page_bytes=page)
+
+
+def test_defence_in_depth_against_forged_answers(data):
+    (a, b), facet = forged(data)
+    assert check([a, b], facet) is None
+    missing = ReaderAnswer(b.reader_id, b.family, b.version, b.value)
+    assert check([a, missing], facet).reason == "reader_input_missing"
     leaked = build_prompt(url=URL, facet_id=FACET, subject_name="Grok X", page_bytes=PAGE) \
         + "\nFiled value: 131072"
-    refused("reader_input_not_blind", answers=[a, ReaderAnswer(
-        b.reader_id, b.family, b.version, b.value, sha256(leaked), b.manifest)])
-    extra = {**b.manifest, "fields": [*b.manifest["fields"], "filed_value"],
-             "input_sha256": {**b.manifest["input_sha256"], "filed_value": sha256("131072")}}
-    refused("reader_input_not_blind", answers=[a, ReaderAnswer(
-        b.reader_id, b.family, b.version, b.value, b.prompt_sha256, extra)])
-    refused("reader_input_not_blind", answers=[a, ReaderAnswer(
-        b.reader_id, b.family, b.version, b.value, b.prompt_sha256,
-        {**b.manifest, "input_sha256": {**b.manifest["input_sha256"], "page": sha256("x")}})])
-
-
-def test_refuse_readers_that_read_other_bytes_than_the_page_given(data):
-    refused("reader_input_not_blind", answers=answers(page=b"<html>another page</html>"))
+    with_leak = ReaderAnswer(b.reader_id, b.family, b.version, b.value, sha256(leaked), b.manifest)
+    assert check([a, with_leak], facet).reason == "reader_input_not_blind"
+    extra = {**b.manifest, "fields": [*b.manifest["fields"], "filed_value"]}
+    assert check([a, ReaderAnswer(b.reader_id, b.family, b.version, b.value, b.prompt_sha256,
+                                  extra)], facet).reason == "reader_input_not_blind"
+    assert check([a, b], facet, page=b"<html>another page</html>").reason == "reader_input_not_blind"
 
 
 def test_refuse_disagreement(data):
-    a, _ = answers()
-    _, b = answers(value=1000000)
-    refused("readers_disagree", answers=[a, b])
+    refused("readers_disagree", readers=[reader("codex", "gpt-5", 1), reader("grok", "xai", 2)])
 
 
-def test_refuse_no_value_and_invalid_value(data):
-    refused("no_value", answers=answers(value=None))
-    refused("value_invalid", answers=answers(value="big"))
+def test_refuse_no_value(data):
+    refused("no_value", readers=pair(value=None))
+
+
+def test_refuse_invalid_value(data):
+    refused("value_invalid", readers=pair(value="big"))
 
 
 def test_refuse_excerpt_sized_string(data):
     data.fact.update(facet="origin.lab_jurisdiction", value=["US"])
     data.write()
     long = "x" * 500
-    refused("value_invalid", facet="origin.lab_jurisdiction", answers=read_page(
-        url=URL, facet_id="origin.lab_jurisdiction", subject_name="Grok X", page_bytes=PAGE,
-        readers=[reader("a", "gpt-5", [long]), reader("b", "xai", [long])]))
+    refused("value_invalid", facet="origin.lab_jurisdiction", readers=pair(value=[long]))
 
 
 def test_set_values_compare_unordered(data):
     data.fact.update(facet="origin.lab_jurisdiction", value=["US"])
     data.write()
-    got = read_page(url=URL, facet_id="origin.lab_jurisdiction", subject_name="Grok X",
-                    page_bytes=PAGE, readers=[reader("a", "gpt-5", ["US", "GB"]),
-                                              reader("b", "xai", ["GB", "US"])])
-    assert run(facet="origin.lab_jurisdiction", answers=got).changed
+    assert run(facet="origin.lab_jurisdiction", readers=[
+        reader("a", "gpt-5", ["US", "GB"]), reader("b", "xai", ["GB", "US"])]).changed
 
 
 def test_refuse_unchanged_value(data):
-    refused("value_unchanged", answers=answers(value=131072))
+    refused("value_unchanged", readers=pair(value=131072))
 
 
-def test_refuse_bad_read_date(data):
-    refused("bad_read_date", read_at=datetime(2026, 11, 20))
-    refused("bad_read_date", read_at=datetime.now(UTC) + timedelta(days=2))
+# --- no retry-shopping: the attempt log ----------------------------------------------------------
+
+
+def test_every_attempt_is_logged_without_page_text(data):
+    run()
+    (entry,) = data.log()
+    assert entry["complete"] and entry["agreed"] and entry["agreed_value"] == 262144
+    assert entry["page_sha256"] == sha256(PAGE) and entry["prompt_sha256"] and entry["at"]
+    assert [r["reader_id"] for r in entry["readers"]] == ["codex", "grok"]
+    assert {"family", "version", "value"} <= set(entry["readers"][0])
+    assert "SECRET-PAGE-MARKER" not in json.dumps(entry)
+
+
+def test_an_agreement_after_a_disagreement_is_refused(data):
+    refused("readers_disagree", readers=[reader("codex", "gpt-5", 1), reader("grok", "xai", 2)])
+    refused("prior_attempt_disagreed")  # a clean second read agrees, and still cannot be used
+    assert len(data.log()) == 2 - 1  # the second attempt never read: the gate refused first
+    assert attempts(SUBJECT, FACET, URL)[0]["agreed"] is False
+
+
+def test_a_second_attempt_after_an_agreement_must_return_the_same_value(data):
+    assert run().changed
+    assert run().changed
+    refused("prior_attempt_disagreed", readers=pair(value=999))
+
+
+def test_an_incomplete_attempt_is_logged_and_does_not_count(data):
+    refused("reader_failed", readers=[failing("codex", "gpt-5"), reader("grok", "xai")])
+    assert [e["complete"] for e in data.log()] == [False, False]  # one retry, both logged
+    assert run().changed  # an incomplete attempt is no first complete attempt
+
+
+def test_a_seeded_disagreement_blocks_a_later_agreement(data):
+    path = data.root / ATTEMPTS_FILE
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(json.dumps({"subject": SUBJECT, "facet": FACET, "url": URL, "epoch": "initial",
+                                "complete": True, "agreed": False, "seeded": True}) + "\n")
+    refused("prior_attempt_disagreed")
 
 
 # --- condition 5: a retaining source wins (looked up, not supplied) ------------------------------
@@ -280,23 +388,51 @@ def test_refuse_a_checked_retaining_source_and_unreadable_and_unregistered(data)
     refused("registry_lookup_failed")
 
 
-def test_a_retaining_source_that_now_redirects_to_a_cite_only_host_is_not_a_path(data):
-    data.fact["checked_sources"] = ["hf"]
-    data.redirects = {"hf": {"to": "https://docs.x.ai/docs/other"}}
-    data.write()
-    assert run().changed
-    data.redirects = {"hf": {"to": "https://example.org/other"}}
-    data.write()
-    refused("retaining_source_registered")
-
-
 def test_a_retaining_source_of_another_kind_is_not_for_this_facet(data):
-    data.source("hf", kind="licence_text")  # not a permitted kind for context_window
+    data.source("hf", kind="licence_text")
     data.fact["checked_sources"] = ["hf"]
     data.write()
     assert run().changed
-    data.source("hf", kind="weights_repository")  # permitted: it is a path for this facet
+    data.source("hf", kind="weights_repository")
     refused("retaining_source_registered")
+
+
+def test_previous_sources_are_still_considered_on_later_reads(data):
+    data.fact["checked_sources"] = ["hf"]
+    data.redirects = {"hf": {"to": URL, "status": 301, "checked": today()}}
+    data.write()
+    record = run().record
+    assert record["derivation"]["cited_change"]["previous_sources"] == ["s1", "hf"]
+    # the card now cites only s1, but remembers hf; the redirect entry later goes stale
+    data.fact = {"facet": FACET, "value": record["value"], "state": "known",
+                 "sources": [record["source"]], "checked_sources": [], "derivation": record["derivation"]}
+    data.redirects = {"hf": {"to": URL, "status": 301, "checked": "2020-01-01"}}
+    data.write()
+    refused("retaining_source_registered", readers=pair(value=7))
+
+
+@pytest.mark.parametrize("entry,honoured", [
+    ({"to": URL, "checked": "TODAY"}, True),
+    ({"to": URL, "checked": "OLD"}, False),
+    ({"to": "https://docs.x.ai/docs/not-registered", "checked": "TODAY"}, False),
+    ({"to": URL, "checked": "FUTURE"}, False),
+    ({"to": URL}, False),
+    ({"to": URL, "checked": "garbage"}, False),
+    ("not a mapping", False),
+])
+def test_a_redirect_entry_counts_only_for_a_registered_cite_only_target_checked_this_week(
+        data, entry, honoured):
+    if isinstance(entry, dict) and "checked" in entry:
+        entry["checked"] = {"TODAY": today(), "OLD": (datetime.now(UTC) - timedelta(days=8)).date().isoformat(),
+                            "FUTURE": (datetime.now(UTC) + timedelta(days=3)).date().isoformat()
+                            }.get(entry["checked"], entry["checked"])
+    data.fact["checked_sources"] = ["hf"]
+    data.redirects = {"hf": entry}
+    data.write()
+    if honoured:
+        assert run().changed
+    else:
+        refused("retaining_source_registered")
 
 
 # --- the re-read: runtime path, record exactly as cited_change returns it ------------------------
@@ -320,14 +456,14 @@ def test_runtime_record_is_found_and_reread_triggers_on_a_changed_sha(data):
     assert lookup(SUBJECT, FACET).fact["derivation"]["cited_change"]["sha256"] == sha256(PAGE)
 
 
-def reread_with(fact, page, **kw):
-    kw.setdefault("answers", answers(page=page, value=kw.pop("value", 262144)))
-    return reread(fact, source_id="s1", read_at=READ_AT, page_bytes=page, **kw)
+def reread_with(fact, page, readers=None):
+    return reread(fact, source_id="s1", readers=readers or pair(), request=serve({URL: page}))
 
 
 def test_reread_unchanged_page_needs_no_read(data):
     fact = cited_card(data, run().record)
-    assert reread(fact, source_id="s1", read_at=READ_AT, page_bytes=PAGE, answers=[]).outcome == "current"
+    out = reread_with(fact, PAGE, readers=[])
+    assert out.outcome == "current"
 
 
 def test_reread_changed_sha_confirms_or_changes_with_two_readers(data):
@@ -335,75 +471,95 @@ def test_reread_changed_sha_confirms_or_changes_with_two_readers(data):
     page = PAGE + b" v2"
     out = reread_with(fact, page)
     assert out.outcome == "confirmed" and out.record["derivation"]["cited_change"]["sha256"] == sha256(page)
-    out = reread_with(fact, page, value=5)
+    # a second read at the same recorded hash must return the same value as the first agreed one
+    other = reread_with(fact, page + b" v3", readers=pair(value=5))
+    assert other.outcome == "flagged" and other.reason == "prior_attempt_disagreed"
+
+
+def test_reread_changed_sha_new_value_with_a_fresh_epoch(data):
+    fact = cited_card(data, run().record)
+    out = reread_with(fact, PAGE + b" v2", readers=pair(value=5))
     assert out.outcome == "changed" and out.record["value"] == 5
 
 
 def test_reread_changed_sha_one_reader_or_disagreement_flags(data):
     fact = cited_card(data, run().record)
     page = PAGE + b" v2"
-    one = reread_with(fact, page, answers=answers(page=page)[:1])
+    one = reread_with(fact, page, readers=pair()[:1])
     assert one.outcome == "flagged" and one.reason == "reader_count"
-    a, _ = answers(page=page)
-    _, b = answers(page=page, value=7)
-    dis = reread_with(fact, page, answers=[a, b])
+    dis = reread_with(fact, page + b"!", readers=[reader("a", "gpt-5", 1), reader("b", "xai", 2)])
     assert dis.outcome == "flagged" and dis.reason == "readers_disagree" and dis.record is None
 
 
 def test_reread_of_plain_fact_flags(data):
-    out = reread({"subject": SUBJECT, "facet": FACET}, source_id="s1", read_at=READ_AT,
-                 page_bytes=PAGE, answers=[])
+    out = reread({"subject": SUBJECT, "facet": FACET}, source_id="s1", readers=[])
     assert out.reason == "not_a_cited_change"
 
 
 # --- the rolling re-read script ------------------------------------------------------------------
 
 
-def test_the_rolling_reread_flags_a_cited_change_fact_whose_page_hash_changed(data, tmp_path):
+def sweep_script(data):
     from scripts import evidence_reread as script
 
-    cited_card(data, run().record)
-    (data.root / "registry/source-terms.json").write_text("{}")
-    calls = []
+    (data.root / "registry/source-terms.json").write_text(json.dumps({"huggingface.co": "restricts"}))
+    return script
 
-    def serve(body):
-        def request(url):
-            calls.append(url)
-            return 200, None, body
-        return request
+
+def test_the_rolling_reread_flags_a_cited_change_fact_whose_page_hash_changed(data):
+    script = sweep_script(data)
+    cited_card(data, run().record)
 
     def sweep(body):
         report = script.Report("2026-11-23", True)
         script.cited_change_rereads(data.root, script.load_terms(data.root), report,
-                                    request=serve(body), pacer=script.Pacer(0, sleep=lambda s: None))
+                                    request=serve({URL: body}), pacer=script.Pacer(0, sleep=lambda s: None))
         return report
 
     assert sweep(PAGE).cited_change_rereads == []
     report = sweep(PAGE + b" new")
     assert report.cited_change_rereads == [f"{SUBJECT}#{FACET}"]
     assert report.to_dict()["cited_change_rereads_required"] == [f"{SUBJECT}#{FACET}"]
-    assert set(calls) == {URL}
 
 
 def test_the_rolling_reread_run_reports_it(data, tmp_path):
-    from scripts import evidence_reread as script
-
+    script = sweep_script(data)
     cited_card(data, run().record)
-    (data.root / "registry/source-terms.json").write_text("{}")
-    report = script.run(data.root, observed_at=READ_AT.date() + timedelta(days=3), dry_run=True,
+    report = script.run(data.root, observed_at=datetime.now(UTC).date(), dry_run=True,
                         store_root=tmp_path / "cache", request=lambda url: (200, None, PAGE + b"!"),
                         pacer=script.Pacer(0, sleep=lambda s: None))
     assert report.cited_change_rereads == [f"{SUBJECT}#{FACET}"]
     assert not [p for p in (tmp_path / "cache").rglob("*") if p.is_file()], "no page bytes kept"
 
 
-def test_the_record_round_trips_into_a_valid_fact(data):
-    """The fact a card would hold validates against the real Fact model."""
-    from decision.model import Fact
-    from decision import registry
+def refresh(data, status, location, *, dry_run=False):
+    script = sweep_script(data)
+    report = script.Report("2026-11-23", dry_run)
+    script.refresh_redirects(data.root, script.load_terms(data.root), report,
+                             observed_at=datetime(2026, 11, 23).date(), dry_run=dry_run,
+                             request=lambda url: (status, location, b""),
+                             pacer=script.Pacer(0, sleep=lambda s: None))
+    return report, json.loads((data.root / "registry/source-redirects.json").read_text())
 
-    record = run().record
-    fact = {"id": "x", "subject": {"kind": "model", "id": SUBJECT}, "facet": FACET,
-            "value": record["value"], "state": "known", "sources": [record["source"]],
-            "derivation": record["derivation"]}
-    assert Fact.model_validate(fact, context={"registry": registry}).derivation
+
+def test_the_rolling_reread_keeps_a_redirect_entry_only_while_the_source_still_redirects_there(data):
+    data.redirects = {"hf": {"to": URL, "status": 301, "checked": "2026-11-01"}}
+    data.write()
+    report, entries = refresh(data, 301, URL)
+    assert report.redirects_kept == ["hf"] and entries["hf"]["checked"] == "2026-11-23"
+    report, entries = refresh(data, 301, "https://docs.x.ai/docs/else")
+    assert report.redirects_dropped == ["hf"] and entries == {}
+
+
+def test_the_rolling_reread_drops_a_redirect_entry_when_the_source_answers_200_or_fails(data):
+    data.redirects = {"hf": {"to": URL, "status": 301, "checked": "2026-11-01"}}
+    data.write()
+    report, entries = refresh(data, 200, None)
+    assert report.redirects_dropped == ["hf"] and entries == {}
+
+
+def test_a_dry_run_leaves_the_redirect_file_alone(data):
+    data.redirects = {"hf": {"to": URL, "status": 301, "checked": "2026-11-01"}}
+    data.write()
+    _, entries = refresh(data, 200, None, dry_run=True)
+    assert entries["hf"]["checked"] == "2026-11-01"
