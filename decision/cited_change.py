@@ -445,9 +445,10 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     value = answers[0].value
     if value is None:
         return _refuse("no_value", "the readers agree the page states nothing; that is not a change")
-    if any(a.get("agreed_value") is not None
+    # A prior agreement on another non-null value is a conflict signal, seeded ones too.
+    if any(a.get("agreed") and a.get("agreed_value") is not None
            and _canonical(a.get("agreed_value"), facet_def) != _canonical(value, facet_def)
-           for a in prior):
+           for a in history):
         return _refuse("prior_attempt_disagreed", "an earlier agreed attempt returned another value")
     problem = _value_fits(value, facet_def)
     if problem is not None:
