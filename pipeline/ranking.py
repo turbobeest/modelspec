@@ -53,7 +53,9 @@ FEATURED_PROFILES = (
 )
 
 
-@dataclass
+#: Slots, not a per-instance dict: the Worker keeps one `Candidate` per card for
+#: the life of the isolate (MODEL-531). Fields are read and never added.
+@dataclass(slots=True)
 class Candidate:
     model_id: str
     display_name: str

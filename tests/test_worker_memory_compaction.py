@@ -234,7 +234,9 @@ def test_rank_candidates_share_equal_values_and_serialize_as_before():
                                           "release_date": None, "cost_input": None,
                                           "context_window": None, "open_weights": False,
                                           "rehost_of": None, "model_type": "llm"},
-                                       **{**row, "verified_benchmarks": ["humaneval", "mmlu"]}}
+                                       # Device ids are kept; tok/s values never reach a response.
+                                       **{**row, "fits": ("gpu-a", "gpu-b"),
+                                          "verified_benchmarks": ["humaneval", "mmlu"]}}
     # The streamed load shares across rows too, and ranks to the same bytes as a plain copy.
     meta, streamed = rank_service.load_rank_export(
         io.StringIO(json.dumps({"build": {}, "authoring_guides": {}, "candidates": rows})))
@@ -244,3 +246,79 @@ def test_rank_candidates_share_equal_values_and_serialize_as_before():
     shared = rank_service.rank(payload, meta, *args, prepared_candidates=streamed)
     plain = rank_service.rank(payload, {"build": {}, "candidates": rows}, *args)
     assert json.dumps(shared, indent=2, default=str) == json.dumps(plain, indent=2, default=str)
+
+
+def test_rank_candidates_hold_compact_values_the_rank_path_still_reads():
+    """MODEL-531 (headroom): slots, names as tuples, no per-device tok/s."""
+    from api.worker.src import rank_service
+    from pipeline.ranking import Candidate
+
+    assert "__dict__" not in dir(Candidate(model_id="a", display_name="A", provider="p",
+                                           model_type=None))
+    prepared = rank_service.candidates_from_export({"candidates": _repeating_rows()})
+    for candidate in prepared:
+        assert type(candidate.fits) is tuple and candidate.fits == ("gpu-a", "gpu-b")
+        assert type(candidate.verified_benchmarks) is tuple
+        assert candidate.verified_benchmarks == ("humaneval", "mmlu")
+    # The only reads the rank path makes of both fields.
+    assert "gpu-a" in prepared[0].fits and "gpu-z" not in prepared[0].fits
+    assert prepared[0].fits is prepared[5].fits
+    assert prepared[0].verified_benchmarks is prepared[5].verified_benchmarks
+    payload = {"use_case": "coding", "limit": 6, "environment": {"hardware": "gpu-a"}}
+    args = ({"hardware": [{"id": "gpu-a"}, {"id": "gpu-z"}]}, "commit", "https://modelspec.test")
+    rows = _repeating_rows()
+    packed = rank_service.rank(payload, {"build": {}}, *args, prepared_candidates=prepared)
+    plain = rank_service.rank(payload, {"build": {}, "candidates": rows}, *args)
+    assert json.dumps(packed, indent=2, default=str) == json.dumps(plain, indent=2, default=str)
+    missing = rank_service.rank({**payload, "environment": {"hardware": "gpu-z"}},
+                                {"build": {}}, *args, prepared_candidates=prepared)
+    assert missing[0] == rank_service.HTTP_NO_MATCH
+
+
+def test_shared_table_keeps_types_and_key_order_apart():
+    from api.worker.src import rank_service
+
+    shared = rank_service._Shared()
+    share = shared.share
+    assert share({"a": 1.5, "b": 2}) is share({"a": 1.5, "b": 2})
+    assert share({"a": 1, "b": 2}) is not share({"b": 2, "a": 1})
+    assert share([1]) is not share([1.0]) and share([1]) is not share([True])
+    assert share([0.0]) is not share([-0.0])
+    assert str(share([-0.0])[0]) == "-0.0" and str(share([0.0])[0]) == "0.0"
+    assert share({}) is not share([]) and share([]) is share([])
+    nan = share([float("nan")])
+    assert nan is not share([float("nan")])
+    assert share(["x", ["y"]]) is share(["x", ["y"]])
+    assert type(share(True)) is bool and share(None) is None
+
+
+def test_shared_table_survives_colliding_hashes(monkeypatch):
+    """A hash match alone never merges two containers."""
+    from api.worker.src import rank_service
+
+    monkeypatch.setattr(rank_service, "hash", lambda _value: 7, raising=False)
+    shared = rank_service._Shared()
+    first, second, third = shared.share(["a"]), shared.share(["b"]), shared.share(["c"])
+    assert len({id(first), id(second), id(third)}) == 3
+    assert shared.share(["a"]) is first and shared.share(["c"]) is third
+
+
+def test_authoring_guides_stay_text_until_one_is_served():
+    from api.worker.src import rank_service
+
+    guide = {"status": "current", "sections": {"a": ["é", 1.0, 2, None, True, {"k": [0.1]}]},
+             "sources": [{"url": "https://x.ai/p", "accessed": "2026-11-01"}]}
+    stale = {**guide, "status": "stale"}
+    export = {"build": {}, "candidates": [], "authoring_guides": {"lab/a": guide, "lab/b": stale}}
+    meta, _ = rank_service.load_rank_export(io.StringIO(json.dumps(export)))
+    packed = rank_service._PackedGuide
+    assert all(type(value) is packed for value in meta["authoring_guides"].values())
+    for model_id, expected in (("lab/a", guide), ("lab/b", stale)):
+        served = rank_service.authoring_guide_block(model_id, meta)
+        direct = rank_service.authoring_guide_block(model_id, export)
+        assert served == direct and served["guide"] == expected
+        assert json.dumps(served, indent=2) == json.dumps(direct, indent=2)
+    assert rank_service.authoring_guide_block("lab/none", meta)["state"] == "absent"
+    # A plain string is not a packed guide: it is still served as absent.
+    odd = {"authoring_guides": {"lab/a": json.dumps(guide)}}
+    assert rank_service.authoring_guide_block("lab/a", odd)["state"] == "absent"
