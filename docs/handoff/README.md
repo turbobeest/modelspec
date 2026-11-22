@@ -88,18 +88,27 @@ Learned expensively during 2026-09-09/10.
     leaves its value as it is. A value changes on a cite-only page only through
     `decision.cited_change.cited_change`, and only when every condition holds:
     the host is cite-only (`forbids` or `cite-only` class); the page is
-    first-party for the facet, of a kind the facet's `permitted_source_kinds`
-    allows; two readers of different model families each read the page in memory,
-    blind to each other and to the filed value, and return the same normalised
-    value; each reader's id, family and version are recorded; and no source
-    registered for that subject and facet sits on a host that retains copies (a
-    retaining source wins: verify there instead). A failed condition is a named
-    refusal and nothing is written. A disagreement leaves the fact as filed and
-    flags it. The fact is served as cited, never verified: the record keeps the
-    URL, read date, sha256 and both readers' answers, no page text, no excerpt, no
-    `Verification`. The rolling re-read calls `reread_required` on such a fact:
-    when the page's sha256 changed, two readers read it again (`reread`); fewer
-    than two flags the fact.
+    first-party for the facet (a first-party kind the facet's
+    `permitted_source_kinds` allows, with a registry publisher that is the
+    subject's lab); two readers of distinct known model lineages (never
+    `unknown`, `other`, `unrecorded` or an unlisted name) return the same
+    normalised value; each reader's id, family and version are recorded; and no
+    source registered for that subject and facet sits on a host that retains
+    copies. The gate looks the registered sources up itself in the data
+    directory (card, `registry/sources.yaml`, `registry/source-redirects.json`
+    for a retaining-host source that now redirects to a cite-only host) and
+    refuses when the lookup fails; a caller supplies none of it. Blindness is
+    built: `decision.cited_reader` makes one prompt from the URL, the facet
+    definition, the subject's name and the page bytes only, records each
+    reader's prompt sha256 and an input manifest, and the gate rebuilds the
+    prompt from the page bytes and refuses unless both match. A failed condition
+    is a named refusal and nothing is written. A disagreement leaves the fact as
+    filed and flags it. The fact is served as cited, never verified: the record
+    keeps the URL, read date, sha256, both readers' answers, prompt hashes and
+    manifests under `derivation.cited_change`; no page text, no excerpt, no
+    `Verification`. The rolling re-read (`scripts/evidence_reread.py`) flags each
+    such fact whose page sha256 changed (`reread_required`); two readers then
+    read it again (`reread`), and fewer than two flags the fact.
 
 Public PR bodies and evidence must not contain private modelspec-data commit SHAs or per-card private values. Private PR numbers, ages and clone URLs are not sensitive.
 

@@ -31,6 +31,8 @@ from urllib.error import HTTPError
 from urllib.parse import urljoin, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
+from decision.cited_change import cited_change_facts, cited_change_block, reread_required
+from decision.cited_reader import sha256 as page_sha256
 from decision.retention import cite_only_origin_restrictive
 
 METHOD = "structured-row-match@1"
@@ -328,6 +330,8 @@ class Report:
     unclassed_hosts: dict[str, int] = field(default_factory=dict)
     waiting: int = 0
     unread: list[str] = field(default_factory=list)
+    #: Cited-change facts whose page sha256 changed: two readers must read them again.
+    cited_change_rereads: list[str] = field(default_factory=list)
 
     def note(self, outcome: str, host: str, target_id: str = "") -> None:
         self.counts[outcome] += 1
@@ -344,6 +348,7 @@ class Report:
             "copies_already_kept": self.copies_already_kept,
             "mismatches": sorted(self.mismatches), "unreachable": sorted(self.unreachable),
             "unread": sorted(self.unread),
+            "cited_change_rereads_required": sorted(self.cited_change_rereads),
             "blocked_redirect_hosts": dict(self.blocked_hosts),
             "unclassed_hosts_not_requested": self.unclassed_hosts,
             "rows_waiting_for_a_later_week": self.waiting,
@@ -438,7 +443,37 @@ def run(root: Path, *, observed_at: date, dry_run: bool, store_root: Path,
             report.note("unread", host)
             continue
         report.note(result.outcome, host)
+    cited_change_rereads(root, terms, report, request=request, pacer=pacer)
     return report
+
+
+def cited_change_rereads(root: Path, terms: dict[str, str], report: "Report", *, request=None,
+                         pacer: Pacer | None = None) -> None:
+    """Flag each cited-change fact whose page now hashes differently (MODEL-531, Jamie 2026-11-22).
+
+    The page is read in memory and no byte is kept. A changed sha256 needs two readers of
+    different families to read the page again; this run changes no value and writes nothing.
+    """
+    pacer = pacer or Pacer()
+    pages: dict[str, Fetched] = {}
+    for fact in cited_change_facts(root):
+        url = cited_change_block(fact)["url"]
+        if host_class(url, terms) not in {"forbids", "cite-only"}:
+            report.note("cited_change_skipped", host_of(url))
+            continue
+        if url not in pages:
+            pacer.wait(host_of(url))
+            pages[url] = fetch(url, terms, request=request)
+        page = pages[url]
+        if page.kind != "ok":
+            report.note("cited_change_deferred", host_of(url))
+            continue
+        target = f"{fact['subject']}#{fact['facet']}"
+        if reread_required(fact, page_sha256(page.body)):
+            report.cited_change_rereads.append(target)
+            report.note("cited_change_reread_required", host_of(url))
+        else:
+            report.note("cited_change_current", host_of(url))
 
 
 def _record(result, queue, log, at: datetime, dry_run: bool) -> None:

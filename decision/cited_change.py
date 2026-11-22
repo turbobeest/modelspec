@@ -4,21 +4,29 @@ Jamie, 2026-11-22 (MODEL-531). The rule, as it is built here:
 
 1. Two readers from different model families each read the page in memory, blind to
    each other and to the filed value, and return the same normalised value. A
-   disagreement leaves the fact as filed and flags it.
+   disagreement leaves the fact as filed and flags it. Blindness is proven, not
+   declared: ``decision.cited_reader`` builds the one prompt from the URL, the facet
+   definition, the subject's name and the page bytes only, and ``cited_change``
+   rebuilds that prompt from the page bytes and refuses unless both readers' recorded
+   prompt hashes and input manifests match it. Both families must be known lineages.
 2. The page is first-party for the facet: the lab's or provider's own page, of a
-   kind the facet's ``permitted_source_kinds`` allows.
+   kind the facet's ``permitted_source_kinds`` allows, with a recorded publisher that
+   is the subject's lab.
 3. The fact is served as cited, never verified. The record keeps the URL, read date,
-   sha256 and both readers' normalised answers with their reader ids, families and
-   versions. It keeps no page text and no excerpt, and no ``Verification`` is logged.
+   sha256 and both readers' answers, with their reader ids, families, versions, prompt
+   hashes and input manifests. It keeps no page text and no excerpt, and no
+   ``Verification`` is logged. The block is ``record["derivation"]["cited_change"]``.
 4. The rolling re-read re-reads such a fact. When the page's sha256 changes, two
-   readers read it again (``reread``).
-5. A retaining source wins. When any source registered for the subject and facet sits
-   on a host that retains copies, that path is used instead and this one refuses.
+   readers read the page again (``reread_required``, ``reread``).
+5. A retaining source wins. The gate itself looks up, in the data directory's source
+   registry and the subject's card, every source registered for the subject and facet;
+   any of them on a host that retains copies makes it refuse. A lookup that fails is a
+   refusal.
 
 ``cited_change`` is the only gate. It checks every condition in code and either
 returns the whole record or refuses with one named reason. It never writes a partial
-change. Nothing here reads a page or calls a model: the readers' answers come in as
-data.
+change. It reads no page and calls no model: the page bytes and the readers' answers
+come in as data.
 """
 
 from __future__ import annotations
@@ -27,15 +35,20 @@ import json
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime, time
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any, Literal
 
+import yaml
 from pydantic import JsonValue
 
-from decision.model import DETERMINISTIC, model_family
-from decision.retention import cite_only_origin_status, cite_only_status
+from decision.cited_reader import (
+    INPUT_FIELDS, ReaderAnswer, build_prompt, input_manifest, sha256,
+)
+from decision.model import _LINEAGES, _NO_LINEAGE, DETERMINISTIC, model_family
+from decision.retention import DATA_DIR_ENV, cite_only_origin_status, cite_only_status
 
-RULE = "two-readers-cited-change@1"
+RULE = "two-readers-cited-change@2"
 DECIDED_BY = "Jamie 2026-11-22 (MODEL-531)"
 #: Source kinds that are a lab's or provider's own page. A facet's
 #: ``permitted_source_kinds`` must also list the kind.
@@ -45,10 +58,15 @@ FIRST_PARTY_KINDS = frozenset({
 })
 #: A string answer longer than this reads as an excerpt, not a normalised value.
 MAX_STRING_LENGTH = 120
-SHA256 = re.compile(r"[0-9a-f]{64}")
+#: The lineages a reader family may name (``decision.model._LINEAGES``, after mapping).
+KNOWN_FAMILIES = frozenset(_LINEAGES.values())
+#: Data-directory file: ``{source_id: {"to": url}}`` for a retaining-host source that now
+#: answers 3xx to another host. It is not a retaining path when the target is cite-only.
+REDIRECTS_FILE = "registry/source-redirects.json"
 
 #: Every named refusal reason.
 REFUSALS = (
+    "registry_lookup_failed",
     "unknown_facet",
     "host_not_cite_only",
     "host_unreadable",
@@ -56,7 +74,8 @@ REFUSALS = (
     "not_first_party",
     "reader_count",
     "reader_metadata_missing",
-    "reader_not_blind",
+    "reader_input_missing",
+    "reader_input_not_blind",
     "reader_families_not_distinct",
     "readers_disagree",
     "no_value",
@@ -64,49 +83,8 @@ REFUSALS = (
     "value_unchanged",
     "retaining_source_registered",
     "retaining_source_unreadable",
-    "bad_sha256",
     "bad_read_date",
 )
-
-
-@dataclass(frozen=True)
-class ReaderAnswer:
-    """One reader's normalised answer. ``blind`` attests it read the page without the
-    filed value and without the other reader's answer."""
-
-    reader_id: str
-    family: str
-    version: str
-    value: JsonValue
-    blind: bool = False
-
-    def metadata_present(self) -> bool:
-        return all(isinstance(part, str) and part.strip()
-                   for part in (self.reader_id, self.family, self.version))
-
-
-@dataclass(frozen=True)
-class CitedSource:
-    """The page that was read: where, what kind, when and the sha256 of the bytes read."""
-
-    source_id: str
-    url: str
-    kind: str
-    read_date: date
-    sha256: str
-    publisher: str | None = None
-    resolved_urls: tuple[str, ...] = ()
-    cited_regions: tuple[str, ...] = ("page",)
-    #: The instant of the read (timezone-aware), when known; the record keeps it as ``retrieved_at``.
-    read_at: datetime | None = None
-
-
-@dataclass(frozen=True)
-class RegisteredSource:
-    """A source registered for the subject and facet (the cited one included)."""
-
-    source_id: str
-    url: str
 
 
 @dataclass(frozen=True)
@@ -126,6 +104,61 @@ class CitedChange:
 def _refuse(reason: str, detail: str = "") -> CitedChange:
     assert reason in REFUSALS, reason
     return CitedChange("refused", reason, detail, None)
+
+
+# --- the registry lookup -------------------------------------------------------------------------
+
+
+class LookupFailed(Exception):
+    """The data directory, the subject's card or its source registry could not be read."""
+
+
+@dataclass(frozen=True)
+class Lookup:
+    """What the registry says about one subject and facet."""
+
+    subject_name: str
+    fact: Mapping[str, Any]
+    sources: Mapping[str, Mapping[str, Any]]
+    redirects: Mapping[str, Any]
+
+    @property
+    def registered_ids(self) -> tuple[str, ...]:
+        ids = [s.get("source_id") for s in self.fact.get("sources") or []]
+        return tuple(dict.fromkeys([*ids, *(self.fact.get("checked_sources") or [])]))
+
+
+_SUBJECT = re.compile(r"[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*")
+
+
+def lookup(subject: str, facet: str, data_dir: str | Path | None = None) -> Lookup:
+    """Read the subject's card, the source registry and the redirect list from the data directory."""
+    import os
+
+    root = data_dir or os.environ.get(DATA_DIR_ENV, "").strip()
+    if not root:
+        raise LookupFailed("no data directory is named")
+    root = Path(root)
+    if not _SUBJECT.fullmatch(subject):
+        raise LookupFailed("the subject is not a model id")
+    try:
+        card = (root / "models" / f"{subject}.md").read_text(encoding="utf-8")
+        front = yaml.safe_load(card.split("---", 2)[1])
+        facts = {f["facet"]: f for f in front["facts"]}
+        sources = {s["id"]: s for s in
+                   yaml.safe_load((root / "registry" / "sources.yaml").read_text("utf-8"))["sources"]}
+        path = root / REDIRECTS_FILE
+        redirects = json.loads(path.read_text("utf-8")) if path.is_file() else {}
+        name = front["display_name"]
+        fact = facts[facet]
+    except (OSError, ValueError, KeyError, TypeError, IndexError, yaml.YAMLError) as error:
+        raise LookupFailed(f"{type(error).__name__}") from None
+    if not isinstance(redirects, dict) or not isinstance(name, str) or not name:
+        raise LookupFailed("malformed registry")
+    return Lookup(name, fact, sources, redirects)
+
+
+# --- the checks ----------------------------------------------------------------------------------
 
 
 def _canonical(value: JsonValue, facet: Any) -> str:
@@ -161,65 +194,88 @@ def _value_fits(value: JsonValue, facet: Any) -> str | None:
     return None
 
 
-def _check_source(source: CitedSource, facet: Any, owners: Sequence[str]) -> CitedChange | None:
-    if not isinstance(source.sha256, str) or not SHA256.fullmatch(source.sha256):
-        return _refuse("bad_sha256", "the sha256 of the bytes read is missing or malformed")
-    if not isinstance(source.read_date, date) or source.read_date > datetime.now(UTC).date():
-        return _refuse("bad_read_date", "the read date is missing or in the future")
-    status = cite_only_origin_status(source.url, source.resolved_urls)
+def _check_source(row: Mapping[str, Any], facet: Any, subject: str,
+                  read_at: datetime) -> CitedChange | None:
+    if not isinstance(read_at, datetime) or read_at.tzinfo is None \
+            or read_at > datetime.now(UTC):
+        return _refuse("bad_read_date", "the read time is missing, naive or in the future")
+    url = row.get("url")
+    status = cite_only_origin_status(url, ())
     if status is None:
-        return _refuse("host_unreadable", "the source URL or a redirect target does not parse")
-    if not status or not all(cite_only_status(u) for u in (source.url, *source.resolved_urls)):
+        return _refuse("host_unreadable", "the source URL does not parse")
+    if not status:
         return _refuse("host_not_cite_only",
                        "the host retains copies, so the verified path applies")
-    if source.kind not in facet.permitted_source_kinds:
+    kind = row.get("kind")
+    if kind not in facet.permitted_source_kinds:
         return _refuse("source_kind_not_permitted",
-                       f"{source.kind} is not a permitted source kind for {facet.id}")
-    if source.kind not in FIRST_PARTY_KINDS:
-        return _refuse("not_first_party", f"{source.kind} is not a lab's or provider's own page")
-    if source.publisher is not None and owners and source.publisher not in owners:
-        return _refuse("not_first_party", "the page's publisher is not the subject's lab or provider")
+                       f"{kind} is not a permitted source kind for {facet.id}")
+    owner = subject.split("/", 1)[0]
+    if kind not in FIRST_PARTY_KINDS:
+        return _refuse("not_first_party", f"{kind} is not a lab's or provider's own page")
+    if not row.get("publisher") or row.get("publisher") != owner:
+        return _refuse("not_first_party",
+                       "the source registry records no publisher, or not the subject's lab")
     return None
 
 
-def _check_readers(answers: Sequence[ReaderAnswer], facet: Any) -> CitedChange | None:
-    if len(answers) != 2:
+def _check_readers(answers: Sequence[ReaderAnswer], facet: Any, *, url: str, subject_name: str,
+                   page_bytes: bytes) -> CitedChange | None:
+    if len(answers) != 2 or not all(isinstance(a, ReaderAnswer) for a in answers):
         return _refuse("reader_count", f"{len(answers)} readers; the rule needs exactly two")
-    if not all(isinstance(a, ReaderAnswer) and a.metadata_present() for a in answers):
+    if not all(a.metadata_present() for a in answers):
         return _refuse("reader_metadata_missing", "a reader id, family or version is missing")
-    if not all(a.blind is True for a in answers):
-        return _refuse("reader_not_blind", "a reader was not blind to the filed value or the other reader")
-    families = [model_family(a.family) for a in answers]
-    if DETERMINISTIC in (a.family for a in answers) or "unknown" in families \
-            or families[0] == families[1] or answers[0].reader_id == answers[1].reader_id:
+    mapped = [model_family(a.family) for a in answers]
+    if any(a.family.strip().casefold() in {DETERMINISTIC, *_NO_LINEAGE} for a in answers) \
+            or any(m not in KNOWN_FAMILIES for m in mapped) or mapped[0] == mapped[1] \
+            or answers[0].reader_id == answers[1].reader_id:
         return _refuse("reader_families_not_distinct",
-                       "the readers are not two distinct, known model families")
+                       "the readers are not two distinct, known model lineages")
+    prompt_hash = sha256(build_prompt(url=url, facet_id=facet.id, subject_name=subject_name,
+                                      page_bytes=page_bytes))
+    manifest = input_manifest(url=url, facet_id=facet.id, subject_name=subject_name,
+                              page_bytes=page_bytes)
+    if not all(isinstance(a.manifest, dict) and a.manifest and a.prompt_sha256 for a in answers):
+        return _refuse("reader_input_missing", "a reader's prompt hash or input manifest is missing")
+    if any(a.manifest != manifest or a.prompt_sha256 != prompt_hash
+           or list(a.manifest.get("fields", ())) != list(INPUT_FIELDS) for a in answers):
+        return _refuse("reader_input_not_blind",
+                       "a reader's input is not the prompt built from the URL, facet "
+                       "definition, subject name and page bytes alone")
     if _canonical(answers[0].value, facet) != _canonical(answers[1].value, facet):
         return _refuse("readers_disagree", "the readers returned different values")
     return None
 
 
-def _check_retaining(registered: Sequence[RegisteredSource]) -> CitedChange | None:
-    for source in registered:
-        status = cite_only_status(source.url)
+def _check_retaining(found: Lookup, facet: Any) -> CitedChange | None:
+    for source_id in found.registered_ids:
+        row = found.sources.get(source_id)
+        if row is None:
+            return _refuse("registry_lookup_failed",
+                           f"registered source {source_id} is not in the source registry")
+        if row.get("kind") not in facet.permitted_source_kinds:
+            continue
+        status = cite_only_status(row.get("url"))
         if status is None:
             return _refuse("retaining_source_unreadable",
-                           f"registered source {source.source_id} has a URL that does not parse")
-        if not status:
-            return _refuse("retaining_source_registered",
-                           f"registered source {source.source_id} is on a host that retains copies")
+                           f"registered source {source_id} has a URL that does not parse")
+        if status:
+            continue
+        moved = found.redirects.get(source_id)
+        if isinstance(moved, Mapping) and cite_only_status(moved.get("to")) is True:
+            continue
+        return _refuse("retaining_source_registered",
+                       f"registered source {source_id} is on a host that retains copies")
     return None
 
 
-def _retrieved_at(source: CitedSource) -> str:
-    """An aware timestamp: the instant of the read, or midnight UTC of the read date."""
-    if source.read_at is not None and source.read_at.tzinfo is not None:
-        return source.read_at.isoformat()
-    return datetime.combine(source.read_date, time(), tzinfo=UTC).isoformat()
+def _retrieved_at(read_at: datetime) -> str:
+    return read_at.astimezone(UTC).replace(microsecond=0).isoformat()
 
 
-def _record(subject: str, facet_id: str, value: JsonValue, source: CitedSource,
-            answers: Sequence[ReaderAnswer], previous: JsonValue) -> dict[str, JsonValue]:
+def _record(subject: str, facet_id: str, value: JsonValue, row: Mapping[str, Any], source_id: str,
+            read_at: datetime, page_sha: str, answers: Sequence[ReaderAnswer],
+            previous: JsonValue) -> dict[str, JsonValue]:
     """The record: values, URL, date, sha256 and the readers. No page text."""
     return {
         "subject": subject,
@@ -228,39 +284,42 @@ def _record(subject: str, facet_id: str, value: JsonValue, source: CitedSource,
         "state": "known",
         "resolution": "cited",
         "source": {
-            "source_id": source.source_id,
-            "url": source.url,
-            "snapshot_ref": f"sha256:{source.sha256}",
-            "retrieved_at": _retrieved_at(source),
-            "cited_regions": list(source.cited_regions),
+            "source_id": source_id,
+            "url": row["url"],
+            "snapshot_ref": f"sha256:{page_sha}",
+            "retrieved_at": _retrieved_at(read_at),
+            "cited_regions": [r["id"] for r in row.get("cited_regions") or []] or ["page"],
         },
-        "cited_change": {
+        "derivation": {"cited_change": {
             "rule": RULE,
             "decided_by": DECIDED_BY,
-            "read_date": source.read_date.isoformat(),
-            "sha256": source.sha256,
-            "url": source.url,
+            "read_date": read_at.astimezone(UTC).date().isoformat(),
+            "sha256": page_sha,
+            "url": row["url"],
             "previous_value": previous,
             "readers": [{"reader_id": a.reader_id, "family": a.family, "version": a.version,
-                         "value": a.value} for a in answers],
-        },
+                         "value": a.value, "prompt_sha256": a.prompt_sha256,
+                         "manifest": a.manifest} for a in answers],
+        }},
     }
 
 
-def cited_change(*, subject: str, facet: str, filed_value: JsonValue, source: CitedSource,
-                 answers: Sequence[ReaderAnswer], registered_sources: Sequence[RegisteredSource],
-                 owners: Sequence[str] = (), _allow_unchanged: bool = False) -> CitedChange:
-    """Write ``answers``' agreed value as ``cited``, or refuse with a named reason.
-
-    ``registered_sources`` lists every source registered for this subject and facet.
-    ``owners`` are the ids of the subject's lab and provider, for the publisher check.
-    """
+def _gate(*, subject: str, facet: str, source_id: str, read_at: datetime, page_bytes: bytes,
+          answers: Sequence[ReaderAnswer], allow_unchanged: bool) -> CitedChange:
     facet_def = _facet(facet)
     if facet_def is None:
         return _refuse("unknown_facet", facet)
-    refusal = (_check_source(source, facet_def, owners)
-               or _check_readers(answers, facet_def)
-               or _check_retaining(registered_sources))
+    try:
+        found = lookup(subject, facet)
+    except LookupFailed as error:
+        return _refuse("registry_lookup_failed", str(error))
+    row = found.sources.get(source_id)
+    if row is None or not row.get("url"):
+        return _refuse("registry_lookup_failed", "the cited source is not in the source registry")
+    refusal = (_check_source(row, facet_def, subject, read_at)
+               or _check_readers(answers, facet_def, url=row["url"],
+                                 subject_name=found.subject_name, page_bytes=page_bytes)
+               or _check_retaining(found, facet_def))
     if refusal is not None:
         return refusal
     value = answers[0].value
@@ -269,10 +328,25 @@ def cited_change(*, subject: str, facet: str, filed_value: JsonValue, source: Ci
     problem = _value_fits(value, facet_def)
     if problem is not None:
         return _refuse("value_invalid", problem)
-    if not _allow_unchanged and _canonical(value, facet_def) == _canonical(filed_value, facet_def):
+    filed = found.fact.get("value")
+    if not allow_unchanged and found.fact.get("state") == "known" \
+            and _canonical(value, facet_def) == _canonical(filed, facet_def):
         return _refuse("value_unchanged", "the agreed value is the filed value")
-    return CitedChange("cited_change", None, "", _record(subject, facet, value, source, answers,
-                                                         filed_value))
+    return CitedChange("cited_change", None, "", _record(
+        subject, facet, value, row, source_id, read_at, sha256(page_bytes), answers, filed))
+
+
+def cited_change(*, subject: str, facet: str, source_id: str, read_at: datetime,
+                 page_bytes: bytes, answers: Sequence[ReaderAnswer]) -> CitedChange:
+    """Write ``answers``' agreed value as ``cited``, or refuse with a named reason.
+
+    The filed value, the source row (URL, kind, publisher) and every source registered
+    for the subject and facet are looked up here, in the data directory, never supplied.
+    ``page_bytes`` are the bytes the readers read; the gate hashes them and rebuilds the
+    readers' prompt from them. They are not stored.
+    """
+    return _gate(subject=subject, facet=facet, source_id=source_id, read_at=read_at,
+                 page_bytes=page_bytes, answers=answers, allow_unchanged=False)
 
 
 # --- the re-read ---------------------------------------------------------------------------------
@@ -296,6 +370,27 @@ def reread_required(fact: Mapping[str, Any], current_sha256: str) -> bool:
     return block is not None and block.get("sha256") != current_sha256
 
 
+def cited_change_facts(data_dir: str | Path) -> list[dict[str, Any]]:
+    """Every fact in the data directory's cards that carries a ``cited_change`` block.
+
+    Each entry has ``subject``, ``facet``, ``value``, ``derivation`` and ``source_id``.
+    """
+    out: list[dict[str, Any]] = []
+    for path in sorted((Path(data_dir) / "models").glob("*/*.md")):
+        try:
+            front = yaml.safe_load(path.read_text("utf-8").split("---", 2)[1])
+            facts = front.get("facts") or []
+        except (OSError, IndexError, AttributeError, yaml.YAMLError):
+            continue
+        for fact in facts:
+            if isinstance(fact, dict) and cited_change_block(fact) is not None:
+                sources = fact.get("sources") or [{}]
+                out.append({"subject": f"{path.parent.name}/{path.stem}", "facet": fact.get("facet"),
+                            "value": fact.get("value"), "derivation": fact.get("derivation"),
+                            "source_id": sources[0].get("source_id")})
+    return out
+
+
 @dataclass(frozen=True)
 class Reread:
     """What a re-read of a cited-change fact decided.
@@ -313,21 +408,20 @@ class Reread:
     detail: str = field(default="")
 
 
-def reread(fact: Mapping[str, Any], *, source: CitedSource, answers: Sequence[ReaderAnswer],
-           registered_sources: Sequence[RegisteredSource], owners: Sequence[str] = ()) -> Reread:
+def reread(fact: Mapping[str, Any], *, source_id: str, read_at: datetime, page_bytes: bytes,
+           answers: Sequence[ReaderAnswer]) -> Reread:
     """Re-read a cited-change fact. A changed sha256 needs two readers; fewer flags it."""
     block = cited_change_block(fact)
     if block is None:
         return Reread("flagged", "not_a_cited_change", None, "the fact carries no cited_change block")
-    if not reread_required(fact, source.sha256):
+    if not reread_required(fact, sha256(page_bytes)):
         return Reread("current")
-    outcome = cited_change(subject=str(fact.get("subject")), facet=str(fact.get("facet")),
-                           filed_value=fact.get("value"), source=source, answers=answers,
-                           registered_sources=registered_sources, owners=owners,
-                           _allow_unchanged=True)
+    outcome = _gate(subject=str(fact.get("subject")), facet=str(fact.get("facet")),
+                    source_id=source_id, read_at=read_at, page_bytes=page_bytes, answers=answers,
+                    allow_unchanged=True)
     if not outcome.changed:
         return Reread("flagged", outcome.reason, None, outcome.detail)
-    agreed = outcome.record["value"] if outcome.record else None
     facet_def = _facet(str(fact.get("facet")))
+    agreed = outcome.record["value"] if outcome.record else None
     same = _canonical(agreed, facet_def) == _canonical(fact.get("value"), facet_def)
     return Reread("confirmed" if same else "changed", None, outcome.record)

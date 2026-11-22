@@ -88,8 +88,7 @@ import yaml
 from pydantic import JsonValue, ValidationError
 
 from decision.cited_change import (  # noqa: F401  (the cite-only value-change gate, MODEL-531)
-    CitedChange, CitedSource, ReaderAnswer, RegisteredSource, cited_change, reread,
-    reread_required,
+    CitedChange, cited_change, reread, reread_required,
 )
 from decision.licence_rules import (
     LICENCE_CONDITION_RULE,
