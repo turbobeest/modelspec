@@ -15,6 +15,8 @@ from decision.sources import CopyStore
 from scripts import refresh_leaderboards as refresh
 from tests.test_refresh_final_address import _install
 
+pytestmark = pytest.mark.usefixtures("terms_register_present")
+
 OBSERVED = "2026-11-14"
 OLD_ADDRESS = "https://www.tbench.ai/leaderboard/terminal-bench/4.0"
 SOURCE_ID = "model-493-evidence-terminal-bench-4-1-json"

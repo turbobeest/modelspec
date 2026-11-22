@@ -121,6 +121,27 @@ jobs:
           quoted="$(python -I -c 'import json, pathlib; print(json.dumps(str(pathlib.Path("engine").resolve())))')"
           mkdir -p "$purelib"
           printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
+      - name: Link the private source-terms register into the engine
+        working-directory: .
+        run: |
+          set -euo pipefail
+          # MODEL-482: the source-terms register is private data that is not a public data
+          # path. The refresh stops without it, so link it here and refuse a missing or
+          # symlinked file or one that resolves outside the data checkout.
+          terms=data/registry/source-terms.json
+          if [ ! -f "$terms" ] || [ -L "$terms" ] || [ -L data/registry ]; then
+            echo "::error::$terms is missing or a symlink"
+            exit 1
+          fi
+          case "$(realpath -e "$terms")/" in
+            "$GITHUB_WORKSPACE/data/"*) ;;
+            *)
+              echo "::error::$terms resolves outside the data checkout"
+              exit 1
+              ;;
+          esac
+          rm -f engine/registry/source-terms.json
+          ln -s "$GITHUB_WORKSPACE/$terms" engine/registry/source-terms.json
       - name: Install refresh dependencies
         run: python -I -m pip install pydantic pyyaml httpx pyarrow
       - name: Preserve the mechanically checked baseline
@@ -207,6 +228,7 @@ jobs:
               print(f"updates={len(report['changes']) + len(report['reconfirmed']) + written}", file=out)
               print(f"failures={len(report['failures'])}", file=out)
               print(f"quarantined={len(report['quarantined'])}", file=out)
+              print(f"left_stale={len(report.get('left_stale', []))}", file=out)
           PY
       - name: Prepare the pull-request body
         if: inputs.dry_run != true && steps.result.outputs.updates != '0'
@@ -327,6 +349,14 @@ jobs:
         if: steps.result.outputs.updates == '0' && steps.result.outputs.failures != '0'
         run: |
           echo "::error::No score changed, but one or more live boards failed; see the run summary."
+          exit 1
+      - name: Fail a run that left a live row stale
+        # MODEL-482: a run that wrote other rows still fails when a live row is older
+        # than the report's stale line, so a board that stopped reading cannot hide. A dry
+        # run reports the rows and does not fail.
+        if: inputs.dry_run != true && steps.result.outputs.left_stale != '0'
+        run: |
+          echo "::error::One or more live rows were not re-dated and are past the stale line; see 'Live rows left stale' in the run summary."
           exit 1
     defaults:
       run:

@@ -48,7 +48,7 @@ from decision.model import (
     evidence_verification_value,
 )
 from decision import verify
-from decision.sources import CopyStore, fingerprint_bytes, load_sources
+from decision.sources import CopyStore, fingerprint_bytes, load_sources, require_source_url
 from decision.units import UNITS, unit_id
 from decision.verify import (
     Claim,
@@ -67,7 +67,8 @@ from decision.verify import (
     run as verify_claims,
 )
 from scripts import model_160_evidence as readers
-from scripts.evidence_reread import load_terms
+from scripts.observation_dates import observation_metadata_date
+from scripts.evidence_reread import load_terms as _load_register
 from scripts.model_143_evidence import evidence_id, evidence_key, measured_by
 
 #: A configuration cites the day the board was read as the standalone word ``read``
@@ -296,6 +297,10 @@ class RefreshReport:
     quarantined: list[RowFailure] = field(default_factory=list)
     #: First rows a cite-only board would add: nothing is written and no claim is filed.
     held_for_review: list[RowFailure] = field(default_factory=list)
+    #: Live card rows this run did not re-date and that are older than ``STALE_AFTER_DAYS``.
+    #: A board that failed to read, or a row it no longer lists, shows up here, so a run
+    #: that wrote other rows cannot hide a board going stale (MODEL-482).
+    left_stale: list[RowFailure] = field(default_factory=list)
     #: Rows whose source listed them with no value, or listed a value again.
     not_published: list[PublicationMark] = field(default_factory=list)
     added: int = 0
@@ -363,6 +368,51 @@ def _value(board: BoardReading, row: Mapping[str, Any], unit: str | None) -> flo
     if board.fraction and unit_id(unit) in {"percent", "p-mrr (x100)"}:
         number *= 100
     return float(number)
+
+
+#: A live card row this run left older than this many days is reported. The freshness
+#: layer fails at 30 (``accuracy.yaml``); this warns with nine days to spare.
+STALE_AFTER_DAYS = 21
+
+
+def left_stale_rows(
+    cards: Mapping[str, Mapping[str, Any]],
+    refreshed: set[tuple[str, tuple[object, ...]]],
+    registered: Mapping[str, Any],
+    *,
+    observed_at: str,
+) -> list[RowFailure]:
+    """Live card rows this run did not re-date and that are past ``STALE_AFTER_DAYS``.
+
+    ``cards`` maps a model id to its front matter; ``refreshed`` holds ``(model_id,
+    evidence_key)`` of every row the run rewrites. A live row is one whose source the
+    registry marks ``volatility: live``, the freshness layer's own test. It does not
+    depend on a board having been read, so a board that failed to read is still caught.
+    A row marked ``not_published_since`` is skipped, as the freshness layer skips it;
+    Arena rows belong to the Arena scheduler.
+    """
+    today = date.fromisoformat(observed_at)
+    stale: list[RowFailure] = []
+    for model_id, front in sorted(cards.items()):
+        for row in (front.get("benchmarks") or {}).get("evidence") or []:
+            if not isinstance(row, Mapping) or _publication_marked(row) or _arena_reading_row(row):
+                continue
+            if (model_id, evidence_key(dict(row))) in refreshed:
+                continue
+            refs = row.get("sources") or []
+            ids = [ref.get("source_id") for ref in refs if isinstance(ref, Mapping)]
+            if not any(getattr(registered.get(source_id), "volatility", "static") == "live"
+                       for source_id in ids):
+                continue
+            seen = observation_metadata_date(row)  # the freshness layer's own lookup
+            if seen is None:
+                continue
+            if (today - seen).days > STALE_AFTER_DAYS:
+                stale.append(RowFailure(
+                    model_id, str(row.get("benchmark_id")), str(row.get("source_url") or ""),
+                    f"left stale: observed {seen.isoformat()}, not re-dated by this run",
+                ))
+    return stale
 
 
 def _iso_day(value: object) -> str:
@@ -2206,6 +2256,13 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         add_missing: bool = False,
         release_held_boards: bool = False,
         arena_latest: bool | None = None) -> RefreshReport:
+    terms = load_terms(root)
+    if not terms:
+        # Never fall back to treating every host as retaining (S7): stop before any request.
+        raise ValueError(
+            f"the source-terms register {root / 'registry' / 'source-terms.json'} is "
+            "absent or empty; the refresh will not read a board without it"
+        )
     date.fromisoformat(observed_at)
     latest = arena_revision_setting(arena_latest)
     chosen = choose_arena_revision(latest)
@@ -2225,7 +2282,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         for row in (front.get("benchmarks") or {}).get("evidence") or []
         if row.get("benchmark_id") == "tau3_banking" and row.get("source_url")
     }
-    store = CopyStore(source_cache)
+    store = TermsStore(source_cache, terms)
     # Latest mode writes Arena rows only when the head resolved and every
     # config was read there. A resolver failure, or any failed head fetch,
     # writes none. The pin stays per config.
@@ -2235,7 +2292,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
     boards, board_failures = collect_readings(
         observed_at, store, tau_urls, chosen.sha, arena_complete=complete,
         skip_arena=latest and chosen.fallback is not None,
-        terms=load_terms(root),
+        terms=terms,
     )
     failures = list(board_failures)
     if chosen.fallback:
@@ -2419,6 +2476,17 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         pending_additions=pending_additions,
         claims=claims,
     )
+
+    model_of = {path: model for model, path in cards.items()}
+    refreshed = {
+        (model_of[card], key)
+        for card, updates in pending_updates.items() for key, _new in updates
+    }
+    # Only the premier (lineup) cards: the extras group is the Arena catalogue expansion and
+    # the freshness layer's lineup check does not cover it.
+    report.left_stale = left_stale_rows(
+        {model: fronts[model] for model in premier}, refreshed, registered,
+        observed_at=observed_at)
 
     if dry_run or (not pending_updates and not pending_additions):
         return _attach_arena_publish_census(report, root, boards)
@@ -2744,6 +2812,11 @@ def render_report(report: RefreshReport) -> str:
                       "| Model | Benchmark | Source |", "|---|---|---|"])
         lines.extend(f"| `{row.model_id}` | `{row.benchmark}` | {row.source} |"
                      for row in report.held_for_review)
+    if report.left_stale:
+        lines.extend(["", f"## Live rows left stale (over {STALE_AFTER_DAYS} days)", "",
+                      "| Model | Benchmark | Source | Why |", "|---|---|---|---|"])
+        lines.extend(f"| `{row.model_id}` | `{row.benchmark}` | {row.source} | {row.reason} |"
+                     for row in report.left_stale)
     return "\n".join(lines)
 
 
@@ -3622,6 +3695,7 @@ def write_report_json(path: Path, report: RefreshReport) -> None:
         "failures": [row.__dict__ for row in report.failures],
         "quarantined": [row.__dict__ for row in report.quarantined],
         "held_for_review": [row.__dict__ for row in report.held_for_review],
+        "left_stale": [row.__dict__ for row in report.left_stale],
         "not_published_since": _publication_payload(report),
         "added": report.added,
     }
@@ -3692,20 +3766,95 @@ def _fetch_scale_pro(url: str) -> bytes:
     return _fetch(url, accept_final=accept_scale_pro_final)
 
 
-def read_in_memory(url: str, terms: Mapping[str, str], *, request: Callable | None = None) -> bytes:
-    """Read a cite-only board in memory: redirects off, nothing written anywhere.
+def load_terms(root: Path) -> dict[str, str]:
+    """The source-terms register: under ``$MODELSPEC_DATA_DIR`` first, else under ``root``.
 
-    A redirect goes only to a retaining host; any other target is not requested and the
-    board waits for the next run (the rule of ``scripts.evidence_reread.fetch``).
+    The private writer workflows keep the data checkout there; the register is private
+    data, tracked in the data repository. ``{}`` when neither holds one.
+    """
+    data = os.environ.get("MODELSPEC_DATA_DIR", "").strip()
+    for base in ([Path(data)] if data else []) + [root]:
+        terms = _load_register(base)
+        if terms:
+            return terms
+    return {}
+
+
+class TermsStore(CopyStore):
+    """A copy store that keeps nothing from a host the terms register holds back (S7).
+
+    A page from a ``cite-only`` or ``forbids`` host is fingerprinted and dropped: ``put``
+    returns the sha256 ref and writes no file, whatever the engine's public cite-only
+    list says. Other hosts go to the store as before.
+    """
+
+    def __init__(self, root: Path | str | None, terms: Mapping[str, str]) -> None:
+        super().__init__(root)
+        self.terms = dict(terms)
+
+    def is_cite_only(self, url: str) -> bool:
+        from scripts.evidence_reread import host_class
+
+        return host_class(url, self.terms) in ("cite-only", "forbids")
+
+    def put(self, body: bytes, *, source_url: str, retrieved_at: datetime | None = None,
+            resolved_urls: Iterable[str] = (), **kwargs: Any) -> str:
+        if self.is_cite_only(source_url):
+            # The citation record and the hash, never the bytes: the same call
+            # ``CopyStore.put`` makes for a cite-only origin.
+            source_url = require_source_url(source_url)
+            ref = fingerprint_bytes(body)
+            self.record_citation(ref, source_url=source_url, retrieved_at=retrieved_at,
+                                 resolved_urls=tuple(resolved_urls))
+            return ref
+        return super().put(body, source_url=source_url, retrieved_at=retrieved_at,
+                           resolved_urls=resolved_urls, **kwargs)
+
+
+def read_in_memory(url: str, terms: Mapping[str, str], *, request: Callable | None = None) -> bytes:
+    """Read a cite-only board in memory: one request, redirects off, nothing written.
+
+    A redirect is not followed and its target is never requested; the board waits for
+    the next run. Nothing from the page is kept: the caller holds the bytes in memory
+    and records only their sha256.
     """
     from scripts import evidence_reread
 
     if not terms:
         raise ValueError("the source-terms register is absent or empty; a cite-only read needs it")
-    fetched = evidence_reread.fetch(url, dict(terms), request=request)
-    if fetched.kind != "ok":
-        raise ValueError(f"cite-only read deferred ({fetched.kind}): {fetched.reason}")
-    return fetched.body
+    if evidence_reread.host_class(url, dict(terms)) == "unclassed":
+        raise ValueError(f"cite-only read deferred: {evidence_reread.host_of(url) or '?'} "
+                         "is not in the terms register")
+    try:
+        status, location, body = (request or evidence_reread.request_once)(url)
+    except Exception as exc:  # a network failure is not evidence that the page is gone
+        raise ValueError(f"cite-only read deferred ({type(exc).__name__})") from exc
+    if 300 <= status < 400:
+        raise ValueError(f"cite-only read deferred (redirect to {location or '?'}; not followed)")
+    if status != 200:
+        raise ValueError(f"cite-only read deferred (HTTP {status})")
+    if len(body) > evidence_reread.MAX_BODY_BYTES:
+        raise ValueError("cite-only read deferred (body over the size limit)")
+    return body
+
+
+def _held_back(url: str, terms: Mapping[str, str]) -> bool:
+    """True for a host the terms register marks ``cite-only`` or ``forbids``."""
+    from scripts.evidence_reread import host_class
+
+    return host_class(url, dict(terms)) in ("cite-only", "forbids")
+
+
+def _fetch_board(url: str, terms: Mapping[str, str], *, scale_pro: bool = False) -> bytes:
+    """Read a board: in memory for a held-back host (S7), through ``_fetch`` otherwise.
+
+    ``_fetch`` goes through ``open_retained_source``, which refuses every such host, so a
+    held-back board never reaches it. Scale Pro's one declared redirect is read at its
+    declared final address directly, still with redirects off.
+    """
+    if not _held_back(url, terms):
+        return _fetch_scale_pro(url) if scale_pro else _fetch(url)
+    return read_in_memory(SCALE_PRO_FINAL if scale_pro and url == readers.SCALE_URL else url, terms)
 
 
 def _fetch(url: str, *, accept_final: Callable[[str, str], bool] | None = None) -> bytes:
@@ -3742,9 +3891,15 @@ def _reading_from_projection(
     fraction: bool = False, card_urls: Iterable[str] = (),
     row_template: Mapping[str, str] | None = None,
     effort_basis: str | None = None,
-    page_ref: str | None = None, cite_only: bool = False,
+    page_ref: str | None = None, cite_only: bool = False, raw_ref: str | None = None,
 ) -> BoardReading:
     payload = json.loads(projected)
+    if not cite_only and getattr(store, "is_cite_only", lambda _url: False)(source_url):
+        # The board's host is held back by the terms: cite it, keep no copy (S7). The
+        # snapshot ref is the sha256 of the page bytes, as for a generic cite-only read.
+        if raw_ref is None:
+            raise ValueError(f"{key}: a held-back board needs the page's own hash")
+        cite_only, page_ref = True, raw_ref
     declared = key in UNPUBLISHED_CELL_BOARDS
     # ``document`` drops a None, so a declared projector's empty cell arrives with
     # no value key. The board declares that a named row without one is listed with
@@ -4028,6 +4183,13 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
     """
     readings: list[BoardReading] = []
     failures: list[RowFailure] = []
+    if terms and not isinstance(store, TermsStore):
+        store = TermsStore(store.root, terms)
+    terms = terms or {}
+
+    def fetch(url: str, scale_pro: bool = False) -> bytes:
+        return _fetch_board(url, terms, scale_pro=scale_pro)
+
     revision = arena_revision or readers.ARENA_REVISION
     if not readers.valid_arena_revision(revision):
         revision = readers.ARENA_REVISION
@@ -4056,7 +4218,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
                     page_ref=raw_ref, cite_only=True,
                 ))
                 return
-            raw = (read or _fetch)(fetch_url)
+            raw = (read or fetch)(fetch_url)
             raw_ref = store.put(raw, source_url=fetch_url)
             projected = projector(raw, url=source_url, page_ref=f"{raw_ref} {fetch_url}",
                                   observed_at=observed_at)
@@ -4064,7 +4226,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
                 key=key, source_id=source_id, benchmarks=benchmarks, source_url=source_url,
                 projected=projected, observed_at=observed_at, value_field=value_field,
                 store=store, fraction=fraction, card_urls=card_urls or (source_url,),
-                row_template=row_template, effort_basis=effort_basis,
+                row_template=row_template, effort_basis=effort_basis, raw_ref=raw_ref,
             ))
         except Exception as exc:  # one failed board must not hide all other board results
             failures.append(RowFailure("*", ",".join(sorted(benchmarks)), source_url,
@@ -4146,7 +4308,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
     # Epoch publishes one CC BY 4.0 archive; all files in this block share one fetch.
     try:
         archive_url = readers.EPOCH_ZIP
-        raw = _fetch(archive_url)
+        raw = fetch(archive_url)
         raw_ref = store.put(raw, source_url=archive_url)
         epoch = {
             "frontiermath_tiers_1_3_v2": (
@@ -4179,7 +4341,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
                 readings.append(_reading_from_projection(
                     key=f"epoch:{benchmark}", source_id=source_id, benchmarks=(benchmark,),
                     source_url=page_url, projected=projected, observed_at=observed_at,
-                    value_field="mean_score", fraction=True, store=store,
+                    value_field="mean_score", fraction=True, store=store, raw_ref=raw_ref,
                     card_urls=(page_url,),
                 ))
     except Exception as exc:
@@ -4195,7 +4357,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
            for benchmark, (source_id, url) in MATHARENA_BOARDS.items()},
     }
     try:
-        index = _fetch(readers.MATHARENA_INDEX)
+        index = fetch(readers.MATHARENA_INDEX)
         index_ref = store.put(index, source_url=readers.MATHARENA_INDEX)
     except Exception as exc:
         failures.append(RowFailure("*", "matharena", readers.MATHARENA_INDEX,
@@ -4210,7 +4372,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
                     deprecated=readers.matharena_deprecated(index.decode(), competition))
             collect(key, source_id, (benchmark,), url, url, project, "accuracy")
     try:
-        raw = _fetch(readers.METR_URL)
+        raw = fetch(readers.METR_URL)
         raw_ref = store.put(raw, source_url=readers.METR_URL)
         projected = readers.project_metr(raw, url=readers.METR_URL, page_ref=raw_ref,
                                          read_date=observed_at)
@@ -4220,7 +4382,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
                 key=f"metr:{benchmark}", source_id="model-160-metr-time-horizon-1-1",
                 benchmarks=(benchmark,), source_url=readers.METR_URL,
                 projected=projected, observed_at=observed_at, value_field=label,
-                store=store, card_urls=(readers.METR_URL,),
+                store=store, raw_ref=raw_ref, card_urls=(readers.METR_URL,),
             ))
     except Exception as exc:
         failures.append(RowFailure("*", "metr", readers.METR_URL,
@@ -4228,7 +4390,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
 
     for key, url, source_id, columns, unit in MTEB_BOARDS:
         try:
-            raw = _fetch(url)
+            raw = fetch(url)
             raw_ref = store.put(raw, source_url=url)
             projected = readers.project_mteb(raw, url=url, page_ref=raw_ref,
                                              read_date=observed_at)
@@ -4236,7 +4398,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
                 readings.append(_reading_from_projection(
                     key=f"mteb:{benchmark}", source_id=source_id,
                     benchmarks=(benchmark,), source_url=url, projected=projected,
-                    observed_at=observed_at, value_field=label, fraction=True, store=store,
+                    observed_at=observed_at, value_field=label, fraction=True, store=store, raw_ref=raw_ref,
                     card_urls=(url,), row_template={**MTEB_ROW, "unit": unit},
                 ))
         except Exception as exc:
@@ -4276,7 +4438,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
                                                       **{k: v for k, v in kw.items()
                                                          if k != "observed_at"}),
             "resolve_rate", card_urls=(readers.SCALE_URL, "https://labs.scale.com/leaderboard/swe_bench_pro"),
-            read=_fetch_scale_pro)
+            read=lambda url: fetch(url, scale_pro=True))
     collect("scale-hle", "model-143-evidence-scale-hle-json", ("hle",), HLE_URL,
             HLE_URL, lambda body, **kw: _project_scale_hle(body.decode(), **kw), "accuracy")
     collect("cursorbench", "model-160-cursorbench", ("cursorbench_4",), readers.CURSOR_URL,
@@ -4292,7 +4454,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
 
     # SWE-bench carries two named boards in one embedded JSON document.
     try:
-        raw = _fetch(readers.SWEBENCH_URL)
+        raw = fetch(readers.SWEBENCH_URL)
         raw_ref = store.put(raw, source_url=readers.SWEBENCH_URL)
         for board_name, benchmark in (("Verified", "swe_bench_verified"),
                                       ("Multilingual", "swe_bench_multilingual")):
@@ -4303,7 +4465,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
                 key=f"swebench:{benchmark}", source_id="model-160-swebench-leaderboard",
                 benchmarks=(benchmark,), source_url=readers.SWEBENCH_URL,
                 projected=projected, observed_at=observed_at, value_field="resolve_rate",
-                store=store, card_urls=(readers.SWEBENCH_URL,),
+                store=store, raw_ref=raw_ref, card_urls=(readers.SWEBENCH_URL,),
             ))
     except Exception as exc:
         failures.append(RowFailure("*", "swebench", readers.SWEBENCH_URL,
@@ -4311,10 +4473,10 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
 
     # Vending-Bench data lives in a JS chunk named by its HTML shell.
     try:
-        page = _fetch(readers.VENDING_URL).decode()
+        page = fetch(readers.VENDING_URL).decode()
         for chunk_path in sorted(set(re.findall(r"/_app/immutable/[\w./-]+\.js", page))):
             chunk_url = "https://andonlabs.com" + chunk_path
-            raw = _fetch(chunk_url)
+            raw = fetch(chunk_url)
             if readers.vending_marker(raw) is None:
                 continue
             raw_ref = store.put(raw, source_url=chunk_url)
@@ -4325,7 +4487,7 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
                 key="vending", source_id="model-160-vending-bench-2",
                 benchmarks=("vending_bench_2",), source_url=readers.VENDING_URL,
                 projected=projected, observed_at=observed_at, value_field="money_balance",
-                store=store, card_urls=(readers.VENDING_URL,),
+                store=store, raw_ref=raw_ref, card_urls=(readers.VENDING_URL,),
             ))
             break
         else:

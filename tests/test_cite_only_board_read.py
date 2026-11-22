@@ -124,6 +124,7 @@ def run_cited(monkeypatch, tmp_path: Path, body: bytes, *, card_text: str = CARD
     (root / "registry").mkdir()
     (root / "verification").mkdir()
     (root / "registry" / "sources.yaml").write_text(SOURCES_YAML, encoding="utf-8")
+    (root / "registry" / "source-terms.json").write_text('{"cursor.com": "forbids"}', encoding="utf-8")
     card = root / "models" / "lab" / "orbit.md"
     card.write_text(card_text, encoding="utf-8")
     monkeypatch.setenv("MODELSPEC_ARENA_REVISION", "pinned")

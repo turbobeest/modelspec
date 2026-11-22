@@ -556,6 +556,13 @@ sources:
         encoding="utf-8",
     )
     (root / "verification").mkdir()
+    # The writer workflow keeps the data checkout, and its private source-terms register,
+    # under MODELSPEC_DATA_DIR; the engine root has none (MODEL-482).
+    data = tmp_path / "data"
+    (data / "registry").mkdir(parents=True)
+    (data / "registry" / "source-terms.json").write_text(
+        json.dumps({"example.test": "retaining"}), encoding="utf-8")
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(data))
     pending = tmp_path / "pending.json"
     result_path = tmp_path / "result.json"
     pending.write_text(json.dumps({"signals": [signal()]}), encoding="utf-8")

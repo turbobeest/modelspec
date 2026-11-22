@@ -12,6 +12,8 @@ import yaml
 
 from scripts import refresh_leaderboards as refresh
 
+pytestmark = pytest.mark.usefixtures("terms_register_present")
+
 PIN = refresh.ARENA_REVISION
 NEW = "0123456789abcdef0123456789abcdef01234567"
 API = "https://huggingface.co/api/datasets/lmarena-ai/leaderboard-dataset"

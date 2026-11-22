@@ -15,6 +15,8 @@ from decision.excluded import REMOVED_HOSTS
 from scripts import accuracy
 from scripts import refresh_leaderboards as refresh
 
+pytestmark = pytest.mark.usefixtures("terms_register_present")
+
 FIXTURES = Path(__file__).parent / "fixtures" / "leaderboard_refresh"
 
 

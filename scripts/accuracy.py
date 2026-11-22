@@ -50,6 +50,11 @@ from scripts.accuracy_public import (  # noqa: E402
     public_report_location,
 )
 
+from scripts.observation_dates import (  # noqa: E402
+    day as _day,
+    observation_metadata_date as _observation_metadata_date,
+)
+
 DEFAULT_CONFIG = ROOT / "accuracy.yaml"
 DEFAULT_OUTPUT = ROOT / "accuracy-report"
 DEFAULT_RECALL_BASELINE = ROOT / "tests" / "recall" / "baseline.json"
@@ -214,19 +219,6 @@ def load_config(path: str | Path = DEFAULT_CONFIG) -> AccuracyConfig:
     return config
 
 
-def _day(value: Any) -> date | None:
-    if isinstance(value, datetime):
-        return value.date()
-    if isinstance(value, date):
-        return value
-    if isinstance(value, str):
-        try:
-            return date.fromisoformat(value[:10])
-        except ValueError:
-            return None
-    return None
-
-
 def _model_candidates(snapshot: Any) -> dict[str, list[str]]:
     result: dict[str, list[str]] = defaultdict(list)
     for candidate in snapshot.candidates():
@@ -248,22 +240,6 @@ def _evidence_record(snapshot: Any, row: Any) -> Mapping[str, Any]:
     except (KeyError, TypeError):
         return {}
     return record if isinstance(record, Mapping) else {}
-
-
-def _observation_metadata_date(record: Mapping[str, Any]) -> date | None:
-    """Return a source observation date, never an evaluation/publication date."""
-    containers = [record]
-    source_snapshot = record.get("source_snapshot")
-    if isinstance(source_snapshot, Mapping):
-        containers.append(source_snapshot)
-    sources = record.get("sources")
-    if isinstance(sources, Sequence) and not isinstance(sources, (str, bytes)):
-        containers.extend(source for source in sources if isinstance(source, Mapping))
-    for key in ("observed_at", "retrieved_at"):
-        for container in containers:
-            if (value := _day(container.get(key))) is not None:
-                return value
-    return _day(record.get("verified_at"))
 
 
 def _live_observation_date(

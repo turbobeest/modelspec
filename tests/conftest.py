@@ -46,6 +46,19 @@ def _no_live_cite_only_reads(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture
+def terms_register_present(monkeypatch):
+    """``run`` stops without a source-terms register (MODEL-482). Test roots carry none,
+    so a refresh test module opts in (``pytest.mark.usefixtures``) to a one-line register that
+    holds back no host it reads. The suite as a whole does not get it."""
+    from scripts import evidence_reread, refresh_leaderboards as refresh
+
+    real = evidence_reread.load_terms
+    monkeypatch.setattr(
+        refresh, "load_terms", lambda root: real(root) or {"terms-register.invalid": "restricts"}
+    )
+
+
+@pytest.fixture
 def subscription_repository() -> Path:
     return Path(__file__).resolve().parents[1]
 
