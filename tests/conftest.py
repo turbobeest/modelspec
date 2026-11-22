@@ -45,6 +45,18 @@ def _no_live_cite_only_reads(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(evidence_reread, "request_once", offline)
 
 
+@pytest.fixture(autouse=True)
+def _terms_register_present(monkeypatch):
+    """``run`` stops without a source-terms register (MODEL-482). Test roots carry none,
+    so give them a one-line register that holds back no host these tests read."""
+    from scripts import evidence_reread, refresh_leaderboards as refresh
+
+    real = evidence_reread.load_terms
+    monkeypatch.setattr(
+        refresh, "load_terms", lambda root: real(root) or {"terms-register.invalid": "restricts"}
+    )
+
+
 @pytest.fixture
 def subscription_repository() -> Path:
     return Path(__file__).resolve().parents[1]

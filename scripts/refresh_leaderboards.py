@@ -67,6 +67,7 @@ from decision.verify import (
     run as verify_claims,
 )
 from scripts import model_160_evidence as readers
+from scripts.observation_dates import observation_metadata_date
 from scripts.evidence_reread import load_terms
 from scripts.model_143_evidence import evidence_id, evidence_key, measured_by
 
@@ -374,17 +375,6 @@ def _value(board: BoardReading, row: Mapping[str, Any], unit: str | None) -> flo
 STALE_AFTER_DAYS = 21
 
 
-def _row_observation_day(row: Mapping[str, Any]) -> str:
-    """The day a card row was last observed: the same fields the freshness layer reads."""
-    sources = row.get("sources")
-    refs = [ref for ref in sources if isinstance(ref, Mapping)] if isinstance(sources, list) else []
-    for container in (row, *refs):
-        for key in ("observed_at", "retrieved_at"):
-            if day := _iso_day(container.get(key)):
-                return day
-    return _iso_day(row.get("verified_at"))
-
-
 def left_stale_rows(
     cards: Mapping[str, Mapping[str, Any]],
     refreshed: set[tuple[str, tuple[object, ...]]],
@@ -414,9 +404,8 @@ def left_stale_rows(
             if not any(getattr(registered.get(source_id), "volatility", "static") == "live"
                        for source_id in ids):
                 continue
-            try:
-                seen = date.fromisoformat(_row_observation_day(row))
-            except ValueError:
+            seen = observation_metadata_date(row)  # the freshness layer's own lookup
+            if seen is None:
                 continue
             if (today - seen).days > STALE_AFTER_DAYS:
                 stale.append(RowFailure(
@@ -2267,6 +2256,13 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         add_missing: bool = False,
         release_held_boards: bool = False,
         arena_latest: bool | None = None) -> RefreshReport:
+    terms = load_terms(root)
+    if not terms:
+        # Never fall back to treating every host as retaining (S7): stop before any request.
+        raise ValueError(
+            f"the source-terms register {root / 'registry' / 'source-terms.json'} is "
+            "absent or empty; the refresh will not read a board without it"
+        )
     date.fromisoformat(observed_at)
     latest = arena_revision_setting(arena_latest)
     chosen = choose_arena_revision(latest)
@@ -2286,7 +2282,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         for row in (front.get("benchmarks") or {}).get("evidence") or []
         if row.get("benchmark_id") == "tau3_banking" and row.get("source_url")
     }
-    store = CopyStore(source_cache)
+    store = TermsStore(source_cache, terms)
     # Latest mode writes Arena rows only when the head resolved and every
     # config was read there. A resolver failure, or any failed head fetch,
     # writes none. The pin stays per config.
@@ -2296,7 +2292,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
     boards, board_failures = collect_readings(
         observed_at, store, tau_urls, chosen.sha, arena_complete=complete,
         skip_arena=latest and chosen.fallback is not None,
-        terms=load_terms(root),
+        terms=terms,
     )
     failures = list(board_failures)
     if chosen.fallback:
@@ -2486,7 +2482,11 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         (model_of[card], key)
         for card, updates in pending_updates.items() for key, _new in updates
     }
-    report.left_stale = left_stale_rows(fronts, refreshed, registered, observed_at=observed_at)
+    # Only the premier (lineup) cards: the extras group is the Arena catalogue expansion and
+    # the freshness layer's lineup check does not cover it.
+    report.left_stale = left_stale_rows(
+        {model: fronts[model] for model in premier}, refreshed, registered,
+        observed_at=observed_at)
 
     if dry_run or (not pending_updates and not pending_additions):
         return _attach_arena_publish_census(report, root, boards)
@@ -3766,6 +3766,29 @@ def _fetch_scale_pro(url: str) -> bytes:
     return _fetch(url, accept_final=accept_scale_pro_final)
 
 
+class TermsStore(CopyStore):
+    """A copy store that keeps nothing from a host the terms register holds back (S7).
+
+    A page from a ``cite-only`` or ``forbids`` host is fingerprinted and dropped: ``put``
+    returns the sha256 ref and writes no file, whatever the engine's public cite-only
+    list says. Other hosts go to the store as before.
+    """
+
+    def __init__(self, root: Path | str | None, terms: Mapping[str, str]) -> None:
+        super().__init__(root)
+        self.terms = dict(terms)
+
+    def is_cite_only(self, url: str) -> bool:
+        from scripts.evidence_reread import host_class
+
+        return host_class(url, self.terms) in ("cite-only", "forbids")
+
+    def put(self, body: bytes, *, source_url: str, **kwargs: Any) -> str:
+        if self.is_cite_only(source_url):
+            return fingerprint_bytes(body)
+        return super().put(body, source_url=source_url, **kwargs)
+
+
 def read_in_memory(url: str, terms: Mapping[str, str], *, request: Callable | None = None) -> bytes:
     """Read a cite-only board in memory: redirects off, nothing written anywhere.
 
@@ -3819,6 +3842,9 @@ def _reading_from_projection(
     page_ref: str | None = None, cite_only: bool = False,
 ) -> BoardReading:
     payload = json.loads(projected)
+    if not cite_only and getattr(store, "is_cite_only", lambda _url: False)(source_url):
+        # The board's host is held back by the terms: cite it, keep no copy (S7).
+        cite_only, page_ref = True, fingerprint_bytes(projected)
     declared = key in UNPUBLISHED_CELL_BOARDS
     # ``document`` drops a None, so a declared projector's empty cell arrives with
     # no value key. The board declares that a named row without one is listed with
@@ -4102,6 +4128,8 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
     """
     readings: list[BoardReading] = []
     failures: list[RowFailure] = []
+    if terms and not isinstance(store, TermsStore):
+        store = TermsStore(store.root, terms)
     revision = arena_revision or readers.ARENA_REVISION
     if not readers.valid_arena_revision(revision):
         revision = readers.ARENA_REVISION
