@@ -83,6 +83,50 @@ Learned expensively during 2026-09-09/10.
     carries no machine verification: the engine returns `cited` and logs no
     record. Never write a verification record by hand.
 
+15. **A cite-only page may change a value when two readers of different families
+    agree** (MODEL-531, Jamie 2026-11-22). Rule 14 files a fact as cited and
+    leaves its value as it is. A value changes on a cite-only page only through
+    `decision.cited_change.cited_change`, and only when every condition holds:
+    the host is cite-only (`forbids` or `cite-only` class); the page is
+    first-party for the facet (a first-party kind the facet's
+    `permitted_source_kinds` allows, with a registry publisher that is the
+    subject's lab); two readers of distinct known model lineages (never
+    `unknown`, `other`, `unrecorded` or an unlisted name) return the same
+    normalised value; each reader's id, family and version are recorded; and no
+    source registered for that subject and facet sits on a host that retains
+    copies. The gate looks the registered sources up itself in the data
+    directory (card, `registry/sources.yaml`, `registry/source-redirects.json`
+    for a retaining-host source that now redirects to a cite-only host) and
+    refuses when the lookup fails; a caller supplies none of it. Blindness is
+    built: `decision.cited_reader` makes one prompt from the URL, the facet
+    definition, the subject's name and the page bytes only, records each
+    reader's prompt sha256 and an input manifest, and the gate rebuilds the
+    prompt from the page bytes and refuses unless both match. The gate takes
+    `Reader` objects and runs the harness itself, so no caller supplies answers,
+    hashes or manifests. It fetches the page itself, in memory, redirects off,
+    and refuses any hop to a retaining host. Every attempt is appended to
+    `verification/cited-attempts.jsonl` (no page text), keyed by subject, facet
+    and epoch across every page. Any disagreement among the counted attempts
+    blocks (`prior_attempt_disagreed`), so a retry cannot shop for agreement; an
+    agreement authorises only if made through the harness, and a seeded
+    agreement from unproven reads authorises nothing while a seeded
+    disagreement still blocks. A
+    `registry/source-redirects.json` entry exempts a retaining-host source only
+    if its `to` is a registered cite-only source URL and it was checked within 7
+    days; the rolling re-read re-probes each entry and drops it unless the
+    source still answers 3xx to that URL. The block's `previous_sources` keeps
+    the sources the fact cited before, so later re-reads still see them. A failed condition
+    is a named refusal and nothing is written. A disagreement leaves the fact as
+    filed and flags it. The fact is served as cited, never verified: the record
+    keeps the URL, read date, sha256, both readers' answers, prompt hashes and
+    manifests under `derivation.cited_change`; no page text, no excerpt, no
+    `Verification`. The rolling re-read (`scripts/evidence_reread.py`) flags each
+    such fact whose page's visible text changed (`reread_required` hashes the
+    normalised text in memory, so byte churn is no change), at most once in 7
+    days per fact (`reread_due`, requests logged in
+    `verification/cited-reread-requests.jsonl`); two readers then read it again
+    (`reread`), and fewer than two flags the fact.
+
 Public PR bodies and evidence must not contain private modelspec-data commit SHAs or per-card private values. Private PR numbers, ages and clone URLs are not sensitive.
 
 ## Pytest CI shards

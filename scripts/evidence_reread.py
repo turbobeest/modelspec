@@ -31,6 +31,7 @@ from urllib.error import HTTPError
 from urllib.parse import urljoin, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
+from decision.cited_change import cited_change_block, cited_change_facts, reread_due
 from decision.retention import cite_only_origin_restrictive
 
 METHOD = "structured-row-match@1"
@@ -328,6 +329,10 @@ class Report:
     unclassed_hosts: dict[str, int] = field(default_factory=dict)
     waiting: int = 0
     unread: list[str] = field(default_factory=list)
+    #: Cited-change facts whose page sha256 changed: two readers must read them again.
+    cited_change_rereads: list[str] = field(default_factory=list)
+    redirects_kept: list[str] = field(default_factory=list)
+    redirects_dropped: list[str] = field(default_factory=list)
 
     def note(self, outcome: str, host: str, target_id: str = "") -> None:
         self.counts[outcome] += 1
@@ -344,6 +349,9 @@ class Report:
             "copies_already_kept": self.copies_already_kept,
             "mismatches": sorted(self.mismatches), "unreachable": sorted(self.unreachable),
             "unread": sorted(self.unread),
+            "cited_change_rereads_required": sorted(self.cited_change_rereads),
+            "source_redirects_kept": sorted(self.redirects_kept),
+            "source_redirects_dropped": sorted(self.redirects_dropped),
             "blocked_redirect_hosts": dict(self.blocked_hosts),
             "unclassed_hosts_not_requested": self.unclassed_hosts,
             "rows_waiting_for_a_later_week": self.waiting,
@@ -438,7 +446,105 @@ def run(root: Path, *, observed_at: date, dry_run: bool, store_root: Path,
             report.note("unread", host)
             continue
         report.note(result.outcome, host)
+    cited_change_rereads(root, terms, report, request=request, pacer=pacer, observed_at=observed_at,
+                         dry_run=dry_run)
+    refresh_redirects(root, terms, report, observed_at=observed_at, dry_run=dry_run, request=request,
+                      pacer=pacer)
     return report
+
+
+REREAD_REQUESTS = "verification/cited-reread-requests.jsonl"
+
+
+def _last_requests(root: Path) -> dict[str, datetime]:
+    path = root / REREAD_REQUESTS
+    out: dict[str, datetime] = {}
+    if path.is_file():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                entry = json.loads(line)
+                at = datetime.fromisoformat(entry["at"])
+                out[entry["target"]] = max(at, out.get(entry["target"], at))
+    return out
+
+
+def cited_change_rereads(root: Path, terms: dict[str, str], report: "Report", *, request=None,
+                         pacer: Pacer | None = None, observed_at: date | None = None,
+                         dry_run: bool = True) -> None:
+    """Request a two-reader re-read of each cited-change fact whose page text changed (MODEL-531).
+
+    The page is read in memory and no byte is kept. The trigger is the hash of the page's
+    normalised visible text, so fetch-to-fetch byte churn is no change, and a fact is asked
+    for at most once in 7 days (counting from its read and from the last request, logged in
+    ``verification/cited-reread-requests.jsonl``). This run changes no value.
+    """
+    pacer = pacer or Pacer()
+    now = datetime.combine(observed_at or date.today(), datetime.min.time(), UTC)
+    last = _last_requests(root)
+    pages: dict[str, Fetched] = {}
+    for fact in cited_change_facts(root):
+        url = cited_change_block(fact)["url"]
+        if host_class(url, terms) not in {"forbids", "cite-only"}:
+            report.note("cited_change_skipped", host_of(url))
+            continue
+        if url not in pages:
+            pacer.wait(host_of(url))
+            pages[url] = fetch(url, terms, request=request)
+        page = pages[url]
+        if page.kind != "ok":
+            report.note("cited_change_deferred", host_of(url))
+            continue
+        target = f"{fact['subject']}#{fact['facet']}"
+        if reread_due(fact, page.body, now=now, last_request=last.get(target)):
+            report.cited_change_rereads.append(target)
+            report.note("cited_change_reread_required", host_of(url))
+            if not dry_run:
+                path = root / REREAD_REQUESTS
+                path.parent.mkdir(parents=True, exist_ok=True)
+                with path.open("a", encoding="utf-8") as fh:
+                    fh.write(json.dumps({"target": target, "at": now.isoformat()}) + "\n")
+        else:
+            report.note("cited_change_current", host_of(url))
+
+
+def refresh_redirects(root: Path, terms: dict[str, str], report: "Report", *, observed_at: date,
+                      dry_run: bool, request=None, pacer: Pacer | None = None) -> None:
+    """Re-probe each ``registry/source-redirects.json`` entry (MODEL-531).
+
+    An entry says a retaining-host source now answers 3xx to a cite-only source, so it is
+    no retaining path for ``cited_change``. It is kept (its ``checked`` date refreshed) only
+    while the source still answers 3xx to exactly its ``to`` URL, with redirects off;
+    otherwise it is dropped. A source on an unclassed host is not requested and is dropped.
+    """
+    path = root / "registry" / "source-redirects.json"
+    if not path.is_file():
+        return
+    from decision.sources import load_sources
+
+    entries = json.loads(path.read_text(encoding="utf-8"))
+    sources = load_sources(root / "registry" / "sources.yaml")
+    request = request or request_once
+    pacer = pacer or Pacer()
+    kept: dict[str, dict] = {}
+    for source_id, entry in sorted(entries.items()):
+        source = sources.get(source_id)
+        url = str(source.url) if source is not None else None
+        still = False
+        if url and host_class(url, terms) != "unclassed":
+            pacer.wait(host_of(url))
+            try:
+                status, location, _ = request(url)
+                still = 300 <= status < 400 and bool(location) \
+                    and urljoin(url, location) == entry.get("to")
+            except Exception:  # a failed probe keeps nothing: the entry is not honoured
+                still = False
+        if still:
+            kept[source_id] = {**entry, "checked": observed_at.isoformat()}
+        else:
+            report.redirects_dropped.append(source_id)
+    report.redirects_kept = sorted(kept)
+    if not dry_run and kept != entries:
+        path.write_text(json.dumps(kept, indent=1, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def _record(result, queue, log, at: datetime, dry_run: bool) -> None:
