@@ -296,6 +296,10 @@ class RefreshReport:
     quarantined: list[RowFailure] = field(default_factory=list)
     #: First rows a cite-only board would add: nothing is written and no claim is filed.
     held_for_review: list[RowFailure] = field(default_factory=list)
+    #: Live card rows this run did not re-date and that are older than ``STALE_AFTER_DAYS``.
+    #: A board that failed to read, or a row it no longer lists, shows up here, so a run
+    #: that wrote other rows cannot hide a board going stale (MODEL-482).
+    left_stale: list[RowFailure] = field(default_factory=list)
     #: Rows whose source listed them with no value, or listed a value again.
     not_published: list[PublicationMark] = field(default_factory=list)
     added: int = 0
@@ -363,6 +367,63 @@ def _value(board: BoardReading, row: Mapping[str, Any], unit: str | None) -> flo
     if board.fraction and unit_id(unit) in {"percent", "p-mrr (x100)"}:
         number *= 100
     return float(number)
+
+
+#: A live card row this run left older than this many days is reported. The freshness
+#: layer fails at 30 (``accuracy.yaml``); this warns with nine days to spare.
+STALE_AFTER_DAYS = 21
+
+
+def _row_observation_day(row: Mapping[str, Any]) -> str:
+    """The day a card row was last observed: the same fields the freshness layer reads."""
+    sources = row.get("sources")
+    refs = [ref for ref in sources if isinstance(ref, Mapping)] if isinstance(sources, list) else []
+    for container in (row, *refs):
+        for key in ("observed_at", "retrieved_at"):
+            if day := _iso_day(container.get(key)):
+                return day
+    return _iso_day(row.get("verified_at"))
+
+
+def left_stale_rows(
+    cards: Mapping[str, Mapping[str, Any]],
+    refreshed: set[tuple[str, tuple[object, ...]]],
+    registered: Mapping[str, Any],
+    *,
+    observed_at: str,
+) -> list[RowFailure]:
+    """Live card rows this run did not re-date and that are past ``STALE_AFTER_DAYS``.
+
+    ``cards`` maps a model id to its front matter; ``refreshed`` holds ``(model_id,
+    evidence_key)`` of every row the run rewrites. A live row is one whose source the
+    registry marks ``volatility: live``, the freshness layer's own test. It does not
+    depend on a board having been read, so a board that failed to read is still caught.
+    A row marked ``not_published_since`` is skipped, as the freshness layer skips it;
+    Arena rows belong to the Arena scheduler.
+    """
+    today = date.fromisoformat(observed_at)
+    stale: list[RowFailure] = []
+    for model_id, front in sorted(cards.items()):
+        for row in (front.get("benchmarks") or {}).get("evidence") or []:
+            if not isinstance(row, Mapping) or _publication_marked(row) or _arena_reading_row(row):
+                continue
+            if (model_id, evidence_key(dict(row))) in refreshed:
+                continue
+            refs = row.get("sources") or []
+            ids = [ref.get("source_id") for ref in refs if isinstance(ref, Mapping)]
+            if not any(getattr(registered.get(source_id), "volatility", "static") == "live"
+                       for source_id in ids):
+                continue
+            try:
+                seen = date.fromisoformat(_row_observation_day(row))
+            except ValueError:
+                continue
+            if (today - seen).days > STALE_AFTER_DAYS:
+                stale.append(RowFailure(
+                    model_id, str(row.get("benchmark_id")), str(row.get("source_url") or ""),
+                    f"left stale: observed {seen.isoformat()}, not re-dated by this run",
+                ))
+    return stale
 
 
 def _iso_day(value: object) -> str:
@@ -2420,6 +2481,13 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         claims=claims,
     )
 
+    model_of = {path: model for model, path in cards.items()}
+    refreshed = {
+        (model_of[card], key)
+        for card, updates in pending_updates.items() for key, _new in updates
+    }
+    report.left_stale = left_stale_rows(fronts, refreshed, registered, observed_at=observed_at)
+
     if dry_run or (not pending_updates and not pending_additions):
         return _attach_arena_publish_census(report, root, boards)
 
@@ -2744,6 +2812,11 @@ def render_report(report: RefreshReport) -> str:
                       "| Model | Benchmark | Source |", "|---|---|---|"])
         lines.extend(f"| `{row.model_id}` | `{row.benchmark}` | {row.source} |"
                      for row in report.held_for_review)
+    if report.left_stale:
+        lines.extend(["", f"## Live rows left stale (over {STALE_AFTER_DAYS} days)", "",
+                      "| Model | Benchmark | Source | Why |", "|---|---|---|---|"])
+        lines.extend(f"| `{row.model_id}` | `{row.benchmark}` | {row.source} | {row.reason} |"
+                     for row in report.left_stale)
     return "\n".join(lines)
 
 
@@ -3622,6 +3695,7 @@ def write_report_json(path: Path, report: RefreshReport) -> None:
         "failures": [row.__dict__ for row in report.failures],
         "quarantined": [row.__dict__ for row in report.quarantined],
         "held_for_review": [row.__dict__ for row in report.held_for_review],
+        "left_stale": [row.__dict__ for row in report.left_stale],
         "not_published_since": _publication_payload(report),
         "added": report.added,
     }
