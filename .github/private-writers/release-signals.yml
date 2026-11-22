@@ -11,6 +11,7 @@ jobs:
   pending:
     name: Build pending-work matrix
     runs-on: [self-hosted, linux, modelspec-private]
+    timeout-minutes: 10
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
       count: ${{ steps.matrix.outputs.count }}
@@ -617,6 +618,7 @@ jobs:
     needs: [pending, process]
     if: always() && needs.pending.result == 'success' && needs.pending.outputs.count != '0'
     runs-on: [self-hosted, linux, modelspec-private]
+    timeout-minutes: 10
     permissions:
       contents: read
       issues: write
