@@ -27,7 +27,7 @@ import json
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import UTC, date, datetime, time
 from typing import Any, Literal
 
 from pydantic import JsonValue
@@ -97,6 +97,8 @@ class CitedSource:
     publisher: str | None = None
     resolved_urls: tuple[str, ...] = ()
     cited_regions: tuple[str, ...] = ("page",)
+    #: The instant of the read (timezone-aware), when known; the record keeps it as ``retrieved_at``.
+    read_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -209,6 +211,13 @@ def _check_retaining(registered: Sequence[RegisteredSource]) -> CitedChange | No
     return None
 
 
+def _retrieved_at(source: CitedSource) -> str:
+    """An aware timestamp: the instant of the read, or midnight UTC of the read date."""
+    if source.read_at is not None and source.read_at.tzinfo is not None:
+        return source.read_at.isoformat()
+    return datetime.combine(source.read_date, time(), tzinfo=UTC).isoformat()
+
+
 def _record(subject: str, facet_id: str, value: JsonValue, source: CitedSource,
             answers: Sequence[ReaderAnswer], previous: JsonValue) -> dict[str, JsonValue]:
     """The record: values, URL, date, sha256 and the readers. No page text."""
@@ -222,7 +231,7 @@ def _record(subject: str, facet_id: str, value: JsonValue, source: CitedSource,
             "source_id": source.source_id,
             "url": source.url,
             "snapshot_ref": f"sha256:{source.sha256}",
-            "retrieved_at": source.read_date.isoformat(),
+            "retrieved_at": _retrieved_at(source),
             "cited_regions": list(source.cited_regions),
         },
         "cited_change": {

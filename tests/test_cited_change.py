@@ -46,6 +46,7 @@ def test_all_conditions_hold_writes_cited_record():
     assert rec["value"] == 262144 and rec["resolution"] == "cited" and rec["state"] == "known"
     assert rec["source"]["snapshot_ref"] == "sha256:" + SHA
     block = rec["cited_change"]
+    assert rec["source"]["retrieved_at"] == "2026-11-20T00:00:00+00:00"
     assert block["sha256"] == SHA and block["url"] == URL and block["read_date"] == "2026-11-20"
     assert [r["family"] for r in block["readers"]] == ["openai", "xai"]
     assert all(r["reader_id"] and r["version"] for r in block["readers"])
