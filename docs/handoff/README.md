@@ -106,7 +106,7 @@ Learned expensively during 2026-09-09/10.
     hashes or manifests. It fetches the page itself, in memory, redirects off,
     and refuses any hop to a retaining host. Every attempt is appended to
     `verification/cited-attempts.jsonl` (no page text); the first complete
-    attempt for a subject, facet and page must have agreed
+    attempt for a subject, facet and page made through the harness must have agreed
     (`prior_attempt_disagreed`), so a retry cannot shop for agreement. A
     `registry/source-redirects.json` entry exempts a retaining-host source only
     if its `to` is a registered cite-only source URL and it was checked within 7

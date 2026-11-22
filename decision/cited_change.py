@@ -411,7 +411,10 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     if refusal is not None:
         return refusal
     # No retry-shopping: the first complete attempt for this key must have agreed.
-    prior = [a for a in attempts(subject, facet, row["url"], epoch) if a.get("complete")]
+    #: Only attempts made through this harness count (``harness`` true); an entry seeded from
+    #: reads whose blindness was never proven is kept in the log for the record and is skipped.
+    prior = [a for a in attempts(subject, facet, row["url"], epoch)
+             if a.get("complete") and a.get("harness") is True]
     if prior and not prior[0].get("agreed"):
         return _refuse("prior_attempt_disagreed",
                        "the first complete attempt at this fact and page did not agree")

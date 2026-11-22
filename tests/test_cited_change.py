@@ -333,7 +333,7 @@ def test_refuse_unchanged_value(data):
 def test_every_attempt_is_logged_without_page_text(data):
     run()
     (entry,) = data.log()
-    assert entry["complete"] and entry["agreed"] and entry["agreed_value"] == 262144
+    assert entry["harness"] is True and entry["complete"] and entry["agreed"] and entry["agreed_value"] == 262144
     assert entry["page_sha256"] == sha256(PAGE) and entry["prompt_sha256"] and entry["at"]
     assert [r["reader_id"] for r in entry["readers"]] == ["codex", "grok"]
     assert {"family", "version", "value"} <= set(entry["readers"][0])
@@ -362,8 +362,11 @@ def test_an_incomplete_attempt_is_logged_and_does_not_count(data):
 def test_a_seeded_disagreement_blocks_a_later_agreement(data):
     path = data.root / ATTEMPTS_FILE
     path.parent.mkdir(exist_ok=True)
-    path.write_text(json.dumps({"subject": SUBJECT, "facet": FACET, "url": URL, "epoch": "initial",
-                                "complete": True, "agreed": False, "seeded": True}) + "\n")
+    seed = {"subject": SUBJECT, "facet": FACET, "url": URL, "epoch": "initial",
+            "complete": True, "agreed": False, "seeded": True}
+    path.write_text(json.dumps({**seed, "harness": False}) + "\n")
+    assert run().changed  # reads whose blindness was never proven do not count
+    path.write_text(json.dumps({**seed, "harness": True}) + "\n")
     refused("prior_attempt_disagreed")
 
 

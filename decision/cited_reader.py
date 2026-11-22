@@ -205,6 +205,7 @@ def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_
     entry = {"subject": subject, "facet": facet_id, "url": url, "epoch": epoch,
              "page_sha256": sha256(page_bytes), "prompt_sha256": sha256(prompt),
              "at": datetime.now(UTC).replace(microsecond=0).isoformat(), "complete": False,
+             "harness": True,
              "agreed": None, "readers": []}
     try:
         for reader in readers:
