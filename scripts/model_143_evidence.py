@@ -15,6 +15,7 @@ import yaml
 
 from decision.model import SourceRef, TargetRef, VerificationActor
 from decision.sources import CopyStore, load_sources
+from scripts.premier_inputs import require_inputs
 from decision.verify import (
     Claim,
     Queue,
@@ -237,6 +238,7 @@ def replace_evidence(path: Path, text: str, updates: list[tuple[tuple, dict]]) -
 
 def main() -> None:
     inputs_dir = ROOT / "premier" / "inputs"
+    require_inputs(inputs_dir, [filename for filename, _ in INPUTS.values()])
     store = CopyStore()
     snapshots = {}
     new_sources = []

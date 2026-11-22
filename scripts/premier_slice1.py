@@ -48,6 +48,7 @@ from decision.excluded import excluded_sources  # noqa: E402
 from decision.model import value_hash, verification_counts  # noqa: E402
 from decision.registry import default as default_registry  # noqa: E402
 from decision.sources import load_sources  # noqa: E402
+from scripts.premier_inputs import require_inputs  # noqa: E402
 
 INPUTS = ROOT / "premier" / "inputs"
 OUTPUT = ROOT / "premier" / "slice-1.yaml"
@@ -181,10 +182,12 @@ def slug(name: str, *, strip: bool) -> str:
 
 
 def _load_json(name: str) -> dict:
+    require_inputs(INPUTS, [name])
     return json.loads((INPUTS / name).read_text())
 
 
 def _rows_from_csv(name: str) -> list[dict]:
+    require_inputs(INPUTS, [name])
     with (INPUTS / name).open(newline="") as handle:
         return list(csv.DictReader(handle))
 
@@ -876,6 +879,7 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None,
           allow_mixed_boards: bool = False, baseline_ids: frozenset[str] = frozenset()) -> dict:
     audit_note = None
     if data_dir is None:
+        require_inputs(INPUTS, ["aliases.json", SLICE2_INPUT.name])
         aliases = json.loads((INPUTS / "aliases.json").read_text())
         cards = load_cards()
         boards = leaderboards()

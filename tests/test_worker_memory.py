@@ -427,3 +427,34 @@ sys.exit(result.returncode)
         if job_name == "deploy-staging":
             expected += ' --env staging'
         assert deployed.read_text().splitlines() == [expected + ' --var BUILD_COMMIT:fixture']
+
+
+def test_memory_headroom_warns_when_the_next_heap_step_crosses_the_limit():
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node is required for the Worker memory probe")
+    program = """
+const assert = require('node:assert/strict');
+const { assessMemory, nextHeapStep } = require('./api/worker/measure_memory.cjs');
+const MiB = 1048576;
+const run = (steady, wasm, margin) => assessMemory(
+  {steady_bytes: steady * MiB, wasm_bytes: wasm * MiB, heap_margin_bytes: margin === null ? null : margin * MiB},
+  {limitMiB: 120});
+assert.equal(nextHeapStep(100 * MiB), 120 * MiB);
+// Next step crosses 120 MiB and the margin is under 8 MiB: warn, still passing.
+let out = run(105, 100, 2);
+assert.equal(out.passed, true);
+assert.equal(out.warnings.length, 1);
+assert.match(out.warnings[0], /over 120 MiB/);
+// A margin of 8 MiB or more, or a step that stays under the limit: no warning.
+assert.deepEqual(run(105, 100, 8).warnings, []);
+assert.deepEqual(run(90, 80, 0).warnings, []);
+// An unmeasured margin counts as 0.
+assert.equal(run(105, 100, null).warnings.length, 1);
+// Over the limit still fails; the threshold is unchanged.
+assert.equal(run(121, 100, 20).passed, false);
+// No wasm size, no headroom report.
+assert.deepEqual(assessMemory({steady_bytes: 105 * MiB}, {limitMiB: 120}).warnings, []);
+"""
+    result = subprocess.run([node, "-e", program], cwd=ROOT, text=True, capture_output=True)
+    assert result.returncode == 0, result.stderr
