@@ -28,7 +28,42 @@ function assessMemory(result, { limitMiB = 120, baseline = null } = {}) {
       warnings.push(`Steady memory increased by more than 1 MiB versus main (${((result.steady_bytes - baseline.steady_bytes) / 1048576).toFixed(2)} MiB)`);
     }
   }
-  return { passed: result.steady_bytes <= limitMiB * 1048576, warnings };
+  const headroom = heapHeadroom(result, limitMiB);
+  if (headroom.warn) {
+    warnings.push(`Next wasm heap step would take steady memory to ${(headroom.steppedSteadyBytes / 1048576).toFixed(2)} MiB, over ${limitMiB} MiB, with a live-object margin of ${(headroom.marginBytes / 1048576).toFixed(2)} MiB (under ${MARGIN_WARN_MIB} MiB)`);
+  }
+  return { passed: result.steady_bytes <= limitMiB * 1048576, warnings, headroom };
+}
+
+// Pyodide's Emscripten heap grows geometrically, about 20% per step, in 64 KiB
+// pages. The step size is a documented estimate (Emscripten's default
+// MEMORY_GROWTH_GEOMETRIC_STEP of 0.2), not read from Pyodide internals.
+const GROWTH_FACTOR = 1.2;
+const WASM_PAGE = 65536;
+const MARGIN_WARN_MIB = 8;
+
+// The allocator break, or null when it cannot be read. Never throws.
+function readHeapBreak(module) {
+  let brk = null;
+  try { if (typeof module._sbrk === 'function') brk = module._sbrk(0) >>> 0; } catch { brk = null; }
+  return brk;
+}
+
+function nextHeapStep(wasmBytes) {
+  return Math.ceil(wasmBytes * GROWTH_FACTOR / WASM_PAGE) * WASM_PAGE;
+}
+
+// marginBytes: the room left in the current heap before it must grow (heap size
+// minus the allocator break), measured by the probe. When the probe could not
+// measure it the margin is unknown (null) and no warning is given.
+function heapHeadroom(result, limitMiB) {
+  if (!Number.isFinite(result.wasm_bytes) || result.wasm_bytes <= 0) return { warn: false };
+  const nextBytes = nextHeapStep(result.wasm_bytes);
+  const stepBytes = nextBytes - result.wasm_bytes;
+  const marginBytes = Number.isFinite(result.heap_margin_bytes) ? Math.max(0, result.heap_margin_bytes) : null;
+  const steppedSteadyBytes = result.steady_bytes + stepBytes;
+  return { warn: marginBytes !== null && steppedSteadyBytes > limitMiB * 1048576 && marginBytes < MARGIN_WARN_MIB * 1048576,
+    wasmBytes: result.wasm_bytes, nextHeapBytes: nextBytes, stepBytes, marginBytes, steppedSteadyBytes };
 }
 
 async function main() {
@@ -160,7 +195,10 @@ record_stage('after_policy_check')
   const wasm = py._module.HEAPU8.buffer.byteLength;
   const liveNonWasm = live.heapUsed + Math.max(0, live.external - wasm);
   const steady = wasm + liveNonWasm;
+  // Allocator break: the heap beyond it is the margin before the next growth.
+  const brk = readHeapBreak(py._module);
   const result = { runtime: 'Pyodide 0.28.3', period, before_bytes: before,
+    heap_margin_bytes: brk !== null && brk <= wasm ? wasm - brk : null,
     peak_bytes: peak, peak_mib: peak / 1048576,
     wasm_peak_bytes: wasmPeak, wasm_peak_mib: wasmPeak / 1048576,
     steady_bytes: steady, steady_mib: steady / 1048576,
@@ -244,6 +282,11 @@ json.dumps({'kind': 'python_retained_graph_bytes', 'categories_overlap': True, '
     fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
       `${values.output ? path.basename(values.output) : 'Worker'} (${period}): ${result.steady_mib.toFixed(2)} MiB steady; limit ${limitMiB} MiB.\n\n`);
   }
+  const headroom = assessment.headroom;
+  const mib = bytes => (bytes / 1048576).toFixed(2);
+  if (headroom.wasmBytes !== undefined) {
+    console.log(`headroom: steady ${mib(result.steady_bytes)} MiB; wasm heap ${mib(headroom.wasmBytes)} MiB; next step to ${mib(headroom.nextHeapBytes)} MiB (+${mib(headroom.stepBytes)} MiB, estimated at 20%); live-object margin ${headroom.marginBytes === null ? 'unknown' : mib(headroom.marginBytes) + ' MiB'}`);
+  }
   console.log(JSON.stringify(result));
   if (peak > result.peak_warning_bytes) console.warn('::warning::Memory probe noisy peak exceeds 112 MiB');
   for (const warning of assessment.warnings) console.warn(`::warning::${warning}`);
@@ -253,7 +296,7 @@ json.dumps({'kind': 'python_retained_graph_bytes', 'categories_overlap': True, '
   }
 }
 
-module.exports = { assessMemory };
+module.exports = { assessMemory, heapHeadroom, nextHeapStep, readHeapBreak };
 if (require.main === module) {
   main().catch(error => { console.error('Memory probe failed:', error.name); process.exitCode = 1; });
 }

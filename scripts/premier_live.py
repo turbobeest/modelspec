@@ -16,6 +16,7 @@ from decision.snapshot import (
     LoadedSnapshot, SnapshotBuildError, audit_build, build_snapshot, collect_repo,
 )
 from pipeline.data_source import check_private
+from scripts.premier_inputs import require_inputs
 
 # The approved lineup counted the lab API as one recorded provider, and a
 # cite-only guaranteed fact as verified when the verification log records it.
@@ -82,6 +83,7 @@ def load_inputs(root: Path, as_of: date) -> dict:
         slice1_board_id,
     )
 
+    require_inputs(Path(root) / "premier" / "inputs", ["slice-2.yaml"])
     root = check_private(root)
     cards = load_cards(root)
     inputs = collect_repo(root)

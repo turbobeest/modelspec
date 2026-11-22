@@ -73,10 +73,7 @@ def test_the_alert_publishes_counts_for_values_that_did_not_verify() -> None:
         "undetermined 0; over the undetermined limit: no; "
         "verdicts that differ from the baseline: 0. |\n"
         "\n"
-        "The full report is on the machine that ran it, in the output directory "
-        "accuracy-report.\n"
-        "\n"
-        "details are not published; run the nightly profile locally against the private data\n"
+        "Details are in the private alert issue.\n"
         "\n"
         f"Run: {RUN}\n"
     )
@@ -84,7 +81,7 @@ def test_the_alert_publishes_counts_for_values_that_did_not_verify() -> None:
     assert "https://x.ai/pricing" not in text
 
 
-def test_the_public_issue_names_only_the_output_directory(tmp_path: Path) -> None:
+def test_the_public_issue_points_to_the_private_issue_and_names_no_path(tmp_path: Path) -> None:
     folder = tmp_path / "private-path-sentinel" / "accuracy-report"
     folder.mkdir(parents=True)
     report_path = folder / "accuracy.json"
@@ -102,10 +99,8 @@ def test_the_public_issue_names_only_the_output_directory(tmp_path: Path) -> Non
     for text in (present.read_text(encoding="utf-8"), missing.read_text(encoding="utf-8")):
         assert "private-path-sentinel" not in text
         assert str(folder.parent) not in text
-        assert (
-            "The full report is on the machine that ran it, in the output directory "
-            "accuracy-report.\n"
-        ) in text
+        assert "Details are in the private alert issue.\n" in text
+        assert "accuracy-report" not in text
     assert missing.read_text(encoding="utf-8").startswith(
         "the run failed before a report was written\n"
     )
@@ -120,8 +115,7 @@ def test_a_run_that_wrote_no_report_still_alerts(tmp_path: Path) -> None:
     assert out.read_text() == (
         "the run failed before a report was written\n"
         "\n"
-        "The full report is on the machine that ran it, in the output directory "
-        f"{tmp_path.name}.\n"
+        "Details are in the private alert issue.\n"
         "\n"
         f"Run: {RUN}\n"
     )
@@ -191,8 +185,7 @@ def test_the_alert_builder_runs_when_yaml_cannot_be_imported(tmp_path: Path) -> 
     assert missing.read_text(encoding="utf-8") == (
         "the run failed before a report was written\n"
         "\n"
-        "The full report is on the machine that ran it, in the output directory "
-        f"{tmp_path.name}.\n"
+        "Details are in the private alert issue.\n"
         "\n"
         f"Run: {RUN}\n"
     )
@@ -336,10 +329,7 @@ def test_the_public_issue_lists_mismatch_and_unreachable_counts_only() -> None:
         "| data_fidelity | FAIL | yes | failures 3; mismatches 1; unreachable 2; undetermined 3; "
         "over the undetermined limit: no. |\n"
         "\n"
-        "The full report is on the machine that ran it, in the output directory "
-        "accuracy-report.\n"
-        "\n"
-        "details are not published; run the nightly profile locally against the private data\n"
+        "Details are in the private alert issue.\n"
         "\n"
         f"Run: {RUN}\n"
     )

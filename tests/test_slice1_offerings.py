@@ -31,7 +31,8 @@ GOVERNANCE_DOMAINS = {
     "deepseek": ("deepseek.com",),
     "google-gemini-api": ("google.dev", "google.com"),
     "google-vertex-ai": ("google.com",),
-    "meta-model-api": ("meta.com",),
+    # Meta publishes its developer platform terms on its own domain, meta.ai.
+    "meta-model-api": ("meta.com", "meta.ai"),
     "mistral": ("mistral.ai",),
     "moonshot": ("kimi.ai",),
     "openai": ("openai.com",),

@@ -24,13 +24,11 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from scripts.accuracy_public import public_nightly_report, public_report_location  # noqa: E402
+from scripts.accuracy_public import public_nightly_report  # noqa: E402
 
 TITLE = "Accuracy nightly failed"
 LABEL = "alert"
-_UNPUBLISHED = (
-    "details are not published; run the nightly profile locally against the private data"
-)
+_UNPUBLISHED = "Details are in the private alert issue."
 
 
 def body(
@@ -40,13 +38,11 @@ def body(
 
     A missing report (the script crashed before writing one) is still an alert.
     """
-    location = ""
-    if output_dir is not None:
-        location = public_report_location(output_dir) + "\n\n"
+    del output_dir  # kept for callers; the public body names no location
     if report is None:
-        return f"the run failed before a report was written\n\n{location}Run: {run_url}\n"
+        return f"the run failed before a report was written\n\n{_UNPUBLISHED}\n\nRun: {run_url}\n"
     table = public_nightly_report(report).rstrip("\n")
-    return f"{table}\n\n{location}{_UNPUBLISHED}\n\nRun: {run_url}\n"
+    return f"{table}\n\n{_UNPUBLISHED}\n\nRun: {run_url}\n"
 
 
 # GitHub rejects an issue body or comment over 65536 characters.
