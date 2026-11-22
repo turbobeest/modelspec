@@ -164,7 +164,7 @@ def _value_fits(value: JsonValue, facet: Any) -> str | None:
 def _check_source(source: CitedSource, facet: Any, owners: Sequence[str]) -> CitedChange | None:
     if not isinstance(source.sha256, str) or not SHA256.fullmatch(source.sha256):
         return _refuse("bad_sha256", "the sha256 of the bytes read is missing or malformed")
-    if not isinstance(source.read_date, date) or source.read_date > date.today():
+    if not isinstance(source.read_date, date) or source.read_date > datetime.now(UTC).date():
         return _refuse("bad_read_date", "the read date is missing or in the future")
     status = cite_only_origin_status(source.url, source.resolved_urls)
     if status is None:
