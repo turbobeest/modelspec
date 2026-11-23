@@ -52,6 +52,17 @@ def test_judged_scoring_records_blinding(scoring, blind):
         page(scoring=scoring, scoring_source=URL)
 
 
+def test_page_methodology_derivation_claims_no_source():
+    card = page(scoring="exact", scoring_derivation="page_methodology")
+    assert card.scoring_source == ""
+    with pytest.raises(ValidationError):
+        page(scoring="exact", scoring_derivation="page_methodology", scoring_source=URL)
+    with pytest.raises(ValidationError):
+        page(scoring_derivation="page_methodology")
+    with pytest.raises(ValidationError):
+        page(scoring="exact", scoring_derivation="guess")
+
+
 def test_bad_scoring_values_and_orphans_are_refused():
     for bad in (dict(scoring="vibes", scoring_source=URL),
                 dict(scoring="llm_judge", judge_blind="maybe", scoring_source=URL),
@@ -86,7 +97,7 @@ def test_none_stated_is_a_real_value_without_source():
 
 
 def test_exports_leave_both_fields_out(tmp_path: Path):
-    front = {**BASE, "scoring": "llm_judge", "judge_blind": "blind", "scoring_source": URL}
+    front = {**BASE, "scoring": "llm_judge", "judge_blind": "blind", "scoring_source": URL, "scoring_derivation": "page_methodology"}
     bench = Benchmark("example", tmp_path / "example.md", front, "")
     card = {"model_id": "m", "provider": "p", "benchmarks": {"evidence": [
         {**READING, "baseline": {"kind": "none_stated"}}]}}
@@ -96,7 +107,7 @@ def test_exports_leave_both_fields_out(tmp_path: Path):
     out = tmp_path / "api"
     write(out, [model], [bench], catalogue, build)
     text = "".join(p.read_text(encoding="utf-8") for p in out.rglob("*.json"))
-    for key in ("scoring", "judge_blind", "baseline"):
+    for key in ("scoring", "judge_blind", "scoring_derivation", "baseline"):
         assert f'"{key}"' not in text
     assert json.loads((out / "benchmarks/example.json").read_text())["page"]["id"] == "example"
     assert "baseline" in model.front["benchmarks"]["evidence"][0]
