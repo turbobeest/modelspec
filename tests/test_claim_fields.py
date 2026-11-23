@@ -123,3 +123,55 @@ def test_coverage_counts_are_counts_only():
     report = generate_report([], fronts)
     assert "Benchmark pages with scoring set | 3 of 4" in report
     assert "Judged pages with judge_blind known | 1 of 2" in report
+
+
+def test_cite_only_reading_with_baseline_keeps_its_citation(tmp_path: Path):
+    cited = {**READING, "source_url": "https://www.anthropic.com/news/x",
+             "baseline": {"kind": "none_stated"}}
+    card = {"model_id": "m", "provider": "p", "benchmarks": {"evidence": [cited]}}
+    model = Model("m", tmp_path / "p" / "m.md", card, "")
+    assert model.cited_evidence
+    catalogue = Catalogue(as_of=date(2026, 9, 1))
+    build = Build(commit="abc123def456", built_at="2026-09-10T00:00:00+00:00", as_of=catalogue.as_of)
+    write(tmp_path / "api", [model], [], catalogue, build)
+    row = json.loads((tmp_path / "api/models/m.json").read_text())["card"]["benchmarks"]["evidence"][0]
+    assert row["citation"]["status"] == "cited"
+    assert "baseline" not in row
+
+
+def test_baseline_never_enters_a_snapshot(tmp_path: Path):
+    from tests import test_decision_snapshot as t
+    from tests.snapshot_records import evidence
+
+    plain = t.build(tmp_path, "plain.json.gz")
+    row = evidence("lab/alpha", "swe_bench_pro", 55.0)
+    row["baseline"] = {"kind": "named_model", "label": "other", "source": URL}
+    base_rows = t.inputs().evidence
+    with_baseline = t.build(tmp_path, "with.json.gz", evidence=[row, *base_rows[1:]])
+    import gzip
+    a = json.loads(gzip.decompress(plain.read_bytes()))
+    b = json.loads(gzip.decompress(with_baseline.read_bytes()))
+    assert b["content"]["record_table"] == a["content"]["record_table"]
+    assert b["content_hash"] == a["content_hash"]
+    assert "baseline" not in json.dumps(b)
+
+
+@pytest.mark.parametrize("host", ["artificialanalysis.ai", "www.zapier.com"])
+def test_excluded_sources_are_refused(host):
+    url = f"https://{host}/x"
+    with pytest.raises(ValidationError):
+        page(scoring="exact", scoring_source=url)
+    with pytest.raises(ValidationError):
+        BenchmarkEvidence(**READING, baseline={"kind": "human", "source": url})
+
+
+def test_baseline_count_skips_none_stated():
+    from scripts.coverage_report import baseline_count
+    from types import SimpleNamespace as NS
+
+    def card(*kinds):
+        ev = [BenchmarkEvidence(**READING, baseline={"kind": k, "source": URL} if k != "none_stated"
+                                else {"kind": k}) for k in kinds]
+        return ("f", NS(benchmarks=NS(evidence=ev)), None)
+
+    assert baseline_count([card("human", "none_stated"), card(), ("f", None, "err")]) == 1

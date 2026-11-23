@@ -29,6 +29,10 @@ class Baseline(BaseModel):
             return self
         if not self.source.startswith(("http://", "https://")):
             raise ValueError("a stated baseline needs source, an http(s) URL")
+        from decision.excluded import excluded_sources
+
+        if excluded_sources().url(self.source):
+            raise ValueError("baseline source may not name an excluded source (S1)")
         if self.kind in ("prior_version", "named_model") and not self.label.strip():
             raise ValueError(f"{self.kind} baseline needs the model in label")
         return self

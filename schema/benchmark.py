@@ -184,6 +184,11 @@ class BenchmarkCard(BaseModel):
             raise ValueError("judge_blind applies only to llm_judge, human_judge or mixed scoring")
         if judged and self.judge_blind is None:
             raise ValueError("judged scoring must say judge_blind: blind, not_blind or not_stated")
+        if self.scoring_source:
+            from decision.excluded import excluded_sources
+
+            if excluded_sources().url(self.scoring_source):
+                raise ValueError("scoring_source may not name an excluded source (S1)")
         if self.scoring_derivation and self.scoring_source:
             raise ValueError("scoring_source claims a source that was read; "
                              "scoring_derivation: page_methodology claims none. Use one")
