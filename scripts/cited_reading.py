@@ -74,9 +74,9 @@ _COST = re.compile(r"(\$\d+(?:[.,]\d+)*(?: (?:a|per) task)?)")
 def dated_cost(text: str, cost_day: str) -> str:
     """Date a cost figure in a configuration with the day it was read. The gate reads the score
     only, so a new read day must never stand for a cost it did not read. The figure is kept."""
-    if "(cost read" in text:
+    if "(cost as of" in text:
         return text
-    return _COST.sub(lambda m: f"{m.group(1)} (cost read {cost_day})", text)
+    return _COST.sub(lambda m: f"{m.group(1)} (cost as of {cost_day})", text)
 
 
 def rewritten_row(subject: str, old: dict[str, Any], outcome: CitedChange,
@@ -92,13 +92,15 @@ def rewritten_row(subject: str, old: dict[str, Any], outcome: CitedChange,
     new.pop("not_published_since", None)
     new["score"] = record["value"]
     new["derivation"] = {"cited_change": record["derivation"]["cited_change"]}
+    was = None
     if isinstance(old.get("configuration"), str):
         was = refresh._read_day_of(old["configuration"])
-        told = refresh._retell_read_day(old["configuration"], day)
-        new["configuration"] = dated_cost(told, cost_day or was) \
-            if (cost_day or (was and was != day)) else told
+        new["configuration"] = refresh._retell_read_day(old["configuration"], day)
     new["evidence_date"] = new["observed_at"] = new["verified_at"] = day
     new = refresh.align_observation_dating(new)
+    # After the alignment: it re-dates every ``read <date>``, and the cost was not read on ``day``.
+    if isinstance(new.get("configuration"), str) and (cost_day or (was and was != day)):
+        new["configuration"] = dated_cost(new["configuration"], cost_day or was)
     new["sources"] = [
         {"source_id": record["source"]["source_id"], "snapshot_ref": record["source"]["snapshot_ref"],
          "cited_regions": ["rows"], "retrieved_at": record["source"]["retrieved_at"]}

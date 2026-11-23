@@ -375,5 +375,5 @@ def test_a_cost_in_the_configuration_keeps_its_own_read_day():
 
     text = "Board read 2026-11-23; max effort; $11.95 a task."
     out = dated_cost(text, "2026-10-19")
-    assert out == "Board read 2026-11-23; max effort; $11.95 a task (cost read 2026-10-19)."
+    assert out == "Board read 2026-11-23; max effort; $11.95 a task (cost as of 2026-10-19)."
     assert dated_cost(out, "2026-11-23") == out

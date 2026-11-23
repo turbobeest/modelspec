@@ -145,7 +145,7 @@ Learned expensively during 2026-09-09/10.
     prior agreed attempt on another value blocks (`prior_attempt_disagreed`). The clock
     is the gate's own (UTC; `scripts/accuracy.py` now uses the UTC date too); a log entry
     with no time zone is refused (`bad_read_date`). A cost in a row's configuration is not
-    read by the gate and keeps its own read day (`cost read <date>`).
+    read by the gate and keeps its own read day (`cost as of <date>`).
 
     **No longer published.** When both readers agree the board lists no row (or no score)
     for the reading, one such read only logs an attempt (`absence_pending`). A second
