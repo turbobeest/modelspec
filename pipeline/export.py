@@ -246,6 +246,12 @@ def write(out_dir: Path, models: list[Model], benchmarks: list[Benchmark],
                 if record in model.cited_evidence else record
                 for record in card["benchmarks"]["evidence"]
             ]}}
+        if any(isinstance(r, dict) and "baseline" in r for r in model.evidence):
+            # MODEL-537: the baseline is internal. Stripped after the cited mapping above, which
+            # compares whole records, so a cite-only row keeps its citation marker.
+            card = {**card, "benchmarks": {**card["benchmarks"], "evidence": [
+                {k: v for k, v in r.items() if k != "baseline"} if isinstance(r, dict) else r
+                for r in card["benchmarks"]["evidence"]]}}
         if model.scores_citation:
             card = {**card, "benchmarks": {**card["benchmarks"], "scores_citation": model.scores_citation}}
         dump(f"models/{model.model_id}.json", {
