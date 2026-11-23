@@ -240,6 +240,11 @@ def write(out_dir: Path, models: list[Model], benchmarks: list[Benchmark],
             cited_by_identity = {_fact_identity(fact): fact for fact in model.cited_facts}
             card = {**card, "facts": [cited_by_identity.get(_fact_identity(fact), fact)
                                      for fact in card.get("facts") or []]}
+        if any("baseline" in r for r in model.evidence):
+            # MODEL-537: the baseline is internal; no public export carries it.
+            card = {**card, "benchmarks": {**card["benchmarks"], "evidence": [
+                {k: v for k, v in r.items() if k != "baseline"} if isinstance(r, dict) else r
+                for r in card["benchmarks"]["evidence"]]}}
         if model.cited_evidence:
             card = {**card, "benchmarks": {**card["benchmarks"], "evidence": [
                 {**record, "citation": {"status": "cited", "url": record["source_url"]}}

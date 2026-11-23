@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from typing import Literal, get_args, get_origin
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from schema.enums import BenchmarkCategory
 
@@ -116,6 +116,10 @@ class RefinementTag(BaseModel):
     directness: Literal["direct", "proxy"]
 
 
+SCORING_KINDS = ("exact", "programmatic", "llm_judge", "human_judge", "mixed")
+JUDGED_SCORING = frozenset({"llm_judge", "human_judge", "mixed"})
+
+
 class Freshness(BaseModel):
     researched: str = ""                 # YYYY-MM-DD
     researched_by: str = ""              # "sonnet-5 agent, batch 1"
@@ -157,6 +161,28 @@ class BenchmarkCard(BaseModel):
     refinements: list[RefinementTag] = Field(default_factory=list)
     sources: list[Source] = Field(default_factory=list)
     freshness: Freshness = Freshness()
+    #: Internal (MODEL-536), additive and absent on existing pages: how the benchmark is
+    #: scored. Never exported (`INTERNAL_PAGE_KEYS`) and in no public contract.
+    scoring: Literal["exact", "programmatic", "llm_judge", "human_judge", "mixed"] | None = None
+    #: Only for judged scoring. `not_stated` is a real value (the source is silent), never a guess.
+    judge_blind: Literal["blind", "not_blind", "not_stated"] | None = None
+    #: The page the scoring or blinding was read from; required whenever `scoring` is set.
+    scoring_source: str = ""
+
+    @model_validator(mode="after")
+    def _scoring_fields(self) -> BenchmarkCard:
+        if self.scoring is None:
+            if self.judge_blind is not None or self.scoring_source:
+                raise ValueError("judge_blind and scoring_source need scoring to be set")
+            return self
+        judged = self.scoring in JUDGED_SCORING
+        if self.judge_blind is not None and not judged:
+            raise ValueError("judge_blind applies only to llm_judge, human_judge or mixed scoring")
+        if judged and self.judge_blind is None:
+            raise ValueError("judged scoring must say judge_blind: blind, not_blind or not_stated")
+        if not self.scoring_source.startswith(("http://", "https://")):
+            raise ValueError("scoring needs scoring_source, an http(s) URL of the page it was read from")
+        return self
 
     @field_validator("id")
     @classmethod
@@ -192,7 +218,7 @@ class BenchmarkCard(BaseModel):
 
 
 #: Front-matter keys that stay in the repository: export writers drop them from the page they publish.
-INTERNAL_PAGE_KEYS = ("slug_aliases",)
+INTERNAL_PAGE_KEYS = ("slug_aliases", "scoring", "judge_blind", "scoring_source")
 
 
 def unknown_key_paths(front: dict) -> list[str]:
