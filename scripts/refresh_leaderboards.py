@@ -1376,7 +1376,7 @@ def _rewrite_card(
             names = [
                 name for name in (
                     *always, "model_id_as_evaluated", "date_type", "configuration",
-                    "interval", "n", "effort",
+                    "interval", "n", "effort", "derivation",
                 )
                 if name in always or replacement.get(name) != row.get(name)
             ]

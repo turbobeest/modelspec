@@ -4508,6 +4508,8 @@ class ClaudeCLICompletion:
         command = [
             "claude", "-p", prompt, "--model", "claude-sonnet-5", "--effort", "low",
             "--output-format", "json",
+            # S7: the prompt can hold the text of a cite-only page; keep no session transcript.
+            "--no-session-persistence",
         ]
         try:
             completed = subprocess.run(

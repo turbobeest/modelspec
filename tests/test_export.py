@@ -110,3 +110,18 @@ def test_benchmark_export_leaves_out_internal_slug_aliases(tmp_path: Path) -> No
     assert page["aliases"] == ["AIME24"]
     assert "slug_aliases" not in page
     assert "slug_aliases" in bench.front
+
+
+def test_model_export_leaves_out_a_reading_derivation(tmp_path: Path) -> None:
+    row = {"benchmark_id": "humaneval", "score": 50.0, "derivation": {"cited_change": {"x": "SECRET"}}}
+    model = Model("prov/one", tmp_path / "one.md",
+                  {"model_id": "prov/one", "display_name": "One", "provider": "prov", "family": "f",
+                   "status": "active", "model_type": "llm-chat",
+                   "benchmarks": {"scores": {}, "evidence": [row]}}, "body")
+    catalogue = Catalogue(as_of=date(2026, 9, 1))
+    build = Build(commit="abc123def456", built_at="2026-09-10T00:00:00+00:00", as_of=catalogue.as_of)
+    out = tmp_path / "api"
+    write(out, [model], [], catalogue, build)
+    text = "".join(p.read_text(encoding="utf-8") for p in out.rglob("*.json"))
+    assert "SECRET" not in text and "derivation" not in text
+    assert "derivation" in model.front["benchmarks"]["evidence"][0]

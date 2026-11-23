@@ -135,6 +135,10 @@ class BenchmarkCard(BaseModel):
     #: `scripts/benchmarks/next_batch.py` to skip written pages. Never served or exported
     #: (`INTERNAL_PAGE_KEYS`); `aliases` is the display list ("Also known as").
     slug_aliases: list[str] = Field(default_factory=list)
+    #: Internal. The registry id (a lab, provider or subscription vendor) that owns this
+    #: benchmark; `decision.cited_change.cited_reading` needs a source's `publisher` to equal
+    #: it. Never served or exported (`INTERNAL_PAGE_KEYS`).
+    owner_id: str = ""
     page_kind: Literal["benchmark", "family", "subset"] = "benchmark"
     category: BenchmarkCategory
     subcategory: str = ""
@@ -232,7 +236,7 @@ class BenchmarkCard(BaseModel):
 
 #: Front-matter keys that stay in the repository: export writers drop them from the page they publish.
 INTERNAL_PAGE_KEYS = ("slug_aliases", "scoring", "judge_blind", "scoring_source",
-                      "scoring_derivation")
+                      "scoring_derivation", "owner_id")
 
 
 def unknown_key_paths(front: dict) -> list[str]:

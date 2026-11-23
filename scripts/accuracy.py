@@ -1792,7 +1792,7 @@ def run_profile(
     del output_dir
     root = Path(root).resolve()
     _refuse_linked_profile(root, profile)
-    as_of = as_of or date.today()
+    as_of = as_of or datetime.now(UTC).date()
     config = load_config(config_path)
     selected = tuple(layers or PROFILES[profile])
     if profile == "data-pr":
@@ -1964,7 +1964,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         type=Path,
         help="Compare the public engine baseline with the merge-base baseline.",
     )
-    parser.add_argument("--date", type=date.fromisoformat, default=date.today())
+    parser.add_argument("--date", type=date.fromisoformat, default=datetime.now(UTC).date())
     parser.add_argument("--llm-reader", choices=("claude", "mistral"))
     parser.add_argument("--sample-size", type=int)
     parser.add_argument("--seed")

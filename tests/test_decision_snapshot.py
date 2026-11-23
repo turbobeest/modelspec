@@ -1490,3 +1490,11 @@ def test_verified_benchmark_with_invalid_board_scale_is_not_admitted(score, unit
     }), registry=REGISTRY)
     assert built.content['lineup']['evidence'] == {}
     assert built.content['excluded']['invalid_benchmark_value'] == 1
+
+
+def test_a_reading_derivation_never_enters_a_snapshot_or_its_record_table(tmp_path):
+    row = evidence("lab/alpha", "swe_bench_pro", 55.0)
+    row["derivation"] = {"cited_change": {"rule": "x", "readers": [{"reader_id": "SECRET-READER"}]}}
+    path = build(tmp_path, evidence=[row])
+    assert "SECRET-READER" not in gzip.decompress(path.read_bytes()).decode()
+    assert "derivation" not in load(path).record(row["id"])

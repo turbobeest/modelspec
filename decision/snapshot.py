@@ -906,6 +906,10 @@ class _Compiler:
         if kind == "evidence" and "baseline" in record:
             # MODEL-537: the baseline is internal and never enters a snapshot or its record_table.
             record = {k: v for k, v in record.items() if k != "baseline"}
+        if kind == "evidence" and "derivation" in record:
+            # The cited-change derivation (readers, prompt hashes, manifests) is internal: it
+            # never enters a snapshot or its record_table.
+            record = {k: v for k, v in record.items() if k != "derivation"}
         rid = str(record.get("id") or content_hash(record))
         value = (
             fact_verification_value(record)

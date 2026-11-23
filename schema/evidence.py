@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_serializer, model_validator
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_serializer, model_validator
 
 
 class Baseline(BaseModel):
@@ -82,6 +82,9 @@ class BenchmarkEvidence(BaseModel):
     not_published_since: str | None = None
     #: Internal and optional (MODEL-537): the baseline the source compares this reading with.
     baseline: Baseline | None = None
+    #: How a cite-only reading was changed (``derivation.cited_change``: rule, readers, prompt
+    #: hashes, manifests, URL, read date, sha256). Absent for every other row. No page text.
+    derivation: dict[str, JsonValue] | None = None
 
     @field_validator("source_url")
     @classmethod
@@ -115,10 +118,10 @@ class BenchmarkEvidence(BaseModel):
     @model_serializer(mode="wrap")
     def _omit_absent_publication(self, handler):
         data = handler(self)
-        if isinstance(data, dict) and data.get("not_published_since") is None:
-            data.pop("not_published_since", None)
-        if isinstance(data, dict) and data.get("baseline") is None:
-            data.pop("baseline", None)
+        if isinstance(data, dict):
+            for key in ("not_published_since", "baseline", "derivation"):
+                if data.get(key) is None:
+                    data.pop(key, None)
         return data
 
     @model_validator(mode="after")

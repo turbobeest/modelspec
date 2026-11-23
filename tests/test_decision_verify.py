@@ -2896,7 +2896,7 @@ def test_claude_reader_uses_the_requested_cli_and_unwraps_json(monkeypatch) -> N
     command, kwargs = seen[0]
     assert command == [
         "claude", "-p", "read this", "--model", "claude-sonnet-5", "--effort", "low",
-        "--output-format", "json",
+        "--output-format", "json", "--no-session-persistence",
     ]
     assert kwargs["stdin"] is subprocess.DEVNULL
 
