@@ -8,8 +8,11 @@ from pathlib import Path
 import pytest
 import yaml
 
+import inspect
+
+from decision import cited_change as gate
 from decision.cited_change import (
-    ABSENCE_GAP, REFUSALS, cited_reading, pending_absences, reading_epoch,
+    ABSENCE_GAP, REFUSALS, cited_change_readings, cited_reading, pending_absences, reading_epoch,
 )
 from decision.cited_reader import ATTEMPTS_FILE, Reader, attempts
 
@@ -56,7 +59,8 @@ class Data:
                         sources=[dict(source_id="board", snapshot_ref="sha256:" + "0" * 64,
                                       cited_regions=["rows"])])
         self.bench = {"id": BENCH, "metric": {"name": "Board score", "unit": "%", "max_score": 100},
-                      "publisher": {"org": "Cursor", "url": "https://cursor.com/cursorbench"}}
+                      "owner_id": "cursor", "publisher": {"org": "Cursor", "url": "https://cursor.com/cursorbench"},
+                      "sources": [{"url": URL}]}
         self.vendors = [dict(id="cursor", name="Cursor", url="https://cursor.com/")]
         self.write()
 
@@ -127,8 +131,21 @@ def test_a_source_with_no_publisher_is_refused(data):
     refused("not_first_party")
 
 
-def test_a_publisher_on_another_host_than_the_board_is_refused(data):
-    data.bench["publisher"]["url"] = "https://other.example/board"
+def test_a_non_owner_on_the_same_host_is_refused(data):
+    data.sources[0]["publisher"] = "other"         # another registry id, a path on the same host
+    data.vendors.append(dict(id="other", name="Other", url="https://cursor.com/other"))
+    data.write()
+    refused("not_first_party")
+
+
+def test_a_benchmark_page_with_no_owner_is_refused(data):
+    del data.bench["owner_id"]
+    data.write()
+    refused("not_first_party")
+
+
+def test_an_owner_whose_registry_host_is_not_the_source_host_is_refused(data):
+    data.vendors[0]["url"] = "https://other.example/"
     data.write()
     refused("not_first_party")
 
@@ -144,6 +161,62 @@ def test_a_retaining_host_source_is_refused(data):
                                     cited_regions=["rows"]))
     data.write()
     refused("retaining_source_registered")
+
+
+def test_a_retaining_source_in_checked_sources_previous_sources_or_the_page_is_refused(data):
+    data.row["checked_sources"] = ["hf"]
+    data.write()
+    refused("retaining_source_registered")
+    del data.row["checked_sources"]
+    data.row["derivation"] = {"cited_change": {"previous_sources": ["hf"]}}
+    data.write()
+    refused("retaining_source_registered")
+    del data.row["derivation"]
+    data.bench["sources"].append({"url": RETAIN})
+    data.write()
+    refused("retaining_source_registered")
+
+
+def test_a_redirect_to_a_retaining_host_is_refused_and_not_requested(data):
+    calls = []
+
+    def request(url):
+        calls.append(url)
+        return 302, "https://huggingface.co/x", b""
+    refused("redirect_to_retaining_host", request=request)
+    assert calls == [URL]
+
+
+def test_a_reader_input_that_is_not_the_blind_prompt_is_refused(data, monkeypatch):
+    real = gate.read_page
+
+    def tampered(**kw):
+        answers = real(**kw)
+        bad = dict(answers[0].manifest, template="other")
+        return [type(answers[0])(a.reader_id, a.family, a.version, a.value, a.prompt_sha256, bad)
+                for a in answers]
+    monkeypatch.setattr(gate, "read_page", tampered)
+    refused("reader_input_not_blind")
+
+
+def test_a_prior_agreement_on_another_value_is_refused(data):
+    assert run(readers=pair(51.2)).changed
+    refused("prior_attempt_disagreed", readers=pair(52.0))
+
+
+def test_now_cannot_be_injected():
+    assert "now" not in inspect.signature(cited_reading).parameters
+    with pytest.raises(TypeError):
+        cited_reading(subject=SUBJECT, benchmark_id=BENCH, reading=READING, source_id="board",
+                      readers=pair(), now=datetime.now(UTC))
+
+
+def test_a_naive_time_in_the_log_is_refused_not_raised(data):
+    run(readers=pair(None), request=serve(GONE))
+    log = data.log()
+    log[0]["at"] = "2026-11-01T00:00:00"
+    (data.root / ATTEMPTS_FILE).write_text("".join(json.dumps(x) + "\n" for x in log))
+    refused("bad_read_date", readers=pair(None), request=serve(GONE))
 
 
 def test_readers_that_disagree_are_refused_and_block_a_retry(data):
@@ -181,48 +254,56 @@ def test_a_cleared_row_reappears_with_its_mark_cleared(data):
     assert run().record["clears_not_published_since"] is True
 
 
+def test_a_reappearing_row_with_an_unchanged_score_still_clears_the_mark(data):
+    data.row["not_published_since"] = "2026-11-01"
+    data.write()
+    out = run(readers=pair(46.6))
+    assert out.changed and out.record["clears_not_published_since"] is True
+    assert out.record["value"] == 46.6
+
+
 # --- no longer published --------------------------------------------------------------------------
 
 
-def _absent(now, **kw):
-    return run(readers=pair(None), request=serve(GONE), now=now, **kw)
+def _absent(**kw):
+    return run(readers=pair(None), request=serve(GONE), **kw)
+
+
+def _age(data, index, delta):
+    """Move a logged attempt back in time, as a later run would find it."""
+    log = data.log()
+    log[index]["at"] = (datetime.now(UTC) - delta).replace(microsecond=0).isoformat()
+    (data.root / ATTEMPTS_FILE).write_text("".join(json.dumps(x) + "\n" for x in log))
+    return log[index]["at"]
 
 
 def test_one_absent_read_is_pending_and_marks_nothing(data):
-    out = _absent(datetime.now(UTC))
+    out = _absent()
     assert out.outcome == "absence_pending" and not out.changed and not out.marked
     assert out.record["reads"] == 1 and "not_published_since" not in out.record
     assert len(data.log()) == 1
 
 
 def test_a_second_read_inside_24_hours_stays_pending(data):
-    t0 = datetime.now(UTC)
-    _absent(t0)
-    out = _absent(t0 + timedelta(hours=23))
-    assert out.outcome == "absence_pending"
+    _absent()
+    _age(data, 0, timedelta(hours=23))
+    assert _absent().outcome == "absence_pending"
 
 
 def test_two_absent_reads_24_hours_apart_mark_the_row(data):
-    t0 = datetime.now(UTC)
-    _absent(t0)
-    # the first read is logged at the real clock; age it a day, as a later run would find it
-    log = data.log()
-    log[0]["at"] = (t0 - ABSENCE_GAP - timedelta(minutes=1)).replace(microsecond=0).isoformat()
-    (data.root / ATTEMPTS_FILE).write_text("".join(json.dumps(x) + "\n" for x in log))
-    out = _absent(t0)
-    assert out.marked and out.record["not_published_since"] == log[0]["at"][:10]
+    _absent()
+    first = _age(data, 0, ABSENCE_GAP + timedelta(minutes=1))
+    out = _absent()
+    assert out.marked and out.record["not_published_since"] == first[:10]
     assert out.record["reads"] == 2 and "value" not in out.record
 
 
 def test_a_model_that_reappears_clears_the_pending_absence(data):
-    t0 = datetime.now(UTC)
-    _absent(t0)
-    log = data.log()
-    log[0]["at"] = (t0 - timedelta(days=2)).replace(microsecond=0).isoformat()
-    (data.root / ATTEMPTS_FILE).write_text("".join(json.dumps(x) + "\n" for x in log))
+    _absent()
+    _age(data, 0, timedelta(days=2))
     assert run(readers=pair(51.2)).changed       # it is listed again
     assert pending_absences(attempts(SUBJECT, "benchmark:" + BENCH, reading_epoch(READING))) == []
-    assert _absent(t0).outcome == "absence_pending"   # a new absence starts a new count
+    assert _absent().outcome == "absence_pending"   # a new absence starts a new count
 
 
 def test_readers_split_on_presence_do_not_mark_absence(data):
@@ -230,7 +311,7 @@ def test_readers_split_on_presence_do_not_mark_absence(data):
 
 
 def test_the_log_keeps_no_page_text(data):
-    _absent(datetime.now(UTC))
+    _absent()
     assert "Rival" not in json.dumps(data.log())
 
 
@@ -264,6 +345,15 @@ def test_the_harness_writes_a_changed_score_and_a_mark_through_the_writer(data):
     assert row["score"] == 51.2 and row["observed_at"] == datetime.now(UTC).date().isoformat()
     assert row["sources"][0]["snapshot_ref"].startswith("sha256:") and "not_published_since" not in row
     assert row["id"] != "acme/orbit-9#boardbench_1#aaaaaaaaaaaa"
+    block = row["derivation"]["cited_change"]
+    assert block["rule"] == gate.RULE and block["sha256"] and block["read_date"] and block["url"] == URL
+    assert [r["family"] for r in block["readers"]] == ["anthropic", "mistral"]
+    assert all(r["prompt_sha256"] and r["manifest"] for r in block["readers"])
+    assert "PAGEMARK" not in (data.root / "models/acme/orbit-9.md").read_text()
+    # the rolling re-read sees the reading
+    found = cited_change_readings(data.root)
+    assert [f["target"].split("#")[0] for f in found] == [SUBJECT]
+    assert found[0]["reading"] == READING
     # a second reading's absence: age the first absent read, then mark
     t = datetime.now(UTC)
     log = data.log()
@@ -278,3 +368,12 @@ def test_the_harness_writes_a_changed_score_and_a_mark_through_the_writer(data):
     row = yaml.safe_load((data.root / "models/acme/orbit-9.md").read_text().split("---", 2)[1])["benchmarks"]["evidence"][0]
     assert row["not_published_since"] == (t - timedelta(days=2)).date().isoformat()
     assert row["score"] == 51.2
+
+
+def test_a_cost_in_the_configuration_keeps_its_own_read_day():
+    from scripts.cited_reading import dated_cost
+
+    text = "Board read 2026-11-23; max effort; $11.95 a task."
+    out = dated_cost(text, "2026-10-19")
+    assert out == "Board read 2026-11-23; max effort; $11.95 a task (cost read 2026-10-19)."
+    assert dated_cost(out, "2026-11-23") == out

@@ -132,13 +132,20 @@ Learned expensively during 2026-09-09/10.
     (`model_id_as_evaluated`, `effort`, `harness`; exactly one evidence row must match)
     and applies every condition above unchanged, with one difference: first party is the
     board's own publisher, not the subject's lab. The source is the benchmark's registered
-    `benchmark_author` page; its `publisher` is a registry id (labs, providers or
-    subscription vendors) whose registry URL host is the source's host and the benchmark
-    page's `publisher.url` host. Readers get a prompt built from the URL, the row's
+    `benchmark_author` page; its `publisher` must equal the benchmark page's internal
+    `owner_id` (both present; a host match alone is not enough), and that registry id's
+    URL host must be the source's host. The retaining-host check covers every source the
+    reading's rows cite, their `checked_sources`, `derivation.cited_change.previous_sources`
+    and the registered sources the benchmark page lists, as the fact gate does. Readers get a prompt built from the URL, the row's
     settings, the subject name and the page bytes, never the filed score; the attempts log
     is keyed by subject, `benchmark:<id>` and a hash of the settings. A changed score is
     served as cited (`state` `known`, `resolution` `cited`); `scripts/cited_reading.py`
-    writes it through the refresh writer.
+    writes it through the refresh writer, with the `derivation.cited_change` block on the
+    evidence row (the rolling re-read, `cited_change_rereads`, covers these rows too). A
+    prior agreed attempt on another value blocks (`prior_attempt_disagreed`). The clock
+    is the gate's own (UTC; `scripts/accuracy.py` now uses the UTC date too); a log entry
+    with no time zone is refused (`bad_read_date`). A cost in a row's configuration is not
+    read by the gate and keeps its own read day (`cost read <date>`).
 
     **No longer published.** When both readers agree the board lists no row (or no score)
     for the reading, one such read only logs an attempt (`absence_pending`). A second

@@ -507,19 +507,12 @@ ABSENCE_GAP = timedelta(hours=24)
 READING_KEYS = ("model_id_as_evaluated", "effort", "harness")
 
 
-class _EveryKind:
-    """A reading counts every source cited for the benchmark, whatever its kind."""
-
-    def __contains__(self, item: object) -> bool:
-        return True
-
-
 @dataclass(frozen=True)
 class _ReadingFacet:
     """The part of a facet the shared checks read."""
 
     id: str
-    permitted_source_kinds: Any = _EveryKind()
+    permitted_source_kinds: tuple[str, ...] = (BENCHMARK_AUTHOR,)
 
 
 @dataclass(frozen=True)
@@ -530,6 +523,9 @@ class ReadingLookup:
     sources: Mapping[str, Mapping[str, Any]]
     redirects: Mapping[str, Any]
     publishers: Mapping[str, str]
+    #: Every source id registered for the subject's readings of the benchmark: those the
+    #: rows cite, their ``checked_sources``, the sources a past cited change replaced, and
+    #: the registered sources the benchmark page itself lists (by URL).
     cited: tuple[str, ...]
 
     def as_lookup(self) -> Lookup:
@@ -592,7 +588,15 @@ def reading_lookup(subject: str, benchmark_id: str, reading: Mapping[str, Any],
         return _refuse("reading_not_found", "no evidence row has these settings")
     if len(hits) > 1:
         return _refuse("reading_ambiguous", "several evidence rows have these settings")
-    cited = tuple(dict.fromkeys(s.get("source_id") for r in rows for s in r.get("sources") or []))
+    ids = [s.get("source_id") for r in rows for s in r.get("sources") or []]
+    ids += [i for r in rows for i in r.get("checked_sources") or []]
+    ids += [i for r in rows
+            for i in (((r.get("derivation") or {}).get("cited_change") or {}).get("previous_sources")
+                      or [])]
+    listed = {str(x.get("url")) for x in benchmark.get("sources") or [] if isinstance(x, dict)}
+    listed.add(str(benchmark.get("leaderboard_url") or ""))
+    ids += [i for i, src in sources.items() if src.get("url") in listed]
+    cited = tuple(dict.fromkeys(ids))
     return ReadingLookup(name, hits[0], benchmark, sources, redirects, publishers, cited)
 
 
@@ -608,7 +612,7 @@ def _host(url: Any) -> str | None:
 
 def _check_board_source(found: ReadingLookup, source_id: str, now: datetime) -> CitedChange | None:
     """The source is the board's own publisher's page, on a cite-only host."""
-    if source_id not in found.cited:
+    if source_id not in {s.get("source_id") for s in found.row.get("sources") or []}:
         return _refuse("registry_lookup_failed", "the reading's evidence does not cite this source")
     row = found.sources.get(source_id)
     if row is None or not row.get("url"):
@@ -625,11 +629,15 @@ def _check_board_source(found: ReadingLookup, source_id: str, now: datetime) -> 
     if not publisher or not registered:
         return _refuse("not_first_party",
                        "the source registry records no publisher, or one the registries do not know")
-    host = _host(row["url"])
-    owners = {_host(registered), _host((found.benchmark.get("publisher") or {}).get("url"))}
-    if host is None or owners != {host}:
+    owner = found.benchmark.get("owner_id")
+    if not isinstance(owner, str) or not owner:
+        return _refuse("not_first_party", "the benchmark page records no owner")
+    if publisher != owner:
         return _refuse("not_first_party",
-                       "the source's publisher is not the benchmark's own publisher")
+                       "the source's publisher is not the benchmark's owner")
+    host = _host(row["url"])
+    if host is None or _host(registered) != host:
+        return _refuse("not_first_party", "the owner's registry host is not the source's host")
     return None
 
 
@@ -649,10 +657,12 @@ def reading_definition(benchmark: Mapping[str, Any], reading: Mapping[str, Any])
 
 
 def _entry_time(entry: Mapping[str, Any]) -> datetime | None:
+    """The attempt's time, or ``None`` when it is missing, unparseable or has no zone."""
     try:
-        return datetime.fromisoformat(str(entry.get("at")))
+        at = datetime.fromisoformat(str(entry.get("at")))
     except ValueError:
         return None
+    return at if at.tzinfo is not None else None
 
 
 def _is_absent(entry: Mapping[str, Any]) -> bool:
@@ -674,12 +684,16 @@ def pending_absences(history: Sequence[Mapping[str, Any]]) -> list[Mapping[str, 
 
 def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any], source_id: str,
                   readers: Sequence[Reader], request: Request | None = None,
-                  now: datetime | None = None) -> CitedChange:
+                  allow_unchanged: bool = False) -> CitedChange:
     """The gate for one board reading: fetch the board in memory, have two readers read the one
     row, and return their agreed score as ``cited``, an absence (pending or, on the second read
     at least 24 h later, marked), or a named refusal. Everything but the readers and the
-    transport is looked up here."""
-    now = now or datetime.now(UTC)
+    transport is looked up here. The clock is the gate's own: it cannot be injected.
+    ``allow_unchanged`` returns a record for an agreed score equal to the filed one, to give a
+    row written before the record existed its ``derivation``."""
+    now = datetime.now(UTC)
+    if now.tzinfo is None or now > datetime.now(UTC):
+        return _refuse("bad_read_date", "the read time is missing, naive or in the future")
     found = reading_lookup(subject, benchmark_id, reading)
     if isinstance(found, CitedChange):
         return found
@@ -691,6 +705,8 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
         return refusal
     facet_id, epoch = BENCHMARK_PREFIX + benchmark_id, reading_epoch(reading)
     history = [a for a in attempts(subject, facet_id, epoch) if a.get("complete")]
+    if any(_entry_time(a) is None for a in history):
+        return _refuse("bad_read_date", "a logged attempt has a missing, naive or unreadable time")
     if any(not a.get("agreed") for a in history):
         return _refuse("prior_attempt_disagreed",
                        "an earlier complete attempt at this reading did not agree")
@@ -740,8 +756,15 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     benchmark_max = (found.benchmark.get("metric") or {}).get("max_score")
     if value < 0 or (isinstance(benchmark_max, (int, float)) and value > benchmark_max):
         return _refuse("value_invalid", "the score is outside the board's range")
+    # A prior agreed attempt on another value is a conflict signal, as in the fact gate.
+    if any(a.get("agreed") and a.get("agreed_value") is not None
+           and canonical(a.get("agreed_value"), facet.id) != canonical(value, facet.id)
+           for a in history):
+        return _refuse("prior_attempt_disagreed", "an earlier agreed attempt returned another value")
     filed = found.row.get("score")
-    if canonical(value, facet.id) == canonical(filed, facet.id):
+    marked = found.row.get("not_published_since") not in (None, "")
+    if canonical(value, facet.id) == canonical(filed, facet.id) and not marked \
+            and not allow_unchanged:
         return _refuse("value_unchanged", "the agreed value is the filed value")
     record = _record(subject, facet_id, value, found.sources[source_id], source_id, now,
                      sha256(page_bytes), text_sha256(page_bytes), answers, filed, found.cited, resolved)
@@ -810,6 +833,30 @@ def cited_change_facts(data_dir: str | Path) -> list[dict[str, Any]]:
                 out.append({"subject": f"{path.parent.name}/{path.stem}", "facet": fact.get("facet"),
                             "value": fact.get("value"), "derivation": fact.get("derivation"),
                             "source_id": sources[0].get("source_id")})
+    return out
+
+
+def cited_change_readings(data_dir: str | Path) -> list[dict[str, Any]]:
+    """Every benchmark reading in the data directory's cards that carries a ``cited_change``
+    block, shaped like ``cited_change_facts`` entries, with the reading's settings and a
+    ``target`` that is unique per reading."""
+    out: list[dict[str, Any]] = []
+    for path in sorted((Path(data_dir) / "models").glob("*/*.md")):
+        try:
+            front = yaml.safe_load(path.read_text("utf-8").split("---", 2)[1])
+            rows = (front.get("benchmarks") or {}).get("evidence") or []
+        except (OSError, IndexError, AttributeError, yaml.YAMLError):
+            continue
+        for row in rows:
+            if isinstance(row, dict) and cited_change_block(row) is not None:
+                subject = f"{path.parent.name}/{path.stem}"
+                reading = {k: row.get(k) for k in READING_KEYS}
+                facet = BENCHMARK_PREFIX + str(row.get("benchmark_id"))
+                sources = row.get("sources") or [{}]
+                out.append({"subject": subject, "facet": facet, "value": row.get("score"),
+                            "derivation": row.get("derivation"), "reading": reading,
+                            "source_id": sources[0].get("source_id"),
+                            "target": f"{subject}#{facet}#{reading_epoch(reading)}"})
     return out
 
 

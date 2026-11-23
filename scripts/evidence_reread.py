@@ -31,7 +31,9 @@ from urllib.error import HTTPError
 from urllib.parse import urljoin, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
-from decision.cited_change import cited_change_block, cited_change_facts, reread_due
+from decision.cited_change import (
+    cited_change_block, cited_change_facts, cited_change_readings, reread_due,
+)
 from decision.retention import cite_only_origin_restrictive
 
 METHOD = "structured-row-match@1"
@@ -482,7 +484,7 @@ def cited_change_rereads(root: Path, terms: dict[str, str], report: "Report", *,
     now = datetime.combine(observed_at or date.today(), datetime.min.time(), UTC)
     last = _last_requests(root)
     pages: dict[str, Fetched] = {}
-    for fact in cited_change_facts(root):
+    for fact in [*cited_change_facts(root), *cited_change_readings(root)]:
         url = cited_change_block(fact)["url"]
         if host_class(url, terms) not in {"forbids", "cite-only"}:
             report.note("cited_change_skipped", host_of(url))
@@ -494,7 +496,7 @@ def cited_change_rereads(root: Path, terms: dict[str, str], report: "Report", *,
         if page.kind != "ok":
             report.note("cited_change_deferred", host_of(url))
             continue
-        target = f"{fact['subject']}#{fact['facet']}"
+        target = fact.get("target") or f"{fact['subject']}#{fact['facet']}"
         if reread_due(fact, page.body, now=now, last_request=last.get(target)):
             report.cited_change_rereads.append(target)
             report.note("cited_change_reread_required", host_of(url))

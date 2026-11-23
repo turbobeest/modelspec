@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from collections import Counter
 from datetime import UTC, datetime
@@ -67,7 +68,19 @@ def card_paths(root: Path, benchmark: str, source_id: str) -> list[tuple[str, Pa
     return out
 
 
-def rewritten_row(subject: str, old: dict[str, Any], outcome: CitedChange) -> dict[str, Any]:
+_COST = re.compile(r"(\$\d+(?:[.,]\d+)*(?: (?:a|per) task)?)")
+
+
+def dated_cost(text: str, cost_day: str) -> str:
+    """Date a cost figure in a configuration with the day it was read. The gate reads the score
+    only, so a new read day must never stand for a cost it did not read. The figure is kept."""
+    if "(cost read" in text:
+        return text
+    return _COST.sub(lambda m: f"{m.group(1)} (cost read {cost_day})", text)
+
+
+def rewritten_row(subject: str, old: dict[str, Any], outcome: CitedChange,
+                  cost_day: str | None = None) -> dict[str, Any]:
     """The row the gate's record calls for. A mark adds ``not_published_since`` only; a changed
     score is written like a refresh reading, dated by the observation, with the page's hash."""
     record = outcome.record or {}
@@ -78,8 +91,12 @@ def rewritten_row(subject: str, old: dict[str, Any], outcome: CitedChange) -> di
     day = record["source"]["retrieved_at"][:10]
     new.pop("not_published_since", None)
     new["score"] = record["value"]
+    new["derivation"] = {"cited_change": record["derivation"]["cited_change"]}
     if isinstance(old.get("configuration"), str):
-        new["configuration"] = refresh._retell_read_day(old["configuration"], day)
+        was = refresh._read_day_of(old["configuration"])
+        told = refresh._retell_read_day(old["configuration"], day)
+        new["configuration"] = dated_cost(told, cost_day or was) \
+            if (cost_day or (was and was != day)) else told
     new["evidence_date"] = new["observed_at"] = new["verified_at"] = day
     new = refresh.align_observation_dating(new)
     new["sources"] = [
@@ -91,17 +108,27 @@ def rewritten_row(subject: str, old: dict[str, Any], outcome: CitedChange) -> di
     return new
 
 
+def _needs_derivation(row: dict) -> bool:
+    """A row written by the gate before the record kept its derivation."""
+    return not row.get("derivation") and any(
+        s.get("retrieved_at") for s in row.get("sources") or [])
+
+
 def run(root: Path, benchmark: str, source_id: str, readers: list[Reader], *,
-        apply: bool = True, request=None) -> Counter:
+        apply: bool = True, request=None, reconfirm: bool = False,
+        cost_day: str | None = None) -> Counter:
     os.environ["MODELSPEC_DATA_DIR"] = str(root)
     counts: Counter = Counter()
     for subject, path, row in card_paths(root, benchmark, source_id):
+        if reconfirm and not _needs_derivation(row):
+            continue
         reading = {k: row.get(k) for k in READING_KEYS}
         outcome = cited_reading(subject=subject, benchmark_id=benchmark, reading=reading,
-                                source_id=source_id, readers=readers, request=request)
+                                source_id=source_id, readers=readers, request=request,
+                                allow_unchanged=reconfirm)
         counts[outcome.outcome + (f":{outcome.reason}" if outcome.reason else "")] += 1
         if apply and (outcome.changed or outcome.marked):
-            refresh._rewrite_card(path, [(evidence_key(row), rewritten_row(subject, row, outcome))])
+            refresh._rewrite_card(path, [(evidence_key(row), rewritten_row(subject, row, outcome, cost_day))])
     return counts
 
 
@@ -111,11 +138,17 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--benchmark", required=True)
     ap.add_argument("--source", required=True)
     ap.add_argument("--local-model", default=DEFAULT_LOCAL)
+    ap.add_argument("--reconfirm", action="store_true",
+                    help="read again only the rows the gate changed before the record kept its "
+                         "derivation, and write it (score unchanged or changed as read)")
+    ap.add_argument("--cost-day", help="the day the configuration's cost figure was last read; "
+                    "an undated cost is marked with it")
     ap.add_argument("--no-write", action="store_true",
                     help="run the gate (it still logs its attempts) but write no card")
     args = ap.parse_args(argv)
     counts = run(args.data_dir, args.benchmark, args.source, default_readers(args.local_model),
-                 apply=not args.no_write)
+                 apply=not args.no_write, reconfirm=args.reconfirm,
+                 cost_day=args.cost_day)
     print(json.dumps({"at": datetime.now(UTC).replace(microsecond=0).isoformat(),
                       "outcomes": dict(sorted(counts.items()))}, indent=1))
     return 0

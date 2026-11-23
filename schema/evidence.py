@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator, model_serializer, model_validator
+from pydantic import BaseModel, JsonValue, Field, field_validator, model_serializer, model_validator
 
 
 class BenchmarkEvidence(BaseModel):
@@ -49,6 +49,9 @@ class BenchmarkEvidence(BaseModel):
     #: The day a live refresh first saw this row listed with no value.
     #: Absent means the source was still publishing the score.
     not_published_since: str | None = None
+    #: How a cite-only reading was changed (``derivation.cited_change``: rule, readers, prompt
+    #: hashes, manifests, URL, read date, sha256). Absent for every other row. No page text.
+    derivation: dict[str, JsonValue] | None = None
 
     @field_validator("source_url")
     @classmethod
@@ -82,8 +85,10 @@ class BenchmarkEvidence(BaseModel):
     @model_serializer(mode="wrap")
     def _omit_absent_publication(self, handler):
         data = handler(self)
-        if isinstance(data, dict) and data.get("not_published_since") is None:
-            data.pop("not_published_since", None)
+        if isinstance(data, dict):
+            for key in ("not_published_since", "derivation"):
+                if data.get(key) is None:
+                    data.pop(key, None)
         return data
 
     @model_validator(mode="after")
