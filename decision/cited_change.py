@@ -507,6 +507,14 @@ ABSENCE_GAP = timedelta(hours=24)
 READING_KEYS = ("model_id_as_evaluated", "effort", "harness")
 
 
+class _EveryKind:
+    """The reading's own sources count whatever their kind, as the fact gate counts the
+    sources registered for a fact."""
+
+    def __contains__(self, item: object) -> bool:
+        return True
+
+
 @dataclass(frozen=True)
 class _ReadingFacet:
     """The part of a facet the shared checks read."""
@@ -523,18 +531,34 @@ class ReadingLookup:
     sources: Mapping[str, Mapping[str, Any]]
     redirects: Mapping[str, Any]
     publishers: Mapping[str, str]
-    #: Every source id registered for the subject's readings of the benchmark: those the
-    #: rows cite, their ``checked_sources``, the sources a past cited change replaced, and
-    #: the registered sources the benchmark page itself lists (by URL).
-    cited: tuple[str, ...]
+    #: Every source id the reading's own rows registered: those they cite, their
+    #: ``checked_sources`` and the sources a past cited change replaced. Any kind counts.
+    own: tuple[str, ...]
+    #: The registered ``benchmark_author`` sources the benchmark page itself lists (by URL).
+    page: tuple[str, ...]
 
-    def as_lookup(self) -> Lookup:
-        return Lookup(self.subject_name, {"sources": [{"source_id": i} for i in self.cited],
+    @property
+    def cited(self) -> tuple[str, ...]:
+        return tuple(dict.fromkeys([*self.own, *self.page]))
+
+    def lookup(self, ids: Sequence[str]) -> Lookup:
+        return Lookup(self.subject_name, {"sources": [{"source_id": i} for i in ids],
                                           "checked_sources": []}, self.sources, self.redirects)
 
 
-def reading_epoch(reading: Mapping[str, Any]) -> str:
-    return "reading:" + sha256(canonical({k: reading.get(k) for k in READING_KEYS}, "_"))[:16]
+def _block_of(row: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    block = (row.get("derivation") or {}).get("cited_change") if isinstance(
+        row.get("derivation"), Mapping) else None
+    return block if isinstance(block, Mapping) else None
+
+
+def reading_epoch(reading: Mapping[str, Any], row: Mapping[str, Any] | None = None) -> str:
+    """The attempt-log epoch of a reading: its settings, and once the row carries a cited
+    change, the text hash that change recorded (as the fact gate's re-read epoch). A later
+    reading of a board that moved starts a new epoch; a disagreement within one still blocks."""
+    base = "reading:" + sha256(canonical({k: reading.get(k) for k in READING_KEYS}, "_"))[:16]
+    block = _block_of(row) if row is not None else None
+    return f"{base}:reread:{block.get('text_sha256') or block.get('sha256')}" if block else base
 
 
 def _front(path: Path) -> dict[str, Any]:
@@ -590,14 +614,13 @@ def reading_lookup(subject: str, benchmark_id: str, reading: Mapping[str, Any],
         return _refuse("reading_ambiguous", "several evidence rows have these settings")
     ids = [s.get("source_id") for r in rows for s in r.get("sources") or []]
     ids += [i for r in rows for i in r.get("checked_sources") or []]
-    ids += [i for r in rows
-            for i in (((r.get("derivation") or {}).get("cited_change") or {}).get("previous_sources")
-                      or [])]
+    ids += [i for r in rows for i in (_block_of(r) or {}).get("previous_sources") or []]
     listed = {str(x.get("url")) for x in benchmark.get("sources") or [] if isinstance(x, dict)}
     listed.add(str(benchmark.get("leaderboard_url") or ""))
-    ids += [i for i, src in sources.items() if src.get("url") in listed]
-    cited = tuple(dict.fromkeys(ids))
-    return ReadingLookup(name, hits[0], benchmark, sources, redirects, publishers, cited)
+    page = tuple(i for i, src in sources.items()
+                 if src.get("url") in listed and src.get("kind") == BENCHMARK_AUTHOR)
+    return ReadingLookup(name, hits[0], benchmark, sources, redirects, publishers,
+                         tuple(dict.fromkeys(ids)), page)
 
 
 def _host(url: Any) -> str | None:
@@ -697,13 +720,15 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     found = reading_lookup(subject, benchmark_id, reading)
     if isinstance(found, CitedChange):
         return found
+    facet_id = BENCHMARK_PREFIX + benchmark_id
     refusal = _check_board_source(found, source_id, now) \
-        or _check_retaining(found.as_lookup(), _ReadingFacet(BENCHMARK_PREFIX + benchmark_id), now)
+        or _check_retaining(found.lookup(found.own), _ReadingFacet(facet_id, _EveryKind()), now) \
+        or _check_retaining(found.lookup(found.cited), _ReadingFacet(facet_id), now)
     if refusal is None:
         refusal = _check_identities(readers)
     if refusal is not None:
         return refusal
-    facet_id, epoch = BENCHMARK_PREFIX + benchmark_id, reading_epoch(reading)
+    epoch = reading_epoch(reading, found.row)
     history = [a for a in attempts(subject, facet_id, epoch) if a.get("complete")]
     if any(_entry_time(a) is None for a in history):
         return _refuse("bad_read_date", "a logged attempt has a missing, naive or unreadable time")
@@ -767,7 +792,7 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
             and not allow_unchanged:
         return _refuse("value_unchanged", "the agreed value is the filed value")
     record = _record(subject, facet_id, value, found.sources[source_id], source_id, now,
-                     sha256(page_bytes), text_sha256(page_bytes), answers, filed, found.cited, resolved)
+                     sha256(page_bytes), text_sha256(page_bytes), answers, filed, found.own, resolved)
     record["benchmark_id"] = benchmark_id
     record["reading"] = mark["reading"]
     record["clears_not_published_since"] = found.row.get("not_published_since") not in (None, "")
@@ -905,4 +930,36 @@ def reread(fact: Mapping[str, Any], *, source_id: str, readers: Sequence[Reader]
     facet_def = _facet(facet)
     agreed = outcome.record["value"] if outcome.record else None
     same = _canonical(agreed, facet_def) == _canonical(fact.get("value"), facet_def)
+    return Reread("confirmed" if same else "changed", None, outcome.record)
+
+
+def reread_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any], source_id: str,
+                   readers: Sequence[Reader], request: Request | None = None) -> Reread:
+    """Re-read a board reading that a cited change filed. The gate fetches the page; a page
+    whose visible text still hashes as recorded is ``current``. Otherwise two readers read it
+    again in the epoch the recorded text hash names, so a board that moved can change the row
+    again while a disagreement inside one epoch still blocks. A reading whose score the readers
+    confirm is ``confirmed``; another agreed score is ``changed``; anything else is ``flagged``."""
+    found = reading_lookup(subject, benchmark_id, reading)
+    if isinstance(found, CitedChange):
+        return Reread("flagged", found.reason, None, found.detail)
+    block = _block_of(found.row)
+    if block is None:
+        return Reread("flagged", "not_a_cited_change", None, "the row carries no cited_change block")
+    row = found.sources.get(source_id)
+    if row is None or not row.get("url"):
+        return Reread("flagged", "registry_lookup_failed", None, "the cited source is not registered")
+    fetched = _fetch(row["url"], request or _http_once)
+    if isinstance(fetched, CitedChange):
+        return Reread("flagged", fetched.reason, None, fetched.detail)
+    if not reread_required({"derivation": found.row["derivation"]}, fetched[0]):
+        return Reread("current")
+    outcome = cited_reading(subject=subject, benchmark_id=benchmark_id, reading=reading,
+                            source_id=source_id, readers=readers, request=request,
+                            allow_unchanged=True)
+    if outcome.outcome != "cited_change" and not outcome.marked:
+        return Reread("flagged", outcome.reason or outcome.outcome, None, outcome.detail)
+    if outcome.marked:
+        return Reread("flagged", "not_published", outcome.record, "the board no longer lists the row")
+    same = canonical(outcome.record["value"], "_") == canonical(found.row.get("score"), "_")
     return Reread("confirmed" if same else "changed", None, outcome.record)

@@ -377,3 +377,61 @@ def test_a_cost_in_the_configuration_keeps_its_own_read_day():
     out = dated_cost(text, "2026-10-19")
     assert out == "Board read 2026-11-23; max effort; $11.95 a task (cost as of 2026-10-19)."
     assert dated_cost(out, "2026-11-23") == out
+
+
+# --- a reading can change again, after the board moves -------------------------------------------
+
+
+def test_a_board_that_moves_lets_the_reading_change_again_and_a_disagreement_still_blocks(data):
+    from decision.cited_change import reread_reading
+
+    assert run(readers=pair(51.2)).changed
+    # the harness wrote the row: the card now holds the score and the derivation block
+    from scripts import cited_reading as harness
+    row = data.row
+    out = run(readers=pair(51.2), allow_unchanged=True)
+    new = harness.rewritten_row(SUBJECT, row, out)
+    data.row = new
+    data.write()
+    moved = b"<html><body><table><tr><td>Orbit 9 Max</td><td>53.0%</td></tr></table>MOVED</body></html>"
+    # same epoch is closed to a conflicting value only until the row has a derivation; now it
+    # is a new epoch: a re-read after the board moved can change it again
+    out2 = reread_reading(subject=SUBJECT, benchmark_id=BENCH, reading=READING, source_id="board",
+                          readers=pair(53.0), request=serve(moved))
+    assert out2.outcome == "changed" and out2.record["value"] == 53.0
+    # the page text is as recorded: nothing to read
+    same = reread_reading(subject=SUBJECT, benchmark_id=BENCH, reading=READING, source_id="board",
+                          readers=pair(51.2), request=serve(PAGE))
+    assert same.outcome == "current"
+    # inside the new epoch, readers that disagree are logged and block a retry
+    refused("readers_disagree", readers=pair(53.0, 54.0), request=serve(moved))
+    refused("prior_attempt_disagreed", readers=pair(53.0), request=serve(moved))
+
+
+def test_a_cited_reading_row_on_a_retaining_lab_documentation_source_is_refused(data):
+    data.sources.append(dict(id="card", url="https://huggingface.co/acme/orbit-9", kind="lab_documentation",
+                             publisher="acme", fetch="http", normaliser="text-default",
+                             cited_regions=[dict(id="rows", locator=dict(kind="page", value=""))]))
+    data.row["sources"].append(dict(source_id="card", snapshot_ref="sha256:" + "2" * 64,
+                                    cited_regions=["rows"]))
+    data.write()
+    refused("retaining_source_registered")
+
+
+def test_a_page_listed_lab_documentation_source_is_not_a_reading_source(data):
+    data.sources.append(dict(id="card", url="https://huggingface.co/acme/orbit-9", kind="lab_documentation",
+                             publisher="acme", fetch="http", normaliser="text-default",
+                             cited_regions=[dict(id="rows", locator=dict(kind="page", value=""))]))
+    data.bench["sources"].append({"url": "https://huggingface.co/acme/orbit-9"})
+    data.write()
+    out = run()
+    assert out.changed and out.record["derivation"]["cited_change"]["previous_sources"] == ["board"]
+
+
+def test_a_written_derivation_has_no_yaml_anchors(data):
+    from scripts import cited_reading
+
+    _card(data)
+    cited_reading.run(data.root, BENCH, "board", pair(), request=serve())
+    text = (data.root / "models/acme/orbit-9.md").read_text()
+    assert "derivation:" in text and "&id" not in text and "*id" not in text

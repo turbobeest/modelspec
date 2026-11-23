@@ -91,7 +91,8 @@ def rewritten_row(subject: str, old: dict[str, Any], outcome: CitedChange,
     day = record["source"]["retrieved_at"][:10]
     new.pop("not_published_since", None)
     new["score"] = record["value"]
-    new["derivation"] = {"cited_change": record["derivation"]["cited_change"]}
+    # A plain copy: shared objects would dump as YAML anchors and aliases.
+    new["derivation"] = json.loads(json.dumps({"cited_change": record["derivation"]["cited_change"]}))
     was = None
     if isinstance(old.get("configuration"), str):
         was = refresh._read_day_of(old["configuration"])

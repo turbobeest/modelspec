@@ -903,6 +903,10 @@ class _Compiler:
         return "unverified" if record is None else str(record["outcome"])
 
     def _retain(self, kind: str, record: dict, citation: dict | None = None) -> str:
+        if kind == "evidence" and "derivation" in record:
+            # The cited-change derivation (readers, prompt hashes, manifests) is internal: it
+            # never enters a snapshot or its record_table.
+            record = {k: v for k, v in record.items() if k != "derivation"}
         rid = str(record.get("id") or content_hash(record))
         value = (
             fact_verification_value(record)
