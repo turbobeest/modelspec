@@ -431,6 +431,13 @@ def test_a_page_listed_source_of_the_subjects_own_lab_on_a_retaining_host_refuse
     refused("retaining_source_registered")
 
 
+def test_a_page_listed_lab_source_with_no_publisher_refuses(data):
+    _listed(data, "acme")
+    del data.sources[-1]["publisher"]
+    data.write()
+    refused("registry_lookup_failed")
+
+
 def test_a_page_listed_source_of_another_lab_is_not_this_readings_source(data):
     _listed(data, "other")
     out = run()

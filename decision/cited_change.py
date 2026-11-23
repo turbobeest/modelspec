@@ -619,6 +619,11 @@ def reading_lookup(subject: str, benchmark_id: str, reading: Mapping[str, Any],
     listed = {str(x.get("url")) for x in benchmark.get("sources") or [] if isinstance(x, dict)}
     listed.add(str(benchmark.get("leaderboard_url") or ""))
     lab = subject.split("/", 1)[0]
+    unowned = [i for i, src in sources.items() if src.get("url") in listed
+               and src.get("kind") in FIRST_PARTY_KINDS and not src.get("publisher")]
+    if unowned:  # a lab's page with no recorded publisher cannot be ruled out as the lab's own
+        return _refuse("registry_lookup_failed",
+                       f"page-listed source {unowned[0]} records no publisher")
     # A page-listed source counts when it is a board author's page or the subject's own lab's
     # (the lab's system card about this model); other labs' sources are not this reading's.
     page = tuple(i for i, src in sources.items()
