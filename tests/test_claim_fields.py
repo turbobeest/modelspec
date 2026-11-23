@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from decision.excluded import REMOVED_HOSTS
 from pipeline.export import Build, write
 from pipeline.load import Benchmark, Catalogue, Model
 from schema.benchmark import BenchmarkCard
@@ -156,7 +157,7 @@ def test_baseline_never_enters_a_snapshot(tmp_path: Path):
     assert "baseline" not in json.dumps(b)
 
 
-@pytest.mark.parametrize("host", ["artificialanalysis.ai", "www.zapier.com"])
+@pytest.mark.parametrize("host", list(REMOVED_HOSTS))
 def test_excluded_sources_are_refused(host):
     url = f"https://{host}/x"
     with pytest.raises(ValidationError):
