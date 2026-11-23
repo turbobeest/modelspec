@@ -99,6 +99,9 @@ REFUSALS = (
     "reader_failed",
     "page_unreadable",
     "redirect_to_retaining_host",
+    "reading_not_found",
+    "reading_ambiguous",
+    "unknown_benchmark",
 )
 
 
@@ -106,7 +109,7 @@ REFUSALS = (
 class CitedChange:
     """``cited_change`` when the whole rule held; ``refused`` with a named reason otherwise."""
 
-    outcome: Literal["cited_change", "refused"]
+    outcome: Literal["cited_change", "refused", "absence_pending", "not_published"]
     reason: str | None = None
     detail: str = ""
     record: dict[str, JsonValue] | None = None
@@ -114,6 +117,11 @@ class CitedChange:
     @property
     def changed(self) -> bool:
         return self.outcome == "cited_change"
+
+    @property
+    def marked(self) -> bool:
+        """A reading's absence was seen on two harness reads at least 24 h apart."""
+        return self.outcome == "not_published"
 
 
 def _refuse(reason: str, detail: str = "") -> CitedChange:
@@ -476,6 +484,272 @@ def cited_change(*, subject: str, facet: str, source_id: str, readers: Sequence[
     """
     return _gate(subject=subject, facet=facet, source_id=source_id, readers=readers,
                  request=request, allow_unchanged=False)
+
+
+# --- a benchmark board reading (Jamie 2026-11-22) -------------------------------------------------
+#
+# Rule 15 covers a board reading too. The subject is a model, the "facet" is
+# ``benchmark:<id>``, and the reading is one evidence row of the card, named by its settings
+# (``model_id_as_evaluated``, ``effort``, ``harness``). First party means the board's own
+# publisher, not the subject's lab: the source is the benchmark's registered ``benchmark_author``
+# page, whose ``publisher`` is a registry id (a lab, provider or subscription vendor) whose
+# registry URL host is the source's host and the benchmark page's ``publisher.url`` host.
+# Every other condition is the facet rule's, through the same checks.
+#
+# A model the board no longer lists: both readers agree the page states no value for the row.
+# One such read is only logged (``absence_pending``). A second, at least ``ABSENCE_GAP`` after a
+# pending one, returns ``not_published`` with the day the absence was first seen, for the
+# ``not_published_since`` field of the row. A later read that finds a value ends the pending run.
+
+BENCHMARK_PREFIX = "benchmark:"
+BENCHMARK_AUTHOR = "benchmark_author"
+ABSENCE_GAP = timedelta(hours=24)
+READING_KEYS = ("model_id_as_evaluated", "effort", "harness")
+
+
+class _EveryKind:
+    """A reading counts every source cited for the benchmark, whatever its kind."""
+
+    def __contains__(self, item: object) -> bool:
+        return True
+
+
+@dataclass(frozen=True)
+class _ReadingFacet:
+    """The part of a facet the shared checks read."""
+
+    id: str
+    permitted_source_kinds: Any = _EveryKind()
+
+
+@dataclass(frozen=True)
+class ReadingLookup:
+    subject_name: str
+    row: Mapping[str, Any]
+    benchmark: Mapping[str, Any]
+    sources: Mapping[str, Mapping[str, Any]]
+    redirects: Mapping[str, Any]
+    publishers: Mapping[str, str]
+    cited: tuple[str, ...]
+
+    def as_lookup(self) -> Lookup:
+        return Lookup(self.subject_name, {"sources": [{"source_id": i} for i in self.cited],
+                                          "checked_sources": []}, self.sources, self.redirects)
+
+
+def reading_epoch(reading: Mapping[str, Any]) -> str:
+    return "reading:" + sha256(canonical({k: reading.get(k) for k in READING_KEYS}, "_"))[:16]
+
+
+def _front(path: Path) -> dict[str, Any]:
+    front = yaml.safe_load(path.read_text(encoding="utf-8").split("---", 2)[1])
+    if not isinstance(front, dict):
+        raise ValueError("front matter")
+    return front
+
+
+def reading_lookup(subject: str, benchmark_id: str, reading: Mapping[str, Any],
+                   data_dir: str | Path | None = None) -> Lookup | ReadingLookup | CitedChange:
+    """The card's evidence row for the reading, the benchmark page, the source registry and the
+    publisher registry, or a refusal. A reading names ``model_id_as_evaluated``, ``effort`` and
+    ``harness``; it must match exactly one evidence row of the benchmark."""
+    import os
+
+    root = data_dir or os.environ.get(DATA_DIR_ENV, "").strip()
+    if not root:
+        return _refuse("registry_lookup_failed", "no data directory is named")
+    root = Path(root)
+    if not _SUBJECT.fullmatch(subject) or not re.fullmatch(r"[a-z0-9][a-z0-9_.-]*", benchmark_id):
+        return _refuse("registry_lookup_failed", "the subject or benchmark is not an id")
+    if set(reading) != set(READING_KEYS):
+        return _refuse("reading_not_found", f"a reading names exactly {', '.join(READING_KEYS)}")
+    try:
+        front = _front(root / "models" / f"{subject}.md")
+        page = root / "benchmarks" / f"{benchmark_id}.md"
+        if not page.is_file():
+            return _refuse("unknown_benchmark", benchmark_id)
+        benchmark = _front(page)
+        sources = {s["id"]: s for s in
+                   yaml.safe_load((root / "registry" / "sources.yaml").read_text("utf-8"))["sources"]}
+        path = root / REDIRECTS_FILE
+        redirects = json.loads(path.read_text("utf-8")) if path.is_file() else {}
+        publishers: dict[str, str] = {}
+        providers = yaml.safe_load((root / "registry" / "providers.yaml").read_text("utf-8"))
+        for group in ("providers", "subscription_vendors"):
+            for entry in providers.get(group) or []:
+                publishers[entry["id"]] = str(entry.get("url") or "")
+        for entry in yaml.safe_load((root / "registry" / "labs.yaml").read_text("utf-8"))["labs"]:
+            publishers.setdefault(entry["id"], str(entry.get("url") or ""))
+        name = front["display_name"]
+        rows = [r for r in front["benchmarks"] if r.get("benchmark_id") == benchmark_id]
+    except (OSError, ValueError, KeyError, TypeError, IndexError, AttributeError,
+            yaml.YAMLError) as error:
+        return _refuse("registry_lookup_failed", type(error).__name__)
+    if not isinstance(redirects, dict) or not isinstance(name, str) or not name:
+        return _refuse("registry_lookup_failed", "malformed registry")
+    hits = [r for r in rows if all(r.get(k) == reading[k] for k in READING_KEYS)]
+    if not hits:
+        return _refuse("reading_not_found", "no evidence row has these settings")
+    if len(hits) > 1:
+        return _refuse("reading_ambiguous", "several evidence rows have these settings")
+    cited = tuple(dict.fromkeys(s.get("source_id") for r in rows for s in r.get("sources") or []))
+    return ReadingLookup(name, hits[0], benchmark, sources, redirects, publishers, cited)
+
+
+def _host(url: Any) -> str | None:
+    from urllib.parse import urlsplit
+
+    try:
+        host = (urlsplit(str(url)).hostname or "").lower().rstrip(".")
+    except ValueError:
+        return None
+    return host.removeprefix("www.") or None
+
+
+def _check_board_source(found: ReadingLookup, source_id: str, now: datetime) -> CitedChange | None:
+    """The source is the board's own publisher's page, on a cite-only host."""
+    if source_id not in found.cited:
+        return _refuse("registry_lookup_failed", "the reading's evidence does not cite this source")
+    row = found.sources.get(source_id)
+    if row is None or not row.get("url"):
+        return _refuse("registry_lookup_failed", "the cited source is not in the source registry")
+    status = cite_only_origin_status(row["url"], ())
+    if status is None:
+        return _refuse("host_unreadable", "the source URL does not parse")
+    if not status:
+        return _refuse("host_not_cite_only", "the host retains copies, so the verified path applies")
+    if row.get("kind") != BENCHMARK_AUTHOR:
+        return _refuse("source_kind_not_permitted", f"{row.get('kind')} is not {BENCHMARK_AUTHOR}")
+    publisher = row.get("publisher")
+    registered = found.publishers.get(publisher) if isinstance(publisher, str) else None
+    if not publisher or not registered:
+        return _refuse("not_first_party",
+                       "the source registry records no publisher, or one the registries do not know")
+    host = _host(row["url"])
+    owners = {_host(registered), _host((found.benchmark.get("publisher") or {}).get("url"))}
+    if host is None or owners != {host}:
+        return _refuse("not_first_party",
+                       "the source's publisher is not the benchmark's own publisher")
+    return None
+
+
+def reading_definition(benchmark: Mapping[str, Any], reading: Mapping[str, Any]) -> str:
+    """What a reader is asked: the row's settings, never a filed value."""
+    metric = benchmark.get("metric") or {}
+    unit = metric.get("unit") or ""
+    parts = [f"the {metric.get('name') or 'score'} the board states for the row labelled "
+             f"{reading['model_id_as_evaluated']!r}"]
+    if reading.get("effort"):
+        parts.append(f"at effort {reading['effort']!r}")
+    if reading.get("harness"):
+        parts.append(f"in harness {reading['harness']!r}")
+    return (f"{' '.join(parts)}. Type: number, a bare number in {unit or 'the board unit'} "
+            f"(no units, no sign), exactly as the board prints it. Return null when the board "
+            f"lists no such row or prints no score for it.")
+
+
+def _entry_time(entry: Mapping[str, Any]) -> datetime | None:
+    try:
+        return datetime.fromisoformat(str(entry.get("at")))
+    except ValueError:
+        return None
+
+
+def _is_absent(entry: Mapping[str, Any]) -> bool:
+    return bool(entry.get("agreed")) and entry.get("harness") is True \
+        and bool(entry.get("readers")) and all(r.get("value") is None for r in entry["readers"])
+
+
+def pending_absences(history: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    """Harness reads that found the row absent and were not followed by a read that found it."""
+    seen = [a for a in history if a.get("agreed") and a.get("agreed_value") is not None
+            and a.get("harness") is True and _entry_time(a)]
+    out = []
+    for a in history:
+        t = _entry_time(a)
+        if _is_absent(a) and t and not any(_entry_time(b) > t for b in seen):
+            out.append(a)
+    return sorted(out, key=_entry_time)
+
+
+def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any], source_id: str,
+                  readers: Sequence[Reader], request: Request | None = None,
+                  now: datetime | None = None) -> CitedChange:
+    """The gate for one board reading: fetch the board in memory, have two readers read the one
+    row, and return their agreed score as ``cited``, an absence (pending or, on the second read
+    at least 24 h later, marked), or a named refusal. Everything but the readers and the
+    transport is looked up here."""
+    now = now or datetime.now(UTC)
+    found = reading_lookup(subject, benchmark_id, reading)
+    if isinstance(found, CitedChange):
+        return found
+    refusal = _check_board_source(found, source_id, now) \
+        or _check_retaining(found.as_lookup(), _ReadingFacet(BENCHMARK_PREFIX + benchmark_id), now)
+    if refusal is None:
+        refusal = _check_identities(readers)
+    if refusal is not None:
+        return refusal
+    facet_id, epoch = BENCHMARK_PREFIX + benchmark_id, reading_epoch(reading)
+    history = [a for a in attempts(subject, facet_id, epoch) if a.get("complete")]
+    if any(not a.get("agreed") for a in history):
+        return _refuse("prior_attempt_disagreed",
+                       "an earlier complete attempt at this reading did not agree")
+    url = found.sources[source_id]["url"]
+    fetched = _fetch(url, request or _http_once)
+    if isinstance(fetched, CitedChange):
+        return fetched
+    page_bytes, resolved = fetched
+    definition = reading_definition(found.benchmark, reading)
+    answers: list[ReaderAnswer] = []
+    for _ in range(2):
+        try:
+            answers = read_page(subject=subject, url=url, facet_id=facet_id,
+                                subject_name=found.subject_name, page_bytes=page_bytes,
+                                readers=readers, epoch=epoch, definition=definition)
+            break
+        except ReaderError:
+            continue
+    if not answers:
+        return _refuse("reader_failed", "a reader returned no usable answer")
+    facet = _ReadingFacet(facet_id)
+    prompt_hash = sha256(build_prompt(url=url, facet_id=facet_id, subject_name=found.subject_name,
+                                      page_bytes=page_bytes, definition=definition))
+    manifest = input_manifest(url=url, facet_id=facet_id, subject_name=found.subject_name,
+                              page_bytes=page_bytes, definition=definition)
+    if not all(isinstance(a.manifest, dict) and a.manifest and a.prompt_sha256 for a in answers):
+        return _refuse("reader_input_missing", "a reader's prompt hash or input manifest is missing")
+    if any(a.manifest != manifest or a.prompt_sha256 != prompt_hash for a in answers):
+        return _refuse("reader_input_not_blind", "a reader's input is not the rebuilt blind prompt")
+    if canonical(answers[0].value, facet.id) != canonical(answers[1].value, facet.id):
+        return _refuse("readers_disagree", "the readers returned different values")
+    value = answers[0].value
+    mark = {"subject": subject, "benchmark_id": benchmark_id,
+            "reading": {k: reading[k] for k in READING_KEYS}}
+    if value is None:
+        pending = pending_absences(history)
+        first = _entry_time(pending[0]) if pending else None
+        if first is None or now - first < ABSENCE_GAP:
+            return CitedChange("absence_pending", None,
+                               "the board lists no such row on this read; a second read at least "
+                               "24 h after the first marks it", {**mark, "reads": len(pending) + 1})
+        return CitedChange("not_published", None, "", {
+            **mark, "not_published_since": first.astimezone(UTC).date().isoformat(),
+            "reads": len(pending) + 1, "state": "known", "resolution": "cited"})
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return _refuse("value_invalid", "a board score is a number")
+    benchmark_max = (found.benchmark.get("metric") or {}).get("max_score")
+    if value < 0 or (isinstance(benchmark_max, (int, float)) and value > benchmark_max):
+        return _refuse("value_invalid", "the score is outside the board's range")
+    filed = found.row.get("score")
+    if canonical(value, facet.id) == canonical(filed, facet.id):
+        return _refuse("value_unchanged", "the agreed value is the filed value")
+    record = _record(subject, facet_id, value, found.sources[source_id], source_id, now,
+                     sha256(page_bytes), text_sha256(page_bytes), answers, filed, found.cited, resolved)
+    record["benchmark_id"] = benchmark_id
+    record["reading"] = mark["reading"]
+    record["clears_not_published_since"] = found.row.get("not_published_since") not in (None, "")
+    del record["facet"]
+    return CitedChange("cited_change", None, "", record)
 
 
 # --- the re-read ---------------------------------------------------------------------------------

@@ -127,6 +127,27 @@ Learned expensively during 2026-09-09/10.
     `verification/cited-reread-requests.jsonl`); two readers then read it again
     (`reread`), and fewer than two flags the fact.
 
+    **Benchmark board readings too (Jamie 2026-11-22).** `decision.cited_change.cited_reading`
+    takes a subject, a benchmark id and the reading's settings
+    (`model_id_as_evaluated`, `effort`, `harness`; exactly one evidence row must match)
+    and applies every condition above unchanged, with one difference: first party is the
+    board's own publisher, not the subject's lab. The source is the benchmark's registered
+    `benchmark_author` page; its `publisher` is a registry id (labs, providers or
+    subscription vendors) whose registry URL host is the source's host and the benchmark
+    page's `publisher.url` host. Readers get a prompt built from the URL, the row's
+    settings, the subject name and the page bytes, never the filed score; the attempts log
+    is keyed by subject, `benchmark:<id>` and a hash of the settings. A changed score is
+    served as cited (`state` `known`, `resolution` `cited`); `scripts/cited_reading.py`
+    writes it through the refresh writer.
+
+    **No longer published.** When both readers agree the board lists no row (or no score)
+    for the reading, one such read only logs an attempt (`absence_pending`). A second
+    read at least 24 h after a pending one returns `not_published`, and the writer sets
+    `not_published_since` on the row to the day of the first absent read (the field and
+    its freshness handling are in `docs/evidence/MODEL-482-not-published-since.md`). A read that finds
+    the row ends the pending absences, and a later score clears the field. Readers that split
+    on presence are a disagreement and block as above.
+
 Public PR bodies and evidence must not contain private modelspec-data commit SHAs or per-card private values. Private PR numbers, ages and clone URLs are not sensitive.
 
 ## Pytest CI shards
