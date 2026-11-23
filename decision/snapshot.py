@@ -903,6 +903,9 @@ class _Compiler:
         return "unverified" if record is None else str(record["outcome"])
 
     def _retain(self, kind: str, record: dict, citation: dict | None = None) -> str:
+        if kind == "evidence" and "baseline" in record:
+            # MODEL-537: the baseline is internal and never enters a snapshot or its record_table.
+            record = {k: v for k, v in record.items() if k != "baseline"}
         if kind == "evidence" and "derivation" in record:
             # The cited-change derivation (readers, prompt hashes, manifests) is internal: it
             # never enters a snapshot or its record_table.
