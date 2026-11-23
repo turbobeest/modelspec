@@ -534,7 +534,8 @@ class ReadingLookup:
     #: Every source id the reading's own rows registered: those they cite, their
     #: ``checked_sources`` and the sources a past cited change replaced. Any kind counts.
     own: tuple[str, ...]
-    #: The registered ``benchmark_author`` sources the benchmark page itself lists (by URL).
+    #: The registered sources the benchmark page itself lists (by URL) that are a board
+    #: author's or the subject's own lab's. Any kind counts, as for the reading's own rows.
     page: tuple[str, ...]
 
     @property
@@ -617,8 +618,12 @@ def reading_lookup(subject: str, benchmark_id: str, reading: Mapping[str, Any],
     ids += [i for r in rows for i in (_block_of(r) or {}).get("previous_sources") or []]
     listed = {str(x.get("url")) for x in benchmark.get("sources") or [] if isinstance(x, dict)}
     listed.add(str(benchmark.get("leaderboard_url") or ""))
+    lab = subject.split("/", 1)[0]
+    # A page-listed source counts when it is a board author's page or the subject's own lab's
+    # (the lab's system card about this model); other labs' sources are not this reading's.
     page = tuple(i for i, src in sources.items()
-                 if src.get("url") in listed and src.get("kind") == BENCHMARK_AUTHOR)
+                 if src.get("url") in listed
+                 and (src.get("kind") == BENCHMARK_AUTHOR or src.get("publisher") == lab))
     return ReadingLookup(name, hits[0], benchmark, sources, redirects, publishers,
                          tuple(dict.fromkeys(ids)), page)
 
@@ -723,7 +728,7 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     facet_id = BENCHMARK_PREFIX + benchmark_id
     refusal = _check_board_source(found, source_id, now) \
         or _check_retaining(found.lookup(found.own), _ReadingFacet(facet_id, _EveryKind()), now) \
-        or _check_retaining(found.lookup(found.cited), _ReadingFacet(facet_id), now)
+        or _check_retaining(found.lookup(found.cited), _ReadingFacet(facet_id, _EveryKind()), now)
     if refusal is None:
         refusal = _check_identities(readers)
     if refusal is not None:

@@ -418,12 +418,21 @@ def test_a_cited_reading_row_on_a_retaining_lab_documentation_source_is_refused(
     refused("retaining_source_registered")
 
 
-def test_a_page_listed_lab_documentation_source_is_not_a_reading_source(data):
+def _listed(data, publisher):
     data.sources.append(dict(id="card", url="https://huggingface.co/acme/orbit-9", kind="lab_documentation",
-                             publisher="acme", fetch="http", normaliser="text-default",
+                             publisher=publisher, fetch="http", normaliser="text-default",
                              cited_regions=[dict(id="rows", locator=dict(kind="page", value=""))]))
     data.bench["sources"].append({"url": "https://huggingface.co/acme/orbit-9"})
     data.write()
+
+
+def test_a_page_listed_source_of_the_subjects_own_lab_on_a_retaining_host_refuses(data):
+    _listed(data, "acme")
+    refused("retaining_source_registered")
+
+
+def test_a_page_listed_source_of_another_lab_is_not_this_readings_source(data):
+    _listed(data, "other")
     out = run()
     assert out.changed and out.record["derivation"]["cited_change"]["previous_sources"] == ["board"]
 

@@ -119,16 +119,18 @@ def _needs_derivation(row: dict) -> bool:
 
 def run(root: Path, benchmark: str, source_id: str, readers: list[Reader], *,
         apply: bool = True, request=None, reconfirm: bool = False,
-        cost_day: str | None = None) -> Counter:
+        cost_day: str | None = None, subject_only: str | None = None) -> Counter:
     os.environ["MODELSPEC_DATA_DIR"] = str(root)
     counts: Counter = Counter()
     for subject, path, row in card_paths(root, benchmark, source_id):
-        if reconfirm and not _needs_derivation(row):
+        if subject_only is not None and subject != subject_only:
+            continue
+        if reconfirm and subject_only is None and not _needs_derivation(row):
             continue
         reading = {k: row.get(k) for k in READING_KEYS}
         outcome = cited_reading(subject=subject, benchmark_id=benchmark, reading=reading,
                                 source_id=source_id, readers=readers, request=request,
-                                allow_unchanged=reconfirm)
+                                allow_unchanged=reconfirm or subject_only is not None)
         counts[outcome.outcome + (f":{outcome.reason}" if outcome.reason else "")] += 1
         if apply and (outcome.changed or outcome.marked):
             refresh._rewrite_card(path, [(evidence_key(row), rewritten_row(subject, row, outcome, cost_day))])
@@ -146,12 +148,14 @@ def main(argv: list[str] | None = None) -> int:
                          "derivation, and write it (score unchanged or changed as read)")
     ap.add_argument("--cost-day", help="the day the configuration's cost figure was last read; "
                     "an undated cost is marked with it")
+    ap.add_argument("--subject", help="run the gate for this one model's reading only; an agreed "
+                    "score equal to the filed one is a record, not a refusal")
     ap.add_argument("--no-write", action="store_true",
                     help="run the gate (it still logs its attempts) but write no card")
     args = ap.parse_args(argv)
     counts = run(args.data_dir, args.benchmark, args.source, default_readers(args.local_model),
                  apply=not args.no_write, reconfirm=args.reconfirm,
-                 cost_day=args.cost_day)
+                 cost_day=args.cost_day, subject_only=args.subject)
     print(json.dumps({"at": datetime.now(UTC).replace(microsecond=0).isoformat(),
                       "outcomes": dict(sorted(counts.items()))}, indent=1))
     return 0
