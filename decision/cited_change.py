@@ -581,7 +581,7 @@ def reading_lookup(subject: str, benchmark_id: str, reading: Mapping[str, Any],
         for entry in yaml.safe_load((root / "registry" / "labs.yaml").read_text("utf-8"))["labs"]:
             publishers.setdefault(entry["id"], str(entry.get("url") or ""))
         name = front["display_name"]
-        rows = [r for r in front["benchmarks"] if r.get("benchmark_id") == benchmark_id]
+        rows = [r for r in front["benchmarks"]["evidence"] if r.get("benchmark_id") == benchmark_id]
     except (OSError, ValueError, KeyError, TypeError, IndexError, AttributeError,
             yaml.YAMLError) as error:
         return _refuse("registry_lookup_failed", type(error).__name__)

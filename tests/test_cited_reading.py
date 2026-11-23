@@ -63,7 +63,7 @@ class Data:
     def write(self):
         for d in ("models/acme", "registry", "benchmarks"):
             (self.root / d).mkdir(parents=True, exist_ok=True)
-        card = yaml.safe_dump({"display_name": "Orbit 9", "benchmarks": [self.row]}, sort_keys=False)
+        card = yaml.safe_dump({"display_name": "Orbit 9", "benchmarks": {"scores": {}, "evidence": [self.row]}}, sort_keys=False)
         (self.root / "models/acme/orbit-9.md").write_text(f"---\n{card}---\n")
         (self.root / f"benchmarks/{BENCH}.md").write_text(f"---\n{yaml.safe_dump(self.bench)}---\n")
         (self.root / "registry/sources.yaml").write_text(
@@ -166,7 +166,7 @@ def test_a_row_must_match_exactly_one_reading(data):
     refused("reading_not_found", reading={**READING, "effort": "low"})
     data.root.joinpath("x").mkdir(exist_ok=True)
     data.rowcopy = dict(data.row)
-    card = yaml.safe_dump({"display_name": "Orbit 9", "benchmarks": [data.row, dict(data.row)]})
+    card = yaml.safe_dump({"display_name": "Orbit 9", "benchmarks": {"scores": {}, "evidence": [data.row, dict(data.row)]}})
     (data.root / "models/acme/orbit-9.md").write_text(f"---\n{card}---\n")
     refused("reading_ambiguous")
 
@@ -249,7 +249,7 @@ def _card(data, extra=""):
         f"      snapshot_ref: sha256:{'0' * 64}\n      cited_regions:\n      - rows\n"
         f"    observed_at: '2026-10-19'\n{extra}")
     (data.root / "models/acme/orbit-9.md").write_text(
-        f"---\ndisplay_name: Orbit 9\nmodel_id: acme/orbit-9\nbenchmarks:\n{row}deployment:\n  x: 1\n---\n")
+        f"---\ndisplay_name: Orbit 9\nmodel_id: acme/orbit-9\nbenchmarks:\n  scores: {{}}\n  evidence:\n{row}deployment:\n  x: 1\n---\n")
 
 
 def test_the_harness_writes_a_changed_score_and_a_mark_through_the_writer(data):
@@ -260,7 +260,7 @@ def test_the_harness_writes_a_changed_score_and_a_mark_through_the_writer(data):
     _card(data)
     counts = cited_reading.run(data.root, BENCH, "board", pair(), request=serve())
     assert counts == {"cited_change": 1}
-    row = yaml.safe_load((data.root / "models/acme/orbit-9.md").read_text().split("---", 2)[1])["benchmarks"][0]
+    row = yaml.safe_load((data.root / "models/acme/orbit-9.md").read_text().split("---", 2)[1])["benchmarks"]["evidence"][0]
     assert row["score"] == 51.2 and row["observed_at"] == datetime.now(UTC).date().isoformat()
     assert row["sources"][0]["snapshot_ref"].startswith("sha256:") and "not_published_since" not in row
     assert row["id"] != "acme/orbit-9#boardbench_1#aaaaaaaaaaaa"
@@ -275,6 +275,6 @@ def test_the_harness_writes_a_changed_score_and_a_mark_through_the_writer(data):
             log = data.log()
             log[-1]["at"] = at.replace(microsecond=0).isoformat()
             (data.root / ATTEMPTS_FILE).write_text("".join(json.dumps(x) + "\n" for x in log))
-    row = yaml.safe_load((data.root / "models/acme/orbit-9.md").read_text().split("---", 2)[1])["benchmarks"][0]
+    row = yaml.safe_load((data.root / "models/acme/orbit-9.md").read_text().split("---", 2)[1])["benchmarks"]["evidence"][0]
     assert row["not_published_since"] == (t - timedelta(days=2)).date().isoformat()
     assert row["score"] == 51.2

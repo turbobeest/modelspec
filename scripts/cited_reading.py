@@ -60,7 +60,7 @@ def card_paths(root: Path, benchmark: str, source_id: str) -> list[tuple[str, Pa
         if f"benchmark_id: {benchmark}" not in text:
             continue
         front = yaml.safe_load(text.split("---", 2)[1])
-        for row in front.get("benchmarks") or []:
+        for row in (front.get("benchmarks") or {}).get("evidence") or []:
             if row.get("benchmark_id") == benchmark and any(
                     s.get("source_id") == source_id for s in row.get("sources") or []):
                 out.append((f"{path.parent.name}/{path.stem}", path, row))
