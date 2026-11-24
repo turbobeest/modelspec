@@ -19,7 +19,8 @@ from tests.snapshot_records import fact
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts/refile_mixed_citations.py"
 
 
-def setup_data(tmp_path, *, retained_value=128000, facet="model.context_window", support="open"):
+def setup_data(tmp_path, *, retained_value=128000, facet="model.context_window", support="open",
+               value=128000):
     root = tmp_path / "data"
     store = CopyStore(tmp_path / "copies")
     retained = store.put(
@@ -47,7 +48,7 @@ def setup_data(tmp_path, *, retained_value=128000, facet="model.context_window",
     (registry / "sources.yaml").write_text(
         yaml.safe_dump({"schema_version": 1, "sources": sources})
     )
-    row = fact("model", "lab/alpha", facet, 128000)
+    row = fact("model", "lab/alpha", facet, value)
     row["sources"] = [
         {"source_id": "open", "snapshot_ref": retained, "cited_regions": ["page"]},
         {
@@ -692,17 +693,10 @@ def test_card_write_failure_after_the_append_converges_on_rerun(
     root, cache, policy, card = setup_data(tmp_path, retained_value=64000, support="cite")
     file_later_mixed_claim(root, card, datetime(2026, 10, 1, tzinfo=UTC))
     original_card = card.read_bytes()
-    write_bytes = Path.write_bytes
-
-    def failing(self, data):
-        if self.suffix == ".md":
-            raise OSError("simulated card write failure")
-        return write_bytes(self, data)
-
     args = ["--data-root", str(root), "--source-cache", str(cache), "--policy", str(policy),
             "--as-of", "2026-10-21", "--write"]
     with monkeypatch.context() as patch:
-        patch.setattr(Path, "write_bytes", failing)
+        fail_card_replace(patch)
         assert script.main(args) == 1
     err = capsys.readouterr().err
     assert "1 card file(s) were not written: 1 fact(s) unchanged, 1 of them" in err
@@ -718,5 +712,90 @@ def test_card_write_failure_after_the_append_converges_on_rerun(
     assert (root / "verification/queue/events.jsonl").read_bytes() == queue_after_append
     row = yaml.safe_load(card.read_text().split("---")[1])["facts"][0]
     assert [ref["source_id"] for ref in row["sources"]] == ["cite"]
+    assert script.main(args) == 0
+    assert json.loads(capsys.readouterr().out)["counts"] == {"1": 0, "2": 0, "3": 0}
+
+
+def fail_card_replace(patch):
+    """Fail the last step of a card write, after its new bytes reached a temp file."""
+    replace_file = os.replace
+
+    def failing(source, target, *args, **kwargs):
+        if str(target).endswith(".md"):
+            raise OSError("simulated card write failure")
+        return replace_file(source, target, *args, **kwargs)
+
+    patch.setattr(os, "replace", failing)
+
+
+def test_same_length_queue_drift_is_refused_by_the_hash(tmp_path, script):
+    root, cache, policy, card = setup_data(tmp_path, support="open")
+    planned = plan_in_process(script, root, cache, policy)
+    path = root / "verification/queue/events.jsonl"
+    data = path.read_bytes()
+    drifted = data.replace(b"2026-09-20T00:00:00", b"2026-09-21T00:00:00", 1)
+    assert drifted != data and len(drifted) == len(data)
+    path.write_bytes(drifted)
+    before = files(root)
+    with pytest.raises(ValueError, match="queue changed since planning"):
+        script.apply(planned)
+    assert files(root) == before
+
+
+@pytest.mark.parametrize("value,filed", [(128000, 128000.0), (1, True)])
+def test_rule_2_files_when_the_latest_claim_differs_only_in_value_type(tmp_path, value, filed):
+    root, cache, policy, card = setup_data(
+        tmp_path, retained_value=64000, support="cite", value=value)
+    path = root / "verification/queue/events.jsonl"
+    first = json.loads(path.read_text().splitlines()[0])
+    # Exactly the claim rule 2 would file, but for the value's JSON type.
+    assert first["claim"]["value"] == value
+    later = {**first, "at": "2026-10-01T00:00:00+00:00",
+             "claim": {**first["claim"], "value": filed}}
+    with path.open("a") as stream:
+        stream.write(json.dumps(later) + "\n")
+    before = path.read_bytes()
+    result = invoke(root, cache, policy, "--write")
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["counts"] == {"1": 0, "2": 1, "3": 0}
+    added = [json.loads(line) for line in path.read_bytes()[len(before):].decode().splitlines()]
+    assert [event["event"] for event in added] == ["collected", "checked"]
+    assert type(added[0]["claim"]["value"]) is type(value)
+    assert card_claim_disagreements(root) == ([], 1)
+
+
+def test_card_write_failure_leaves_the_card_byte_identical(tmp_path, script, monkeypatch, capsys):
+    root, cache, policy, card = setup_data(tmp_path, support="open")
+    original = card.read_bytes()
+    args = ["--data-root", str(root), "--source-cache", str(cache), "--policy", str(policy),
+            "--as-of", "2026-10-21", "--write"]
+    before = files(root)
+    with monkeypatch.context() as patch:
+        fail_card_replace(patch)
+        assert script.main(args) == 1
+    err = capsys.readouterr().err
+    # Rule 1 only: nothing was appended, and the message must not say otherwise.
+    assert "no queue line was appended" in err and "queue was appended" not in err
+    assert card.read_bytes() == original
+    assert files(root) == before  # no temp file left behind either
+
+
+def test_rule_1_recovers_on_rerun_after_a_card_write_failure(
+    tmp_path, script, monkeypatch, capsys
+):
+    root, cache, policy, card = setup_data(tmp_path, support="open")
+    queue = (root / "verification/queue/events.jsonl").read_bytes()
+    args = ["--data-root", str(root), "--source-cache", str(cache), "--policy", str(policy),
+            "--as-of", "2026-10-21", "--write"]
+    with monkeypatch.context() as patch:
+        fail_card_replace(patch)
+        assert script.main(args) == 1
+    capsys.readouterr()
+    assert script.main(args) == 0
+    assert json.loads(capsys.readouterr().out)["counts"] == {"1": 1, "2": 0, "3": 0}
+    row = yaml.safe_load(card.read_text().split("---")[1])["facts"][0]
+    assert [ref["source_id"] for ref in row["sources"]] == ["open"]
+    assert (root / "verification/queue/events.jsonl").read_bytes() == queue
+    assert card_claim_disagreements(root) == ([], 1)
     assert script.main(args) == 0
     assert json.loads(capsys.readouterr().out)["counts"] == {"1": 0, "2": 0, "3": 0}

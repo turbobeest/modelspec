@@ -24,7 +24,9 @@ import argparse
 import hashlib
 import json
 import os
+import stat
 import sys
+import tempfile
 from collections import Counter, defaultdict
 from dataclasses import dataclass, replace
 from dataclasses import field as dataclass_field
@@ -81,6 +83,11 @@ def event_time(event):
 def event_target(event):
     target = event["claim"]["target"] if event["event"] == "collected" else event["target"]
     return target["kind"], target["id"]
+
+
+def canonical(obj):
+    """Type-exact JSON: unlike ``==``, it keeps ``True``, ``1`` and ``1.0`` apart."""
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
 def filed_claims(events):
@@ -399,7 +406,7 @@ def plan(root, store, today):
         # The new claim must be the latest: equal instants keep line order.
         at = max(day, last).isoformat() if last is not None else day.isoformat()
         # A rerun after a half-done write finds this claim already filed.
-        files_claim = rule == 2 and final_claim.to_dict() != old.to_dict()
+        files_claim = rule == 2 and canonical(final_claim.to_dict()) != canonical(old.to_dict())
         if files_claim:
             events.extend(
                 [
@@ -468,6 +475,23 @@ def append_queue(plan):
             os.fsync(handle.fileno())
 
 
+def write_atomic(path, data):
+    """Replace a file whole: a failure leaves the old bytes as they were."""
+    mode = stat.S_IMODE(path.stat().st_mode)
+    handle = tempfile.NamedTemporaryFile(
+        dir=path.parent, prefix=f".{path.name}.", suffix=".tmp", delete=False)
+    try:
+        with handle:
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(handle.name, mode)
+        os.replace(handle.name, path)
+    except BaseException:
+        Path(handle.name).unlink(missing_ok=True)
+        raise
+
+
 def apply(plan):
     """Queue first, then cards. Rule 1 also depends on the queue, so it is checked too."""
     if not plan.cards and not plan.append:
@@ -479,17 +503,21 @@ def apply(plan):
     failed = []
     for path, (_, data) in plan.cards.items():
         try:
-            path.write_bytes(data)
+            write_atomic(path, data)
         except OSError:
             failed.append(path)
     if failed:
         changed = sum(plan.facts[path][0] for path in failed)
         filed = sum(plan.facts[path][1] for path in failed)
-        raise HalfDoneError(
-            f"STOP: the queue was appended, but {len(failed)} card file(s) were not written: "
+        appended = (
+            f"the queue was appended, but {len(failed)} card file(s) were not written: "
             f"{changed} fact(s) unchanged, {filed} of them with a newly filed claim the card "
-            "does not cite yet. Rerun with --write to finish them."
+            "does not cite yet"
+            if plan.append else
+            f"no queue line was appended, and {len(failed)} card file(s) were not written: "
+            f"{changed} fact(s) unchanged"
         )
+        raise HalfDoneError(f"STOP: {appended}. Rerun with --write to finish them.")
 
 
 def main(argv=None):
