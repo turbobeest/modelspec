@@ -656,3 +656,63 @@ def test_a_seeded_agreement_on_another_value_blocks(data):
 def test_a_seeded_agreement_on_the_same_value_is_no_conflict(data):
     seed(data, harness=False, agreed=True, agreed_value=262144, url="https://docs.x.ai/docs/another-page")
     assert run().changed
+
+
+def test_a_card_fact_record_is_as_before_offering_support(data):
+    """MODEL-544 adds offering facts and not_disclosed; a card fact's record and prompt are
+    unchanged: no finding, no offering definition, and silence is still no change."""
+    found = lookup(SUBJECT, FACET)
+    assert found.kind == "model" and found.definition is None and found.names == ("Grok X",)
+    record = run().record
+    assert all("finding" not in r for r in record["derivation"]["cited_change"]["readers"])
+    assert record["state"] == "known"
+    refused("no_value", readers=pair(value=None))
+
+
+def test_a_quarantined_card_fact_is_refused_up_front(data):
+    """MODEL-544 review: a mismatch binds its own value, so the gate refuses any change to a
+    fact that holds one (card facts had this gap before offering support)."""
+    from tests.snapshot_records import verification
+
+    path = data.root / "verification/log.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(verification("fact", f"{SUBJECT}#{FACET}", "mismatch",
+                                            value=131072)) + "\n")
+    refused("quarantined")
+    assert not data.log()
+    with path.open("a") as fh:
+        fh.write(json.dumps(verification("fact", f"{SUBJECT}#{FACET}", "verified",
+                                         day="2026-10-01", value=131072)) + "\n")
+    assert run().changed
+
+
+def _plant(data, fact_id, *, escaped=False):
+    from tests.snapshot_records import verification
+
+    line = json.dumps(verification("fact", fact_id, "mismatch", value=131072))
+    path = data.root / "verification/log.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text((line.replace("/", "\\/") if escaped else line) + "\n")
+
+
+def test_an_escaped_log_line_still_holds_a_card_fact(data):
+    _plant(data, f"{SUBJECT}#{FACET}", escaped=True)
+    refused("quarantined")
+    assert not data.log()
+
+
+def test_a_renamed_card_fact_id_still_holds_its_canonical_verdict(data):
+    _plant(data, f"{SUBJECT}#{FACET}")
+    data.fact["id"] = f"{SUBJECT}#renamed"
+    data.write()
+    refused("quarantined")
+    assert not data.log()
+
+
+def test_a_card_fact_is_held_under_the_cards_own_model_id(data):
+    """The build keys a card's facts by its ``model_id``, so a verdict there holds too."""
+    _plant(data, f"xai/grok-x-real#{FACET}")
+    card = yaml.safe_dump({"display_name": "Grok X", "model_id": "xai/grok-x-real",
+                           "facts": [data.fact]}, sort_keys=False)
+    (data.root / "models/xai/grok-x.md").write_text(f"---\n{card}---\nbody\n")
+    refused("quarantined")

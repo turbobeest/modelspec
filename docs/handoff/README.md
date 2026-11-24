@@ -160,6 +160,22 @@ Learned expensively during 2026-09-09/10.
     the row ends the pending absences, and a later score clears the field. Readers that split
     on presence are a disagreement and block as above.
 
+    **Offering facts and `not_disclosed` (MODEL-544).** `cited_change` takes an offering
+    fact too: the subject is the offering id (`<provider>/<lab>/<model>/<region>/<tier>` or
+    `<provider>/subscription/<plan>`), the fact is looked up in the one offering file the
+    loader allows, and first party is the offering's provider. Every other condition is
+    unchanged. The readers' facet definition adds one sentence saying the subject is an
+    offering (no value). `scripts/cited_offering.py` runs the gate with two subscription CLIs
+    and writes the record into the offering file and its claim into the queue from one source
+    reference, so the reference and the claim name the same copy (the MODEL-542 check). A
+    change to `not_disclosed` needs `accept_not_disclosed` and both readers finding the page
+    silent; each reader's finding (`not_stated`) is recorded. It is refused when the readers
+    saw only part of the page (`page_truncated`), when the page shows too little text to prove
+    silence (`page_too_short`), when the fact cites another page of a permitted kind
+    (`other_source_unread`), or when an earlier attempt agreed on a value. Any disagreement
+    files nothing. Nothing in the gate or the writer lifts a quarantine: a fresh agreement
+    over an older mismatch is the owner's call.
+
 Public PR bodies and evidence must not contain private modelspec-data commit SHAs or per-card private values. Private PR numbers, ages and clone URLs are not sensitive.
 
 ## Pytest CI shards

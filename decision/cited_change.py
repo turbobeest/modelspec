@@ -24,6 +24,25 @@ Jamie, 2026-11-22 (MODEL-531). The rule, as it is built here:
    any of them on a host that retains copies makes it refuse. A lookup that fails is a
    refusal.
 
+Offering facts too (MODEL-544). The subject may be an offering
+(``<provider>/<lab>/<model>/<region>/<tier>`` in ``offerings/<provider>/<lab>/<model>.yaml``,
+or ``<provider>/subscription/<plan>`` in ``offerings/subscriptions/<provider>.yaml``). Every
+condition holds unchanged; first party is the offering's provider, and the readers' facet
+definition says the subject is an offering. ``scripts/cited_offering.py`` writes the record
+into the offering file and files its claim from the one source reference, so the offering
+reference and the claim name the same copy.
+
+``not_disclosed`` (MODEL-544). Two readers agreeing that the page states nothing is a change
+only when the caller asks for one (``accept_not_disclosed``) and the page can show silence:
+the readers saw all of its visible text, there is enough of it, and the fact cites no other
+page of a permitted kind. Each reader's finding (``not_stated``) is recorded. Any
+disagreement, and any earlier agreed attempt on a value, files nothing. Nothing here lifts a
+quarantine. A mismatch or unreachable verdict binds the value it was logged for, so a new value
+would enter the build as cited while the old verdict stayed logged: the gate refuses up front
+(``quarantined``) any fact, card or offering, whose verification log or inline verification
+holds an unresolved mismatch or unreachable verdict for any value. That is the owner's call
+(MODEL-544 review).
+
 ``cited_change`` is the only gate. It checks every condition in code and either
 returns the whole record or refuses with one named reason. It never writes a partial
 change. The gate itself fetches the page in memory with redirects off (every hop must be
@@ -49,8 +68,8 @@ import yaml
 from pydantic import JsonValue
 
 from decision.cited_reader import (
-    INPUT_FIELDS, Reader, ReaderAnswer, ReaderError, attempts, build_prompt, canonical,
-    input_manifest, read_page, sha256, text_sha256,
+    INPUT_FIELDS, MAX_PAGE_CHARS, Reader, ReaderAnswer, ReaderError, attempts, build_prompt,
+    canonical, facet_definition, input_manifest, normalised_text, read_page, sha256, text_sha256,
 )
 from decision.model import _LINEAGES, _NO_LINEAGE, DETERMINISTIC, model_family
 from decision.retention import DATA_DIR_ENV, cite_only_origin_status, cite_only_status
@@ -102,7 +121,22 @@ REFUSALS = (
     "reading_not_found",
     "reading_ambiguous",
     "unknown_benchmark",
+    "page_truncated",
+    "page_too_short",
+    "other_source_unread",
+    "quarantined",
 )
+#: The verification log, under the data directory, as ``decision.snapshot.collect_repo`` reads it.
+VERIFICATION_LOG = "verification/log.jsonl"
+#: A page the readers find silent must show at least this much visible text: a script shell
+#: or a bot wall reads as silence, and silence there proves nothing.
+MIN_SILENT_TEXT = 400
+#: What the readers were told about an offering subject (MODEL-544). It names no value.
+OFFERING_CLAUSE = (
+    " The subject is an offering: the model as this provider serves it, or a subscription plan."
+    " A statement the page makes for the provider's service or plan that the subject is applies"
+    " to it even when it does not name the model; a statement only about another of the"
+    " provider's services or products does not.")
 
 
 @dataclass(frozen=True)
@@ -144,6 +178,18 @@ class Lookup:
     fact: Mapping[str, Any]
     sources: Mapping[str, Mapping[str, Any]]
     redirects: Mapping[str, Any]
+    #: ``model`` (a card fact) or ``offering`` (a fact in ``offerings/``).
+    kind: str = "model"
+    #: The file the fact is in.
+    path: Path | None = None
+    #: The readers' facet definition, when it is not the registry's own (an offering's).
+    definition: str | None = None
+    #: The subject's published names, for the claim: the model's, or the plan's.
+    names: tuple[str, ...] = ()
+    #: Every identity the fact may carry in the verification log: the one its location makes
+    #: (the card's ``model_id``, the offering row's own provider, model, region and tier), the
+    #: one the build keys it by (its stored ``id`` wins there) and the one the gate was asked for.
+    fact_ids: tuple[str, ...] = ()
 
     @property
     def registered_ids(self) -> tuple[str, ...]:
@@ -154,33 +200,121 @@ class Lookup:
 
 
 _SUBJECT = re.compile(r"[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*")
+_PART = r"[a-zA-Z0-9][a-zA-Z0-9._-]*"
+#: ``<provider>/<lab>/<model>/<region>/<tier>``, as ``decision.model.Offering.id``.
+_OFFERING = re.compile(rf"({_PART})/([a-z0-9][a-z0-9._-]*)/([a-z0-9][a-z0-9._-]*)/({_PART})/({_PART})")
+#: ``<provider>/subscription/<plan>``, as ``decision.model.SubscriptionOffering.id``.
+_SUBSCRIPTION = re.compile(rf"({_PART})/subscription/({_PART})")
+
+
+def subject_kind(subject: str) -> str | None:
+    """``model``, ``offering`` or ``None`` for a subject id that is neither."""
+    if _SUBJECT.fullmatch(subject):
+        return "model"
+    if _OFFERING.fullmatch(subject) or _SUBSCRIPTION.fullmatch(subject):
+        return "offering"
+    return None
+
+
+def _registry(root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
+    sources = {s["id"]: s for s in
+               yaml.safe_load((root / "registry" / "sources.yaml").read_text("utf-8"))["sources"]}
+    path = root / REDIRECTS_FILE
+    redirects = json.loads(path.read_text("utf-8")) if path.is_file() else {}
+    return sources, redirects
+
+
+def _provider_name(root: Path, provider: str) -> str:
+    providers = yaml.safe_load((root / "registry" / "providers.yaml").read_text("utf-8"))
+    for group in ("providers", "subscription_vendors"):
+        for entry in providers.get(group) or []:
+            if entry.get("id") == provider and isinstance(entry.get("name"), str):
+                return entry["name"]
+    raise KeyError("provider")
+
+
+def _offering_lookup(root: Path, subject: str, facet: str) -> Lookup:
+    """The offering fact, from the one file the loader allows it in."""
+    if match := _SUBSCRIPTION.fullmatch(subject):
+        provider = match.group(1)
+        path = root / "offerings" / "subscriptions" / f"{provider}.yaml"
+    else:
+        match = _OFFERING.fullmatch(subject)
+        provider, lab, model = match.group(1), match.group(2), match.group(3)
+        path = root / "offerings" / provider / lab / f"{model}.yaml"
+    rows = yaml.safe_load(path.read_text(encoding="utf-8"))
+    # The row is found by its own identity, as the build makes it, never by a stored id.
+    hits = [(row, f) for row in rows if _row_id(row) == subject
+            for f in row.get("facts") or [] if f.get("facet") == facet]
+    if len(hits) != 1:
+        raise KeyError("offering fact")
+    row, fact = hits[0]
+    stored_subject = (fact.get("subject") or {}).get("id")
+    ids = (f"{subject}#{facet}", fact.get("id"), f"{stored_subject}#{facet}")
+    provider_name = _provider_name(root, provider)
+    if row.get("kind") == "subscription":
+        names = (row["name"],)
+        name = f"{row['name']}, a {provider_name} subscription plan"
+    else:
+        card = (root / "models" / f"{row['model']}.md").read_text(encoding="utf-8")
+        names = (yaml.safe_load(card.split("---", 2)[1])["display_name"],)
+        name = f"{names[0]}, as {provider_name} serves it"
+    sources, redirects = _registry(root)
+    if not all(isinstance(n, str) and n for n in names):
+        raise TypeError("name")
+    return Lookup(name, fact, sources, redirects, "offering", path,
+                  facet_definition(facet) + OFFERING_CLAUSE, names, _ids(ids))
+
+
+def _row_id(row: Mapping[str, Any]) -> str | None:
+    """An offering row's id from its own fields, as ``decision.snapshot.collect_repo`` makes it."""
+    try:
+        if row.get("kind") == "subscription":
+            return f"{row['provider']}/subscription/{row['plan']}"
+        return f"{row['provider']}/{row['model']}/{row['region']}/{row['tier']}"
+    except (KeyError, TypeError):
+        return None
+
+
+def _ids(ids: Sequence[Any]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(i for i in ids if isinstance(i, str) and i))
 
 
 def lookup(subject: str, facet: str, data_dir: str | Path | None = None) -> Lookup:
-    """Read the subject's card, the source registry and the redirect list from the data directory."""
+    """Read the subject's card (or offering file), the source registry and the redirect list
+    from the data directory."""
     import os
 
     root = data_dir or os.environ.get(DATA_DIR_ENV, "").strip()
     if not root:
         raise LookupFailed("no data directory is named")
     root = Path(root)
-    if not _SUBJECT.fullmatch(subject):
-        raise LookupFailed("the subject is not a model id")
+    kind = subject_kind(subject)
+    if kind is None:
+        raise LookupFailed("the subject is not a model or offering id")
     try:
-        card = (root / "models" / f"{subject}.md").read_text(encoding="utf-8")
-        front = yaml.safe_load(card.split("---", 2)[1])
-        facts = {f["facet"]: f for f in front["facts"]}
-        sources = {s["id"]: s for s in
-                   yaml.safe_load((root / "registry" / "sources.yaml").read_text("utf-8"))["sources"]}
-        path = root / REDIRECTS_FILE
-        redirects = json.loads(path.read_text("utf-8")) if path.is_file() else {}
-        name = front["display_name"]
-        fact = facts[facet]
-    except (OSError, ValueError, KeyError, TypeError, IndexError, yaml.YAMLError) as error:
+        if kind == "offering":
+            found = _offering_lookup(root, subject, facet)
+        else:
+            path = root / "models" / f"{subject}.md"
+            front = yaml.safe_load(path.read_text(encoding="utf-8").split("---", 2)[1])
+            facts = [f for f in front["facts"] if f.get("facet") == facet]
+            if len(facts) != 1:
+                raise KeyError("card fact")
+            sources, redirects = _registry(root)
+            name = front["display_name"]
+            # The build keys a card fact by the card's ``model_id`` (and a stored id over it).
+            ids = (f"{subject}#{facet}", f"{front.get('model_id') or subject}#{facet}",
+                   facts[0].get("id"))
+            found = Lookup(name, facts[0], sources, redirects, "model", path, None, (name,),
+                           _ids(ids))
+    except (OSError, ValueError, KeyError, TypeError, IndexError, AttributeError,
+            yaml.YAMLError) as error:
         raise LookupFailed(f"{type(error).__name__}") from None
-    if not isinstance(redirects, dict) or not isinstance(name, str) or not name:
+    if not isinstance(found.redirects, dict) or not isinstance(found.subject_name, str) \
+            or not found.subject_name:
         raise LookupFailed("malformed registry")
-    return Lookup(name, fact, sources, redirects)
+    return found
 
 
 # --- the checks ----------------------------------------------------------------------------------
@@ -218,6 +352,9 @@ def _value_fits(value: JsonValue, facet: Any) -> str | None:
 
 def _check_source(row: Mapping[str, Any], facet: Any, subject: str,
                   read_at: datetime) -> CitedChange | None:
+    """The page is on a cite-only host and first party: of a first-party kind the facet
+    permits, published by the subject's owner (a card's lab, an offering's provider: the
+    subject id's first part either way)."""
     if not isinstance(read_at, datetime) or read_at.tzinfo is None \
             or read_at > datetime.now(UTC):
         return _refuse("bad_read_date", "the read time is missing, naive or in the future")
@@ -258,16 +395,16 @@ def _check_identities(items: Sequence[Any]) -> CitedChange | None:
 
 
 def _check_readers(answers: Sequence[ReaderAnswer], facet: Any, *, url: str, subject_name: str,
-                   page_bytes: bytes) -> CitedChange | None:
+                   page_bytes: bytes, definition: str | None = None) -> CitedChange | None:
     if not all(isinstance(a, ReaderAnswer) for a in answers):
         return _refuse("reader_count", "the answers are not reader answers")
     refusal = _check_identities(answers)
     if refusal is not None:
         return refusal
     prompt_hash = sha256(build_prompt(url=url, facet_id=facet.id, subject_name=subject_name,
-                                      page_bytes=page_bytes))
+                                      page_bytes=page_bytes, definition=definition))
     manifest = input_manifest(url=url, facet_id=facet.id, subject_name=subject_name,
-                              page_bytes=page_bytes)
+                              page_bytes=page_bytes, definition=definition)
     if not all(isinstance(a.manifest, dict) and a.manifest and a.prompt_sha256 for a in answers):
         return _refuse("reader_input_missing", "a reader's prompt hash or input manifest is missing")
     if any(a.manifest != manifest or a.prompt_sha256 != prompt_hash
@@ -399,18 +536,90 @@ def _fetch(url: str, request: Request) -> tuple[bytes, tuple[str, ...]] | CitedC
     return _refuse("page_unreadable", "too many redirects")
 
 
+def quarantine_verdicts(fact_ids: Sequence[str], fact: Mapping[str, Any],
+                        data_dir: str | Path | None = None) -> list[tuple[str, str]]:
+    """``(fact id, value hash)`` of each value whose latest counting verdict is not ``verified``.
+
+    The log is parsed as the build parses it (``decision.snapshot.collect_repo``: every line
+    through ``json.loads``, no text match) and ranked by the build's own rule
+    (``_Compiler._verification_log``: latest ``date``, a later line on a tie, a same-family
+    ``verified`` does not count). The fact's inline verification counts too, ranked before the
+    log's lines, as the build ranks it. Every identity in ``fact_ids`` is checked, and any
+    value, not only the filed one: a verdict binds its own value, so a change to another value
+    would step around it. Raises ``LookupFailed`` when the log cannot be read.
+    """
+    import os
+
+    from decision.snapshot import _Compiler, _counts
+
+    root = data_dir or os.environ.get(DATA_DIR_ENV, "").strip()
+    if not root:
+        raise LookupFailed("no data directory is named")
+    ids = set(fact_ids)
+    path = Path(root) / VERIFICATION_LOG
+    try:
+        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()
+                if line.strip()] if path.is_file() else []
+        latest = _Compiler._verification_log(rows)
+        inline = fact.get("verification")
+        if isinstance(inline, Mapping) and isinstance(inline.get("target"), Mapping) \
+                and _counts(inline):
+            target = inline["target"]
+            key = (target["kind"], target["id"], str(target.get("value_hash") or ""))
+            entry = (str(inline["date"]), 0, dict(inline))
+            if key not in latest or entry[:2] >= latest[key][:2]:
+                latest[key] = entry
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+        raise LookupFailed(f"verification log: {type(error).__name__}") from None
+    return sorted((rid, value) for (kind, rid, value), (_, _, row) in latest.items()
+                  if kind == "fact" and rid in ids and row.get("outcome") != "verified")
+
+
+def _check_silence(found: Lookup, facet: Any, source_id: str, page_bytes: bytes,
+                   history: Sequence[Mapping[str, Any]]) -> CitedChange | None:
+    """Both readers found the page silent. That is ``not_disclosed`` only when the page can
+    show it: the readers saw all of its visible text, there is enough of it, the fact cites
+    no other page of a permitted kind, and no earlier attempt agreed on a value."""
+    text = normalised_text(page_bytes)
+    if len(text) > MAX_PAGE_CHARS:
+        return _refuse("page_truncated",
+                       "the readers saw part of the page; silence there is not the page's")
+    if len(text) < MIN_SILENT_TEXT:
+        return _refuse("page_too_short",
+                       "too little visible text to show the page is silent")
+    others = [i for i in found.registered_ids if i != source_id
+              and (found.sources.get(i) or {}).get("kind") in facet.permitted_source_kinds]
+    if others:
+        return _refuse("other_source_unread",
+                       f"the fact also cites {others[0]}, which this read did not cover")
+    if any(a.get("agreed") and a.get("agreed_value") is not None for a in history):
+        return _refuse("prior_attempt_disagreed", "an earlier agreed attempt returned a value")
+    return None
+
+
 def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader],
           request: Request | None, allow_unchanged: bool, epoch: str = "initial",
           page: tuple[bytes, tuple[str, ...]] | None = None,
-          now: datetime | None = None) -> CitedChange:
+          now: datetime | None = None, accept_not_disclosed: bool = False) -> CitedChange:
     now = now or datetime.now(UTC)
     facet_def = _facet(facet)
     if facet_def is None:
         return _refuse("unknown_facet", facet)
+    kind = subject_kind(subject)
+    if kind is not None and (kind == "offering") != (facet_def.subject == "offering"):
+        return _refuse("registry_lookup_failed", f"{facet} is not a facet of a {kind}")
     try:
         found = lookup(subject, facet)
     except LookupFailed as error:
         return _refuse("registry_lookup_failed", str(error))
+    # Up front, before any read or attempt: an unresolved verdict on this fact is not lifted here.
+    try:
+        held = quarantine_verdicts(found.fact_ids or (f"{subject}#{facet}",), found.fact)
+    except LookupFailed as error:
+        return _refuse("registry_lookup_failed", str(error))
+    if held:
+        return _refuse("quarantined", f"{len(held)} value(s) of this fact hold an unresolved "
+                       "mismatch or unreachable verdict; lifting it is the owner's call")
     row = found.sources.get(source_id)
     if row is None or not row.get("url"):
         return _refuse("registry_lookup_failed", "the cited source is not in the source registry")
@@ -440,19 +649,36 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         try:
             answers = read_page(subject=subject, url=row["url"], facet_id=facet,
                                 subject_name=found.subject_name, page_bytes=page_bytes,
-                                readers=readers, epoch=epoch)
+                                readers=readers, epoch=epoch, definition=found.definition)
             break
         except ReaderError:
             continue
     if not answers:
         return _refuse("reader_failed", "a reader returned no usable answer")
     refusal = _check_readers(answers, facet_def, url=row["url"], subject_name=found.subject_name,
-                             page_bytes=page_bytes)
+                             page_bytes=page_bytes, definition=found.definition)
     if refusal is not None:
         return refusal
     value = answers[0].value
+    filed = found.fact.get("value")
     if value is None:
-        return _refuse("no_value", "the readers agree the page states nothing; that is not a change")
+        if not accept_not_disclosed:
+            return _refuse("no_value",
+                           "the readers agree the page states nothing; that is not a change")
+        refusal = _check_silence(found, facet_def, source_id, page_bytes, history)
+        if refusal is not None:
+            return refusal
+        if not allow_unchanged and found.fact.get("state") == "not_disclosed" and filed is None:
+            return _refuse("value_unchanged", "the fact is filed not_disclosed already")
+        record = _record(subject, facet, None, row, source_id, now, sha256(page_bytes),
+                         text_sha256(page_bytes), answers, filed, found.registered_ids, resolved)
+        record["state"] = "not_disclosed"
+        for entry in record["derivation"]["cited_change"]["readers"]:
+            entry["finding"] = "not_stated"
+        return CitedChange("cited_change", None, "", record)
+    if accept_not_disclosed and any(a.get("agreed") and a.get("agreed_value") is None
+                                    for a in history):
+        return _refuse("prior_attempt_disagreed", "an earlier agreed attempt found the page silent")
     # A prior agreement on another non-null value is a conflict signal, seeded ones too.
     if any(a.get("agreed") and a.get("agreed_value") is not None
            and _canonical(a.get("agreed_value"), facet_def) != _canonical(value, facet_def)
@@ -461,7 +687,6 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     problem = _value_fits(value, facet_def)
     if problem is not None:
         return _refuse("value_invalid", problem)
-    filed = found.fact.get("value")
     if not allow_unchanged and found.fact.get("state") == "known" \
             and _canonical(value, facet_def) == _canonical(filed, facet_def):
         return _refuse("value_unchanged", "the agreed value is the filed value")
@@ -472,18 +697,24 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
 
 
 def cited_change(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader],
-                 request: Request | None = None) -> CitedChange:
+                 request: Request | None = None,
+                 accept_not_disclosed: bool = False) -> CitedChange:
     """Fetch the page, have two readers read it, and write their agreed value as ``cited``,
     or refuse with a named reason.
 
-    The filed value, the source row (URL, kind, publisher) and every source registered for
-    the subject and facet (and any the fact cited before) are looked up here, in the data
-    directory, never supplied. The gate fetches the page itself in memory with redirects off,
-    checks every hop's host, and calls the reader harness itself: no answer, hash or manifest
-    comes from the caller. ``request`` is the HTTP transport only (tests inject it).
+    The subject is a model (a card fact) or an offering (a fact in ``offerings/``). The filed
+    value, the source row (URL, kind, publisher) and every source registered for the subject
+    and facet (and any the fact cited before) are looked up here, in the data directory,
+    never supplied. The gate fetches the page itself in memory with redirects off, checks
+    every hop's host, and calls the reader harness itself: no answer, hash or manifest comes
+    from the caller. ``request`` is the HTTP transport only (tests inject it).
+
+    ``accept_not_disclosed`` lets two readers' agreement that the page does not state the
+    value file ``not_disclosed`` (see ``_check_silence``); without it that is ``no_value``.
     """
     return _gate(subject=subject, facet=facet, source_id=source_id, readers=readers,
-                 request=request, allow_unchanged=False)
+                 request=request, allow_unchanged=False,
+                 accept_not_disclosed=accept_not_disclosed)
 
 
 # --- a benchmark board reading (Jamie 2026-11-22) -------------------------------------------------
@@ -851,7 +1082,8 @@ def reread_due(fact: Mapping[str, Any], page_bytes: bytes, *, now: datetime,
 
 
 def cited_change_facts(data_dir: str | Path) -> list[dict[str, Any]]:
-    """Every fact in the data directory's cards that carries a ``cited_change`` block.
+    """Every fact in the data directory's cards and offering files that carries a
+    ``cited_change`` block.
 
     Each entry has ``subject``, ``facet``, ``value``, ``derivation`` and ``source_id``.
     """
@@ -867,6 +1099,19 @@ def cited_change_facts(data_dir: str | Path) -> list[dict[str, Any]]:
                 sources = fact.get("sources") or [{}]
                 out.append({"subject": f"{path.parent.name}/{path.stem}", "facet": fact.get("facet"),
                             "value": fact.get("value"), "derivation": fact.get("derivation"),
+                            "source_id": sources[0].get("source_id")})
+    for path in sorted((Path(data_dir) / "offerings").rglob("*.yaml")):
+        try:
+            rows = yaml.safe_load(path.read_text("utf-8")) or []
+            facts = [f for row in rows for f in row.get("facts") or []]
+        except (OSError, AttributeError, TypeError, yaml.YAMLError):
+            continue
+        for fact in facts:
+            if isinstance(fact, dict) and cited_change_block(fact) is not None:
+                sources = fact.get("sources") or [{}]
+                out.append({"subject": (fact.get("subject") or {}).get("id"),
+                            "facet": fact.get("facet"), "value": fact.get("value"),
+                            "derivation": fact.get("derivation"),
                             "source_id": sources[0].get("source_id")})
     return out
 
@@ -934,7 +1179,8 @@ def reread(fact: Mapping[str, Any], *, source_id: str, readers: Sequence[Reader]
         return Reread("current")
     outcome = _gate(subject=subject, facet=facet, source_id=source_id, readers=readers,
                     request=request, allow_unchanged=True, page=fetched,
-                    epoch=f"reread:{block.get('text_sha256') or block.get('sha256')}")
+                    epoch=f"reread:{block.get('text_sha256') or block.get('sha256')}",
+                    accept_not_disclosed=found.fact.get("state") == "not_disclosed")
     if not outcome.changed:
         return Reread("flagged", outcome.reason, None, outcome.detail)
     facet_def = _facet(facet)
