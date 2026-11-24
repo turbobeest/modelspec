@@ -1962,6 +1962,41 @@ def _covered_row(c: dict[str, Any]) -> str:
             f'<td>{when}</td><td>{attribution}</td></tr>')
 
 
+SCORING_TEXT = {
+    "exact": "Exact match: each answer is compared with an answer key.",
+    "programmatic": "Scored automatically by code: tests, checkers or metrics.",
+    "llm_judge": "Graded by a language-model judge.",
+    "human_judge": "Graded by people.",
+    "mixed": "Mixed: automatic checks together with judges.",
+}
+JUDGE_BLIND_TEXT = {
+    "blind": "The judges are blind: they do not know which model they are grading.",
+    "not_blind": "The judges are not blind: they know which model they are grading.",
+    "not_stated": "The source does not say whether the judges know which model they are grading.",
+}
+
+
+def scoring_section(front: dict[str, Any]) -> str:
+    """How the benchmark is scored and, for judged scoring, whether judges are blind (MODEL-536).
+
+    HTML only: the page JSON export still drops these keys (`INTERNAL_PAGE_KEYS`), so no
+    published contract carries them.
+    """
+    text = SCORING_TEXT.get(str(front.get("scoring") or ""))
+    if not text:
+        return ""
+    lines = [esc(text)]
+    blind = JUDGE_BLIND_TEXT.get(str(front.get("judge_blind") or ""))
+    if blind:
+        lines.append(esc(blind))
+    source = str(front.get("scoring_source") or "")
+    if source.startswith(("http://", "https://")):
+        lines.append(f'<a href="{esc(source)}" rel="nofollow noopener">Source</a>')
+    elif front.get("scoring_derivation") == "page_methodology":
+        lines.append("Taken from this page's description of how it is scored.")
+    return "<h2>Who grades it</h2><p>" + " ".join(lines) + "</p>"
+
+
 def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
                    covered: list[dict[str, Any]]) -> str:
     disposition = catalogue.for_benchmark(bench.benchmark_id)
@@ -2057,6 +2092,7 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
 {f'<h2>Task format</h2><p>{esc(task)}</p>' if task else ''}
 {f'<div class="prose">{prose}</div>' if prose else ''}
 {fact_notes(facts)}
+{scoring_section(front)}
 {verified}
 {benchmark_links_section(front)}
 <h2>Models reporting this benchmark</h2>
