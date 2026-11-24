@@ -656,3 +656,14 @@ def test_a_seeded_agreement_on_another_value_blocks(data):
 def test_a_seeded_agreement_on_the_same_value_is_no_conflict(data):
     seed(data, harness=False, agreed=True, agreed_value=262144, url="https://docs.x.ai/docs/another-page")
     assert run().changed
+
+
+def test_a_card_fact_record_is_as_before_offering_support(data):
+    """MODEL-544 adds offering facts and not_disclosed; a card fact's record and prompt are
+    unchanged: no finding, no offering definition, and silence is still no change."""
+    found = lookup(SUBJECT, FACET)
+    assert found.kind == "model" and found.definition is None and found.names == ("Grok X",)
+    record = run().record
+    assert all("finding" not in r for r in record["derivation"]["cited_change"]["readers"])
+    assert record["state"] == "known"
+    refused("no_value", readers=pair(value=None))
