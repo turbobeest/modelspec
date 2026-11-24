@@ -176,3 +176,28 @@ def test_baseline_count_skips_none_stated():
         return ("f", NS(benchmarks=NS(evidence=ev)), None)
 
     assert baseline_count([card("human", "none_stated"), card(), ("f", None, "err")]) == 1
+
+
+def _page_html(front: dict) -> str:
+    from pipeline.render import benchmark_page
+
+    bench = Benchmark("example", Path("benchmarks/example.md"), {**BASE, **front}, "")
+    build = Build(commit="abc", built_at="2026-09-15T00:00:00Z", as_of=date(2026, 9, 15))
+    return benchmark_page(bench, build, Catalogue(as_of=date(2026, 9, 15)), [])
+
+
+def test_benchmark_page_shows_scoring_and_blinding():
+    html = _page_html({"scoring": "human_judge", "judge_blind": "blind", "scoring_source": URL})
+    assert "<h2>Who grades it</h2>" in html
+    assert "Graded by people." in html
+    assert "The judges are blind" in html
+    assert f'<a href="{URL}" rel="nofollow noopener">Source</a>' in html
+    stated = _page_html({"scoring": "llm_judge", "judge_blind": "not_stated", "scoring_source": URL})
+    assert "The source does not say whether the judges know" in stated
+    derived = _page_html({"scoring": "exact", "scoring_derivation": "page_methodology"})
+    assert "Exact match" in derived and "Taken from this page" in derived
+    assert "judges are" not in derived
+
+
+def test_benchmark_page_without_scoring_has_no_section():
+    assert "Who grades it" not in _page_html({})
