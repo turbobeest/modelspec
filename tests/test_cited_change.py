@@ -684,3 +684,35 @@ def test_a_quarantined_card_fact_is_refused_up_front(data):
         fh.write(json.dumps(verification("fact", f"{SUBJECT}#{FACET}", "verified",
                                          day="2026-10-01", value=131072)) + "\n")
     assert run().changed
+
+
+def _plant(data, fact_id, *, escaped=False):
+    from tests.snapshot_records import verification
+
+    line = json.dumps(verification("fact", fact_id, "mismatch", value=131072))
+    path = data.root / "verification/log.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text((line.replace("/", "\\/") if escaped else line) + "\n")
+
+
+def test_an_escaped_log_line_still_holds_a_card_fact(data):
+    _plant(data, f"{SUBJECT}#{FACET}", escaped=True)
+    refused("quarantined")
+    assert not data.log()
+
+
+def test_a_renamed_card_fact_id_still_holds_its_canonical_verdict(data):
+    _plant(data, f"{SUBJECT}#{FACET}")
+    data.fact["id"] = f"{SUBJECT}#renamed"
+    data.write()
+    refused("quarantined")
+    assert not data.log()
+
+
+def test_a_card_fact_is_held_under_the_cards_own_model_id(data):
+    """The build keys a card's facts by its ``model_id``, so a verdict there holds too."""
+    _plant(data, f"xai/grok-x-real#{FACET}")
+    card = yaml.safe_dump({"display_name": "Grok X", "model_id": "xai/grok-x-real",
+                           "facts": [data.fact]}, sort_keys=False)
+    (data.root / "models/xai/grok-x.md").write_text(f"---\n{card}---\nbody\n")
+    refused("quarantined")

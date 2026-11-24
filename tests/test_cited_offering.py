@@ -449,3 +449,34 @@ def test_the_snapshot_still_excludes_a_quarantined_fact_the_gate_refused(kind):
     assert not admitted(build(filed, log))  # as filed: excluded
     assert admitted(build(other, log))  # around the verdict: it would enter
     assert admitted(build(filed, log[:1]))  # not quarantined: it enters
+
+
+def _escaped(row):
+    """A log line with every ``/`` written ``\\/``: valid JSON, and the same row once parsed."""
+    line = json.dumps(row).replace("/", "\\/")
+    assert "/" not in line.replace("\\/", "") and json.loads(line) == row
+    return line
+
+
+def test_an_escaped_log_line_still_holds_an_offering_fact(data):
+    from tests.snapshot_records import verification
+
+    path = data.root / "verification/log.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(_escaped(verification("fact", FACT_ID, "mismatch", value=None)) + "\n")
+    refused(retention(), "quarantined")
+    assert not data.log()
+
+
+def test_a_renamed_offering_fact_id_still_holds_its_canonical_verdict(data):
+    plant(data, FACT_ID, "mismatch", None)
+    data.fact(id=f"{SUBJECT}#renamed", subject={"kind": "offering", "id": "openai/other/x/y/z"})
+    refused(retention(), "quarantined")
+    assert not data.log()
+
+
+def test_a_verdict_on_the_stored_id_holds_too(data):
+    renamed = f"{SUBJECT}#renamed"
+    data.fact(id=renamed)
+    plant(data, renamed, "mismatch", None)  # the build keys the fact by its stored id
+    refused(retention(), "quarantined")

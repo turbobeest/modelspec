@@ -186,6 +186,10 @@ class Lookup:
     definition: str | None = None
     #: The subject's published names, for the claim: the model's, or the plan's.
     names: tuple[str, ...] = ()
+    #: Every identity the fact may carry in the verification log: the one its location makes
+    #: (the card's ``model_id``, the offering row's own provider, model, region and tier), the
+    #: one the build keys it by (its stored ``id`` wins there) and the one the gate was asked for.
+    fact_ids: tuple[str, ...] = ()
 
     @property
     def registered_ids(self) -> tuple[str, ...]:
@@ -239,12 +243,14 @@ def _offering_lookup(root: Path, subject: str, facet: str) -> Lookup:
         provider, lab, model = match.group(1), match.group(2), match.group(3)
         path = root / "offerings" / provider / lab / f"{model}.yaml"
     rows = yaml.safe_load(path.read_text(encoding="utf-8"))
-    hits = [(row, f) for row in rows for f in row.get("facts") or []
-            if (f.get("subject") or {}).get("kind") == "offering"
-            and (f.get("subject") or {}).get("id") == subject and f.get("facet") == facet]
+    # The row is found by its own identity, as the build makes it, never by a stored id.
+    hits = [(row, f) for row in rows if _row_id(row) == subject
+            for f in row.get("facts") or [] if f.get("facet") == facet]
     if len(hits) != 1:
         raise KeyError("offering fact")
     row, fact = hits[0]
+    stored_subject = (fact.get("subject") or {}).get("id")
+    ids = (f"{subject}#{facet}", fact.get("id"), f"{stored_subject}#{facet}")
     provider_name = _provider_name(root, provider)
     if row.get("kind") == "subscription":
         names = (row["name"],)
@@ -257,7 +263,21 @@ def _offering_lookup(root: Path, subject: str, facet: str) -> Lookup:
     if not all(isinstance(n, str) and n for n in names):
         raise TypeError("name")
     return Lookup(name, fact, sources, redirects, "offering", path,
-                  facet_definition(facet) + OFFERING_CLAUSE, names)
+                  facet_definition(facet) + OFFERING_CLAUSE, names, _ids(ids))
+
+
+def _row_id(row: Mapping[str, Any]) -> str | None:
+    """An offering row's id from its own fields, as ``decision.snapshot.collect_repo`` makes it."""
+    try:
+        if row.get("kind") == "subscription":
+            return f"{row['provider']}/subscription/{row['plan']}"
+        return f"{row['provider']}/{row['model']}/{row['region']}/{row['tier']}"
+    except (KeyError, TypeError):
+        return None
+
+
+def _ids(ids: Sequence[Any]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(i for i in ids if isinstance(i, str) and i))
 
 
 def lookup(subject: str, facet: str, data_dir: str | Path | None = None) -> Lookup:
@@ -278,10 +298,16 @@ def lookup(subject: str, facet: str, data_dir: str | Path | None = None) -> Look
         else:
             path = root / "models" / f"{subject}.md"
             front = yaml.safe_load(path.read_text(encoding="utf-8").split("---", 2)[1])
-            facts = {f["facet"]: f for f in front["facts"]}
+            facts = [f for f in front["facts"] if f.get("facet") == facet]
+            if len(facts) != 1:
+                raise KeyError("card fact")
             sources, redirects = _registry(root)
             name = front["display_name"]
-            found = Lookup(name, facts[facet], sources, redirects, "model", path, None, (name,))
+            # The build keys a card fact by the card's ``model_id`` (and a stored id over it).
+            ids = (f"{subject}#{facet}", f"{front.get('model_id') or subject}#{facet}",
+                   facts[0].get("id"))
+            found = Lookup(name, facts[0], sources, redirects, "model", path, None, (name,),
+                           _ids(ids))
     except (OSError, ValueError, KeyError, TypeError, IndexError, AttributeError,
             yaml.YAMLError) as error:
         raise LookupFailed(f"{type(error).__name__}") from None
@@ -510,45 +536,43 @@ def _fetch(url: str, request: Request) -> tuple[bytes, tuple[str, ...]] | CitedC
     return _refuse("page_unreadable", "too many redirects")
 
 
-def quarantine_verdicts(fact_id: str, fact: Mapping[str, Any],
-                        data_dir: str | Path | None = None) -> list[str]:
-    """The value hashes of the fact whose latest counting verdict is not ``verified``.
+def quarantine_verdicts(fact_ids: Sequence[str], fact: Mapping[str, Any],
+                        data_dir: str | Path | None = None) -> list[tuple[str, str]]:
+    """``(fact id, value hash)`` of each value whose latest counting verdict is not ``verified``.
 
-    Read from the data directory's verification log and the fact's inline verification, per
-    value, as the build reads them (latest ``date`` wins, a later line on a tie; a same-family
-    ``verified`` does not count). Any value counts, not only the filed one: a verdict binds its
-    own value, so a change to another value would step around it. Raises ``LookupFailed`` when
-    the log cannot be read.
+    The log is parsed as the build parses it (``decision.snapshot.collect_repo``: every line
+    through ``json.loads``, no text match) and ranked by the build's own rule
+    (``_Compiler._verification_log``: latest ``date``, a later line on a tie, a same-family
+    ``verified`` does not count). The fact's inline verification counts too, ranked before the
+    log's lines, as the build ranks it. Every identity in ``fact_ids`` is checked, and any
+    value, not only the filed one: a verdict binds its own value, so a change to another value
+    would step around it. Raises ``LookupFailed`` when the log cannot be read.
     """
     import os
 
-    from decision.model import Verification
+    from decision.snapshot import _Compiler, _counts
 
     root = data_dir or os.environ.get(DATA_DIR_ENV, "").strip()
     if not root:
         raise LookupFailed("no data directory is named")
-    rows: list[Any] = []
-    inline = fact.get("verification")
-    if isinstance(inline, Mapping):
-        rows.append(inline)
+    ids = set(fact_ids)
     path = Path(root) / VERIFICATION_LOG
     try:
-        text = path.read_text(encoding="utf-8") if path.is_file() else ""
-        rows += [json.loads(line) for line in text.splitlines()
-                 if line.strip() and fact_id in line]
-        verdicts = [Verification.model_validate(row) for row in rows
-                    if isinstance(row, Mapping) and isinstance(row.get("target"), Mapping)
-                    and row["target"].get("kind") == "fact" and row["target"].get("id") == fact_id]
-    except (OSError, ValueError) as error:
+        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()
+                if line.strip()] if path.is_file() else []
+        latest = _Compiler._verification_log(rows)
+        inline = fact.get("verification")
+        if isinstance(inline, Mapping) and isinstance(inline.get("target"), Mapping) \
+                and _counts(inline):
+            target = inline["target"]
+            key = (target["kind"], target["id"], str(target.get("value_hash") or ""))
+            entry = (str(inline["date"]), 0, dict(inline))
+            if key not in latest or entry[:2] >= latest[key][:2]:
+                latest[key] = entry
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
         raise LookupFailed(f"verification log: {type(error).__name__}") from None
-    latest: dict[str, Any] = {}
-    for verdict in verdicts:
-        if not verdict.counts:
-            continue
-        key = verdict.target.value_hash
-        if key not in latest or verdict.date >= latest[key].date:
-            latest[key] = verdict
-    return sorted(key for key, verdict in latest.items() if verdict.outcome != "verified")
+    return sorted((rid, value) for (kind, rid, value), (_, _, row) in latest.items()
+                  if kind == "fact" and rid in ids and row.get("outcome") != "verified")
 
 
 def _check_silence(found: Lookup, facet: Any, source_id: str, page_bytes: bytes,
@@ -590,7 +614,7 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         return _refuse("registry_lookup_failed", str(error))
     # Up front, before any read or attempt: an unresolved verdict on this fact is not lifted here.
     try:
-        held = quarantine_verdicts(str(found.fact.get("id") or f"{subject}#{facet}"), found.fact)
+        held = quarantine_verdicts(found.fact_ids or (f"{subject}#{facet}",), found.fact)
     except LookupFailed as error:
         return _refuse("registry_lookup_failed", str(error))
     if held:
