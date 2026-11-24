@@ -498,7 +498,49 @@ ARENA_RENAMED: dict[str, str] = {
     "kimi-k2-0905-preview": "Kimi K2 Preview (0905)",
     "gemini-2.5-flash-lite-preview-06-17-thinking":
         "Gemini 2.5 Flash-Lite Preview (Thinking, 06-17)",
+    # The 2026-11 renames. Anchor, executed by tests/test_arena_compound_qualifier.py
+    # against the dataset's own rename record (tests/fixtures/leaderboard_refresh/
+    # arena_rename_record_2026-10.json): at one commit the old name vanishes, the new
+    # name appears, and only the new name continues its rating and votes.
+    "c4ai-aya-expanse-32b": "Aya Expanse 32B",
+    "c4ai-aya-expanse-8b": "Aya Expanse 8B",
+    "c4ai-aya-vision-32b": "Aya Vision 32B",
+    "command-r-plus-08-2024": "Command R+ (08-2024)",
+    "gemini-2.5-flash-lite-preview-09-2025-no-thinking":
+        "Gemini 2.5 Flash-Lite Preview (Non-Thinking, 09-2025)",
+    "mistral-medium-2505": "Mistral Medium 3 (2505)",
+    "mistral-medium-2508": "Mistral Medium 3.1 (2508)",
+    "mistral-small-2506": "Mistral Small 3.2 (2506)",
+    "gpt-5.3-chat-latest": "GPT-5.3 Chat",
+    "solar-pro4": "Solar Pro 4",
 }
+
+
+def _plus_tokens(name: str) -> tuple[str, ...]:
+    """The name's tokens in order, with ``+`` read as the word ``plus``.
+
+    The verifier reads a name the same way (``verify._ordered_tokens``), so
+    ``Command R+`` and ``Command R`` are two identifiers here as they are there.
+    """
+    return tuple(readers.normalise_name(name.replace("+", " plus ")).split())
+
+
+def _exact_identifier_hits(
+    hits: Sequence[Mapping[str, Any]], stored_name: str,
+) -> list[Mapping[str, Any]]:
+    """MODEL-524 item 3. Of several normalised hits, the rows whose identifier is
+    exactly the stored one: the same tokens, in the same order, ``+`` included."""
+    wanted = _plus_tokens(stored_name)
+    return [row for row in hits if wanted and _plus_tokens(_subject(row)) == wanted]
+
+
+_TWO_ROWS = "two dataset rows normalise to the stored name"
+
+
+def _two_rows_reason(hits: Sequence[Mapping[str, Any]]) -> str:
+    """The refusal when no hit is the stored identifier exactly: undetermined, both named."""
+    names = ", ".join(repr(_subject(row)) for row in sorted(hits, key=_subject))
+    return f"{_TWO_ROWS}; undetermined, no exact identifier match among {names}"
 
 
 def _renamed_arena_row(board: BoardReading, stored_name: str) -> Mapping[str, Any] | None:
@@ -1107,6 +1149,7 @@ def _plan_observations(
         spelled_effort: str | None = None
         adopted: str | None = None
         pinned: Mapping[str, Any] | None = None
+        exact_pick: Mapping[str, Any] | None = None
         renamed_to: str | None = None
         if arena_board:
             hits = _normalised_name_hits(board, stored_name)
@@ -1115,14 +1158,20 @@ def _plan_observations(
                 alias_row = _renamed_arena_row(board, stored_name)
                 if alias_row is not None:
                     pinned, renamed_to = alias_row, _subject(alias_row)
-            if pinned is not None:
-                pass
-            elif len(hits) > 1:
-                failures.append(RowFailure(
-                    model_id, str(evidence.get("benchmark_id")), board.source_url,
-                    "two dataset rows normalise to the stored name",
-                ))
-                continue
+            if pinned is None and len(hits) > 1:
+                # Several rows normalise to the stored name. The one whose identifier
+                # is exactly the stored one is the row (MODEL-524); with none, or with
+                # more than one, nothing is filed and the refusal names every row.
+                exact = _exact_identifier_hits(hits, stored_name)
+                if len(exact) == 1:
+                    # The checks of a single normalised hit (effort) apply to it.
+                    hits, exact_pick = exact, exact[0]
+                else:
+                    failures.append(RowFailure(
+                        model_id, str(evidence.get("benchmark_id")), board.source_url,
+                        _two_rows_reason(hits),
+                    ))
+                    continue
             # No effort token in the stored name. One parenthetical row whose
             # stem is that name, and a card effort already equal to it, is the
             # same row. Any other row in a spelling the effort helpers already
@@ -1176,7 +1225,12 @@ def _plan_observations(
                         refusal or f"no unique row for {evidence.get('model_id_as_evaluated')!r}",
                     ))
                 continue
-        match = pinned if pinned is not None else _match(board, evidence)
+        if pinned is not None:
+            match = pinned
+        elif exact_pick is not None:
+            match = exact_pick
+        else:
+            match = _match(board, evidence)
         if pinned is None and arena_board and len(hits) == 1 and match is hits[0]:
             subject = _subject(hits[0])
             dataset_effort = _canonical_structured_effort(subject)
