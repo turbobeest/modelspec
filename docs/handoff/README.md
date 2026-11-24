@@ -81,7 +81,12 @@ Learned expensively during 2026-09-09/10.
 14. **Rules 12 and 13 on a cite-only source.** On a cite-only source the fact is
     filed as a cited fact, with the pages and the date they were read, and
     carries no machine verification: the engine returns `cited` and logs no
-    record. Never write a verification record by hand.
+    record. Never write a verification record by hand. Lifecycle facts are mostly
+    cited from labs' deprecations pages, so the weekly rolling re-read
+    (`scripts/evidence_reread.py`, `WATCHED_FACETS`) reads every page a
+    `model.lifecycle` fact cites, keeps only the hash of its visible text
+    (`reports/evidence-reread/watched-pages.json`), and lists the facts whose page
+    changed for a person to re-read (MODEL-527). It changes no value.
 
 15. **A cite-only page may change a value when two readers of different families
     agree** (MODEL-531, Jamie 2026-11-22). Rule 14 files a fact as cited and

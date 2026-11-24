@@ -14,6 +14,12 @@ verified it (``structured-row-match@1``). It never edits a card.
   ``restricts`` in ``registry/source-terms.json`` is not requested at all.
   That includes a redirect target. Such hosts are listed for the owner.
 
+Each run also watches the pages cited by facts of ``WATCHED_FACETS`` (MODEL-527:
+``model.lifecycle``, so a lab's deprecations page is read every week). Each such page
+is read once, in memory, and only the sha256 of its normalised visible text is kept,
+in ``WATCH_STATE``. A page whose text changed since the last run is listed with every
+watched fact that cites it, for a person to re-read; nothing on a card changes.
+
 No paid client is used, and no model is called.
 """
 
@@ -34,6 +40,7 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 from decision.cited_change import (
     cited_change_block, cited_change_facts, cited_change_readings, reread_due,
 )
+from decision.cited_reader import text_sha256
 from decision.retention import cite_only_origin_restrictive
 
 METHOD = "structured-row-match@1"
@@ -58,6 +65,13 @@ TIMEOUT_SECONDS = 60
 USER_AGENT = "ModelSpec-Evidence-Reread/1.0 (+https://modelspec.dev)"
 COPIES_DIRECTORY = "reports/evidence-reread/source-copies"
 RETAINING_CLASSES = frozenset({"permits", "restricts"})
+#: Facets whose cited pages every run reads for a change (MODEL-527). A lab's lifecycle
+#: page changes when it deprecates or retires a model, so the lifecycle facet is here.
+#: Adding a facet adds its pages to the weekly rotation.
+WATCHED_FACETS = ("model.lifecycle",)
+#: Per watched page: the sha256 of its normalised visible text and the day it was read.
+#: Hashes only, never page text, so a cite-only host keeps no bytes here.
+WATCH_STATE = "reports/evidence-reread/watched-pages.json"
 GONE = frozenset({404, 410})
 
 
@@ -334,6 +348,11 @@ class Report:
     #: Cited-change facts whose page sha256 changed: two readers must read them again.
     cited_change_rereads: list[str] = field(default_factory=list)
     redirects_kept: list[str] = field(default_factory=list)
+    #: Watched pages (source ids) whose visible text changed since the last run.
+    watched_changed: list[str] = field(default_factory=list)
+    #: Watched facts that cite a changed page: a person re-reads each.
+    watched_rereads: list[str] = field(default_factory=list)
+    watched: Counter = field(default_factory=Counter)
     redirects_dropped: list[str] = field(default_factory=list)
 
     def note(self, outcome: str, host: str, target_id: str = "") -> None:
@@ -352,6 +371,11 @@ class Report:
             "mismatches": sorted(self.mismatches), "unreachable": sorted(self.unreachable),
             "unread": sorted(self.unread),
             "cited_change_rereads_required": sorted(self.cited_change_rereads),
+            "watched_facets": list(WATCHED_FACETS),
+            "watched_pages": {k: self.watched.get(k, 0) for k in (
+                "current", "changed", "baselined", "deferred", "blocked", "unclassed")},
+            "watched_pages_changed": sorted(self.watched_changed),
+            "watched_rereads_required": sorted(self.watched_rereads),
             "source_redirects_kept": sorted(self.redirects_kept),
             "source_redirects_dropped": sorted(self.redirects_dropped),
             "blocked_redirect_hosts": dict(self.blocked_hosts),
@@ -450,6 +474,8 @@ def run(root: Path, *, observed_at: date, dry_run: bool, store_root: Path,
         report.note(result.outcome, host)
     cited_change_rereads(root, terms, report, request=request, pacer=pacer, observed_at=observed_at,
                          dry_run=dry_run)
+    watched_page_rereads(root, terms, report, sources=sources, request=request, pacer=pacer,
+                         observed_at=observed_at, dry_run=dry_run)
     refresh_redirects(root, terms, report, observed_at=observed_at, dry_run=dry_run, request=request,
                       pacer=pacer)
     return report
@@ -507,6 +533,89 @@ def cited_change_rereads(root: Path, terms: dict[str, str], report: "Report", *,
                     fh.write(json.dumps({"target": target, "at": now.isoformat()}) + "\n")
         else:
             report.note("cited_change_current", host_of(url))
+
+
+def watched_facts(root: Path, facets=WATCHED_FACETS) -> list[dict]:
+    """Every card fact of ``facets``: its target and the source ids it cites."""
+    import yaml
+
+    out: list[dict] = []
+    for path in sorted((root / "models").glob("*/*.md")):
+        try:
+            front = yaml.safe_load(path.read_text("utf-8").split("---", 2)[1])
+            facts = front.get("facts") or []
+        except (OSError, IndexError, AttributeError, yaml.YAMLError):
+            continue
+        for fact in facts:
+            if isinstance(fact, dict) and fact.get("facet") in facets:
+                ids = [s.get("source_id") for s in fact.get("sources") or []
+                       if isinstance(s, dict) and s.get("source_id")]
+                out.append({"target": f"{path.parent.name}/{path.stem}#{fact['facet']}",
+                            "source_ids": ids})
+    return out
+
+
+def watched_page_rereads(root: Path, terms: dict[str, str], report: Report, *, sources=None,
+                         request=None, pacer: Pacer | None = None,
+                         observed_at: date | None = None, dry_run: bool = True) -> None:
+    """Read each page a watched fact cites and list the facts whose page changed (MODEL-527).
+
+    Each page is read once, in memory, with the same redirect rules as the re-read, and
+    no byte is kept. The comparison is the sha256 of the normalised visible text
+    (``decision.cited_reader.text_sha256``), so byte churn such as a nonce is no change.
+    A page seen for the first time is recorded as a baseline and flags nothing. A page
+    that is not read this run keeps its last hash, so a change is still seen next week.
+    This run changes no card, no fact and no verification record.
+    """
+    if sources is None:
+        from decision.sources import load_sources
+
+        sources = load_sources(root / "registry" / "sources.yaml")
+    pacer = pacer or Pacer()
+    day = (observed_at or date.today()).isoformat()
+    path = root / WATCH_STATE
+    state: dict = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    by_url: dict[str, dict] = {}
+    for fact in watched_facts(root):
+        for source_id in fact["source_ids"]:
+            source = sources.get(source_id)
+            if source is None:
+                continue
+            entry = by_url.setdefault(str(source.url), {"ids": set(), "targets": set()})
+            entry["ids"].add(source_id)
+            entry["targets"].add(fact["target"])
+    new_state = dict(state)
+    for url, entry in sorted(by_url.items()):
+        if host_class(url, terms) == "unclassed":
+            report.watched["unclassed"] += 1
+            host = host_of(url) or "?"
+            report.unclassed_hosts[host] = report.unclassed_hosts.get(host, 0) + 1
+            continue
+        pacer.wait(host_of(url))
+        page = fetch(url, terms, request=request)
+        if page.kind == "blocked":
+            report.watched["blocked"] += 1
+            report.blocked_hosts[page.blocked_host] += 1
+            continue
+        if page.kind != "ok":
+            report.watched["deferred"] += 1
+            continue
+        digest = text_sha256(page.body)
+        before = (state.get(url) or {}).get("text_sha256")
+        new_state[url] = {"text_sha256": digest, "checked": day,
+                          "source_ids": sorted(entry["ids"])}
+        if before is None:
+            report.watched["baselined"] += 1
+        elif before == digest:
+            report.watched["current"] += 1
+        else:
+            report.watched["changed"] += 1
+            report.watched_changed.extend(sorted(entry["ids"]))
+            report.watched_rereads.extend(sorted(entry["targets"]))
+    report.watched_rereads = sorted(set(report.watched_rereads))
+    if not dry_run and new_state != state:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(new_state, indent=1, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def refresh_redirects(root: Path, terms: dict[str, str], report: "Report", *, observed_at: date,
@@ -570,12 +679,19 @@ def render(report: Report) -> str:
                  f"({data['bytes_retained']} bytes), {data['copies_already_kept']} already kept.")
     for host, counts in data["by_host"].items():
         lines.append(f"- {host}: " + ", ".join(f"{k} {n}" for k, n in sorted(counts.items())))
+    watched = data["watched_pages"]
+    lines.append(f"- Watched pages ({', '.join(data['watched_facets'])}): "
+                 + ", ".join(f"{k} {n}" for k, n in watched.items()) + ".")
     if data["mismatches"]:
         lines += ["", "### Mismatch: these rows no longer match their source", ""]
         lines += [f"- {target}" for target in data["mismatches"]]
     if data["unreachable"]:
         lines += ["", "### Unreachable: the page is gone", ""]
         lines += [f"- {target}" for target in data["unreachable"]]
+    if data["watched_pages_changed"]:
+        lines += ["", "### Watched pages changed: re-read these facts against their page", ""]
+        lines += [f"- page {source_id}" for source_id in data["watched_pages_changed"]]
+        lines += [f"- {target}" for target in data["watched_rereads_required"]]
     if data["blocked_redirect_hosts"] or data["unclassed_hosts_not_requested"]:
         lines += ["", "### Hosts not requested (unclassed, for the owner)", ""]
         for host, n in {**data["unclassed_hosts_not_requested"],
