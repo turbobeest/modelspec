@@ -537,8 +537,14 @@ def _fetch(url: str, request: Request) -> tuple[bytes, tuple[str, ...]] | CitedC
 
 
 def quarantine_verdicts(fact_ids: Sequence[str], fact: Mapping[str, Any],
-                        data_dir: str | Path | None = None) -> list[tuple[str, str]]:
-    """``(fact id, value hash)`` of each value whose latest counting verdict is not ``verified``.
+                        data_dir: str | Path | None = None, *, kind: str = "fact",
+                        owns: Callable[[str], bool] | None = None) -> list[tuple[str, str]]:
+    """``(id, value hash)`` of each value whose latest counting verdict is not ``verified``.
+
+    ``kind`` is the verification target kind: ``fact`` (a card or offering fact) or
+    ``evidence`` (a board reading, MODEL-547). ``owns`` claims further logged ids for the
+    record: a reading's id changes with its score and date, so its earlier ids are found by
+    what they belong to, not by a list.
 
     The log is parsed as the build parses it (``decision.snapshot.collect_repo``: every line
     through ``json.loads``, no text match) and ranked by the build's own rule
@@ -571,8 +577,9 @@ def quarantine_verdicts(fact_ids: Sequence[str], fact: Mapping[str, Any],
                 latest[key] = entry
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
         raise LookupFailed(f"verification log: {type(error).__name__}") from None
-    return sorted((rid, value) for (kind, rid, value), (_, _, row) in latest.items()
-                  if kind == "fact" and rid in ids and row.get("outcome") != "verified")
+    return sorted((rid, value) for (target_kind, rid, value), (_, _, row) in latest.items()
+                  if target_kind == kind and (rid in ids or (owns is not None and owns(rid)))
+                  and row.get("outcome") != "verified")
 
 
 def _check_silence(found: Lookup, facet: Any, source_id: str, page_bytes: bytes,
@@ -768,6 +775,20 @@ class ReadingLookup:
     #: The registered sources the benchmark page itself lists (by URL) that are a board
     #: author's or the subject's own lab's. Any kind counts, as for the reading's own rows.
     page: tuple[str, ...]
+    #: The reading's own evidence id, as the build keys its verdicts (``e.get("id")``).
+    evidence_ids: tuple[str, ...] = ()
+    #: ``<model>#<benchmark>#``, for the subject and the card's ``model_id``: a logged id under
+    #: one of these is the reading's earlier id unless another current row of the benchmark has it.
+    id_prefixes: tuple[str, ...] = ()
+    #: The ids of the benchmark's other current rows on the card: their verdicts are theirs.
+    sibling_ids: frozenset[str] = frozenset()
+
+    def owns(self, logged_id: str) -> bool:
+        """A logged evidence id that is this reading's: its own, or an earlier one (an id that
+        no other current row of the benchmark on the card has, under the reading's prefix)."""
+        return logged_id in self.evidence_ids or (
+            logged_id not in self.sibling_ids
+            and any(logged_id.startswith(prefix) for prefix in self.id_prefixes))
 
     @property
     def cited(self) -> tuple[str, ...]:
@@ -860,8 +881,16 @@ def reading_lookup(subject: str, benchmark_id: str, reading: Mapping[str, Any],
     page = tuple(i for i, src in sources.items()
                  if src.get("url") in listed
                  and (src.get("kind") == BENCHMARK_AUTHOR or src.get("publisher") == lab))
+    # The reading's identity in the verification log (MODEL-547): the build keys a row's
+    # verdicts by its stored id, which changes with its score and date, so the reading also
+    # owns every id logged under its model and benchmark that no other current row has.
+    models = tuple(dict.fromkeys(m for m in (subject, front.get("model_id"))
+                                 if isinstance(m, str) and m))
+    siblings = frozenset(str(r["id"]) for r in rows if r is not hits[0] and r.get("id"))
+    own_id = (str(hits[0]["id"]),) if hits[0].get("id") else ()
     return ReadingLookup(name, hits[0], benchmark, sources, redirects, publishers,
-                         tuple(dict.fromkeys(ids)), page)
+                         tuple(dict.fromkeys(ids)), page, own_id,
+                         tuple(f"{m}#{benchmark_id}#" for m in models), siblings - set(own_id))
 
 
 def _host(url: Any) -> str | None:
@@ -962,6 +991,14 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     if isinstance(found, CitedChange):
         return found
     facet_id = BENCHMARK_PREFIX + benchmark_id
+    # Up front, before any read or attempt (MODEL-547): the fact gate's predicate, for evidence.
+    try:
+        held = quarantine_verdicts(found.evidence_ids, found.row, kind="evidence", owns=found.owns)
+    except LookupFailed as error:
+        return _refuse("registry_lookup_failed", str(error))
+    if held:
+        return _refuse("quarantined", f"{len(held)} value(s) of this reading hold an unresolved "
+                       "mismatch or unreachable verdict; lifting it is the owner's call")
     refusal = _check_board_source(found, source_id, now) \
         or _check_retaining(found.lookup(found.own), _ReadingFacet(facet_id, _EveryKind()), now) \
         or _check_retaining(found.lookup(found.cited), _ReadingFacet(facet_id, _EveryKind()), now)

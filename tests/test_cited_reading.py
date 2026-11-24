@@ -451,3 +451,131 @@ def test_a_written_derivation_has_no_yaml_anchors(data):
     cited_reading.run(data.root, BENCH, "board", pair(), request=serve())
     text = (data.root / "models/acme/orbit-9.md").read_text()
     assert "derivation:" in text and "&id" not in text and "*id" not in text
+
+
+# --- an unresolved verdict on the reading is not lifted (MODEL-547) ------------------------------
+
+ROW_ID = f"{SUBJECT}#{BENCH}#aaaaaaaaaaaa"
+
+
+def plant(data, eid, outcome="mismatch", *, value=46.6, day="2026-10-14", escaped=False,
+          families=("family-a", "family-b")):
+    from tests.snapshot_records import verification
+
+    row = verification("evidence", eid, outcome, day=day, value=value)
+    row["collector"]["model_family"], row["verifier"]["model_family"] = families
+    line = json.dumps(row)
+    path = data.root / "verification/log.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a") as fh:
+        fh.write((line.replace("/", "\\/") if escaped else line) + "\n")
+
+
+def files(data):
+    return {p.relative_to(data.root).as_posix(): p.read_bytes() for p in data.root.rglob("*")
+            if p.is_file()}
+
+
+def quarantined(data):
+    before = files(data)
+    refused("quarantined")
+    assert files(data) == before and not data.log()  # no read, no attempt, nothing written
+
+
+@pytest.mark.parametrize("outcome", ["mismatch", "unreachable"])
+def test_a_quarantined_reading_is_refused_up_front(data, outcome):
+    data.row["id"] = ROW_ID
+    data.write()
+    plant(data, ROW_ID, outcome)
+    quarantined(data)
+
+
+def test_a_verdict_on_another_value_of_the_reading_holds_too(data):
+    data.row["id"] = ROW_ID
+    data.write()
+    plant(data, ROW_ID, value=12.5)
+    quarantined(data)
+
+
+def test_an_escaped_log_line_still_holds_the_reading(data):
+    data.row["id"] = ROW_ID
+    data.write()
+    plant(data, ROW_ID, escaped=True)
+    quarantined(data)
+
+
+def test_a_verdict_under_an_earlier_or_renamed_id_still_holds_the_reading(data):
+    """A row's id changes with its score and date; a renamed id is no escape either."""
+    plant(data, f"{SUBJECT}#{BENCH}#0123456789ab")  # logged under the id the row had before
+    data.row["id"] = "renamed-id"
+    data.write()
+    quarantined(data)
+    del data.row["id"]  # a row with no stored id at all
+    data.write()
+    quarantined(data)
+
+
+def test_a_verdict_under_the_cards_model_id_holds_the_reading(data):
+    plant(data, f"acme/orbit-9-real#{BENCH}#0123456789ab")
+    card = yaml.safe_dump({"display_name": "Orbit 9", "model_id": "acme/orbit-9-real",
+                           "benchmarks": {"scores": {}, "evidence": [data.row]}}, sort_keys=False)
+    (data.root / "models/acme/orbit-9.md").write_text(f"---\n{card}---\n")
+    quarantined(data)
+
+
+def test_a_sibling_rows_verdict_is_its_own(data):
+    sibling = dict(data.row, id=f"{SUBJECT}#{BENCH}#bbbbbbbbbbbb", effort="low",
+                   model_id_as_evaluated="Orbit 9 (low)")
+    card = yaml.safe_dump({"display_name": "Orbit 9", "benchmarks": {"scores": {}, "evidence": [
+        dict(data.row, id=ROW_ID), sibling]}}, sort_keys=False)
+    (data.root / "models/acme/orbit-9.md").write_text(f"---\n{card}---\n")
+    plant(data, sibling["id"])
+    assert run().changed  # the other setting's mismatch does not hold this reading
+
+
+def test_a_cleared_reading_still_files_but_a_same_family_verified_does_not_clear(data):
+    data.row["id"] = ROW_ID
+    data.write()
+    plant(data, ROW_ID, day="2026-10-14")
+    plant(data, ROW_ID, "verified", day="2026-10-20", families=("family-a", "family-a"))
+    quarantined(data)
+    plant(data, ROW_ID, "verified", day="2026-10-21")
+    assert run().changed
+
+
+def test_an_unreadable_verification_log_refuses_the_reading(data):
+    path = data.root / "verification/log.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"target": {"kind": "evidence", "id": ROW_ID}}) + "\n")
+    refused("registry_lookup_failed")
+    assert not data.log()
+
+
+def test_the_snapshot_still_excludes_a_quarantined_reading_the_gate_refused():
+    """The build keeps the filed reading out under its mismatch. A changed score gets a new
+    id and would enter as cited (the gap the refusal closes); the gate refuses that write."""
+    from datetime import date
+
+    from decision.model import evidence_verification_value
+    from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+    from tests.snapshot_records import SOURCES, evidence, model, verification
+
+    url = "https://www.perplexity.ai/pro"
+
+    def readings(score, eid, log):
+        row = evidence("lab/alpha", "bench_x", score, eid=eid, outcome=None, source="src-cite",
+                       source_url=url)
+        built = build_snapshot(SnapshotInputs(
+            models=[model("lab/alpha")], evidence=[row], sources={**SOURCES, "src-cite": url},
+            verifications=log,
+            benchmark_metadata={"bench_x": {"min_score": 0, "max_score": 100, "unit": "percent"}}),
+            as_of=date(2026, 10, 19))
+        return load_built_snapshot(built).evidence("lab/alpha", "bench_x")
+
+    filed = evidence("lab/alpha", "bench_x", 46.6, eid="lab/alpha#bench_x#old", outcome=None,
+                     source="src-cite", source_url=url)
+    log = [verification("evidence", "lab/alpha#bench_x#old", "mismatch", day="2026-10-14",
+                        value=evidence_verification_value(filed))]
+    assert readings(46.6, "lab/alpha#bench_x#old", log) == ()  # as filed: excluded
+    assert readings(51.2, "lab/alpha#bench_x#new", log)  # around the verdict: it would enter
+    assert readings(46.6, "lab/alpha#bench_x#old", [])  # not quarantined: it enters
