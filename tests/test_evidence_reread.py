@@ -286,3 +286,158 @@ def test_a_cite_only_origin_that_redirects_is_deferred_not_cited(reread, data, t
     assert report.counts["deferred"] == 1 and not report.counts["cited"]
     assert len(data.lines()) == 1
     assert (data.root / "verification/queue/events.jsonl").read_bytes() == events
+
+
+# --- watched facets: the lifecycle pages are read every week (MODEL-527) -----------------------
+
+LIFECYCLE_PAGE = "https://www.anthropic.com/deprecations"
+
+
+def lifecycle_card(data, url, *, card="acme/one", source_id="src-life"):
+    """A card whose ``model.lifecycle`` fact cites ``url`` (registered as ``source_id``)."""
+    data.sources.append(dict(id=source_id, url=url, fetch="http", normaliser="html-default",
+                             cited_regions=[dict(id="page", locator=dict(kind="page", value=""))]))
+    path = data.root / "models" / f"{card}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("---\n" + json.dumps({"model_id": card, "facts": [{
+        "facet": "model.lifecycle", "value": "active", "state": "known",
+        "sources": [{"source_id": source_id, "snapshot_ref": "sha256:" + "0" * 64,
+                     "cited_regions": ["page"]}]}]}) + "\n---\n")
+
+
+def page(text, nonce="a"):
+    return f"<html><script>var n='{nonce}'</script><p>{text}</p></html>".encode()
+
+
+def test_the_lifecycle_facet_is_in_the_weekly_rotation(reread):
+    assert "model.lifecycle" in reread.WATCHED_FACETS
+
+
+def test_a_watched_page_is_baselined_then_current_then_changed(reread, data, tmp_path):
+    lifecycle_card(data, LIFECYCLE_PAGE)
+    first = run(reread, data, tmp_path, {LIFECYCLE_PAGE: page("Acme One | Active")})
+    assert first.watched["baselined"] == 1 and first.watched_rereads == []
+    state = json.loads((data.root / reread.WATCH_STATE).read_text())
+    assert set(state[LIFECYCLE_PAGE]) == {"text_sha256", "checked", "source_ids"}
+    assert "Acme" not in json.dumps(state), "only hashes are kept, never page text"
+    churn = run(reread, data, tmp_path, {LIFECYCLE_PAGE: page("Acme One | Active", nonce="b")})
+    assert churn.watched["current"] == 1 and churn.watched_rereads == [], "byte churn is no change"
+    changed = run(reread, data, tmp_path, {LIFECYCLE_PAGE: page("Acme One | Retired")})
+    assert changed.watched["changed"] == 1
+    assert changed.watched_changed == ["src-life"]
+    assert changed.watched_rereads == ["acme/one#model.lifecycle"]
+    assert changed.to_dict()["watched_rereads_required"] == ["acme/one#model.lifecycle"]
+    assert "acme/one#model.lifecycle" in reread.render(changed)
+    again = run(reread, data, tmp_path, {LIFECYCLE_PAGE: page("Acme One | Retired")})
+    assert again.watched["current"] == 1, "the new text is the next baseline"
+    assert not (data.root / reread.COPIES_DIRECTORY).exists()
+    cached = [p for p in (tmp_path / "cache").rglob("*") if p.is_file()]
+    assert not cached, "a watched page keeps no bytes"
+
+
+def test_a_watched_page_not_read_keeps_its_last_hash(reread, data, tmp_path):
+    lifecycle_card(data, LIFECYCLE_PAGE)
+    run(reread, data, tmp_path, {LIFECYCLE_PAGE: page("Acme One | Active")})
+    before = (data.root / reread.WATCH_STATE).read_text()
+    down = run(reread, data, tmp_path, {LIFECYCLE_PAGE: (503, None, b"")})
+    assert down.watched["deferred"] == 1
+    assert (data.root / reread.WATCH_STATE).read_text() == before
+    later = run(reread, data, tmp_path, {LIFECYCLE_PAGE: page("Acme One | Retired")})
+    assert later.watched_rereads == ["acme/one#model.lifecycle"]
+
+
+def test_a_dry_run_keeps_no_watch_state(reread, data, tmp_path):
+    lifecycle_card(data, LIFECYCLE_PAGE)
+    report = run(reread, data, tmp_path, {LIFECYCLE_PAGE: page("x")}, dry_run=True)
+    assert report.watched["baselined"] == 1
+    assert not (data.root / reread.WATCH_STATE).exists()
+
+
+def test_a_watched_page_on_an_unclassed_host_or_redirecting_to_one_is_not_requested(
+        reread, data, tmp_path):
+    lifecycle_card(data, UNCLASSED.replace("board.json", "deprecations"), card="acme/two",
+                   source_id="src-u")
+    lifecycle_card(data, LIFECYCLE_PAGE)
+    request = serve({LIFECYCLE_PAGE: (301, "https://nowhere.example.com/x", b"")})
+    data.write()
+    report = reread.run(data.root, observed_at=TODAY, dry_run=False, store_root=tmp_path / "c",
+                        request=request, pacer=reread.Pacer(0, sleep=lambda s: None))
+    assert request.calls == [LIFECYCLE_PAGE]
+    assert report.watched["unclassed"] == 1 and report.watched["blocked"] == 1
+    assert report.watched_rereads == []
+    assert not (data.root / reread.WATCH_STATE).exists()
+
+
+def test_facts_of_other_facets_are_not_watched(reread, data, tmp_path):
+    lifecycle_card(data, LIFECYCLE_PAGE)
+    path = data.root / "models/acme/one.md"
+    path.write_text(path.read_text().replace("model.lifecycle", "model.class"))
+    report = run(reread, data, tmp_path, {})
+    assert sum(report.watched.values()) == 0
+
+
+def multi_source_card(data, urls, *, card="acme/one"):
+    """A card whose ``model.lifecycle`` fact cites every URL in ``urls``."""
+    refs = []
+    for i, url in enumerate(urls):
+        source_id = f"src-life-{i}"
+        region = dict(id="page", locator=dict(kind="page", value=""))
+        data.sources.append(dict(id=source_id, url=url, fetch="http", normaliser="html-default",
+                                 cited_regions=[region]))
+        refs.append({"source_id": source_id, "snapshot_ref": "sha256:" + "0" * 64,
+                     "cited_regions": ["page"]})
+    path = data.root / "models" / f"{card}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("---\n" + json.dumps({"model_id": card, "facts": [{
+        "facet": "model.lifecycle", "value": "active", "state": "known", "sources": refs}]})
+        + "\n---\n")
+
+
+def test_a_run_with_no_watched_fact_reports_exactly_what_it_did_before_the_watch(
+        reread, data, tmp_path, monkeypatch):
+    data.row(OLD.format("a"), score=50.0)
+    pages = {OLD.format("a"): body(50.0)}
+    data.write()
+    with_watch = run(reread, data, tmp_path / "one", pages, dry_run=True)
+    monkeypatch.setattr(reread, "watched_page_rereads", lambda *a, **k: None)
+    without = run(reread, data, tmp_path / "two", pages, dry_run=True)
+    dump = lambda r: json.dumps(r.to_dict(), indent=2, sort_keys=True)  # noqa: E731
+    assert dump(with_watch) == dump(without)
+    assert reread.render(with_watch) == reread.render(without)
+    assert "watched" not in dump(with_watch).lower()
+    assert "watched" not in reread.render(with_watch).lower()
+
+
+def test_a_watched_page_behind_a_followed_redirect_is_compared_by_its_cited_url(
+        reread, data, tmp_path):
+    moved = "https://boards.example.net/deprecations"
+    lifecycle_card(data, LIFECYCLE_PAGE)
+    first = run(reread, data, tmp_path, {LIFECYCLE_PAGE: (301, moved, b""),
+                                         moved: page("Acme One | Active")})
+    assert first.watched["baselined"] == 1 and first.watched["blocked"] == 0
+    state = json.loads((data.root / reread.WATCH_STATE).read_text())
+    assert list(state) == [LIFECYCLE_PAGE], "the state is keyed by the URL the fact cites"
+    request = serve({LIFECYCLE_PAGE: (301, moved, b""), moved: page("Acme One | Retired")})
+    data.write()
+    changed = reread.run(data.root, observed_at=TODAY, dry_run=False, store_root=tmp_path / "c",
+                         request=request, pacer=reread.Pacer(0, sleep=lambda s: None))
+    assert request.calls == [LIFECYCLE_PAGE, moved]
+    assert changed.watched["changed"] == 1
+    assert changed.watched_rereads == ["acme/one#model.lifecycle"]
+    assert not (data.root / reread.COPIES_DIRECTORY).exists()
+
+
+def test_a_watched_fact_citing_several_pages_is_listed_once_with_only_the_changed_page(
+        reread, data, tmp_path):
+    other = "https://boards.example.net/models"
+    multi_source_card(data, [LIFECYCLE_PAGE, other])
+    first = run(reread, data, tmp_path, {LIFECYCLE_PAGE: page("A | Active"), other: page("B")})
+    assert first.watched["baselined"] == 2 and first.watched_facts_checked == 1
+    both = run(reread, data, tmp_path, {LIFECYCLE_PAGE: page("A | Retired"), other: page("B 2")})
+    assert both.watched["changed"] == 2
+    assert both.watched_changed == ["src-life-0", "src-life-1"]
+    assert both.watched_rereads == ["acme/one#model.lifecycle"], "one fact, listed once"
+    one = run(reread, data, tmp_path, {LIFECYCLE_PAGE: page("A | Retired"), other: page("B 3")})
+    assert one.watched["current"] == 1 and one.watched["changed"] == 1
+    assert one.watched_changed == ["src-life-1"]
+    assert one.watched_rereads == ["acme/one#model.lifecycle"]
