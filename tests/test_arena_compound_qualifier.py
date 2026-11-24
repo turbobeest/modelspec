@@ -586,10 +586,24 @@ _RENAMED = [
         "gemini-2.5-flash-lite-preview-06-17-thinking",
         "Gemini 2.5 Flash-Lite Preview (Thinking, 06-17)",
     ),
+    # MODEL-524 item 2: the 2026-11 renames, each anchored at the September revision.
+    ("c4ai-aya-expanse-32b", "Aya Expanse 32B"),
+    ("c4ai-aya-expanse-8b", "Aya Expanse 8B"),
+    ("c4ai-aya-vision-32b", "Aya Vision 32B"),
+    ("command-r-plus-08-2024", "Command R+ (08-2024)"),
+    (
+        "gemini-2.5-flash-lite-preview-09-2025-no-thinking",
+        "Gemini 2.5 Flash-Lite Preview (Non-Thinking, 09-2025)",
+    ),
+    ("mistral-medium-2505", "Mistral Medium 3 (2505)"),
+    ("mistral-medium-2508", "Mistral Medium 3.1 (2508)"),
+    ("mistral-small-2506", "Mistral Small 3.2 (2506)"),
+    ("gpt-5.3-chat-latest", "GPT-5.3 Chat"),
+    ("solar-pro4", "Solar Pro 4"),
 ]
 
 
-def test_the_alias_map_is_exactly_the_four_renamed_models() -> None:
+def test_the_alias_map_is_exactly_the_renamed_models() -> None:
     assert refresh.ARENA_RENAMED == dict(_RENAMED)
 
 
@@ -647,3 +661,74 @@ def test_without_an_alias_a_missing_name_behaves_as_before(monkeypatch, tmp_path
     row = _unchanged(card)
     assert row["model_id_as_evaluated"] == "kimi-k2-0000-preview"
     assert len(report.failures) == 1
+
+
+def test_an_alias_never_maps_command_r_plus_to_command_r(monkeypatch, tmp_path: Path) -> None:
+    """``+`` is part of the board's name: the plain sibling is not the renamed row."""
+    stored = "command-r-plus-08-2024"
+    report, card, _root = _run(
+        monkeypatch, tmp_path, evaluated=stored,
+        dataset_rows=[_dataset_row("Command R (08-2024)", 1450.0, 7777, 9)],
+    )
+    row = _unchanged(card)
+    assert row["model_id_as_evaluated"] == stored
+    assert [failure.reason for failure in report.failures] == [
+        f"no unique row for {stored!r}",
+    ]
+
+
+# MODEL-524 item 3: two dataset rows normalise to the stored name. The row whose
+# identifier is exactly the stored one, ``+`` included, is the reading; with no
+# such row, or two, nothing is filed and the refusal names both rows.
+_PLAIN = "Acme R (08-2024)"
+_PLUS = "Acme R+ (08-2024)"
+
+
+def test_a_collision_takes_the_row_whose_identifier_is_the_stored_one(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, root, before = _run(
+        monkeypatch, tmp_path, evaluated="acme-r-08-2024",
+        dataset_rows=[_dataset_row(_PLUS, 1300.0, 9999, 7), _dataset_row(_PLAIN, 1250.0, 7777, 9)],
+        snapshot=True,
+    )
+    assert report.failures == [], report.failures
+    assert report.quarantined == []
+    row = _evidence_row(card)
+    # The stored name normalises to the row, so it stays, as for any single hit.
+    assert row["model_id_as_evaluated"] == "acme-r-08-2024"
+    assert row["score"] == 1250.0
+    assert row["n"] == 7777
+    assert row["interval"] == [1244.0, 1256.0]
+    assert "7777" in row["configuration"]
+    assert "9999" not in row["configuration"]
+    assert _verification_log(root)["outcome"] == "verified"
+    assert refresh._row_allows_refresh(_evidence_row(before / "models" / "lab" / "model.md"), row)
+
+
+def test_a_collision_with_no_exact_identifier_files_nothing_and_names_both(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """Both rows spell the stored identifier: undetermined, never a guess."""
+    report, card, _root = _run(
+        monkeypatch, tmp_path, evaluated="acme-r-08-2024",
+        dataset_rows=[_dataset_row(_PLAIN, 1250.0, 7777, 9),
+                      _dataset_row("acme-r-08-2024", 1300.0, 9999, 7)],
+    )
+    row = _unchanged(card)
+    assert row["model_id_as_evaluated"] == "acme-r-08-2024"
+    assert "9999" not in row["configuration"]
+    assert [failure.reason for failure in report.failures] == [
+        "two dataset rows normalise to the stored name; undetermined, no exact "
+        "identifier match among 'Acme R (08-2024)', 'acme-r-08-2024'",
+    ]
+    assert _arena_skip_classes(report) == {"no-unique-row": 1}
+    assert report.quarantined == []
+
+
+def test_exact_identifier_hits_read_plus_as_a_token() -> None:
+    hits = [{"model_name": _PLAIN}, {"model_name": _PLUS}]
+    assert refresh._exact_identifier_hits(hits, "acme-r-08-2024") == [{"model_name": _PLAIN}]
+    assert refresh._exact_identifier_hits(hits, "acme-r-plus-08-2024") == [{"model_name": _PLUS}]
+    assert refresh._exact_identifier_hits(hits, "acme-r-08") == []
+    assert refresh._exact_identifier_hits(hits, "") == []

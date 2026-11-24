@@ -2914,8 +2914,10 @@ def test_two_dataset_rows_that_normalise_alike_are_not_written(
     )
 
     assert report.quarantined == []
+    # Both rows spell the stored identifier exactly, so neither is taken (MODEL-524).
     assert [row.reason for row in report.failures] == [
-        "two dataset rows normalise to the stored name",
+        "two dataset rows normalise to the stored name; undetermined, no exact "
+        "identifier match among 'Example Model (High)', 'example-model-high'",
     ]
     assert _arena_skip_classes(report) == {"no-unique-row": 1}
     assert _evidence_row(card)["score"] == 1100.0
