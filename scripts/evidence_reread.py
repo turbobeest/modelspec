@@ -353,6 +353,9 @@ class Report:
     #: Watched facts that cite a changed page: a person re-reads each.
     watched_rereads: list[str] = field(default_factory=list)
     watched: Counter = field(default_factory=Counter)
+    #: Watched facts that cite at least one registered page. With none, the report is
+    #: exactly what it was before the watch existed: no watched fields, no watched line.
+    watched_facts_checked: int = 0
     redirects_dropped: list[str] = field(default_factory=list)
 
     def note(self, outcome: str, host: str, target_id: str = "") -> None:
@@ -360,7 +363,7 @@ class Report:
         self.by_host[host][outcome] += 1
 
     def to_dict(self) -> dict:
-        return {
+        data = {
             "observed_at": self.observed_at, "dry_run": self.dry_run, "cap": self.cap,
             "method": METHOD, "selected_rows": self.selected, "pages_read": self.pages,
             "counts": {k: self.counts.get(k, 0) for k in (
@@ -371,17 +374,22 @@ class Report:
             "mismatches": sorted(self.mismatches), "unreachable": sorted(self.unreachable),
             "unread": sorted(self.unread),
             "cited_change_rereads_required": sorted(self.cited_change_rereads),
-            "watched_facets": list(WATCHED_FACETS),
-            "watched_pages": {k: self.watched.get(k, 0) for k in (
-                "current", "changed", "baselined", "deferred", "blocked", "unclassed")},
-            "watched_pages_changed": sorted(self.watched_changed),
-            "watched_rereads_required": sorted(self.watched_rereads),
             "source_redirects_kept": sorted(self.redirects_kept),
             "source_redirects_dropped": sorted(self.redirects_dropped),
             "blocked_redirect_hosts": dict(self.blocked_hosts),
             "unclassed_hosts_not_requested": self.unclassed_hosts,
             "rows_waiting_for_a_later_week": self.waiting,
         }
+        if self.watched_facts_checked:
+            data.update({
+                "watched_facets": list(WATCHED_FACETS),
+                "watched_facts_checked": self.watched_facts_checked,
+                "watched_pages": {k: self.watched.get(k, 0) for k in (
+                    "current", "changed", "baselined", "deferred", "blocked", "unclassed")},
+                "watched_pages_changed": sorted(self.watched_changed),
+                "watched_rereads_required": sorted(self.watched_rereads),
+            })
+        return data
 
 
 def run(root: Path, *, observed_at: date, dry_run: bool, store_root: Path,
@@ -577,13 +585,16 @@ def watched_page_rereads(root: Path, terms: dict[str, str], report: Report, *, s
     state: dict = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
     by_url: dict[str, dict] = {}
     for fact in watched_facts(root):
+        registered = False
         for source_id in fact["source_ids"]:
             source = sources.get(source_id)
             if source is None:
                 continue
+            registered = True
             entry = by_url.setdefault(str(source.url), {"ids": set(), "targets": set()})
             entry["ids"].add(source_id)
             entry["targets"].add(fact["target"])
+        report.watched_facts_checked += registered
     new_state = dict(state)
     for url, entry in sorted(by_url.items()):
         if host_class(url, terms) == "unclassed":
@@ -613,6 +624,7 @@ def watched_page_rereads(root: Path, terms: dict[str, str], report: Report, *, s
             report.watched_changed.extend(sorted(entry["ids"]))
             report.watched_rereads.extend(sorted(entry["targets"]))
     report.watched_rereads = sorted(set(report.watched_rereads))
+    report.watched_changed = sorted(set(report.watched_changed))
     if not dry_run and new_state != state:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(new_state, indent=1, sort_keys=True) + "\n", encoding="utf-8")
@@ -679,16 +691,17 @@ def render(report: Report) -> str:
                  f"({data['bytes_retained']} bytes), {data['copies_already_kept']} already kept.")
     for host, counts in data["by_host"].items():
         lines.append(f"- {host}: " + ", ".join(f"{k} {n}" for k, n in sorted(counts.items())))
-    watched = data["watched_pages"]
-    lines.append(f"- Watched pages ({', '.join(data['watched_facets'])}): "
-                 + ", ".join(f"{k} {n}" for k, n in watched.items()) + ".")
+    if "watched_pages" in data:
+        lines.append(f"- Watched pages ({', '.join(data['watched_facets'])}, "
+                     f"{data['watched_facts_checked']} facts): "
+                     + ", ".join(f"{k} {n}" for k, n in data["watched_pages"].items()) + ".")
     if data["mismatches"]:
         lines += ["", "### Mismatch: these rows no longer match their source", ""]
         lines += [f"- {target}" for target in data["mismatches"]]
     if data["unreachable"]:
         lines += ["", "### Unreachable: the page is gone", ""]
         lines += [f"- {target}" for target in data["unreachable"]]
-    if data["watched_pages_changed"]:
+    if data.get("watched_pages_changed"):
         lines += ["", "### Watched pages changed: re-read these facts against their page", ""]
         lines += [f"- page {source_id}" for source_id in data["watched_pages_changed"]]
         lines += [f"- {target}" for target in data["watched_rereads_required"]]
