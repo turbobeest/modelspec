@@ -498,9 +498,10 @@ ARENA_RENAMED: dict[str, str] = {
     "kimi-k2-0905-preview": "Kimi K2 Preview (0905)",
     "gemini-2.5-flash-lite-preview-06-17-thinking":
         "Gemini 2.5 Flash-Lite Preview (Thinking, 06-17)",
-    # The 2026-11 renames. Each anchor: at the September revision the stored name
-    # was one row with the stored score; at the current revision that name is gone
-    # and the board's name is one row, in the same configs and as many categories.
+    # The 2026-11 renames. Anchor, executed by tests/test_arena_compound_qualifier.py
+    # against the dataset's own rename record (tests/fixtures/leaderboard_refresh/
+    # arena_rename_record_2026-10.json): at one commit the old name vanishes, the new
+    # name appears, and only the new name continues its rating and votes.
     "c4ai-aya-expanse-32b": "Aya Expanse 32B",
     "c4ai-aya-expanse-8b": "Aya Expanse 8B",
     "c4ai-aya-vision-32b": "Aya Vision 32B",

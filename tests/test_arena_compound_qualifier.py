@@ -732,3 +732,98 @@ def test_exact_identifier_hits_read_plus_as_a_token() -> None:
     assert refresh._exact_identifier_hits(hits, "acme-r-plus-08-2024") == [{"model_name": _PLUS}]
     assert refresh._exact_identifier_hits(hits, "acme-r-08") == []
     assert refresh._exact_identifier_hits(hits, "") == []
+
+
+# MODEL-524: an executable anchor for the ten 2026-11 aliases, independent of the map.
+# The evidence is the dataset's own rename record: category ``overall`` of one config
+# at two consecutive commits that update it (CC BY 4.0, LMArena; see the fixture's
+# ``credit``). Each old name vanishes at the step and the board's new name appears;
+# the rating and the vote count continue across it. The map is only compared with
+# what the record says, never used to find it.
+_RECORD = Path(__file__).parent / "fixtures" / "leaderboard_refresh" / "arena_rename_record_2026-10.json"
+#: A rename step moves a rating by at most this much, and the votes by this ratio.
+_RATING_STEP = 2.0
+_VOTES_STEP = (0.995, 1.15)
+#: The four aliases of modelspec#1120, anchored there by stored votes and slug.
+_EARLIER = {
+    "olmo-2-0325-32b-instruct", "kimi-k2-0711-preview", "kimi-k2-0905-preview",
+    "gemini-2.5-flash-lite-preview-06-17-thinking",
+}
+
+
+def _record() -> dict:
+    return json.loads(_RECORD.read_text(encoding="utf-8"))
+
+
+def _continues(before: dict, after: dict) -> bool:
+    low, high = _VOTES_STEP
+    return (
+        abs(after["rating"] - before["rating"]) <= _RATING_STEP
+        and low <= after["vote_count"] / before["vote_count"] <= high
+    )
+
+
+def _anchor_failures(record: dict, aliases: dict[str, str]) -> list[str]:
+    """Why each alias is not the record's rename, or nothing when all are.
+
+    An alias holds when, at every step where its old name vanishes, the new name is
+    the only appeared row that continues it, and at one step or more the old name is
+    the only vanished row the new name continues (the pair is mutual).
+    """
+    failures: list[str] = []
+    for old, new in sorted(aliases.items()):
+        seen = mutual = False
+        for step in record["steps"]:
+            vanished = {row["model_name"]: row for row in step["before"]["vanished"]}
+            appeared = {row["model_name"]: row for row in step["after"]["appeared"]}
+            if old not in vanished:
+                continue
+            seen = True
+            forward = [name for name, row in appeared.items() if _continues(vanished[old], row)]
+            if forward != [new]:
+                failures.append(f"{old} -> {new}: {step['config']} continues to {forward}")
+                continue
+            back = [name for name, row in vanished.items() if _continues(row, appeared[new])]
+            mutual = mutual or back == [old]
+        if not seen:
+            failures.append(f"{old} -> {new}: the record shows no step where {old} vanishes")
+        elif not mutual and not any(failure.startswith(f"{old} ->") for failure in failures):
+            failures.append(f"{old} -> {new}: no step where {new} continues only {old}")
+    return failures
+
+
+def test_the_rename_record_is_two_consecutive_dataset_commits() -> None:
+    record = _record()
+    assert record["licence"] == "CC BY 4.0" and "LMArena" in record["credit"]
+    for step in record["steps"]:
+        for side in ("before", "after"):
+            assert refresh.readers.valid_arena_revision(step[side]["revision"])
+            assert step[side]["commit_title"].startswith(f"Update {step['config']} for ")
+        vanished = {row["model_name"] for row in step["before"]["vanished"]}
+        appeared = {row["model_name"] for row in step["after"]["appeared"]}
+        assert vanished and appeared and not vanished & appeared
+
+
+def test_every_2026_11_alias_is_the_datasets_own_rename() -> None:
+    later = {old: new for old, new in refresh.ARENA_RENAMED.items() if old not in _EARLIER}
+    assert len(later) == 10
+    assert _anchor_failures(_record(), later) == []
+
+
+def test_a_planted_wrong_alias_fails_the_anchor() -> None:
+    later = {old: new for old, new in refresh.ARENA_RENAMED.items() if old not in _EARLIER}
+    record = _record()
+    planted = [
+        # Two siblings swapped: each name exists, the pairing is wrong.
+        {**later, "mistral-medium-2505": later["mistral-medium-2508"],
+         "mistral-medium-2508": later["mistral-medium-2505"]},
+        {**later, "c4ai-aya-expanse-32b": later["c4ai-aya-expanse-8b"]},
+        # The "+" sibling instead of the row itself.
+        {**later, "command-r-plus-08-2024": "Command R (08-2024)"},
+        # A name the record never shows appearing.
+        {**later, "solar-pro4": "Solar Pro 4 (Preview)"},
+        # An old name the record never shows vanishing.
+        {**later, "solar-pro5": "Solar Pro 4"},
+    ]
+    for aliases in planted:
+        assert _anchor_failures(record, aliases), aliases
