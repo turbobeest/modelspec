@@ -2,6 +2,14 @@
 
 Use existing verification and queue history, never page bytes or a fresh reading.
 Unknown support leaves the fact unchanged. No verification record is created.
+
+A fact's sources and its latest filed claim (the latest ``collected`` event in
+``verification/queue/events.jsonl``, ordered as ``Queue`` orders them) stay in
+step (MODEL-546, MODEL-549). Rule 2 files the matching cited claim in the same
+run, ordered after every earlier event for the fact. Rule 1 files nothing: a
+claim on retained sources needs a two-key check on the retained copies, a new
+reading. So rule 1 drops the cite-only refs only when the latest filed claim
+already names exactly the sources that remain, and otherwise refuses the fact.
 """
 
 from __future__ import annotations
@@ -10,7 +18,7 @@ import argparse
 import json
 from collections import Counter, defaultdict
 from dataclasses import replace
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import yaml
@@ -34,6 +42,38 @@ IDENTIFIERS = {"offering.api_model_id", "offering.router_slug"}
 def json_lines(path):
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()] \
         if path.exists() else []
+
+
+def event_time(event):
+    """An event's instant as ``Queue`` reads it: no time zone means UTC."""
+    at = datetime.fromisoformat(event["at"])
+    return at if at.tzinfo is not None else at.replace(tzinfo=UTC)
+
+
+def event_target(event):
+    target = event["claim"]["target"] if event["event"] == "collected" else event["target"]
+    return target["kind"], target["id"]
+
+
+def latest_claim_sources(events):
+    """Source ids of each target's latest collected claim, ordered as ``Queue``."""
+    latest = {}
+    for event in sorted(events, key=event_time):  # stable: equal instants keep line order
+        if event["event"] == "collected":
+            latest[event_target(event)] = {
+                ref["source_id"] for ref in event["claim"].get("sources") or ()
+            }
+    return latest
+
+
+def refusal(kept, claimed):
+    """Counts only: never a value, a hash or a source id."""
+    if claimed is None:
+        return (f"refused: no filed claim; dropping cite-only refs leaves {len(kept)} "
+                "source(s) and this script files no retained-source claim")
+    return (f"refused: dropping cite-only refs leaves {len(kept)} source(s), the latest "
+            f"filed claim names {len(claimed)} (shared {len(kept & claimed)}); a "
+            "retained-source claim needs a two-key check on the retained copies")
 
 
 def verification_history(root, records, compiler):
@@ -242,9 +282,15 @@ def plan(root, store, today):
                          registry.default(), None, today, source_cache=store)
     history = verification_history(root, records, compiler)
     filed = Queue(root / "verification").filed()
+    queue_events = json_lines(root / "verification/queue/events.jsonl")
+    last_event = {}
+    for event in queue_events:
+        key = event_target(event)
+        last_event[key] = max(last_event.get(key, event_time(event)), event_time(event))
+    day = datetime.combine(today, datetime.min.time(), tzinfo=UTC)
     changes = []
     edits, originals, events = defaultdict(list), {}, []
-    expected = {}
+    expected, targets = {}, {}
     for path, text, offset, row, node, model, document, raw in documents(root):
         facet = registry.facet(row["facet"])
         if facet.tier != "guaranteed" and row["facet"] not in IDENTIFIERS:
@@ -259,16 +305,34 @@ def plan(root, store, today):
             continue
         fact_citation(row, urls, store)
         rule, winner, reason = supported_side(row, history, compiler, records, urls, store)
-        changes.append({"id": row["id"], "facet": row["facet"], "model": model,
-                        "rule": rule, "reason": reason})
+        change = {"id": row["id"], "facet": row["facet"], "model": model,
+                  "rule": rule, "reason": reason}
+        changes.append(change)
         if rule == "unknown":
+            continue
+        if rule == 1:
+            refs = [ref for ref, state in zip(row["sources"], states) if state != "cited"]
+        else:
+            refs = [ref for ref, state in zip(row["sources"], states) if state == "cited"]
+        kept = {ref["source_id"] for ref in refs}
+        old = filed.get(("fact", row["id"]))
+        claimed = None if old is None else {ref.source_id for ref in old.sources}
+        last = last_event.get(("fact", row["id"]))
+        refused = None
+        if rule == 1 and claimed != kept:
+            refused = refusal(kept, claimed)
+        elif rule == 2 and old is None:
+            refused = refusal(kept, None)
+        elif rule == 2 and last is not None and last >= day + timedelta(days=1):
+            refused = "refused: a queue event for this fact is dated after --as-of"
+        if refused:
+            change.update(rule="refused", would_be_rule=rule, reason=refused)
             continue
         if path not in expected and any(
             isinstance(token, yaml.AliasToken) for token in yaml.scan(yaml_body(path, text)[0])
         ):
             raise ValueError(f"cannot safely edit a document with YAML aliases: {path}")
         fact = Fact.model_validate({**row, "verification": None})
-        old = filed[("fact", row["id"])]
         # Preserve reader hints while filing the unchanged current value.
         claim = replace(
             old,
@@ -283,11 +347,7 @@ def plan(root, store, today):
             if fact.effective_from or fact.effective_until
             else {},
         )
-        retained = [ref for ref, state in zip(row["sources"], states) if state != "cited"]
-        if rule == 1:
-            refs = retained
-        else:
-            refs = [ref for ref, state in zip(row["sources"], states) if state == "cited"]
+        if rule == 2:
             fact_citation({**row, "sources": refs}, urls, store)
         reduced = {**row, "sources": refs}
         compiler._add_facts(fact.subject.id, fact.subject.kind, [reduced])
@@ -295,7 +355,8 @@ def plan(root, store, today):
         if admitted is None or (rule == 1 and admitted["verification"] != winner):
             raise ValueError(f"STOP: reduced sources did not preserve admission: {row['id']}")
         final_claim = replace(claim, sources=tuple(SourceRef.model_validate(ref) for ref in refs))
-        at = datetime.combine(today, datetime.min.time(), tzinfo=UTC).isoformat()
+        # The new claim must be the latest: equal instants keep line order.
+        at = max(day, last).isoformat() if last is not None else day.isoformat()
         if rule == 2:
             events.extend(
                 [
@@ -317,6 +378,7 @@ def plan(root, store, today):
         )
         raw["sources"] = refs
         expected[path] = document
+        targets[("fact", row["id"])] = kept
     writes = {}
     for path, replacements in edits.items():
         text = originals[path].decode("utf-8")
@@ -338,6 +400,11 @@ def plan(root, store, today):
             raise ValueError(f"append-only log lacks a final newline: {path}")
         originals[path] = original
         writes[path] = original + ("\n".join(lines) + "\n").encode("utf-8")
+    # Every changed fact must now cite exactly what its latest filed claim names.
+    latest = latest_claim_sources(queue_events + events)
+    for key, kept in targets.items():
+        if latest.get(key) != kept:
+            raise ValueError(f"STOP: sources would differ from the latest filed claim: {key[1]}")
     return changes, originals, writes
 
 
@@ -370,13 +437,14 @@ def main():
         for change in changes:
             groups[change[field]][str(change["rule"])] += 1
         grouped["by_" + field] = {
-            key: {rule: count[rule] for rule in ("1", "2", "3", "unknown")}
+            key: {rule: count[rule] for rule in ("1", "2", "3", "refused", "unknown")}
             for key, count in sorted(groups.items())
         }
     print(
         json.dumps(
             {
                 "counts": {rule: counts[rule] for rule in ("1", "2", "3")},
+                "refused": counts["refused"],
                 "unresolved": counts["unknown"],
                 **grouped,
                 "changes": changes,

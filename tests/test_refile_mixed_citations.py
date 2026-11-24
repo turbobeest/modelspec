@@ -234,8 +234,8 @@ def append_mixed_verification(root, card, *, day="2026-10-20"):
     queue.checked(Result(claim.target, "verified"), at=at)
 
 
-@pytest.mark.parametrize("support,rule,unresolved", [("open", 1, 0), ("cite", None, 1)])
-def test_earlier_support_with_later_mixed_winner(tmp_path, support, rule, unresolved):
+@pytest.mark.parametrize("support,refused,unresolved", [("open", 1, 0), ("cite", 0, 1)])
+def test_earlier_support_with_later_mixed_winner(tmp_path, support, refused, unresolved):
     root, _, policy, card = setup_data(tmp_path, support=support)
     append_mixed_verification(root, card)
     before = files(root)
@@ -243,15 +243,11 @@ def test_earlier_support_with_later_mixed_winner(tmp_path, support, rule, unreso
     assert result.returncode == 0, result.stderr
     report = json.loads(result.stdout)
     assert report["unresolved"] == unresolved
-    if rule:
-        assert report["counts"] == {"1": 1, "2": 0, "3": 0}
-        assert (root / "verification/log.jsonl").read_bytes() == before["verification/log.jsonl"]
-        assert (root / "verification/queue/events.jsonl").read_bytes() == before[
-            "verification/queue/events.jsonl"
-        ]
-    else:
-        assert report["counts"] == {"1": 0, "2": 0, "3": 0}
-        assert files(root) == before
+    # Rule 1 would leave the card citing one source while the latest filed claim
+    # (the mixed one) names two: the MODEL-546 drift. It refuses instead (MODEL-549).
+    assert report["refused"] == refused
+    assert report["counts"] == {"1": 0, "2": 0, "3": 0}
+    assert files(root) == before
 
 
 def test_retained_copy_contents_cannot_override_historical_support(tmp_path):
@@ -524,3 +520,105 @@ def test_aliased_sources_are_refused_without_changing_other_records(tmp_path):
     result = invoke(root, cache, policy, "--write")
     assert result.returncode != 0
     assert files(root) == before
+
+
+def card_claim_disagreements(root):
+    """The data-side rule (MODEL-546), written independently of the script.
+
+    A card fact's source ids must equal those of its latest filed claim: the latest
+    ``collected`` event, by ``at`` (no zone means UTC), equal instants in line order.
+    Facts with no filed claim are exempt.
+    """
+    def at(event):
+        moment = datetime.fromisoformat(event["at"])
+        return moment if moment.tzinfo else moment.replace(tzinfo=UTC)
+
+    events = [json.loads(line) for line in
+              (root / "verification/queue/events.jsonl").read_text().splitlines() if line.strip()]
+    claimed = {}
+    for event in sorted(events, key=at):
+        if event["event"] == "collected" and event["claim"]["target"]["kind"] == "fact":
+            claimed[event["claim"]["target"]["id"]] = {
+                ref["source_id"] for ref in event["claim"]["sources"]}
+    wrong, checked = [], 0
+    for path in sorted((root / "models").rglob("*.md")):
+        front = yaml.safe_load(path.read_text().split("---", 2)[1])
+        for row in front.get("facts") or []:
+            fact_id = row.get("id") or f"{front['model_id']}#{row['facet']}"
+            if fact_id not in claimed:
+                continue
+            checked += 1
+            if {ref["source_id"] for ref in row["sources"]} != claimed[fact_id]:
+                wrong.append(fact_id)
+    return wrong, checked
+
+
+def file_later_mixed_claim(root, card, at):
+    """File the card's current (mixed) sources as a newer claim, with no check."""
+    row = yaml.safe_load(card.read_text().split("---")[1])["facts"][0]
+    claim = Claim.from_fact(Fact.model_validate(row), names=("Alpha",),
+                            collector=Fact.model_validate(row).verification.collector)
+    Queue(root / "verification").file(claim, at=at)
+
+
+def test_rule_1_refuses_rather_than_leave_card_and_latest_claim_apart(tmp_path):
+    root, cache, policy, card = setup_data(tmp_path, support="open")
+    # The retained-only check stands, but a later claim names both sources.
+    file_later_mixed_claim(root, card, datetime(2026, 10, 1, tzinfo=UTC))
+    assert card_claim_disagreements(root) == ([], 1)
+    before = files(root)
+    result = invoke(root, cache, policy, "--write")
+    assert result.returncode == 0, result.stderr
+    report = json.loads(result.stdout)
+    assert report["counts"] == {"1": 0, "2": 0, "3": 0}
+    assert report["refused"] == 1
+    change = report["changes"][0]
+    assert (change["rule"], change["would_be_rule"]) == ("refused", 1)
+    assert "leaves 1 source(s), the latest filed claim names 2 (shared 1)" in change["reason"]
+    # Counts only: the message names no source id and no hash.
+    assert "open" not in change["reason"] and "sha256" not in change["reason"]
+    assert report["by_facet"]["model.context_window"]["refused"] == 1
+    assert files(root) == before
+    assert card_claim_disagreements(root) == ([], 1)
+
+
+def test_rule_2_claim_files_after_a_same_day_claim(tmp_path):
+    root, cache, policy, card = setup_data(tmp_path, retained_value=64000, support="cite")
+    # A claim filed later on the --as-of day must not outrank the refiled one.
+    file_later_mixed_claim(root, card, datetime(2026, 10, 21, 12, 7, tzinfo=UTC))
+    result = invoke(root, cache, policy, "--write")
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["counts"] == {"1": 0, "2": 1, "3": 0}
+    assert card_claim_disagreements(root) == ([], 1)
+    claim = Queue(root / "verification").filed()[("fact", "lab/alpha#model.context_window")]
+    assert [ref.source_id for ref in claim.sources] == ["cite"]
+    assert Queue(root / "verification").recrawl_requests() == []
+
+
+def test_rule_2_refuses_when_the_queue_is_newer_than_as_of(tmp_path):
+    root, cache, policy, card = setup_data(tmp_path, retained_value=64000, support="cite")
+    file_later_mixed_claim(root, card, datetime(2026, 10, 22, tzinfo=UTC))
+    before = files(root)
+    result = invoke(root, cache, policy, "--write")
+    assert result.returncode == 0, result.stderr
+    report = json.loads(result.stdout)
+    assert report["refused"] == 1 and report["counts"]["2"] == 0
+    assert files(root) == before
+
+
+@pytest.mark.parametrize("support,retained_value,later", [
+    ("open", 128000, None),
+    ("open", 128000, datetime(2026, 10, 1, tzinfo=UTC)),
+    ("cite", 64000, None),
+    ("cite", 64000, datetime(2026, 10, 21, 18, 0, tzinfo=UTC)),
+])
+def test_data_rule_holds_over_the_script_output(tmp_path, support, retained_value, later):
+    root, cache, policy, card = setup_data(
+        tmp_path, retained_value=retained_value, support=support)
+    if later is not None:
+        file_later_mixed_claim(root, card, later)
+    for _ in range(2):  # the write, then an idempotent second run
+        result = invoke(root, cache, policy, "--write")
+        assert result.returncode == 0, result.stderr
+        wrong, checked = card_claim_disagreements(root)
+        assert (wrong, checked) == ([], 1)
