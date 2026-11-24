@@ -484,6 +484,8 @@ def test_invalid_input_prevents_all_writes(tmp_path, damage):
     elif damage == "unresolved_source":
         rewrite_card(card, lambda data: data["facts"][0]["sources"][0].update(source_id="missing"))
     else:
+        # A newer mixed claim makes rule 2 file a claim, so the run must append.
+        file_later_mixed_claim(root, card, datetime(2026, 10, 1, tzinfo=UTC))
         path = root / "verification/queue/events.jsonl"
         path.write_bytes(path.read_bytes().rstrip(b"\r\n"))
     before = files(root)
@@ -622,3 +624,99 @@ def test_data_rule_holds_over_the_script_output(tmp_path, support, retained_valu
         assert result.returncode == 0, result.stderr
         wrong, checked = card_claim_disagreements(root)
         assert (wrong, checked) == ([], 1)
+
+
+@pytest.fixture
+def script(monkeypatch):
+    """The script loaded in process, its retention policy restored afterwards."""
+    import importlib.util
+
+    from decision import retention
+
+    spec = importlib.util.spec_from_file_location("refile_mixed_citations", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, spec.name, module)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(retention, "POLICY_PATH", retention.POLICY_PATH)
+    yield module
+    retention.cite_only_hosts.cache_clear()
+
+
+def plan_in_process(script, root, cache, policy):
+    from decision import retention
+
+    retention.POLICY_PATH = policy
+    retention.cite_only_hosts.cache_clear()
+    return script.plan(root, CopyStore(cache), datetime(2026, 10, 21).date())
+
+
+@pytest.mark.parametrize("support,retained_value", [("open", 128000), ("cite", 64000)])
+def test_queue_changed_between_plan_and_write_is_refused(
+    tmp_path, script, support, retained_value
+):
+    root, cache, policy, card = setup_data(
+        tmp_path, retained_value=retained_value, support=support)
+    if support == "cite":  # a newer mixed claim makes rule 2 file a claim
+        file_later_mixed_claim(root, card, datetime(2026, 9, 30, tzinfo=UTC))
+    planned = plan_in_process(script, root, cache, policy)
+    assert planned.cards  # rule 1 changes only the card; rule 2 also appends
+    assert bool(planned.append) == (support == "cite")
+    # Another writer files a claim after the plan was made.
+    file_later_mixed_claim(root, card, datetime(2026, 10, 1, tzinfo=UTC))
+    before = files(root)
+    with pytest.raises(ValueError, match="queue changed since planning"):
+        script.apply(planned)
+    assert files(root) == before
+
+
+def test_queue_original_bytes_are_a_prefix_after_the_write(tmp_path):
+    root, cache, policy, card = setup_data(tmp_path, retained_value=64000, support="cite")
+    file_later_mixed_claim(root, card, datetime(2026, 10, 1, tzinfo=UTC))
+    path = root / "verification/queue/events.jsonl"
+    # CRLF lines must survive untouched: the write appends, it never rewrites.
+    path.write_bytes(path.read_bytes().replace(b"\n", b"\r\n"))
+    original = path.read_bytes()
+    inode = path.stat().st_ino
+    result = invoke(root, cache, policy, "--write")
+    assert result.returncode == 0, result.stderr
+    after = path.read_bytes()
+    assert after.startswith(original) and len(after) > len(original)
+    assert path.stat().st_ino == inode
+    added = [json.loads(line) for line in after[len(original):].decode().splitlines()]
+    assert [event["event"] for event in added] == ["collected", "checked"]
+
+
+def test_card_write_failure_after_the_append_converges_on_rerun(
+    tmp_path, script, monkeypatch, capsys
+):
+    root, cache, policy, card = setup_data(tmp_path, retained_value=64000, support="cite")
+    file_later_mixed_claim(root, card, datetime(2026, 10, 1, tzinfo=UTC))
+    original_card = card.read_bytes()
+    write_bytes = Path.write_bytes
+
+    def failing(self, data):
+        if self.suffix == ".md":
+            raise OSError("simulated card write failure")
+        return write_bytes(self, data)
+
+    args = ["--data-root", str(root), "--source-cache", str(cache), "--policy", str(policy),
+            "--as-of", "2026-10-21", "--write"]
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "write_bytes", failing)
+        assert script.main(args) == 1
+    err = capsys.readouterr().err
+    assert "1 card file(s) were not written: 1 fact(s) unchanged, 1 of them" in err
+    assert card.read_bytes() == original_card
+    # Half-done: the claim names the cited source, the card still cites both.
+    assert card_claim_disagreements(root) == (["lab/alpha#model.context_window"], 1)
+    queue_after_append = (root / "verification/queue/events.jsonl").read_bytes()
+
+    assert script.main(args) == 0
+    assert json.loads(capsys.readouterr().out)["counts"] == {"1": 0, "2": 1, "3": 0}
+    assert card_claim_disagreements(root) == ([], 1)
+    # The rerun finished the card and filed nothing new.
+    assert (root / "verification/queue/events.jsonl").read_bytes() == queue_after_append
+    row = yaml.safe_load(card.read_text().split("---")[1])["facts"][0]
+    assert [ref["source_id"] for ref in row["sources"]] == ["cite"]
+    assert script.main(args) == 0
+    assert json.loads(capsys.readouterr().out)["counts"] == {"1": 0, "2": 0, "3": 0}

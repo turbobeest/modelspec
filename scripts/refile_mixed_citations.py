@@ -10,14 +10,24 @@ run, ordered after every earlier event for the fact. Rule 1 files nothing: a
 claim on retained sources needs a two-key check on the retained copies, a new
 reading. So rule 1 drops the cite-only refs only when the latest filed claim
 already names exactly the sources that remain, and otherwise refuses the fact.
+
+The queue is read once. Planning, the guard and the write all use that one
+snapshot. ``--write`` appends to the queue first (append mode, only the new
+lines, after checking that the file still has the planned size and sha256) and
+then writes the cards. A card that fails to write after the append exits
+non-zero; a rerun finishes it, because its latest claim now names its sources.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
+import sys
 from collections import Counter, defaultdict
-from dataclasses import replace
+from dataclasses import dataclass, replace
+from dataclasses import field as dataclass_field
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
@@ -34,9 +44,27 @@ from decision.model import (
 )
 from decision.snapshot import SnapshotInputs, _Compiler
 from decision.sources import CopyStore, load_sources
-from decision.verify import Claim, Queue, claim_verification_value
+from decision.verify import Claim, claim_verification_value
 
 IDENTIFIERS = {"offering.api_model_id", "offering.router_slug"}
+QUEUE = Path("verification/queue/events.jsonl")
+
+
+class HalfDoneError(Exception):
+    """The queue was appended but some cards were not written."""
+
+
+@dataclass
+class Plan:
+    changes: list
+    queue_path: Path
+    #: The queue bytes every decision was made from; None when the file is absent.
+    queue_bytes: bytes | None
+    append: bytes = b""
+    #: card path -> (planned-from bytes, new bytes)
+    cards: dict = dataclass_field(default_factory=dict)
+    #: card path -> (facts changed, facts whose claim this run files)
+    facts: dict = dataclass_field(default_factory=dict)
 
 
 def json_lines(path):
@@ -53,6 +81,16 @@ def event_time(event):
 def event_target(event):
     target = event["claim"]["target"] if event["event"] == "collected" else event["target"]
     return target["kind"], target["id"]
+
+
+def filed_claims(events):
+    """The latest collected claim per target, ordered as ``Queue.filed`` orders them."""
+    filed = {}
+    for event in sorted(events, key=event_time):  # stable: equal instants keep line order
+        if event["event"] == "collected":
+            claim = Claim.from_dict(event["claim"])
+            filed[(claim.target.kind, claim.target.id)] = claim
+    return filed
 
 
 def latest_claim_sources(events):
@@ -76,7 +114,7 @@ def refusal(kept, claimed):
             "retained-source claim needs a two-key check on the retained copies")
 
 
-def verification_history(root, records, compiler):
+def verification_history(queue_events, records, compiler):
     """Associate checks only when the entire matching log group is accounted for.
 
     The two logs have no shared event ID. Never pair their rows by position.
@@ -93,7 +131,7 @@ def verification_history(root, records, compiler):
     keys_by_target = defaultdict(list)
     for key in groups:
         keys_by_target[key[:5]].append(key)
-    for event in json_lines(root / "verification/queue/events.jsonl"):
+    for event in queue_events:
         if event["event"] == "collected":
             claim = Claim.from_dict(event["claim"])
             key = (claim.target.kind, claim.target.id)
@@ -280,9 +318,12 @@ def plan(root, store, today):
     records = json_lines(root / "verification/log.jsonl")
     compiler = _Compiler(SnapshotInputs(sources=urls, verifications=records),
                          registry.default(), None, today, source_cache=store)
-    history = verification_history(root, records, compiler)
-    filed = Queue(root / "verification").filed()
-    queue_events = json_lines(root / "verification/queue/events.jsonl")
+    queue_path = root / QUEUE
+    queue_bytes = queue_path.read_bytes() if queue_path.exists() else None
+    queue_events = [json.loads(line) for line in (queue_bytes or b"").decode("utf-8").splitlines()
+                    if line.strip()]
+    history = verification_history(queue_events, records, compiler)
+    filed = filed_claims(queue_events)
     last_event = {}
     for event in queue_events:
         key = event_target(event)
@@ -290,7 +331,7 @@ def plan(root, store, today):
     day = datetime.combine(today, datetime.min.time(), tzinfo=UTC)
     changes = []
     edits, originals, events = defaultdict(list), {}, []
-    expected, targets = {}, {}
+    expected, targets, facts = {}, {}, {}
     for path, text, offset, row, node, model, document, raw in documents(root):
         facet = registry.facet(row["facet"])
         if facet.tier != "guaranteed" and row["facet"] not in IDENTIFIERS:
@@ -357,7 +398,9 @@ def plan(root, store, today):
         final_claim = replace(claim, sources=tuple(SourceRef.model_validate(ref) for ref in refs))
         # The new claim must be the latest: equal instants keep line order.
         at = max(day, last).isoformat() if last is not None else day.isoformat()
-        if rule == 2:
+        # A rerun after a half-done write finds this claim already filed.
+        files_claim = rule == 2 and final_claim.to_dict() != old.to_dict()
+        if files_claim:
             events.extend(
                 [
                     {"event": "collected", "at": at, "claim": final_claim.to_dict()},
@@ -379,57 +422,96 @@ def plan(root, store, today):
         raw["sources"] = refs
         expected[path] = document
         targets[("fact", row["id"])] = kept
-    writes = {}
+        counted = facts.setdefault(path, [0, 0])
+        counted[0] += 1
+        counted[1] += files_claim
+    result = Plan(changes, queue_path, queue_bytes,
+                  facts={path: tuple(counts) for path, counts in facts.items()})
     for path, replacements in edits.items():
         text = originals[path].decode("utf-8")
         for start, end, replacement in sorted(replacements, reverse=True):
             text = text[:start] + replacement + text[end:]
         if yaml.load(yaml_body(path, text)[0], Loader=yaml.CSafeLoader) != expected[path]:
             raise ValueError(f"source edit changed unexpected data: {path}")
-        writes[path] = text.encode("utf-8")
-    for path, lines in (
-        (
-            root / "verification/queue/events.jsonl",
-            [json.dumps(event, sort_keys=True, ensure_ascii=False) for event in events],
-        ),
-    ):
-        if not lines:
-            continue
-        original = path.read_bytes() if path.exists() else b""
-        if original and not original.endswith(b"\n"):
-            raise ValueError(f"append-only log lacks a final newline: {path}")
-        originals[path] = original
-        writes[path] = original + ("\n".join(lines) + "\n").encode("utf-8")
+        result.cards[path] = (originals[path], text.encode("utf-8"))
+    lines = [json.dumps(event, sort_keys=True, ensure_ascii=False) for event in events]
+    if lines:
+        if queue_bytes and not queue_bytes.endswith(b"\n"):
+            raise ValueError(f"append-only log lacks a final newline: {queue_path}")
+        result.append = ("\n".join(lines) + "\n").encode("utf-8")
     # Every changed fact must now cite exactly what its latest filed claim names.
     latest = latest_claim_sources(queue_events + events)
     for key, kept in targets.items():
         if latest.get(key) != kept:
             raise ValueError(f"STOP: sources would differ from the latest filed claim: {key[1]}")
-    return changes, originals, writes
+    return result
 
 
-def main():
+def append_queue(plan):
+    """Append only the new lines, and only to the exact bytes the plan read."""
+    path, snapshot = plan.queue_path, plan.queue_bytes
+    if snapshot is None and not plan.append:
+        if path.exists():
+            raise ValueError("STOP: the queue changed since planning; nothing was written")
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    expected = snapshot or b""
+    with path.open("a+b") as handle:
+        handle.seek(0)
+        current = handle.read()
+        if (len(current) != len(expected)
+                or hashlib.sha256(current).digest() != hashlib.sha256(expected).digest()):
+            raise ValueError("STOP: the queue changed since planning; nothing was written")
+        if plan.append:
+            handle.write(plan.append)
+            handle.flush()
+            os.fsync(handle.fileno())
+
+
+def apply(plan):
+    """Queue first, then cards. Rule 1 also depends on the queue, so it is checked too."""
+    if not plan.cards and not plan.append:
+        return
+    for path, (original, _) in plan.cards.items():
+        if path.read_bytes() != original:
+            raise ValueError(f"data changed during planning: {path}")
+    append_queue(plan)
+    failed = []
+    for path, (_, data) in plan.cards.items():
+        try:
+            path.write_bytes(data)
+        except OSError:
+            failed.append(path)
+    if failed:
+        changed = sum(plan.facts[path][0] for path in failed)
+        filed = sum(plan.facts[path][1] for path in failed)
+        raise HalfDoneError(
+            f"STOP: the queue was appended, but {len(failed)} card file(s) were not written: "
+            f"{changed} fact(s) unchanged, {filed} of them with a newly filed claim the card "
+            "does not cite yet. Rerun with --write to finish them."
+        )
+
+
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, required=True)
     parser.add_argument("--policy", type=Path, required=True)
     parser.add_argument("--source-cache", type=Path, required=True)
     parser.add_argument("--as-of", type=date.fromisoformat, required=True)
     parser.add_argument("--write", action="store_true", help="apply the planned source-ref changes")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     retention.POLICY_PATH = args.policy.resolve()
     retention.cite_only_hosts.cache_clear()
     retention.cite_only_hosts()
-    changes, originals, writes = plan(
+    planned = plan(
         args.data_root.resolve(), CopyStore(args.source_cache.resolve()), args.as_of
     )
+    changes, half_done = planned.changes, None
     if args.write:
-        for path, original in originals.items():
-            current = path.read_bytes() if path.exists() else b""
-            if current != original:
-                raise ValueError(f"data changed during planning: {path}")
-        for path, data in writes.items():
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_bytes(data)
+        try:
+            apply(planned)
+        except HalfDoneError as error:
+            half_done = error
     counts = Counter(str(change["rule"]) for change in changes)
     grouped = {}
     for field in ("facet", "model"):
@@ -453,6 +535,9 @@ def main():
             sort_keys=True,
         )
     )
+    if half_done is not None:
+        print(half_done, file=sys.stderr)
+        return 1
     return 0
 
 
