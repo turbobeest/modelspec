@@ -19,7 +19,8 @@ from tests.snapshot_records import fact
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts/refile_mixed_citations.py"
 
 
-def setup_data(tmp_path, *, retained_value=128000, facet="model.context_window", support="open"):
+def setup_data(tmp_path, *, retained_value=128000, facet="model.context_window", support="open",
+               value=128000):
     root = tmp_path / "data"
     store = CopyStore(tmp_path / "copies")
     retained = store.put(
@@ -47,7 +48,7 @@ def setup_data(tmp_path, *, retained_value=128000, facet="model.context_window",
     (registry / "sources.yaml").write_text(
         yaml.safe_dump({"schema_version": 1, "sources": sources})
     )
-    row = fact("model", "lab/alpha", facet, 128000)
+    row = fact("model", "lab/alpha", facet, value)
     row["sources"] = [
         {"source_id": "open", "snapshot_ref": retained, "cited_regions": ["page"]},
         {
@@ -234,8 +235,8 @@ def append_mixed_verification(root, card, *, day="2026-10-20"):
     queue.checked(Result(claim.target, "verified"), at=at)
 
 
-@pytest.mark.parametrize("support,rule,unresolved", [("open", 1, 0), ("cite", None, 1)])
-def test_earlier_support_with_later_mixed_winner(tmp_path, support, rule, unresolved):
+@pytest.mark.parametrize("support,refused,unresolved", [("open", 1, 0), ("cite", 0, 1)])
+def test_earlier_support_with_later_mixed_winner(tmp_path, support, refused, unresolved):
     root, _, policy, card = setup_data(tmp_path, support=support)
     append_mixed_verification(root, card)
     before = files(root)
@@ -243,15 +244,11 @@ def test_earlier_support_with_later_mixed_winner(tmp_path, support, rule, unreso
     assert result.returncode == 0, result.stderr
     report = json.loads(result.stdout)
     assert report["unresolved"] == unresolved
-    if rule:
-        assert report["counts"] == {"1": 1, "2": 0, "3": 0}
-        assert (root / "verification/log.jsonl").read_bytes() == before["verification/log.jsonl"]
-        assert (root / "verification/queue/events.jsonl").read_bytes() == before[
-            "verification/queue/events.jsonl"
-        ]
-    else:
-        assert report["counts"] == {"1": 0, "2": 0, "3": 0}
-        assert files(root) == before
+    # Rule 1 would leave the card citing one source while the latest filed claim
+    # (the mixed one) names two: the MODEL-546 drift. It refuses instead (MODEL-549).
+    assert report["refused"] == refused
+    assert report["counts"] == {"1": 0, "2": 0, "3": 0}
+    assert files(root) == before
 
 
 def test_retained_copy_contents_cannot_override_historical_support(tmp_path):
@@ -488,6 +485,8 @@ def test_invalid_input_prevents_all_writes(tmp_path, damage):
     elif damage == "unresolved_source":
         rewrite_card(card, lambda data: data["facts"][0]["sources"][0].update(source_id="missing"))
     else:
+        # A newer mixed claim makes rule 2 file a claim, so the run must append.
+        file_later_mixed_claim(root, card, datetime(2026, 10, 1, tzinfo=UTC))
         path = root / "verification/queue/events.jsonl"
         path.write_bytes(path.read_bytes().rstrip(b"\r\n"))
     before = files(root)
@@ -524,3 +523,279 @@ def test_aliased_sources_are_refused_without_changing_other_records(tmp_path):
     result = invoke(root, cache, policy, "--write")
     assert result.returncode != 0
     assert files(root) == before
+
+
+def card_claim_disagreements(root):
+    """The data-side rule (MODEL-546), written independently of the script.
+
+    A card fact's source ids must equal those of its latest filed claim: the latest
+    ``collected`` event, by ``at`` (no zone means UTC), equal instants in line order.
+    Facts with no filed claim are exempt.
+    """
+    def at(event):
+        moment = datetime.fromisoformat(event["at"])
+        return moment if moment.tzinfo else moment.replace(tzinfo=UTC)
+
+    events = [json.loads(line) for line in
+              (root / "verification/queue/events.jsonl").read_text().splitlines() if line.strip()]
+    claimed = {}
+    for event in sorted(events, key=at):
+        if event["event"] == "collected" and event["claim"]["target"]["kind"] == "fact":
+            claimed[event["claim"]["target"]["id"]] = {
+                ref["source_id"] for ref in event["claim"]["sources"]}
+    wrong, checked = [], 0
+    for path in sorted((root / "models").rglob("*.md")):
+        front = yaml.safe_load(path.read_text().split("---", 2)[1])
+        for row in front.get("facts") or []:
+            fact_id = row.get("id") or f"{front['model_id']}#{row['facet']}"
+            if fact_id not in claimed:
+                continue
+            checked += 1
+            if {ref["source_id"] for ref in row["sources"]} != claimed[fact_id]:
+                wrong.append(fact_id)
+    return wrong, checked
+
+
+def file_later_mixed_claim(root, card, at):
+    """File the card's current (mixed) sources as a newer claim, with no check."""
+    row = yaml.safe_load(card.read_text().split("---")[1])["facts"][0]
+    claim = Claim.from_fact(Fact.model_validate(row), names=("Alpha",),
+                            collector=Fact.model_validate(row).verification.collector)
+    Queue(root / "verification").file(claim, at=at)
+
+
+def test_rule_1_refuses_rather_than_leave_card_and_latest_claim_apart(tmp_path):
+    root, cache, policy, card = setup_data(tmp_path, support="open")
+    # The retained-only check stands, but a later claim names both sources.
+    file_later_mixed_claim(root, card, datetime(2026, 10, 1, tzinfo=UTC))
+    assert card_claim_disagreements(root) == ([], 1)
+    before = files(root)
+    result = invoke(root, cache, policy, "--write")
+    assert result.returncode == 0, result.stderr
+    report = json.loads(result.stdout)
+    assert report["counts"] == {"1": 0, "2": 0, "3": 0}
+    assert report["refused"] == 1
+    change = report["changes"][0]
+    assert (change["rule"], change["would_be_rule"]) == ("refused", 1)
+    assert "leaves 1 source(s), the latest filed claim names 2 (shared 1)" in change["reason"]
+    # Counts only: the message names no source id and no hash.
+    assert "open" not in change["reason"] and "sha256" not in change["reason"]
+    assert report["by_facet"]["model.context_window"]["refused"] == 1
+    assert files(root) == before
+    assert card_claim_disagreements(root) == ([], 1)
+
+
+def test_rule_2_claim_files_after_a_same_day_claim(tmp_path):
+    root, cache, policy, card = setup_data(tmp_path, retained_value=64000, support="cite")
+    # A claim filed later on the --as-of day must not outrank the refiled one.
+    file_later_mixed_claim(root, card, datetime(2026, 10, 21, 12, 7, tzinfo=UTC))
+    result = invoke(root, cache, policy, "--write")
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["counts"] == {"1": 0, "2": 1, "3": 0}
+    assert card_claim_disagreements(root) == ([], 1)
+    claim = Queue(root / "verification").filed()[("fact", "lab/alpha#model.context_window")]
+    assert [ref.source_id for ref in claim.sources] == ["cite"]
+    assert Queue(root / "verification").recrawl_requests() == []
+
+
+def test_rule_2_refuses_when_the_queue_is_newer_than_as_of(tmp_path):
+    root, cache, policy, card = setup_data(tmp_path, retained_value=64000, support="cite")
+    file_later_mixed_claim(root, card, datetime(2026, 10, 22, tzinfo=UTC))
+    before = files(root)
+    result = invoke(root, cache, policy, "--write")
+    assert result.returncode == 0, result.stderr
+    report = json.loads(result.stdout)
+    assert report["refused"] == 1 and report["counts"]["2"] == 0
+    assert files(root) == before
+
+
+@pytest.mark.parametrize("support,retained_value,later", [
+    ("open", 128000, None),
+    ("open", 128000, datetime(2026, 10, 1, tzinfo=UTC)),
+    ("cite", 64000, None),
+    ("cite", 64000, datetime(2026, 10, 21, 18, 0, tzinfo=UTC)),
+])
+def test_data_rule_holds_over_the_script_output(tmp_path, support, retained_value, later):
+    root, cache, policy, card = setup_data(
+        tmp_path, retained_value=retained_value, support=support)
+    if later is not None:
+        file_later_mixed_claim(root, card, later)
+    for _ in range(2):  # the write, then an idempotent second run
+        result = invoke(root, cache, policy, "--write")
+        assert result.returncode == 0, result.stderr
+        wrong, checked = card_claim_disagreements(root)
+        assert (wrong, checked) == ([], 1)
+
+
+@pytest.fixture
+def script(monkeypatch):
+    """The script loaded in process, its retention policy restored afterwards."""
+    import importlib.util
+
+    from decision import retention
+
+    spec = importlib.util.spec_from_file_location("refile_mixed_citations", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, spec.name, module)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(retention, "POLICY_PATH", retention.POLICY_PATH)
+    yield module
+    retention.cite_only_hosts.cache_clear()
+
+
+def plan_in_process(script, root, cache, policy):
+    from decision import retention
+
+    retention.POLICY_PATH = policy
+    retention.cite_only_hosts.cache_clear()
+    return script.plan(root, CopyStore(cache), datetime(2026, 10, 21).date())
+
+
+@pytest.mark.parametrize("support,retained_value", [("open", 128000), ("cite", 64000)])
+def test_queue_changed_between_plan_and_write_is_refused(
+    tmp_path, script, support, retained_value
+):
+    root, cache, policy, card = setup_data(
+        tmp_path, retained_value=retained_value, support=support)
+    if support == "cite":  # a newer mixed claim makes rule 2 file a claim
+        file_later_mixed_claim(root, card, datetime(2026, 9, 30, tzinfo=UTC))
+    planned = plan_in_process(script, root, cache, policy)
+    assert planned.cards  # rule 1 changes only the card; rule 2 also appends
+    assert bool(planned.append) == (support == "cite")
+    # Another writer files a claim after the plan was made.
+    file_later_mixed_claim(root, card, datetime(2026, 10, 1, tzinfo=UTC))
+    before = files(root)
+    with pytest.raises(ValueError, match="queue changed since planning"):
+        script.apply(planned)
+    assert files(root) == before
+
+
+def test_queue_original_bytes_are_a_prefix_after_the_write(tmp_path):
+    root, cache, policy, card = setup_data(tmp_path, retained_value=64000, support="cite")
+    file_later_mixed_claim(root, card, datetime(2026, 10, 1, tzinfo=UTC))
+    path = root / "verification/queue/events.jsonl"
+    # CRLF lines must survive untouched: the write appends, it never rewrites.
+    path.write_bytes(path.read_bytes().replace(b"\n", b"\r\n"))
+    original = path.read_bytes()
+    inode = path.stat().st_ino
+    result = invoke(root, cache, policy, "--write")
+    assert result.returncode == 0, result.stderr
+    after = path.read_bytes()
+    assert after.startswith(original) and len(after) > len(original)
+    assert path.stat().st_ino == inode
+    added = [json.loads(line) for line in after[len(original):].decode().splitlines()]
+    assert [event["event"] for event in added] == ["collected", "checked"]
+
+
+def test_card_write_failure_after_the_append_converges_on_rerun(
+    tmp_path, script, monkeypatch, capsys
+):
+    root, cache, policy, card = setup_data(tmp_path, retained_value=64000, support="cite")
+    file_later_mixed_claim(root, card, datetime(2026, 10, 1, tzinfo=UTC))
+    original_card = card.read_bytes()
+    args = ["--data-root", str(root), "--source-cache", str(cache), "--policy", str(policy),
+            "--as-of", "2026-10-21", "--write"]
+    with monkeypatch.context() as patch:
+        fail_card_replace(patch)
+        assert script.main(args) == 1
+    err = capsys.readouterr().err
+    assert "1 card file(s) were not written: 1 fact(s) unchanged, 1 of them" in err
+    assert card.read_bytes() == original_card
+    # Half-done: the claim names the cited source, the card still cites both.
+    assert card_claim_disagreements(root) == (["lab/alpha#model.context_window"], 1)
+    queue_after_append = (root / "verification/queue/events.jsonl").read_bytes()
+
+    assert script.main(args) == 0
+    assert json.loads(capsys.readouterr().out)["counts"] == {"1": 0, "2": 1, "3": 0}
+    assert card_claim_disagreements(root) == ([], 1)
+    # The rerun finished the card and filed nothing new.
+    assert (root / "verification/queue/events.jsonl").read_bytes() == queue_after_append
+    row = yaml.safe_load(card.read_text().split("---")[1])["facts"][0]
+    assert [ref["source_id"] for ref in row["sources"]] == ["cite"]
+    assert script.main(args) == 0
+    assert json.loads(capsys.readouterr().out)["counts"] == {"1": 0, "2": 0, "3": 0}
+
+
+def fail_card_replace(patch):
+    """Fail the last step of a card write, after its new bytes reached a temp file."""
+    replace_file = os.replace
+
+    def failing(source, target, *args, **kwargs):
+        if str(target).endswith(".md"):
+            raise OSError("simulated card write failure")
+        return replace_file(source, target, *args, **kwargs)
+
+    patch.setattr(os, "replace", failing)
+
+
+def test_same_length_queue_drift_is_refused_by_the_hash(tmp_path, script):
+    root, cache, policy, card = setup_data(tmp_path, support="open")
+    planned = plan_in_process(script, root, cache, policy)
+    path = root / "verification/queue/events.jsonl"
+    data = path.read_bytes()
+    drifted = data.replace(b"2026-09-20T00:00:00", b"2026-09-21T00:00:00", 1)
+    assert drifted != data and len(drifted) == len(data)
+    path.write_bytes(drifted)
+    before = files(root)
+    with pytest.raises(ValueError, match="queue changed since planning"):
+        script.apply(planned)
+    assert files(root) == before
+
+
+@pytest.mark.parametrize("value,filed", [(128000, 128000.0), (1, True)])
+def test_rule_2_files_when_the_latest_claim_differs_only_in_value_type(tmp_path, value, filed):
+    root, cache, policy, card = setup_data(
+        tmp_path, retained_value=64000, support="cite", value=value)
+    path = root / "verification/queue/events.jsonl"
+    first = json.loads(path.read_text().splitlines()[0])
+    # Exactly the claim rule 2 would file, but for the value's JSON type.
+    assert first["claim"]["value"] == value
+    later = {**first, "at": "2026-10-01T00:00:00+00:00",
+             "claim": {**first["claim"], "value": filed}}
+    with path.open("a") as stream:
+        stream.write(json.dumps(later) + "\n")
+    before = path.read_bytes()
+    result = invoke(root, cache, policy, "--write")
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["counts"] == {"1": 0, "2": 1, "3": 0}
+    added = [json.loads(line) for line in path.read_bytes()[len(before):].decode().splitlines()]
+    assert [event["event"] for event in added] == ["collected", "checked"]
+    assert type(added[0]["claim"]["value"]) is type(value)
+    assert card_claim_disagreements(root) == ([], 1)
+
+
+def test_card_write_failure_leaves_the_card_byte_identical(tmp_path, script, monkeypatch, capsys):
+    root, cache, policy, card = setup_data(tmp_path, support="open")
+    original = card.read_bytes()
+    args = ["--data-root", str(root), "--source-cache", str(cache), "--policy", str(policy),
+            "--as-of", "2026-10-21", "--write"]
+    before = files(root)
+    with monkeypatch.context() as patch:
+        fail_card_replace(patch)
+        assert script.main(args) == 1
+    err = capsys.readouterr().err
+    # Rule 1 only: nothing was appended, and the message must not say otherwise.
+    assert "no queue line was appended" in err and "queue was appended" not in err
+    assert card.read_bytes() == original
+    assert files(root) == before  # no temp file left behind either
+
+
+def test_rule_1_recovers_on_rerun_after_a_card_write_failure(
+    tmp_path, script, monkeypatch, capsys
+):
+    root, cache, policy, card = setup_data(tmp_path, support="open")
+    queue = (root / "verification/queue/events.jsonl").read_bytes()
+    args = ["--data-root", str(root), "--source-cache", str(cache), "--policy", str(policy),
+            "--as-of", "2026-10-21", "--write"]
+    with monkeypatch.context() as patch:
+        fail_card_replace(patch)
+        assert script.main(args) == 1
+    capsys.readouterr()
+    assert script.main(args) == 0
+    assert json.loads(capsys.readouterr().out)["counts"] == {"1": 1, "2": 0, "3": 0}
+    row = yaml.safe_load(card.read_text().split("---")[1])["facts"][0]
+    assert [ref["source_id"] for ref in row["sources"]] == ["open"]
+    assert (root / "verification/queue/events.jsonl").read_bytes() == queue
+    assert card_claim_disagreements(root) == ([], 1)
+    assert script.main(args) == 0
+    assert json.loads(capsys.readouterr().out)["counts"] == {"1": 0, "2": 0, "3": 0}
