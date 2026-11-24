@@ -667,3 +667,20 @@ def test_a_card_fact_record_is_as_before_offering_support(data):
     assert all("finding" not in r for r in record["derivation"]["cited_change"]["readers"])
     assert record["state"] == "known"
     refused("no_value", readers=pair(value=None))
+
+
+def test_a_quarantined_card_fact_is_refused_up_front(data):
+    """MODEL-544 review: a mismatch binds its own value, so the gate refuses any change to a
+    fact that holds one (card facts had this gap before offering support)."""
+    from tests.snapshot_records import verification
+
+    path = data.root / "verification/log.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(verification("fact", f"{SUBJECT}#{FACET}", "mismatch",
+                                            value=131072)) + "\n")
+    refused("quarantined")
+    assert not data.log()
+    with path.open("a") as fh:
+        fh.write(json.dumps(verification("fact", f"{SUBJECT}#{FACET}", "verified",
+                                         day="2026-10-01", value=131072)) + "\n")
+    assert run().changed

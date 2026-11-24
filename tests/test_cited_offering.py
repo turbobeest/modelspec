@@ -348,3 +348,104 @@ def test_a_card_prompt_is_the_registry_definition_alone(data):
                           page_bytes=PAGE)
     assert OFFERING_CLAUSE.strip() not in prompt
     assert facet_definition("model.context_window") in prompt
+
+
+# --- an unresolved verdict is not lifted (MODEL-544 review) --------------------------------------
+
+
+def plant(data, fact_id, outcome, value, day="2026-10-14", families=("family-a", "family-b")):
+    from tests.snapshot_records import verification
+
+    row = verification("fact", fact_id, outcome, day=day, value=value)
+    row["collector"]["model_family"], row["verifier"]["model_family"] = families
+    path = data.root / "verification/log.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a") as fh:
+        fh.write(json.dumps(row) + "\n")
+
+
+@pytest.mark.parametrize("bound", [None, 30, 45])
+def test_a_quarantined_offering_fact_is_refused_up_front_whatever_the_value(data, bound):
+    plant(data, FACT_ID, "mismatch", bound)
+    before = snapshot(data)
+    refused(retention(), "quarantined")
+    assert snapshot(data) == before and not data.log()  # no attempt, no file, no claim
+    with pytest.raises(writer.WriteRefused):
+        writer.apply(retention(), data_dir=data.root)
+    assert not data.events()
+
+
+def test_an_unreachable_verdict_also_holds_and_not_disclosed_is_refused_too(data):
+    plant(data, SOC2_ID, "unreachable", "type_2")
+    refused(soc2(), "quarantined")
+    assert not data.log()
+
+
+def test_a_later_independent_verified_resolves_but_a_same_family_one_does_not(data):
+    plant(data, FACT_ID, "mismatch", None, day="2026-10-14")
+    plant(data, FACT_ID, "verified", None, day="2026-10-20", families=("family-a", "family-a"))
+    refused(retention(), "quarantined")
+    plant(data, FACT_ID, "verified", None, day="2026-10-21")
+    assert retention().changed  # a fact that is not quarantined still files
+
+
+def test_an_unreadable_verification_log_refuses(data):
+    path = data.root / "verification/log.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"target": {"kind": "fact", "id": FACT_ID}}) + "\n")
+    refused(retention(), "registry_lookup_failed")
+
+
+def test_an_inline_mismatch_holds_too(data):
+    from tests.snapshot_records import verification
+
+    data.fact(verification=verification("fact", FACT_ID, "mismatch", value=None))
+    refused(retention(), "quarantined")
+
+
+def _built(models=(), subscriptions=(), log=()):
+    from datetime import date
+
+    from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+    from tests.snapshot_records import SOURCES
+
+    inputs = SnapshotInputs(models=list(models), subscriptions=list(subscriptions),
+                            sources={**SOURCES, "src-cite": "https://www.perplexity.ai/pro"},
+                            verifications=list(log))
+    return load_built_snapshot(build_snapshot(inputs, as_of=date(2026, 10, 19)))
+
+
+@pytest.mark.parametrize("kind", ["model", "offering"])
+def test_the_snapshot_still_excludes_a_quarantined_fact_the_gate_refused(kind):
+    """The build keeps the filed value out under its mismatch. A value written around the
+    verdict would enter as cited (the gap the refusal closes); the gate refuses that write."""
+    from tests.snapshot_records import fact, model, subscription, verification
+
+    if kind == "model":
+        sid, facet, filed, other = "lab/alpha", "model.context_window", 128000, 262144
+
+        def build(value, log):
+            row = fact("model", sid, facet, value, source="src-cite", outcome=None)
+            return _built(models=[model(sid, facts=[row])], log=log)
+    else:
+        sid, facet = "sambanova/subscription/pro", "offering.subscription.models_covered"
+        filed, other = ["lab/alpha"], ["lab/alpha", "lab/beta"]
+
+        def build(value, log):
+            row = fact("offering", sid, facet, value, source="src-cite", outcome=None)
+            return _built(models=[model("lab/alpha"), model("lab/beta")],
+                          subscriptions=[subscription(facts=[row])], log=log)
+
+    fid = f"{sid}#{facet}"
+    log = [verification("fact", fid, "verified", day="2026-09-29", value=filed),
+           verification("fact", fid, "mismatch", day="2026-10-14", value=filed)]
+
+    def admitted(index):
+        if kind == "model":
+            return index.fact(sid, facet).state != "unknown"
+        plan = next(row for row in index.subscription_offerings() if row["id"] == sid)
+        return plan["facts"].get(facet) is not None
+
+    assert not admitted(build(filed, log))  # as filed: excluded
+    assert admitted(build(other, log))  # around the verdict: it would enter
+    assert admitted(build(filed, log[:1]))  # not quarantined: it enters

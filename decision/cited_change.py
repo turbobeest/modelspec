@@ -37,7 +37,11 @@ only when the caller asks for one (``accept_not_disclosed``) and the page can sh
 the readers saw all of its visible text, there is enough of it, and the fact cites no other
 page of a permitted kind. Each reader's finding (``not_stated``) is recorded. Any
 disagreement, and any earlier agreed attempt on a value, files nothing. Nothing here lifts a
-quarantine: the build still applies the verification log to whatever is filed.
+quarantine. A mismatch or unreachable verdict binds the value it was logged for, so a new value
+would enter the build as cited while the old verdict stayed logged: the gate refuses up front
+(``quarantined``) any fact, card or offering, whose verification log or inline verification
+holds an unresolved mismatch or unreachable verdict for any value. That is the owner's call
+(MODEL-544 review).
 
 ``cited_change`` is the only gate. It checks every condition in code and either
 returns the whole record or refuses with one named reason. It never writes a partial
@@ -120,7 +124,10 @@ REFUSALS = (
     "page_truncated",
     "page_too_short",
     "other_source_unread",
+    "quarantined",
 )
+#: The verification log, under the data directory, as ``decision.snapshot.collect_repo`` reads it.
+VERIFICATION_LOG = "verification/log.jsonl"
 #: A page the readers find silent must show at least this much visible text: a script shell
 #: or a bot wall reads as silence, and silence there proves nothing.
 MIN_SILENT_TEXT = 400
@@ -503,6 +510,47 @@ def _fetch(url: str, request: Request) -> tuple[bytes, tuple[str, ...]] | CitedC
     return _refuse("page_unreadable", "too many redirects")
 
 
+def quarantine_verdicts(fact_id: str, fact: Mapping[str, Any],
+                        data_dir: str | Path | None = None) -> list[str]:
+    """The value hashes of the fact whose latest counting verdict is not ``verified``.
+
+    Read from the data directory's verification log and the fact's inline verification, per
+    value, as the build reads them (latest ``date`` wins, a later line on a tie; a same-family
+    ``verified`` does not count). Any value counts, not only the filed one: a verdict binds its
+    own value, so a change to another value would step around it. Raises ``LookupFailed`` when
+    the log cannot be read.
+    """
+    import os
+
+    from decision.model import Verification
+
+    root = data_dir or os.environ.get(DATA_DIR_ENV, "").strip()
+    if not root:
+        raise LookupFailed("no data directory is named")
+    rows: list[Any] = []
+    inline = fact.get("verification")
+    if isinstance(inline, Mapping):
+        rows.append(inline)
+    path = Path(root) / VERIFICATION_LOG
+    try:
+        text = path.read_text(encoding="utf-8") if path.is_file() else ""
+        rows += [json.loads(line) for line in text.splitlines()
+                 if line.strip() and fact_id in line]
+        verdicts = [Verification.model_validate(row) for row in rows
+                    if isinstance(row, Mapping) and isinstance(row.get("target"), Mapping)
+                    and row["target"].get("kind") == "fact" and row["target"].get("id") == fact_id]
+    except (OSError, ValueError) as error:
+        raise LookupFailed(f"verification log: {type(error).__name__}") from None
+    latest: dict[str, Any] = {}
+    for verdict in verdicts:
+        if not verdict.counts:
+            continue
+        key = verdict.target.value_hash
+        if key not in latest or verdict.date >= latest[key].date:
+            latest[key] = verdict
+    return sorted(key for key, verdict in latest.items() if verdict.outcome != "verified")
+
+
 def _check_silence(found: Lookup, facet: Any, source_id: str, page_bytes: bytes,
                    history: Sequence[Mapping[str, Any]]) -> CitedChange | None:
     """Both readers found the page silent. That is ``not_disclosed`` only when the page can
@@ -540,6 +588,14 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         found = lookup(subject, facet)
     except LookupFailed as error:
         return _refuse("registry_lookup_failed", str(error))
+    # Up front, before any read or attempt: an unresolved verdict on this fact is not lifted here.
+    try:
+        held = quarantine_verdicts(str(found.fact.get("id") or f"{subject}#{facet}"), found.fact)
+    except LookupFailed as error:
+        return _refuse("registry_lookup_failed", str(error))
+    if held:
+        return _refuse("quarantined", f"{len(held)} value(s) of this fact hold an unresolved "
+                       "mismatch or unreachable verdict; lifting it is the owner's call")
     row = found.sources.get(source_id)
     if row is None or not row.get("url"):
         return _refuse("registry_lookup_failed", "the cited source is not in the source registry")
