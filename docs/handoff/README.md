@@ -160,6 +160,14 @@ Learned expensively during 2026-09-09/10.
     the row ends the pending absences, and a later score clears the field. Readers that split
     on presence are a disagreement and block as above.
 
+    **A quarantined reading is refused (MODEL-547).** `cited_reading` refuses with
+    `quarantined`, before any read or attempt, a reading with an uncleared mismatch or
+    unreachable verdict for any value. It uses the fact gate's predicate (`quarantine_verdicts`,
+    the log parsed and ranked as the build does) with target kind `evidence`. A row's id changes
+    with its score and date, so the reading owns its stored id and every id logged under
+    `<model>#<benchmark>#` (for the subject and the card's `model_id`) that no other current row
+    of the benchmark has.
+
     **Offering facts and `not_disclosed` (MODEL-544).** `cited_change` takes an offering
     fact too: the subject is the offering id (`<provider>/<lab>/<model>/<region>/<tier>` or
     `<provider>/subscription/<plan>`), the fact is looked up in the one offering file the
