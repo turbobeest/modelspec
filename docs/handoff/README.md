@@ -184,6 +184,28 @@ Learned expensively during 2026-09-09/10.
     files nothing. Nothing in the gate or the writer lifts a quarantine: a fresh agreement
     over an older mismatch is the owner's call.
 
+    **The owner's ruling past a disagreement (MODEL-551).** A complete `readers_disagree`
+    attempt blocks its subject, facet and epoch for good. Only the owner can settle it, with
+    one line of the append-only `verification/owner-rulings.jsonl` (`decision.owner_ruling`):
+    `subject`, `facet`, `epoch`, `value`, `state`, `ruled_by` (one of `OWNERS`, in code:
+    `jamie` alone), `ruled_at`, `ticket`, `source_ids`, `resolves` (the `attempt_id` of each
+    disagreeing attempt) and `basis` (one short line, counts and field names only, no page
+    text, no URL). `scripts/file_owner_ruling.py` files it, dry-run unless `--write`, and
+    refuses unless a complete disagreement is logged for exactly that key in the fact's
+    current epoch, the ruler is an owner, a ticket is named, the fact is not quarantined
+    (lifting a quarantine is not a ruling), the value fits the facet's type, the stored id
+    is the location id and no ruling exists for the key. It appends the line, files the
+    matching claim (`collected`, `checked: cited`, latest for the fact) and rewrites the one
+    fact from one source reference: the copy the disagreeing readers read (`snapshot_ref`,
+    `retrieved_at`) and `derivation.owner_ruling`. Each file is read once and appended only
+    if unchanged since. The build admits a fact that carries the block only when exactly
+    one valid line for its own location, facet and epoch matches its value, state and
+    sources; otherwise it is kept out as `invalid_citation`. A ruled fact is served as any
+    cited fact (`verification: null`, the existing `citation`); the block never leaves the
+    build, and no contract field widens. A ruling does not reopen its epoch to readers
+    (`prior_attempt_disagreed` still holds); a fresh agreement in a later epoch follows the
+    rule above.
+
 Public PR bodies and evidence must not contain private modelspec-data commit SHAs or per-card private values. Private PR numbers, ages and clone URLs are not sensitive.
 
 ## Pytest CI shards

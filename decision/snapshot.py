@@ -378,6 +378,11 @@ class SnapshotInputs:
     #: Append-only records that supersede a cite-only fact's stale mismatch
     #: (MODEL-415, ``decision.supersession``). Empty: nothing is superseded.
     supersessions: Sequence[Any] = ()
+    #: The owner's rulings past a recorded rule-15 disagreement (MODEL-551,
+    #: ``decision.owner_ruling``) and the attempt log they resolve. A fact that carries
+    #: ``derivation.owner_ruling`` is admitted only on a valid ruling.
+    owner_rulings: Sequence[Mapping[str, Any]] = ()
+    cited_attempts: Sequence[Mapping[str, Any]] = ()
     #: Lab id -> ``decision.labs.Lab``. Empty when the checkout has no lab registry.
     labs: Mapping[str, Any] = field(default_factory=dict)
     #: Sourced hardware YAML records. Metadata, never ranking candidates.
@@ -787,6 +792,8 @@ class _Compiler:
         #: Only a compile with records imports ``decision.supersession``; the
         #: Worker never compiles, so the module stays unimported there.
         self._supersessions = self._supersession_index(inputs.supersessions)
+        self.owner_rulings = tuple(dict(r) for r in inputs.owner_rulings)
+        self.cited_attempts = tuple(dict(a) for a in inputs.cited_attempts)
         #: record ID -> the mismatches a supersession retired, for provenance.
         self.superseded: dict[str, list[dict[str, Any]]] = {}
         #: subject id -> {"kind", "model", "lifecycle"}
@@ -910,6 +917,14 @@ class _Compiler:
             # The cited-change derivation (readers, prompt hashes, manifests) is internal: it
             # never enters a snapshot or its record_table.
             record = {k: v for k, v in record.items() if k != "derivation"}
+        if kind == "fact" and isinstance(record.get("derivation"), Mapping) \
+                and "owner_ruling" in record["derivation"]:
+            # The owner's ruling (MODEL-551) is internal: a ruled fact is served as any
+            # admitted cited fact is, with no trace of the ruling record.
+            rest = {k: v for k, v in record["derivation"].items() if k != "owner_ruling"}
+            record = {k: v for k, v in record.items() if k != "derivation"}
+            if rest:
+                record["derivation"] = rest
         rid = str(record.get("id") or content_hash(record))
         value = (
             fact_verification_value(record)
@@ -1077,6 +1092,11 @@ class _Compiler:
             except ValueError:
                 self._reject((sid, facet_id), "invalid_citation", source_ids)
                 continue
+            if self._ruling_refused(sid, f, citation):
+                # A ruling is the owner's, past a rule-15 disagreement on a cite-only page
+                # (MODEL-551): one that does not stand keeps the fact out, as a bad citation.
+                self._reject((sid, facet_id), "invalid_citation", source_ids)
+                continue
             if citation is not None and facet_id in {"offering.api_model_id", "offering.router_slug"}:
                 self._reject((sid, facet_id), "quarantined (cited identifier)", source_ids)
                 continue
@@ -1103,6 +1123,18 @@ class _Compiler:
                 self.price_periods.setdefault(sid, []).append((
                     _date(f.get("effective_from")), _date(f.get("effective_until")),
                 ))
+
+    def _ruling_refused(self, sid: str, fact: Mapping[str, Any], citation: dict | None) -> bool:
+        """A fact that carries ``derivation.owner_ruling`` and is not cited, or whose ruling
+        does not stand (``decision.owner_ruling.admits``). Others are not affected."""
+        derivation = fact.get("derivation")
+        if not isinstance(derivation, Mapping) or "owner_ruling" not in derivation:
+            return False
+        from decision.owner_ruling import admits
+
+        return citation is None or not admits(
+            fact, sid, rulings=self.owner_rulings, attempts=self.cited_attempts,
+            sources=self.sources, today=self.as_of)
 
     def _resolve_prices(self, sid: str, facts: Iterable[Any]) -> list[dict[str, Any]]:
         facts = [_as_dict(raw) for raw in facts or ()]
@@ -1957,6 +1989,8 @@ def collect_repo(root: Path) -> SnapshotInputs:
     * Domains: each benchmark page's ``domains`` tags.
     * The verification log: ``verification/log.jsonl``.
     * Mismatch supersessions: ``verification/supersessions.jsonl`` (MODEL-415).
+    * Owner rulings: ``verification/owner-rulings.jsonl`` and, when it holds any, the
+      rule-15 attempt log ``verification/cited-attempts.jsonl`` (MODEL-551).
     * Hardware: dated vendor memory specifications in ``hardware/*.yaml``.
     """
     from pipeline.load import load_benchmarks, load_models
@@ -2046,6 +2080,18 @@ def collect_repo(root: Path) -> SnapshotInputs:
         from decision.supersession import read_store
 
         supersessions = read_store(supersession_store)
+    owner_rulings, cited_attempts = [], []
+    rulings_store = root / "verification" / "owner-rulings.jsonl"
+    if rulings_store.is_file():
+        from decision.cited_reader import ATTEMPTS_FILE
+        from decision.owner_ruling import read_lines
+
+        try:
+            owner_rulings = read_lines(rulings_store)
+            if owner_rulings:
+                cited_attempts = read_lines(root / ATTEMPTS_FILE)
+        except ValueError as exc:
+            raise SnapshotBuildError(f"{rulings_store}: {exc}") from exc
     from decision.labs import load_labs
 
     fit_path = root / "hardware" / "fit" / "records.yaml"
@@ -2060,6 +2106,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
                           benchmark_refinements=refinements,
                           verifications=verifications,
                           supersessions=supersessions,
+                          owner_rulings=owner_rulings, cited_attempts=cited_attempts,
                           labs=load_labs(root), hardware_fit_records=fit_records,
                           hardware=[yaml.safe_load(path.read_text(encoding="utf-8"))
                                     for path in sorted((root / "hardware").glob("*.yaml"))
