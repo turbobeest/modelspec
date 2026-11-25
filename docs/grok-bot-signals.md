@@ -154,7 +154,10 @@ The hourly workflow uses two endpoints that require
 
 - `GET /v1/signals/pending` returns pending signals and due re-checks.
 - `POST /v1/signals/ack` records each pull request or issue URL, removes that
-  pending item, and schedules its three re-checks.
+  pending item, and schedules its three re-checks. When a re-check reports a
+  pull request, the signal's remaining re-checks move onto it, so a later
+  re-check updates that pull request instead of drafting the model again
+  (MODEL-475). A re-check that reports no pull request keeps the stored URL.
 
 These endpoints are for the repository workflow. Grok Bot cannot read or
 acknowledge the queue.

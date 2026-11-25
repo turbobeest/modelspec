@@ -39,6 +39,11 @@ ACKNOWLEDGEMENT_FIELDS = frozenset({
     "signal_id", "result", "pr_url", "recheck_due", "recheck_day",
 })
 RFC3339_FULL_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+#: A GitHub pull request, the only URL a later run may move a re-check onto (MODEL-475).
+PULL_REQUEST_URL = re.compile(
+    r"^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/pull/[1-9][0-9]*$"
+)
+RECHECK_DAYS = (1, 7, 30)
 
 
 @dataclass(frozen=True)
@@ -280,6 +285,42 @@ async def pending(
     })
 
 
+async def _relink_rechecks(
+    kv: Any, signal_id: str, acknowledged: dict[str, Any], pr_url: object,
+    *, acknowledged_key: str,
+) -> None:
+    """Point a signal's remaining re-checks at the pull request a re-check reported.
+
+    The first acknowledgement can carry an identity-review issue or no URL. A
+    re-check that later opens a card pull request must move the other re-checks
+    onto it, or the workflow finds no open pull request there and drafts the
+    same model again (MODEL-475). Only the stored `pr_url` changes; a report
+    without a pull request keeps what is stored. The sibling keys follow from
+    the acknowledged row, so no KV list is needed.
+    """
+    if not isinstance(pr_url, str) or PULL_REQUEST_URL.fullmatch(pr_url) is None:
+        return
+    day, due = acknowledged.get("day"), acknowledged.get("due")
+    if isinstance(day, bool) or day not in RECHECK_DAYS or not isinstance(due, str):
+        return
+    try:
+        first = date.fromisoformat(due) - timedelta(days=day)
+    except ValueError:
+        return
+    for days in RECHECK_DAYS:
+        key = f"{RECHECK_PREFIX}{(first + timedelta(days=days)).isoformat()}/{signal_id}"
+        if key == acknowledged_key:
+            continue
+        raw = await kv.get(key)
+        if not raw:
+            continue
+        row = json.loads(str(raw))
+        if row.get("signal_id") != signal_id or row.get("pr_url") == pr_url:
+            continue
+        row["pr_url"] = pr_url
+        await kv.put(key, json.dumps(row, separators=(",", ":")))
+
+
 async def acknowledge(
     *, authorization: str | None, read_key: str | None, kv: Any,
     payload: dict[str, Any], today: date,
@@ -316,7 +357,7 @@ async def acknowledge(
         )
     await kv.put(audit_key, json.dumps(audit, separators=(",", ":")))
     if recheck is None:
-        for days in (1, 7, 30):
+        for days in RECHECK_DAYS:
             due = (today + timedelta(days=days)).isoformat()
             row = {
                 "signal_id": signal_id,
@@ -332,6 +373,10 @@ async def acknowledge(
         await kv.delete(pending_key)
     else:
         await kv.delete(recheck_key)
+        await _relink_rechecks(
+            kv, signal_id, json.loads(str(recheck)), payload.get("pr_url"),
+            acknowledged_key=recheck_key,
+        )
     return Outcome(200, {
         "schema_version": SCHEMA_VERSION,
         "endpoint": "signals.ack",
