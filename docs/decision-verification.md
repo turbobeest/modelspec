@@ -22,6 +22,13 @@ The installed `modelspec-dev` client does not include verification commands.
    claim from the cited regions of its retained copies. It appends one
    `Verification` per value to `verification/log.jsonl` and prints a summary.
    `--changed-only` skips new values and runs only the re-queued ones.
+4. When no card fact, offering fact or evidence row holds a target any more,
+   `scripts/retire_claims.py --root <modelspec-data-root> --target <ref> [--write]`
+   appends a `retired` event (`Queue.retire`, reason `no_data_row`). The claim
+   lines stay; the target leaves `Queue.filed()`, `pending()`,
+   `recrawl_requests()` and the nightly's data-fidelity draws until a collector
+   files it again. The script refuses the whole run if a named target still has
+   a data row or has no filed claim (MODEL-557).
 
 ## Extractors
 

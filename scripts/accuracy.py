@@ -874,6 +874,8 @@ def sample_verified_claims(claims: Sequence[Any], *, size: int, seed: str) -> li
 
 
 def _latest_collected_claims(path: Path) -> list[Any]:
+    """The latest filed claim per target, in line order. A later ``retired`` event drops
+    the target until a later ``collected`` files it again (MODEL-557)."""
     from decision.verify import Claim
 
     latest: dict[tuple[str, str], Claim] = {}
@@ -883,6 +885,10 @@ def _latest_collected_claims(path: Path) -> list[Any]:
         if not line.strip():
             continue
         event = json.loads(line)
+        if event.get("event") == "retired":
+            target = event["target"]
+            latest.pop((target["kind"], target["id"]), None)
+            continue
         if event.get("event") != "collected":
             continue
         claim = Claim.from_dict(event["claim"])

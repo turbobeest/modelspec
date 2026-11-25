@@ -8129,8 +8129,18 @@ class _Pending:
     last: dict[str, Any] | None = None
 
 
+#: Why ``Queue.retire`` retires a claim. ``no_data_row``: no card, offering or evidence row
+#: holds the target any more, so nothing the claim describes is published (MODEL-557).
+RETIRE_REASONS = frozenset({"no_data_row"})
+
+
 class Queue:
-    """``verification/queue/events.jsonl``: what to verify, and what to re-crawl."""
+    """``verification/queue/events.jsonl``: what to verify, and what to re-crawl.
+
+    Events: ``collected`` (a claim filed), ``changed`` (a cited source changed),
+    ``checked`` (a verification ran) and ``retired`` (the target's claim no longer
+    stands; a later ``collected`` files it again).
+    """
 
     def __init__(self, directory: str | Path = DEFAULT_DIRECTORY) -> None:
         self.directory = Path(directory)
@@ -8162,6 +8172,15 @@ class Queue:
                        "target": result.target.model_dump(), "outcome": result.outcome,
                        "diff": [d.to_dict() for d in result.diffs]}])
 
+    def retire(self, target: str | TargetRef, *, at: datetime, reason: str) -> None:
+        """Retire a target's filed claim (MODEL-557): nothing is pending, filed or drawn for
+        it until a collector files it again. ``reason`` is one of ``RETIRE_REASONS``, a fixed
+        code, never page text. No line is edited: the claim lines stay as history."""
+        if reason not in RETIRE_REASONS:
+            raise ValueError(f"retire reason must be one of {sorted(RETIRE_REASONS)}")
+        self._append([{"event": "retired", "at": at.isoformat(),
+                       "target": target_ref(target).model_dump(), "reason": reason}])
+
     def _state(self) -> dict[tuple[str, str], _Pending]:
         state: dict[tuple[str, str], _Pending] = {}
         if not self.path.is_file():
@@ -8179,6 +8198,10 @@ class Queue:
             if event["event"] == "collected":
                 claim = Claim.from_dict(event["claim"])
                 state[_key(claim.target)] = _Pending(claim, "new", {}, event)
+                continue
+            if event["event"] == "retired":
+                # The claim filed before is retired: no claim, no trigger, no recrawl.
+                state[_key(TargetRef.model_validate(event["target"]))] = _Pending(last=event)
                 continue
             entry = state.setdefault(_key(TargetRef.model_validate(event["target"])), _Pending())
             entry.last = event
@@ -8304,7 +8327,7 @@ __all__ = [
     "LabJurisdictionExtractor", "LicenceTermsExtractor",
     "LLMExtractor", "MISTRAL_MODEL", "ModelPageExtractor", "OLLAMA_URL", "OfferingPriceExtractor",
     "APPROVED_OLLAMA_READERS", "OLLAMA_JSON_MODE", "OllamaChatCompletion", "ollama_reader", "Quantity", "Queue", "Reading",
-    "Regions", "Result",
+    "Regions", "Result", "RETIRE_REASONS",
     "RunReport", "StoredRegions", "StructuredDataExtractor", "SubscriptionPageExtractor",
     "TableExtractor", "TOLERANCE_RULE",
     "UNITS", "VerificationLog", "compare",
