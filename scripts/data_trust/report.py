@@ -39,6 +39,8 @@ def summary(report: dict) -> str:
         f"Refused at the terms register (redirect_unclassified): "
         f"{sample.get('redirect_unclassified', 0)}\n"
         f"Shell pages not cited (shell_page): {sample.get('shell_page', 0)}\n"
+        f"Final host changed since the last record (final_host_changed): "
+        f"{len(sample.get('final_host_changed') or [])}\n"
         f"Readable sample error rate: {rate}\n"
         f"Reader coverage: {coverage['with_reader']}/{coverage['served']} ({reader_share}). "
         "The stratified readable sample cannot establish five-nines accuracy.\n"
@@ -148,6 +150,17 @@ def write(report: dict, directory: Path) -> tuple[Path, Path]:
             f"| {s['field_type']} | {s['provider']} | {s['age']} | {s['matched']} | "
             f"{s['mismatched']} | {s['unreadable']} |"
         )
+    if moved := report["sample"].get("final_host_changed"):
+        lines += [
+            "",
+            "## Final host changed",
+            "",
+            "A fetch now ends on another host than the last one recorded in `final-hosts.json`.",
+            "",
+            "| Source | Old host | New host |",
+            "| --- | --- | --- |",
+            *(f"| `{c['source']}` | {c['old_host']} | {c['new_host']} |" for c in moved),
+        ]
     lines += [
         "",
         "## Findings",

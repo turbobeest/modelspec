@@ -1440,3 +1440,67 @@ def test_trust_line_failure_does_not_stop_the_audit(tmp_path, registry, monkeypa
     payload = json.loads((tmp_path / "reports" / f"{TODAY}.json").read_text())
     assert payload["trust_line"] == {"unavailable": "OSError: broken symlink"}
     assert status == (1 if payload["invariants"]["errors"] else 0)
+
+
+def test_sample_records_each_registered_source_final_host(tmp_path, catalogue, registry):
+    """MODEL-525: the audit records where a registered source's fetch ended, and a later
+    run that ends on another host reports it by name and in the summary count."""
+    body = b"Model: Test Model\nmodel.context window: 128000 tokens\n"
+
+    def http(final):
+        class HTTP:
+            def fetch(self, url):
+                return FetchResult("ok", status=200, body=body, resolved_urls=(url, final))
+
+        return HTTP()
+
+    catalogue.facts = catalogue.facts[1:]
+    path = tmp_path / "reports" / "data-trust" / sample.FINAL_HOSTS_FILE
+    first = sample.run(catalogue, registry, n=60, seed="week", as_of=TODAY,
+                       fetcher=http("https://docs.example.test/docs"), final_hosts=path, write=True)
+    assert first["final_host_changed"] == []
+    assert json.loads(path.read_text())["src-lab-docs"]["final_host"] == "docs.example.test"
+    moved = sample.run(catalogue, registry, n=60, seed="week", as_of=TODAY,
+                       fetcher=http("https://elsewhere.test/docs"), final_hosts=path)
+    assert moved["final_host_changed"] == [{
+        "source": "src-lab-docs", "status": "final_host_changed",
+        "old_host": "docs.example.test", "new_host": "elsewhere.test"}]
+    # Without write the record stays as it was.
+    assert json.loads(path.read_text())["src-lab-docs"]["final_host"] == "docs.example.test"
+    report = {"invariants": invariants.run(catalogue, registry, TODAY), "sample": moved,
+              "trust_line": None}
+    assert "(final_host_changed): 1" in summary(report)
+
+
+def test_a_revision_pinned_arena_read_records_its_registered_source(tmp_path, catalogue, registry):
+    """MODEL-525: an Arena parquet read at a pinned revision maps back to the registered
+    source it was pinned from, so it is recorded and a later move is reported."""
+    listed = f"https://huggingface.co/datasets/{sample.ARENA_DATASET}/resolve/main/text/latest.parquet"
+    catalogue.sources["src-arena"] = {**catalogue.sources["src-lab-docs"], "id": "src-arena",
+                                      "url": listed}
+    catalogue.facts = catalogue.facts[1:]
+    pinned = sample.at_revision(listed, "a" * 40)
+    assert pinned != listed
+
+    def reader(f, c, registry, fetcher, *rest):
+        fetcher.fetch(pinned)
+        return "matched", "deterministic_read"
+
+    class HTTP:
+        def __init__(self, final):
+            self.final = final
+
+        def fetch(self, url):
+            return FetchResult("ok", status=200, body=b"x", resolved_urls=(url, self.final))
+
+    path = tmp_path / sample.FINAL_HOSTS_FILE
+    first = sample.run(catalogue, registry, n=60, seed="week", as_of=TODAY,
+                       fetcher=HTTP("https://cdn-lfs.hf.co/x"), reader=reader,
+                       final_hosts=path, write=True)
+    assert first["final_host_changed"] == []
+    assert json.loads(path.read_text())["src-arena"]["final_host"] == "cdn-lfs.hf.co"
+    moved = sample.run(catalogue, registry, n=60, seed="week", as_of=TODAY,
+                       fetcher=HTTP("https://elsewhere.test/x"), reader=reader,
+                       final_hosts=path)
+    assert [(c["source"], c["new_host"]) for c in moved["final_host_changed"]] == [
+        ("src-arena", "elsewhere.test")]
