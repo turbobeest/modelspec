@@ -46,6 +46,10 @@ def _stored_count(counts: Mapping[str, Any], key: str) -> int | None:
 def _over_undetermined_limit(details: object) -> str:
     if not isinstance(details, Mapping):
         return "no"
+    over = details.get("over_undetermined_limit")
+    if isinstance(over, bool):
+        # The gate's raw comparison wins over the rounded share (MODEL-553).
+        return "yes" if over else "no"
     share = details.get("undetermined_share")
     limit = details.get("max_undetermined_share")
     if isinstance(share, bool) or isinstance(limit, bool):
