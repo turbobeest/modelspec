@@ -24,9 +24,12 @@ TERMS = {"huggingface.co": "restricts", "example.test": "permits"}
 
 
 def _card(root: Path, slug: str, display: str, *, status: str = "active",
-          rows: str = "  evidence: []\n", extra: str = "", lab: str = "lab") -> Path:
+          rows: str = "  evidence: []\n", extra: str = "", lab: str = "lab",
+          released: str | None = None) -> Path:
     path = root / "models" / lab / f"{slug}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
+    if released:
+        extra = f"release_date: '{released}'\n" + extra
     path.write_text(
         f"---\nmodel_id: {lab}/{slug}\ndisplay_name: {display}\nstatus: {status}\n{extra}"
         f"benchmarks:\n{rows}---\nProse stays.\n",
@@ -136,6 +139,9 @@ def _run(monkeypatch, tmp_path: Path, root: Path, rows: list[dict], **options):
 
 def _rows(path: Path) -> list[dict]:
     return refresh._front(path)["benchmarks"]["evidence"]
+
+
+_TWO = "two board rows name this card"
 
 
 def _refusals(report) -> dict[str, tuple[str, str]]:
@@ -280,28 +286,129 @@ def test_a_display_name_that_is_another_cards_model_id_is_shared(
     assert _refusals(report)["orbit-2"][1] == "2 cards share this name"
 
 
-def test_an_effort_variant_never_lands_on_the_base_card(monkeypatch, tmp_path: Path) -> None:
+def test_a_variant_name_never_lands_on_another_card(monkeypatch, tmp_path: Path) -> None:
     """The reviewer's question: can a row land on the wrong card through an effort variant?"""
     root = _repo(tmp_path)
     base = _card(root, "deep-2", "Deep 2")
     thinking = _card(root, "deep-2-thinking", "Deep 2 Thinking")
 
     report = _run(monkeypatch, tmp_path, root, [
-        _dataset_row("Deep 2 (high)", 1250.0),        # parentheses: refused
+        _dataset_row("Deep 2 (high)", 1250.0),        # an effort label: the base card, at high
         _dataset_row("deep-2-high", 1240.0),          # strip=False keeps "high": no card
         _dataset_row("Deep 2 Thinking", 1230.0),      # its own card, not the base
-        _dataset_row("Deep 2 (thinking)", 1220.0),    # parentheses: refused
+        _dataset_row("Deep 2 (thinking)", 1220.0),    # not an effort label: refused
     ])
 
-    assert _rows(base) == []
+    [base_row] = _rows(base)
+    assert (base_row["model_id_as_evaluated"], base_row["effort"]) == ("Deep 2 (high)", "high")
     [row] = _rows(thinking)
     assert row["model_id_as_evaluated"] == "Deep 2 Thinking"
-    assert row["score"] == 1230.0
+    assert row["score"] == 1230.0 and row.get("effort") is None
     refused = _refusals(report)
-    assert refused["Deep 2 (high)"] == ("lab/deep-2", "board name contains parentheses")
     assert refused["Deep 2 (thinking)"] == ("lab/deep-2", "board name contains parentheses")
-    assert "deep-2-high" not in refused
+    assert "deep-2-high" not in refused and "Deep 2 (high)" not in refused
     assert report.first_rows_unmatched == {"arena:arena_elo_overall": 1}
+
+
+def test_an_effort_label_lands_on_the_base_card_with_that_effort(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    root = _repo(tmp_path)
+    card = _card(root, "claude-fable-5-2", "Claude Fable 5.2", lab="anthropic")
+
+    report = _run(monkeypatch, tmp_path, root, [_dataset_row("Claude Fable 5.2 (xHigh)", 1500.0)])
+
+    assert report.quarantined == [], report.quarantined
+    [entry] = report.first_rows
+    assert (entry.model_id, entry.effort, entry.match_key) == (
+        "anthropic/claude-fable-5-2", "xhigh", "claude-fable-5-2")
+    [row] = _rows(card)
+    assert row["effort"] == "xhigh"
+    assert row["model_id_as_evaluated"] == "Claude Fable 5.2 (xHigh)"
+    assert row["id"] == refresh.evidence_id("anthropic/claude-fable-5-2", row)
+
+
+@pytest.mark.parametrize("name", [
+    "Claude Fable 5.2 (Thinking)",        # not an effort label
+    "Claude Fable 5.2 (preview)",
+    "Claude Fable 5.2 (Claude Opus 5.5)",  # names a different model
+    "Claude Fable 5.2 (thinking) (high)",  # the base name still has a parenthesis
+])
+def test_any_other_parenthesis_is_refused(monkeypatch, tmp_path: Path, name: str) -> None:
+    root = _repo(tmp_path)
+    fable = _card(root, "claude-fable-5-2", "Claude Fable 5.2", lab="anthropic")
+    opus = _card(root, "claude-opus-5-5", "Claude Opus 5.5", lab="anthropic")
+
+    report = _run(monkeypatch, tmp_path, root, [_dataset_row(name, 1500.0)])
+
+    assert report.first_rows == []
+    assert _rows(fable) == [] and _rows(opus) == []
+    assert _refusals(report)[name][1] == "board name contains parentheses"
+
+
+def test_an_effort_label_on_a_base_name_two_cards_share_is_refused(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    root = _repo(tmp_path)
+    one = _card(root, "fable-a", "Claude Fable 5.2")
+    two = _card(root, "fable-b", "Claude Fable 5.2")
+
+    report = _run(monkeypatch, tmp_path, root, [_dataset_row("Claude Fable 5.2 (xHigh)", 1500.0)])
+
+    assert _rows(one) == [] and _rows(two) == []
+    assert _refusals(report)["Claude Fable 5.2 (xHigh)"] == ("", "2 cards share this name")
+
+
+ARENA_ROW_AT_MAX = TEMPLATE_ROWS.replace("arena_elo_overall", "arena_webdev").replace(
+    "Template Model", "Effort Card (max)").replace("effort: null", "effort: max").replace(
+    "lab/template#", "lab/effort-card#")
+
+
+def test_an_effort_row_needs_the_effort_the_card_is_read_at(monkeypatch, tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    card = _card(root, "effort-card", "Effort Card", rows=ARENA_ROW_AT_MAX)
+    other = _card(root, "no-controls", "No Controls", extra=(
+        "facts:\n- facet: feature.effort_controls\n  value: false\n"))
+
+    report = _run(monkeypatch, tmp_path, root, [
+        _dataset_row("Effort Card (high)", 1200.0),   # the card is read at max: refused
+        _dataset_row("No Controls (high)", 1100.0),   # the card states no effort controls
+    ])
+
+    assert len(_rows(card)) == 1 and _rows(other) == []
+    refused = _refusals(report)
+    assert refused["Effort Card (high)"] == (
+        "lab/effort-card", "the card is read at another effort on Arena")
+    assert refused["No Controls (high)"] == (
+        "lab/no-controls", "the card states it has no effort controls")
+
+
+def test_the_board_row_at_the_cards_effort_is_the_one_filed(monkeypatch, tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    card = _card(root, "effort-card", "Effort Card", rows=ARENA_ROW_AT_MAX)
+
+    report = _run(monkeypatch, tmp_path, root, [
+        _dataset_row("Effort Card (high)", 1200.0), _dataset_row("Effort Card (max)", 1210.0),
+    ])
+
+    rows = _rows(card)
+    assert [(row["benchmark_id"], row["effort"]) for row in rows] == [
+        ("arena_webdev", "max"), ("arena_elo_overall", "max")]
+    assert [entry.board_name for entry in report.first_rows] == ["Effort Card (max)"]
+
+
+def test_two_effort_rows_for_a_card_read_at_no_effort_file_neither(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    root = _repo(tmp_path)
+    card = _card(root, "fresh", "Fresh Model")
+
+    report = _run(monkeypatch, tmp_path, root, [
+        _dataset_row("Fresh Model (high)", 1200.0), _dataset_row("Fresh Model (max)", 1210.0),
+    ])
+
+    assert _rows(card) == []
+    assert {entry.reason for entry in report.first_rows_refused} == {_TWO}
 
 
 def test_two_board_rows_that_name_one_card_file_neither(monkeypatch, tmp_path: Path) -> None:
@@ -386,23 +493,71 @@ def test_a_dry_run_reports_first_rows_and_writes_nothing(monkeypatch, tmp_path: 
 # --- cap --------------------------------------------------------------------------------------
 
 
-def test_the_25th_first_row_is_written_and_the_26th_is_reported(
+def test_the_50th_first_row_is_written_and_the_51st_is_reported(
     monkeypatch, tmp_path: Path,
 ) -> None:
     root = _repo(tmp_path)
-    cards = [_card(root, f"model-{index:02d}", f"Model {index:02d}") for index in range(26)]
+    cards = [_card(root, f"model-{index:02d}", f"Model {index:02d}") for index in range(51)]
 
     report = _run(monkeypatch, tmp_path, root, [
-        _dataset_row(f"Model {index:02d}", 1000.0 + index) for index in range(26)
+        _dataset_row(f"Model {index:02d}", 1000.0 + index) for index in range(51)
     ])
 
-    assert refresh.FIRST_ROWS_PER_RUN == 25
-    assert len(report.first_rows) == 25
-    assert [entry.model_id for entry in report.first_rows_capped] == ["lab/model-25"]
+    assert refresh.FIRST_ROWS_PER_RUN == 50
+    assert len(report.first_rows) == 50
+    assert [entry.model_id for entry in report.first_rows_capped] == ["lab/model-50"]
     assert report.first_rows_capped[0].capped is True
-    assert all(len(_rows(card)) == 1 for card in cards[:25])
-    assert _rows(cards[25]) == []
-    assert report.added == 25
+    assert all(len(_rows(card)) == 1 for card in cards[:50])
+    assert _rows(cards[50]) == []
+    assert report.added == 50
+
+
+def test_the_cap_reads_premier_cards_first_then_newest_release_then_board(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    root = _repo(tmp_path)
+    (root / "premier" / "slice-1.yaml").write_text(
+        "models:\n- model_id: lab/template\n- model_id: lab/old-premier\n", encoding="utf-8",
+    )
+    _card(root, "old-premier", "Old Premier", released="2024-01-01")
+    _card(root, "newest", "Newest", released="2026-11-01")
+    _card(root, "middle", "Middle", released="2025-06-01")
+    _card(root, "undated", "Undated")
+    monkeypatch.setattr(refresh, "FIRST_ROWS_PER_RUN", 3)
+
+    report = _run(monkeypatch, tmp_path, root, [
+        _dataset_row(name, 1100.0 + index)
+        for index, name in enumerate(("Undated", "Middle", "Newest", "Old Premier"))
+    ])
+
+    assert [entry.model_id for entry in report.first_rows] == [
+        "lab/old-premier", "lab/newest", "lab/middle"]
+    assert [entry.model_id for entry in report.first_rows_capped] == ["lab/undated"]
+    assert report.first_rows[0].premier is True
+
+
+def _entry(model_id: str, benchmark: str, *, premier: bool = False, released: str = ""):
+    return refresh.FirstRow(card="", model_id=model_id, benchmark=benchmark, board_name="",
+                            match_key="", source="", score=0.0, evidence_date="",
+                            premier=premier, release_date=released)
+
+
+def test_the_order_is_a_constant_and_ties_break_on_board_then_model() -> None:
+    entries = [
+        _entry("lab/b", "arena_sc_math", released="2026-01-01"),
+        _entry("lab/a", "arena_sc_math", released="2026-01-01"),
+        _entry("lab/a", "arena_elo_coding", released="2026-01-01"),
+        _entry("lab/p", "arena_webdev", premier=True),
+        _entry("lab/n", "arena_webdev", released="2026-05-01"),
+    ]
+
+    assert refresh.FIRST_ROW_ORDER == ("premier", "release_date", "board")
+    assert [(e.model_id, e.benchmark) for e in refresh.order_first_rows(entries)] == [
+        ("lab/p", "arena_webdev"), ("lab/n", "arena_webdev"), ("lab/a", "arena_elo_coding"),
+        ("lab/a", "arena_sc_math"), ("lab/b", "arena_sc_math")]
+    by_board = refresh.order_first_rows(entries, ("board",))
+    assert [(e.model_id, e.benchmark) for e in by_board][:2] == [
+        ("lab/a", "arena_elo_coding"), ("lab/a", "arena_sc_math")]
 
 
 # --- collector --------------------------------------------------------------------------------

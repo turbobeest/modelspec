@@ -298,6 +298,11 @@ class FirstRow:
     score: float
     evidence_date: str
     capped: bool = False
+    #: The effort the board name's parenthesis states, filed on the base card; else None.
+    effort: str | None = None
+    #: The ordering inputs (``FIRST_ROW_ORDER``): a premier-lineup card, its release date.
+    premier: bool = False
+    release_date: str = ""
 
 
 @dataclass(frozen=True)
@@ -2452,7 +2457,12 @@ def _refresh_arena_boards(
 # --- first-row filing (MODEL-478, docs/design/first-row-filing.md) -----------------------------
 
 #: First rows one weekly run writes. Later candidates are reported, not written.
-FIRST_ROWS_PER_RUN = 25
+#: 50 since the orchestrator's MODEL-478 decision (the design said 25).
+FIRST_ROWS_PER_RUN = 50
+#: The order the cap reads candidates in, most significant first: ``premier`` (cards on
+#: ``premier/slice-1.yaml`` first), ``release_date`` (the card's, newest first; a card
+#: with none comes last), ``board`` (benchmark id). The model id breaks any tie.
+FIRST_ROW_ORDER: tuple[str, ...] = ("premier", "release_date", "board")
 #: The label a pull request that adds a first row carries. A first row is a new fact,
 #: not a score-only change: a person reviews and merges it.
 FIRST_ROW_LABEL = "first-row"
@@ -2469,6 +2479,26 @@ _FIRST_ROW_NO_CARD = "no card has this name"
 _FIRST_ROW_PUBLISHER = "publisher prefix is not the card's lab"
 _FIRST_ROW_INACTIVE = "card is not active"
 _FIRST_ROW_TWO_ROWS = "two board rows name this card"
+_FIRST_ROW_OTHER_EFFORT = "the card is read at another effort on Arena"
+_FIRST_ROW_NO_EFFORT_CONTROLS = "the card states it has no effort controls"
+_TRAILING_PARENTHESIS = re.compile(r"\s*\([^()]*\)\s*$")
+
+#: (key, newest first) per ``FIRST_ROW_ORDER`` name.
+_FIRST_ROW_SORTS: dict[str, tuple[Callable[[FirstRow], Any], bool]] = {
+    "premier": (lambda entry: not entry.premier, False),
+    "release_date": (lambda entry: entry.release_date, True),
+    "board": (lambda entry: entry.benchmark, False),
+}
+
+
+def order_first_rows(entries: Sequence[FirstRow],
+                     order: Sequence[str] = FIRST_ROW_ORDER) -> list[FirstRow]:
+    """``entries`` in the order the cap reads them (``FIRST_ROW_ORDER``)."""
+    ordered = sorted(entries, key=lambda entry: (entry.benchmark, entry.model_id))
+    for name in reversed(tuple(order)):
+        key, newest_first = _FIRST_ROW_SORTS[name]
+        ordered.sort(key=key, reverse=newest_first)  # stable, also when reversed
+    return ordered
 
 
 def first_row_host_class(url: str, terms: Mapping[str, str]) -> str:
@@ -2518,11 +2548,15 @@ def first_row_index(fronts: Mapping[str, Mapping[str, Any]]) -> dict[str, set[st
 
 def first_row_match(
     name: str, index: Mapping[str, set[str]], fronts: Mapping[str, Mapping[str, Any]],
-) -> tuple[str | None, str, str | None, str]:
-    """``(model_id, key, refusal, nearest)`` for one board name.
+) -> tuple[str | None, str, str | None, str, str | None]:
+    """``(model_id, key, refusal, nearest, effort)`` for one board name.
 
     The design's matcher, not ``match_index`` and not the refresh's token sort. A name
-    with parentheses is refused before the match (``slug`` would drop their text). The
+    with parentheses is refused before the match (``slug`` would drop their text), with
+    one exception: one trailing parenthesis that ``_name_effort`` reads as a known
+    effort label ("Claude Fable 5.2 (xHigh)"). That name is matched on its base name,
+    the text before the parenthesis, and ``effort`` is the label; the row is filed on
+    the base card at that effort or not at all. Any other parenthesis is refused. The
     key is ``slug(name, strip=False)``; it must equal the key of exactly one card. A
     publisher prefix (``lab/`` before the first ``/`` of a name that is not a URL)
     must be that card's lab. The card must be active. ``nearest`` is the one card the
@@ -2530,23 +2564,73 @@ def first_row_match(
     """
     from scripts.premier_slice1 import slug
 
-    key = slug(name, strip=False)
+    effort = None
+    base = name
+    if "(" in name or ")" in name:
+        effort = _name_effort(name)
+        base = _TRAILING_PARENTHESIS.sub("", name) if effort else name
+    key = slug(base, strip=False)
     hits = index.get(key, set()) if key else set()
     nearest = next(iter(hits)) if len(hits) == 1 else ""
-    if "(" in name or ")" in name:
-        return None, key, _FIRST_ROW_PARENTHESES, nearest
+    if "(" in base or ")" in base:
+        return None, key, _FIRST_ROW_PARENTHESES, nearest, None
     if not hits:
-        return None, key, _FIRST_ROW_NO_CARD, ""
+        return None, key, _FIRST_ROW_NO_CARD, "", effort
     if len(hits) > 1:
-        return None, key, f"{len(hits)} cards share this name", ""
+        return None, key, f"{len(hits)} cards share this name", "", effort
     model_id = nearest
-    if "/" in name and "://" not in name:
-        publisher = name.split("/", 1)[0].strip().casefold()
+    if "/" in base and "://" not in base:
+        publisher = base.split("/", 1)[0].strip().casefold()
         if publisher != model_id.split("/", 1)[0].casefold():
-            return None, key, _FIRST_ROW_PUBLISHER, model_id
+            return None, key, _FIRST_ROW_PUBLISHER, model_id, effort
     if str(fronts[model_id].get("status") or "") != "active":
-        return None, key, _FIRST_ROW_INACTIVE, model_id
-    return model_id, key, None, model_id
+        return None, key, _FIRST_ROW_INACTIVE, model_id, effort
+    return model_id, key, None, model_id, effort
+
+
+def _arena_efforts(front: Mapping[str, Any]) -> set[str]:
+    """The efforts the card's Arena dataset rows are read at: each row's ``effort``, or
+    the level its stored name's parenthesis states, as the weekly refresh reads them."""
+    efforts: set[str] = set()
+    for row in (front.get("benchmarks") or {}).get("evidence") or []:
+        if not isinstance(row, Mapping) or not _arena_reading_row(row):
+            continue
+        effort = row.get("effort") or _name_effort(str(row.get("model_id_as_evaluated") or ""))
+        if effort:
+            efforts.add(str(effort).casefold())
+    return efforts
+
+
+def _states_no_effort_controls(front: Mapping[str, Any]) -> bool:
+    return any(
+        isinstance(fact, Mapping) and fact.get("facet") == "feature.effort_controls"
+        and fact.get("value") is False
+        for fact in front.get("facts") or []
+    )
+
+
+def _effort_refusal(front: Mapping[str, Any], effort: str | None) -> str | None:
+    """Why the card may not take a row at ``effort``, or None.
+
+    A name with no effort is the card's own name. An effort row needs a card whose
+    Arena rows are read at that effort already, or a card read at no effort on Arena
+    (it may take the board's) that does not state it has no effort controls.
+    """
+    if effort is None:
+        return None
+    stored = _arena_efforts(front)
+    if stored:
+        return None if effort in stored else _FIRST_ROW_OTHER_EFFORT
+    return _FIRST_ROW_NO_EFFORT_CONTROLS if _states_no_effort_controls(front) else None
+
+
+def _premier_ids(root: Path) -> set[str]:
+    path = root / "premier" / "slice-1.yaml"
+    if not path.is_file():
+        return set()
+    loaded = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return {str(row.get("model_id")) for row in loaded.get("models") or []
+            if isinstance(row, Mapping)}
 
 
 def _catalogue(root: Path) -> tuple[dict[str, Path], dict[str, dict[str, Any]]]:
@@ -2601,6 +2685,7 @@ def plan_first_rows(
         (path, str(row.get("benchmark_id"))) for path, rows in (pending_additions or {}).items()
         for row in rows
     }
+    premier = _premier_ids(root)
     accepted: list[tuple[Path, str, dict[str, Any], BoardReading, FirstRow]] = []
     for board in sorted(boards, key=lambda item: item.key):
         if not board.key.startswith(FIRST_ROW_BOARD_PREFIXES) or board.key not in written:
@@ -2619,13 +2704,13 @@ def plan_first_rows(
                 f"first rows: the board's host is {host}; no first row filed",
             ))
             continue
-        named: dict[str, list[tuple[Mapping[str, Any], str]]] = {}
+        named: dict[str, list[tuple[Mapping[str, Any], str, str | None]]] = {}
         unmatched = 0
         for dataset_row in board.rows:
             name = _subject(dataset_row)
             if not name or dataset_row.get(board.value_field) is None:
                 continue
-            model_id, key, refusal, nearest = first_row_match(name, index, fronts)
+            model_id, key, refusal, nearest, effort = first_row_match(name, index, fronts)
             near = model_id or nearest
             if near and _has_row_on(fronts[near], board.benchmark_ids):
                 continue  # the card already has a row here: the refresh owns it
@@ -2637,19 +2722,30 @@ def plan_first_rows(
                     benchmark_label, name, key, refusal, near,
                 ))
                 continue
-            named.setdefault(str(model_id), []).append((dataset_row, key))
+            named.setdefault(str(model_id), []).append((dataset_row, key, effort))
         if unmatched:
             report.first_rows_unmatched[board.key] = unmatched
         templates: dict[str, Mapping[str, Any] | None] = {}
-        for model_id, hits in sorted(named.items()):
+        for model_id, named_rows in sorted(named.items()):
+            hits = []
+            for row, key, effort in named_rows:
+                refusal = _effort_refusal(fronts[model_id], effort)
+                if refusal is None:
+                    hits.append((row, key, effort))
+                else:
+                    report.first_rows_refused.append(FirstRowRefusal(
+                        benchmark_label, _subject(row), key, refusal, model_id,
+                    ))
             if len(hits) > 1:
                 report.first_rows_refused.extend(
                     FirstRowRefusal(benchmark_label, _subject(row), key, _FIRST_ROW_TWO_ROWS,
                                     model_id)
-                    for row, key in hits
+                    for row, key, _effort in hits
                 )
                 continue
-            dataset_row, key = hits[0]
+            if not hits:
+                continue
+            dataset_row, key, effort = hits[0]
             name = _subject(dataset_row)
             rows, failures = _rows_for_match(
                 root=root, model_id=model_id, board=board, matched=dataset_row,
@@ -2683,9 +2779,13 @@ def plan_first_rows(
                     card=paths[model_id].relative_to(root).as_posix(),
                     model_id=model_id, benchmark=benchmark, board_name=name, match_key=key,
                     source=str(row["source_url"]), score=float(row["score"]),
-                    evidence_date=str(row["evidence_date"]),
+                    evidence_date=str(row["evidence_date"]), effort=row.get("effort"),
+                    premier=model_id in premier,
+                    release_date=_iso_day(fronts[model_id].get("release_date")),
                 )))
-    accepted.sort(key=lambda item: (item[4].benchmark, item[1]))
+    ordered = order_first_rows([item[4] for item in accepted])
+    position_of = {id(entry): position for position, entry in enumerate(ordered)}
+    accepted.sort(key=lambda item: position_of[id(item[4])])
     planned: list[tuple[Path, str, dict[str, Any], BoardReading]] = []
     for position, (path, model_id, row, board, entry) in enumerate(accepted):
         if position >= FIRST_ROWS_PER_RUN:

@@ -138,7 +138,19 @@ behaves as before. Only the Arena boards file (`FIRST_ROW_BOARD_PREFIXES`).
   subset, the category, `leaderboard_publish_date` and `Rating <score> [<lower>,
   <upper>], <n> votes, rank <rank>.`. `interval` and `n` sit beside the score.
   The `add_missing` path writes the same fields (MODEL-511).
-- `FIRST_ROWS_PER_RUN` is 25. Rows past it go to `first_rows_capped`.
+- `FIRST_ROWS_PER_RUN` is 50, by the orchestrator's decision on MODEL-478. It
+  replaces the 25 above. Rows past it go to `first_rows_capped`. The cap reads
+  candidates in `FIRST_ROW_ORDER`: cards on `premier/slice-1.yaml` first, then
+  newest card `release_date` first, then the board. A card with no release date
+  comes last, and the model id breaks a tie.
+- One exception to the parentheses rule, also by that decision. A name that ends
+  in one parenthesis `_name_effort` reads as an effort label, such as
+  `Claude Fable 5.2 (xHigh)`, is matched on its base name, the text before the
+  parenthesis. The row lands on that one base card, at that effort. The card's
+  Arena rows must be read at that effort already. Or it must be read at no effort
+  on Arena and must not state `feature.effort_controls: false`. Any other
+  parenthesis is refused, and so is a base name that still has one. When two
+  board rows still name the card after that check, neither is filed.
 - The report has a `## First rows (human review)` section. The report JSON
   carries `merge_class` (`human-review` or `score-only`), `labels`
   (`["first-row"]` when a first row was filed), `first_rows`,
