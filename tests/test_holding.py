@@ -189,7 +189,7 @@ def test_the_holding_root_is_the_landing_and_the_404_stays_dark(trees):
     tree = trees["holding"] / "modelspec"
     page = (tree / "index.html").read_text(encoding="utf-8")
     not_found = (tree / "404.html").read_text(encoding="utf-8")
-    assert "Model routers make educated guesses." in page
+    assert "<h1>Which model, and why.</h1>" in page
     assert "Board opening soon" in page
     assert '<link rel="canonical" href="https://modelspec.dev/">' in page
     assert 'content="noindex"' not in page

@@ -44,6 +44,27 @@ GUIDE_CONSTANTS = ROOT / "api" / "worker" / "src" / "agent_guide.py"
 CLI_OUT = ROOT / "cli" / "modelspec" / "agent-bundle.json"
 CLI_SCHEMA = ROOT / "cli" / "modelspec" / "spec.schema.json"
 CLI_FEEDBACK_SCHEMA = ROOT / "cli" / "modelspec" / "feedback.schema.json"
+#: Markdown files that open with the one sentence. `write` keeps
+#: entity.ONE_SENTENCE between these markers; pipeline/surface_lint.py treats a
+#: copy outside them as typed (MODEL-470). Each marker sits on its own line,
+#: with a blank line between it and the sentence, so the sentence stays a
+#: Markdown paragraph (or a blockquote line) rather than part of an HTML block.
+ONE_SENTENCE_START = "<!-- entity:one-sentence -->"
+ONE_SENTENCE_END = "<!-- /entity:one-sentence -->"
+#: Groups: indent before the start marker, the optional blockquote prefix and
+#: the sentence. The blank lines and the end marker's indent must match.
+ONE_SENTENCE_REGION = re.compile(
+    r"^(?P<indent>[ \t]*)" + re.escape(ONE_SENTENCE_START) + r"[ \t]*\n[ \t]*\n"
+    r"(?P=indent)(?P<quote>>[ \t]*)?(?P<sentence>[^\n]*?)[ \t]*\n[ \t]*\n"
+    r"(?P=indent)" + re.escape(ONE_SENTENCE_END) + r"[ \t]*$",
+    re.M,
+)
+ONE_SENTENCE_FILES = (
+    ROOT / "README.md",
+    ROOT / "AGENTS.md",
+    ROOT / "docs" / "cli-contract.md",
+    ROOT / "docs" / "aeo" / "README.md",
+)
 INSTALL_PATHS = (
     "uvx --from modelspec-dev modelspec",
     "pipx install modelspec-dev",
@@ -845,6 +866,24 @@ def render(data: dict[str, Any]) -> str:
     return "{\n" + ",\n".join(fields) + "\n}\n" if fields else "{}\n"
 
 
+def with_one_sentence(path: Path) -> str:
+    """``path`` with entity.ONE_SENTENCE between its generated markers."""
+    text = path.read_text(encoding="utf-8")
+    regions = ONE_SENTENCE_REGION.findall(text)
+    if len(regions) != 1 or text.count(ONE_SENTENCE_START) != 1 or text.count(ONE_SENTENCE_END) != 1:
+        raise ValueError(
+            f"{path.relative_to(ROOT)} needs one one-sentence region: each marker on its own "
+            "line, a blank line between each marker and the sentence"
+        )
+
+    def fill(match: re.Match[str]) -> str:
+        indent, quote = match["indent"], match["quote"] or ""
+        return (f"{indent}{ONE_SENTENCE_START}\n\n{indent}{quote}{entity.ONE_SENTENCE}\n\n"
+                f"{indent}{ONE_SENTENCE_END}")
+
+    return ONE_SENTENCE_REGION.sub(fill, text)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m pipeline.agent_copy")
     parser.add_argument("command", choices=("write", "check"))
@@ -864,6 +903,7 @@ def main(argv: list[str] | None = None) -> int:
             f'GUIDE_URL = {GUIDE_URL!r}\nGUIDE_VERSION = {version!r}\n'
             f'MINIMAL_SPEC = {MINIMAL_SPEC!r}\nVOCAB_NEXT = {VOCAB_NEXT!r}\n'
         ),
+        **{path: with_one_sentence(path) for path in ONE_SENTENCE_FILES},
     }
     stale = False
     for path, text in artifacts.items():

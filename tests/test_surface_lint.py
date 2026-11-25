@@ -45,18 +45,27 @@ def texts(copy: dict) -> dict[str, str]:
         "description": entity.ONE_SENTENCE,
     }
     return {
-        "index.html": page(f"<p>{entity.ONE_SENTENCE}</p>", org),
+        "index.html": page(
+            f"<h1>{entity.TAGLINE}</h1><p>{entity.ROUTER_LINE}</p><p>{entity.ONE_SENTENCE}</p>", org
+        ),
         "about/index.html": page(
-            f"<h1>{entity.ABOUT_HEADING}</h1><p>{entity.DISAMBIGUATION} {entity.ONE_SENTENCE}</p>"
+            f"<h1>{entity.ABOUT_HEADING}</h1>"
+            f"<p>{entity.TAGLINE}</p><p>{entity.ROUTER_LINE}</p>"
+            f"<p>{entity.DISAMBIGUATION} {entity.ONE_SENTENCE}</p>"
             + "".join(f"<p>{claim.statement}</p>" for claim in entity.CLAIMS)
         ),
         "method/index.html": page(
             f"<h1>Method</h1><p>{entity.ONE_SENTENCE} {entity.DISAMBIGUATION}</p>"
         ),
-        "llms.txt": entity.ONE_SENTENCE + "\n\n" + entity.DISAMBIGUATION,
-        "index.md": entity.ONE_SENTENCE,
+        "llms.txt": (
+            f"{entity.TAGLINE}\n\n{entity.ROUTER_LINE}\n\n"
+            f"{entity.ONE_SENTENCE}\n\n{entity.DISAMBIGUATION}"
+        ),
+        "index.md": f"{entity.TAGLINE}\n\n{entity.ROUTER_LINE}\n\n{entity.ONE_SENTENCE}",
         "brand/index.html": page(entity.ONE_SENTENCE),
-        ".well-known/agent-skills/modelspec/SKILL.md": entity.ONE_SENTENCE,
+        ".well-known/agent-skills/modelspec/SKILL.md": (
+            f"{entity.TAGLINE}\n\n{entity.ROUTER_LINE}\n\n{entity.ONE_SENTENCE}"
+        ),
         sl.CARD: json.dumps(
             {
                 "description": entity.SHORT,
@@ -164,6 +173,228 @@ def test_an_unregistered_title_fails_even_without_a_superseded_string(
 ) -> None:
     texts["index.html"] = texts["index.html"].replace(entity.TITLE, "A different product title")
     assert [f.check for f in sl.presence(texts)] == ["presence.title"]
+
+
+def test_a_landing_missing_the_tagline_fails(texts: dict[str, str]) -> None:
+    texts["index.html"] = texts["index.html"].replace(entity.TAGLINE, "A different strapline")
+    checks = {f.check for f in sl.presence(texts) if f.surface == "index.html"}
+    assert "presence.tagline" in checks
+
+
+def test_the_landing_tagline_is_the_one_h1(texts: dict[str, str]) -> None:
+    """MODEL-470: the tagline is the headline, not a paragraph under another h1."""
+    assert [f for f in sl.presence(texts) if f.surface == "index.html"] == []
+    texts["index.html"] = page(
+        f"<h1>Some other headline</h1><p>{entity.TAGLINE}</p>"
+        f"<p>{entity.ROUTER_LINE}</p><p>{entity.ONE_SENTENCE}</p>"
+    )
+    checks = {f.check for f in sl.presence(texts) if f.surface == "index.html"}
+    assert {"presence.tagline", "presence.router_line", "presence.lead"} <= checks
+    texts["index.html"] = page(
+        f"<h1>{entity.TAGLINE}</h1><p>{entity.ROUTER_LINE}</p><p>{entity.ONE_SENTENCE}</p>"
+        "<h1>A second headline</h1>"
+    )
+    checks = {f.check for f in sl.presence(texts) if f.surface == "index.html"}
+    assert "presence.tagline" in checks
+
+
+def test_the_landing_router_line_and_sentence_follow_the_headline(
+    texts: dict[str, str],
+) -> None:
+    texts["index.html"] = page(
+        f"<h1>{entity.TAGLINE}</h1><p>{entity.ONE_SENTENCE}</p><p>{entity.ROUTER_LINE}</p>"
+    )
+    checks = {f.check for f in sl.presence(texts) if f.surface == "index.html"}
+    assert {"presence.router_line", "presence.lead"} <= checks
+    assert "presence.tagline" not in checks
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        # A paragraph before the h1 (MODEL-470 review), even with the rest in order.
+        f"<p>{entity.ROUTER_LINE}</p><h1>{entity.TAGLINE}</h1><p>{entity.ONE_SENTENCE}</p>",
+        f"<p>Intro.</p><h1>{entity.TAGLINE}</h1><p>{entity.ROUTER_LINE}</p>"
+        f"<p>{entity.ONE_SENTENCE}</p>",
+        f"<p>{entity.ROUTER_LINE}</p><p>{entity.ONE_SENTENCE}</p><h1>{entity.TAGLINE}</h1>",
+    ],
+)
+def test_a_paragraph_before_the_landing_h1_fails(texts: dict[str, str], body: str) -> None:
+    texts["index.html"] = page(body)
+    checks = {f.check for f in sl.presence(texts) if f.surface == "index.html"}
+    assert "presence.tagline" in checks
+
+
+def test_identity_lines_are_not_copied_outside_the_registry() -> None:
+    assert sl.copied_identity(ROOT) == []
+
+
+def test_retired_cost_tail_is_rejected_outside_recorded_history(tmp_path: Path) -> None:
+    retired = "sourced benchmarks and real cost"
+    (tmp_path / "README.md").write_text(retired + "\n", encoding="utf-8")
+    for rel in (
+        "docs/evidence/old.md",
+        "docs/history/old.md",
+        "qa/fixtures/old.json",
+        "tests/old.py",
+    ):
+        path = tmp_path / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(retired + "\n", encoding="utf-8")
+    findings = [
+        item for item in sl.copied_identity(tmp_path)
+        if item.check == "presence.superseded"
+    ]
+    assert [item.surface for item in findings] == ["README.md"]
+    assert findings[0].excerpt == retired
+
+
+def test_copied_identity_reports_readme_typescript_and_html(tmp_path: Path) -> None:
+    planted = {
+        "README.md": "which model, and why\n",
+        "src/router.ts": "evidence-backed logic that powers complex model routing.\n",
+        "templates/landing.html": "WHICH MODEL, AND WHY.\n",
+    }
+    for rel, text in planted.items():
+        path = tmp_path / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    fixture = tmp_path / "qa/fixtures/recorded.md"
+    fixture.parent.mkdir(parents=True, exist_ok=True)
+    fixture.write_text(entity.TAGLINE + "\n" + entity.ROUTER_LINE + "\n", encoding="utf-8")
+    for rel in (
+        "node_modules/pkg/index.js",
+        "dist/index.html",
+        "build/out.html",
+        ".git/COMMIT_EDITMSG",
+    ):
+        skipped = tmp_path / rel
+        skipped.parent.mkdir(parents=True, exist_ok=True)
+        skipped.write_text(entity.TAGLINE + "\n", encoding="utf-8")
+    findings = sl.copied_identity(tmp_path)
+    assert {item.surface for item in findings} == set(planted)
+    assert all(item.check == "presence.copied_identity" for item in findings)
+
+
+def _plant(root: Path, files: dict[str, str]) -> list[sl.Finding]:
+    for rel, text in files.items():
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    return sl.copied_identity(root)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Which model, and why does it matter?\n",
+        "We ask which model, and why it fits.\n",
+        "which model, and why, and when\n",
+        "Evidence-backed logic that powers complex model routing decisions.\n",
+        "Our evidence-backed logic that powers complex model routing is new.\n",
+        "Guides cover sourced benchmarks and real cost savings.\n",
+        "From sourced benchmarks and real costs, and more.\n",
+        "Prose that says ModelSpec is an analysis of alternatives for AI models, loosely.\n",
+        # Wrapped lines continue their sentence (MODEL-470 review, round 2).
+        "Which model, and why\ndoes it matter?\n",
+        "Which model, and why\r\n   does it matter?\r\n",
+        "Guides cover sourced benchmarks and real cost\nsavings.\n",
+        "Evidence-backed logic that powers complex model routing\n  decisions.\n",
+    ],
+)
+def test_a_longer_sentence_that_contains_a_registry_phrase_is_not_a_copy(
+    tmp_path: Path, text: str,
+) -> None:
+    """Whole statements only (MODEL-470 review): a phrase inside other prose passes."""
+    assert _plant(tmp_path, {"README.md": text}) == []
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Which model, and why.\n",
+        "# which model, and why\n",
+        "> WHICH MODEL, AND WHY?\n",
+        "Intro. Which model, and why. More text.\n",
+        '<p class="x">Which model, and why.</p>\n',
+        '"Which model,\n  and why."\n',
+    ],
+)
+def test_the_tagline_as_a_whole_statement_is_a_copy(tmp_path: Path, text: str) -> None:
+    findings = _plant(tmp_path, {"README.md": text})
+    assert [(f.surface, f.check, f.excerpt) for f in findings] == [
+        ("README.md", "presence.copied_identity", entity.TAGLINE)
+    ]
+
+
+def test_the_router_line_as_a_whole_statement_is_a_copy(tmp_path: Path) -> None:
+    findings = _plant(tmp_path, {"docs/x.md": "- Evidence-backed logic that powers\n  complex model routing\n"})
+    assert [f.excerpt for f in findings] == [entity.ROUTER_LINE]
+
+
+def test_a_typed_one_sentence_is_a_copy(tmp_path: Path) -> None:
+    """MODEL-470 review: the one sentence joins the tagline and the router line."""
+    wrapped = entity.ONE_SENTENCE.replace(" it decides ", "\nit decides ")
+    findings = _plant(tmp_path, {"README.md": f"# ModelSpec\n\n{wrapped} More prose.\n"})
+    assert [(f.surface, f.check, f.excerpt) for f in findings] == [
+        ("README.md", "presence.copied_identity", entity.ONE_SENTENCE)
+    ]
+
+
+def _region(sentence: str = entity.ONE_SENTENCE, indent: str = "", quote: str = "") -> str:
+    return (f"{indent}{agent_copy.ONE_SENTENCE_START}\n\n{indent}{quote}{sentence}\n\n"
+            f"{indent}{agent_copy.ONE_SENTENCE_END}")
+
+
+def test_a_paragraph_break_ends_a_statement(tmp_path: Path) -> None:
+    findings = _plant(tmp_path, {"README.md": "Intro text\n\nWhich model, and why\n\nMore text.\n"})
+    assert [f.excerpt for f in findings] == [entity.TAGLINE]
+
+
+def test_the_generated_one_sentence_region_is_not_a_typed_copy(tmp_path: Path) -> None:
+    for region in (_region(), _region(indent="   ", quote="> ")):
+        assert _plant(tmp_path, {"README.md": f"# ModelSpec\n\n{region}\n\nMore prose.\n"}) == []
+    # A region whose text drifted from the registry is not exempt.
+    drifted = _region(entity.ONE_SENTENCE + " Extra.")
+    findings = _plant(tmp_path, {"README.md": f"{drifted}\n"})
+    assert [f.excerpt for f in findings] == [entity.ONE_SENTENCE]
+    # Inline markers are not a generated region: they would make an HTML block.
+    inline = agent_copy.ONE_SENTENCE_START + entity.ONE_SENTENCE + agent_copy.ONE_SENTENCE_END
+    findings = _plant(tmp_path, {"README.md": f"{inline}\n"})
+    assert [f.excerpt for f in findings] == [entity.ONE_SENTENCE]
+
+
+def test_the_writer_fills_regions_and_refuses_inline_markers(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(agent_copy, "ROOT", tmp_path)
+    doc = tmp_path / "doc.md"
+    doc.write_text(f"1. Item:\n\n{_region('old text', indent='   ', quote='> ')}\n\nAfter.\n")
+    assert agent_copy.with_one_sentence(doc) == (
+        f"1. Item:\n\n{_region(indent='   ', quote='> ')}\n\nAfter.\n"
+    )
+    doc.write_text(agent_copy.ONE_SENTENCE_START + "old" + agent_copy.ONE_SENTENCE_END + " More.\n")
+    with pytest.raises(ValueError, match="own line"):
+        agent_copy.with_one_sentence(doc)
+
+
+def test_the_retired_tail_matches_only_the_exact_phrase(tmp_path: Path) -> None:
+    retired = "sourced benchmarks and real cost"
+    for text in (f"{retired}.\n", f"From your requirements, {retired}, and shows its work.\n"):
+        findings = _plant(tmp_path, {"README.md": text})
+        assert [(f.check, f.excerpt) for f in findings] == [("presence.superseded", retired)]
+    for text in (f"{retired} savings\n", f"{retired}s\n", f"un{retired}\n"):
+        assert _plant(tmp_path, {"README.md": text}) == []
+
+
+def test_the_marked_markdown_files_carry_the_generated_sentence() -> None:
+    """README.md and friends read the sentence from the registry through the writer."""
+    for path in agent_copy.ONE_SENTENCE_FILES:
+        text = path.read_text(encoding="utf-8")
+        regions = list(agent_copy.ONE_SENTENCE_REGION.finditer(text))
+        assert [match["sentence"] for match in regions] == [entity.ONE_SENTENCE], path
+        # Each marker is alone on its line, so the sentence stays Markdown.
+        for marker in (agent_copy.ONE_SENTENCE_START, agent_copy.ONE_SENTENCE_END):
+            assert [line.strip() for line in text.splitlines() if marker in line] == [marker], path
+        assert agent_copy.with_one_sentence(path) == text, path
 
 
 @pytest.mark.parametrize("path", ["index.html", "method/index.html"])
@@ -891,7 +1122,9 @@ def test_live_holding_skips_only_files_the_holding_builder_omits(
 ) -> None:
     texts["robots.txt"] = holding.ROBOTS
     del texts["sitemap.xml"]
-    texts["index.html"] = page(f"<p>{entity.ONE_SENTENCE}</p>")
+    texts["index.html"] = page(
+        f"<h1>{entity.TAGLINE}</h1><p>{entity.ROUTER_LINE}</p><p>{entity.ONE_SENTENCE}</p>"
+    )
     for path in live.PAGES:
         rel = path.lstrip("/") + "index.html"
         if sl.holding_serves(rel) and rel not in texts:

@@ -27,9 +27,10 @@ from pipeline.load import load_models
 
 SOFTWARE_ENGINEERING = "software_engineering"
 MONTHLY_TASKS = 10_000
-HEADLINE_LEAD = "Model routers make educated guesses."
-HEADLINE_SUB = "ModelSpec makes informed, unbiased decisions from evidence."
-HEADLINE = f"{HEADLINE_LEAD} {HEADLINE_SUB}"
+#: The hero headline is the tagline (MODEL-470, Jamie 2026-11-25). The router
+#: line and the one sentence follow it, in the order pipeline/surface_lint.py
+#: requires.
+HEADLINE = entity.TAGLINE
 TITLE = entity.TITLE
 DESCRIPTION = f"{entity.ONE_SENTENCE} Nobody pays to rank higher."
 GH = "https://github.com/turbobeest/modelspec/blob/main/"
@@ -432,9 +433,11 @@ def render(data: LandingData, *, variant: Literal["live", "holding"]) -> str:
     lead = entity.linked(entity.ONE_SENTENCE, {
         "your requirements": "/method/#must-prefer",
         "sourced benchmarks": "/method/#estimate",
-        "real cost": f"{GH}docs/decision-contract.md#cost-per-task",
+        "real costs": f"{GH}docs/decision-contract.md#cost-per-task",
         "shows its work": "/method/",
     })
+    headline = html.escape(HEADLINE, quote=False)
+    router_line = html.escape(entity.ROUTER_LINE, quote=False)
     coverage_copy = html.escape(coverage.summary(data.coverage))
     providers_copy = html.escape(coverage.provider_summary(data.coverage))
     return f'''<!doctype html>
@@ -444,7 +447,8 @@ def render(data: LandingData, *, variant: Literal["live", "holding"]) -> str:
 {robots}{canonical}{brand.head_links()}{social_cards.social_meta_for_page("/", data, description=DESCRIPTION)}<link rel="stylesheet" href="/{ASSET_DIR}/landing.css">{landing_chrome.lockup_style()}</head>
 <body><div class="axis" aria-hidden="true"></div>
 <header>{landing_chrome.lockup(href=None)}<nav><a href="#receipt">What it costs you</a><a href="#routers">Routers</a><a href="#teams">For teams</a><a href="#agents">For agents</a><a href="/pricing/">Pricing</a><a href="#pick-a-model">Test your pick</a>{board}</nav></header>
-<main><section class="hero"><div class="hero-copy"><h1><span class="h1-lead">{HEADLINE_LEAD}</span> <span class="h1-sub">{HEADLINE_SUB}</span></h1>
+<main><section class="hero"><div class="hero-copy"><h1>{headline}</h1>
+<p class="subline">{router_line}</p>
 <p class="close">{lead} When one model wins, it says so. When the evidence can't separate them, it <a href="/method/#ties">says that too</a>, and returns the tie. <a href="/legal/neutrality/">Nobody pays to rank higher.</a></p>
 <div class="actions"><a class="button cta-agents" href="#agents">Give it to your agents</a>{board_alt}</div></div>
 <figure class="plot"><div class="chips" aria-hidden="true"><span data-stage="1">The top estimate</span><span data-stage="2">Can't be told apart from it</span><span data-stage="3">The cheapest of those</span></div>

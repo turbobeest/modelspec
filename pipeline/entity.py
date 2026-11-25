@@ -3,10 +3,13 @@
 Every public surface that describes ModelSpec reads these strings: the landing
 page's title, meta and og descriptions and lead, the first paragraph of
 /method/, the /about/ facts page, the opening of llms.txt and its Markdown
-twins, the MCP card and the Organization JSON-LD. A surface that writes its own
-description is drift, and answer engines read two descriptions as two entities.
-Jamie froze the sentence on 2026-10-01; changing it is a positioning decision,
-not a copy edit.
+twins, the MCP card and the Organization JSON-LD. The landing page, /about/
+and that opening also read the tagline and the router line, in that order,
+before the one sentence. A surface that writes its own description is drift,
+and answer engines read two descriptions as two entities.
+Jamie froze the sentence on 2026-10-01 and revised it, with the tagline and
+router line, on 2026-11-12; changing any of the three is a positioning
+decision, not a copy edit.
 
 The neutrality commitment is not restated here. It lives in
 ``api.ranking.engine.neutrality_commitment()`` and ``docs/legal/``, held
@@ -24,9 +27,13 @@ MCP_ENDPOINT = "https://api.modelspec.dev/mcp"
 API_DECIDE = "https://api.modelspec.dev/v1/decide"
 BOARD = f"{SITE}/decide/details/"
 
+#: Order: tagline, router line, one sentence. A surface with room for only
+#: one thing shows the one sentence.
+TAGLINE = "Which model, and why."
+ROUTER_LINE = "Evidence-backed logic that powers complex model routing."
 ONE_SENTENCE = (
     "ModelSpec is an analysis of alternatives for AI models: it decides which "
-    "models fit a job from your requirements, sourced benchmarks and real cost, "
+    "models fit a job from your requirements, sourced benchmarks, and real costs, "
     "and shows its work."
 )
 
@@ -160,4 +167,5 @@ SUPERSEDED = (
     "a decision engine for AI models",
     "decides which AI model a job needs",
     "Decide which model fits a task",
+    "sourced benchmarks and real cost",
 )

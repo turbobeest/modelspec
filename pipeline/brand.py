@@ -130,8 +130,9 @@ def social_meta(title: str, *, path: str = "/", image_name: str = "og-card.png",
     )
 
 
-#: What ModelSpec is, for agents: the registry sentence and disambiguation
-#: first (MODEL-252), then how it decides and what it is not.
+#: The positioning paragraph: the registry sentence and disambiguation first
+#: (MODEL-252), then how it decides and what it is not. llms.txt and its
+#: Markdown twins put the tagline and the router line before it.
 POSITIONING = (
     f"{entity.ONE_SENTENCE} {entity.DISAMBIGUATION} Your requirements are Must "
     "conditions and your priorities Prefer weights. Ability is estimated from every "
@@ -140,3 +141,8 @@ POSITIONING = (
     "requests: use it to decide which models are worth routing to, then let a router "
     "choose among them per request."
 )
+
+
+def agent_opening() -> str:
+    """Tagline, router line, then the positioning paragraph, in that order."""
+    return f"{entity.TAGLINE}\n\n{entity.ROUTER_LINE}\n\n{POSITIONING}"
