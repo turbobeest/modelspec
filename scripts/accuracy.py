@@ -874,16 +874,27 @@ def sample_verified_claims(claims: Sequence[Any], *, size: int, seed: str) -> li
 
 
 def _latest_collected_claims(path: Path) -> list[Any]:
+    """The latest filed claim per target, ordered as ``decision.verify.Queue`` orders the
+    queue: by ``at`` (no zone means UTC), a later line on a tie. A ``retired`` event drops
+    the target until a later ``collected`` files it again (MODEL-557), so a backdated
+    retirement never hides a newer claim."""
     from decision.verify import Claim
 
-    latest: dict[tuple[str, str], Claim] = {}
     if not path.is_file():
         return []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            continue
-        event = json.loads(line)
-        if event.get("event") != "collected":
+
+    def event_time(event: dict[str, Any]) -> datetime:
+        at = datetime.fromisoformat(event["at"])
+        return at if at.tzinfo is not None else at.replace(tzinfo=UTC)
+
+    events = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()
+              if line.strip()]
+    events = [e for e in events if e.get("event") in ("collected", "retired")]
+    latest: dict[tuple[str, str], Claim] = {}
+    for _, event in sorted(enumerate(events), key=lambda pair: (event_time(pair[1]), pair[0])):
+        if event["event"] == "retired":
+            target = event["target"]
+            latest.pop((target["kind"], target["id"]), None)
             continue
         claim = Claim.from_dict(event["claim"])
         latest[(claim.target.kind, claim.target.id)] = claim

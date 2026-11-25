@@ -8556,12 +8556,21 @@ class VerificationLog:
             fh.write(verification.model_dump_json() + "\n")
 
     def records(self) -> list[Verification]:
+        """Every record. A line that repeats a key, in any spelling, is refused as the build
+        refuses it (MODEL-554), never read as its last value."""
+        from decision.owner_ruling import RepeatedKeyError, loads
+
         records = []
         if not self.path.is_file():
             return records
         for number, line in enumerate(self.path.read_text(encoding="utf-8").splitlines(), 1):
             if line.strip():
                 with private_errors(self.path, line=number):
+                    try:
+                        loads(line)
+                    except RepeatedKeyError:
+                        raise RepeatedKeyError(f"{self.path}: line {number}: a JSON object repeats "
+                                          "a key") from None
                     records.append(Verification.model_validate_json(line))
         return records
 
@@ -8631,8 +8640,35 @@ class _Pending:
     last: dict[str, Any] | None = None
 
 
+def data_row_targets(root: str | Path) -> set[tuple[str, str]]:
+    """Every ``(kind, id)`` a card fact, an offering fact or an evidence row in ``root``
+    holds, keyed as ``decision.snapshot.collect_repo`` keys them (MODEL-557)."""
+    from decision.snapshot import collect_repo
+
+    inputs = collect_repo(Path(root))
+    rows: set[tuple[str, str]] = set()
+    for record in (*inputs.models, *inputs.offerings, *inputs.subscriptions):
+        for fact in record.get("facts") or []:
+            if fact.get("id"):
+                rows.add(("fact", str(fact["id"])))
+    for row in inputs.evidence:
+        if row.get("id"):
+            rows.add(("evidence", str(row["id"])))
+    return rows
+
+
+#: Why ``Queue.retire`` retires a claim. ``no_data_row``: no card, offering or evidence row
+#: holds the target any more, so nothing the claim describes is published (MODEL-557).
+RETIRE_REASONS = frozenset({"no_data_row"})
+
+
 class Queue:
-    """``verification/queue/events.jsonl``: what to verify, and what to re-crawl."""
+    """``verification/queue/events.jsonl``: what to verify, and what to re-crawl.
+
+    Events: ``collected`` (a claim filed), ``changed`` (a cited source changed),
+    ``checked`` (a verification ran) and ``retired`` (the target's claim no longer
+    stands; a later ``collected`` files it again).
+    """
 
     def __init__(self, directory: str | Path = DEFAULT_DIRECTORY) -> None:
         self.directory = Path(directory)
@@ -8664,6 +8700,44 @@ class Queue:
                        "target": result.target.model_dump(), "outcome": result.outcome,
                        "diff": [d.to_dict() for d in result.diffs]}])
 
+    def retire(self, targets: str | TargetRef | Iterable[str | TargetRef], *, at: datetime,
+               reason: str, root: str | Path | None = None) -> None:
+        """Retire filed claims whose data row is gone (MODEL-557): nothing is pending, filed
+        or drawn for a target until a collector files it again.
+
+        ``reason`` is one of ``RETIRE_REASONS``, a fixed code, never page text. The data
+        checkout is always the parent of this queue's ``verification`` directory, so the
+        rows checked are the rows of the checkout the event is written to; a ``root`` that
+        names another directory is refused. The whole call is refused, and nothing is
+        appended, when the queue is not at ``<root>/verification``, when the root holds no
+        ``models`` directory, when a target has no filed claim, or when a card fact,
+        offering fact or evidence row in the root still holds it (``data_row_targets``).
+        No line is edited: the claim lines stay as history.
+        """
+        if reason not in RETIRE_REASONS:
+            raise ValueError(f"retire reason must be one of {sorted(RETIRE_REASONS)}")
+        refs = [target_ref(t) for t in ([targets] if isinstance(targets, (str, TargetRef))
+                                        else targets)]
+        keys = [_key(ref) for ref in refs]
+        if not refs or len(set(keys)) != len(keys):
+            raise ValueError("retire needs at least one target, each named once")
+        if self.directory.name != "verification":
+            raise ValueError("retire needs a queue at <data root>/verification")
+        derived = self.directory.resolve().parent
+        if root is not None and Path(root).resolve() != derived:
+            raise ValueError("retire refused: root is not the checkout of this queue")
+        root = derived
+        if not (root / "models").is_dir():
+            raise ValueError("retire needs the data checkout: no models directory at its root")
+        filed, rows = self.filed(), data_row_targets(root)
+        unfiled = sum(key not in filed for key in keys)
+        live = sum(key in rows for key in keys)
+        if unfiled or live:
+            raise ValueError(f"retire refused: {unfiled} targets have no filed claim, "
+                             f"{live} still have a data row; nothing appended")
+        self._append([{"event": "retired", "at": at.isoformat(), "target": ref.model_dump(),
+                       "reason": reason} for ref in refs])
+
     def _state(self) -> dict[tuple[str, str], _Pending]:
         state: dict[tuple[str, str], _Pending] = {}
         if not self.path.is_file():
@@ -8681,6 +8755,10 @@ class Queue:
             if event["event"] == "collected":
                 claim = Claim.from_dict(event["claim"])
                 state[_key(claim.target)] = _Pending(claim, "new", {}, event)
+                continue
+            if event["event"] == "retired":
+                # The claim filed before is retired: no claim, no trigger, no recrawl.
+                state[_key(TargetRef.model_validate(event["target"]))] = _Pending(last=event)
                 continue
             entry = state.setdefault(_key(TargetRef.model_validate(event["target"])), _Pending())
             entry.last = event
@@ -8806,7 +8884,7 @@ __all__ = [
     "LabJurisdictionExtractor", "LicenceTermsExtractor",
     "LLMExtractor", "MISTRAL_MODEL", "ModelPageExtractor", "OLLAMA_URL", "OfferingPriceExtractor",
     "APPROVED_OLLAMA_READERS", "OLLAMA_JSON_MODE", "OllamaChatCompletion", "ollama_reader", "Quantity", "Queue", "Reading",
-    "Regions", "Result",
+    "Regions", "Result", "RETIRE_REASONS", "data_row_targets",
     "RunReport", "StoredRegions", "StructuredDataExtractor", "SubscriptionPageExtractor",
     "TableExtractor", "TOLERANCE_RULE",
     "UNITS", "VerificationLog", "compare",

@@ -865,3 +865,30 @@ def test_an_older_same_day_check_is_no_fallback_for_the_newest_one():
     attempt = agreement()
     assert not admitted(build(cleared_row(attempt), [clearing(attempt)], [attempt],
                               history={FID: trail}))
+
+
+def test_a_claim_retired_before_the_check_supplies_nothing():
+    """MODEL-557 retires a claim whose data row is gone: a check after that did not cover it."""
+    from decision.quarantine_clearing import verdict_epoch
+
+    plain = events(VERDICT)
+    retired = {"event": "retired", "at": "2026-10-01T08:00:00+00:00",
+               "target": plain[0]["claim"]["target"], "reason": "no_data_row"}
+    kw = dict(log=AttemptLog(), subject=MID, facet=FACET, first="initial")
+    assert verdict_epoch(VERDICT, history=plain, **kw) == "initial"
+    assert verdict_epoch(VERDICT, history=[plain[0], retired, plain[1]], **kw) is None
+
+
+def test_queue_history_reads_retired_events_and_refuses_a_repeated_key(tmp_path):
+    from decision.quarantine_clearing import queue_history
+
+    path = tmp_path / "events.jsonl"
+    rows = [*events(VERDICT), {"event": "retired", "at": "2026-10-02T08:00:00+00:00",
+                               "target": {"kind": "fact", "id": FID}, "reason": "no_data_row"}]
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    assert [e["event"] for e in queue_history(path, {FID})[FID]] == ["collected", "checked",
+                                                                     "retired"]
+    path.write_text('{"event": "checked", "event": "collected", "at": "2026-10-01", '
+                    f'"target": {{"kind": "fact", "id": "{FID}"}}}}\n')
+    with pytest.raises(ValueError):
+        queue_history(path, {FID})

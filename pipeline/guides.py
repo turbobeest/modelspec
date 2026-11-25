@@ -16,7 +16,7 @@ TEMPLATE = "budget-coding"
 TERM = "analysis of alternatives for AI models"
 DEFINITION = (
     "An analysis of alternatives for AI models decides which models fit a job and shows its work, "
-    "using the job's requirements, sourced benchmarks and real cost."
+    "using the job's requirements, sourced benchmarks, and real costs."
 )
 CHOOSE_TITLE = "How to choose an AI model for a job"
 COMPARE_TITLE = "Analysis of alternatives, model router or hard-coded model: which job each does"

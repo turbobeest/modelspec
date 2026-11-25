@@ -20,15 +20,18 @@ The weekly workflow also has `workflow_dispatch`. Runs serialize. A closed issue
 | Surface | Registry value |
 |---|---|
 | Landing title | `TITLE`, exact equality |
-| Landing first paragraph, meta description, `og:description` | `ONE_SENTENCE` |
+| Landing meta description, `og:description` | `ONE_SENTENCE` |
+| Landing headline and first paragraphs | headings and paragraphs read together, in document order: the first is the page's only `h1`, `TAGLINE`; then a paragraph `ROUTER_LINE`; then a lead paragraph that starts with `ONE_SENTENCE`. A paragraph before the `h1` fails |
 | `/method/` first paragraph; `/about/`, `llms.txt`, `index.md`, agent skill, brand page | `ONE_SENTENCE` |
-| `/about/` first paragraph | `DISAMBIGUATION`, then `ONE_SENTENCE` |
+| `/about/` first paragraphs | `TAGLINE`, `ROUTER_LINE`, then `DISAMBIGUATION` and `ONE_SENTENCE` |
+| `llms.txt`, `index.md`, agent skill | `TAGLINE`, `ROUTER_LINE`, `ONE_SENTENCE`, in that order |
+| Git-tracked text files | no typed copy of `TAGLINE`, `ROUTER_LINE` or `ONE_SENTENCE` outside `pipeline/entity.py`. Each matches as a whole statement: any case, any whitespace, with or without the trailing full stop, opening at a line start, markup or a sentence end, and with no word or clause running on ("Which model, and why does it matter?" passes). `SUPERSEDED` phrases match exactly: word-bounded, with no further word running on ("real cost savings" passes). `tests/`, `docs/history/`, `docs/evidence/`, `qa/fixtures/`, generated copies (`cli/modelspec/agent-bundle.json`, `mcp/src/agent-copy.json`, `api/worker/src/agent_guide.py`, `docs/agents.md`) and the generated one-sentence regions (`<!-- entity:one-sentence -->` and its end marker, each on its own line around the sentence, written by `python -m pipeline.agent_copy write` into `README.md`, `AGENTS.md`, `docs/cli-contract.md` and `docs/aeo/README.md`) are exempt. No llms Markdown twin is committed under `docs/` |c/agent_guide.py`, `docs/agents.md`) are exempt. No llms Markdown twin is committed under `docs/` |
 | `/about/` | each `CLAIMS` statement |
 | `/method/`, `llms.txt`, `/about/` | `DISAMBIGUATION` |
 | MCP card description | `SHORT`, the registry's length-limited form |
 | Landing `Organization.description` | `ONE_SENTENCE`, exact equality |
 
-HTML comparison decodes entities, removes tags and normalizes whitespace. Superseded one-liners fail anywhere in owned copy. The README remains covered by `tests/test_entity.py`.
+HTML comparison decodes entities, removes tags and normalizes whitespace. Superseded one-liners fail anywhere in owned copy. The README remains covered by `tests/test_entity.py`. The copy check reads `git ls-files` at the repository root. Outside a git checkout it walks the tree and skips `node_modules`, `dist`, `.git` and build output. That pass also rejects every `SUPERSEDED` line, including the retired singular cost tail, with the same exemptions. Owned copy still rejects those lines through the lexicon.
 
 ### 2. Banned lexicon
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -13,6 +12,7 @@ import yaml
 from schema.benchmark import unknown_key_paths
 from schema.yaml_loader import duplicate_key_diagnostics, load_yaml
 from decision.labs import Lab
+from decision.owner_ruling import RepeatedKeyError, loads
 from decision.model import (
     evidence_verification_value,
     fact_verification_value,
@@ -105,7 +105,9 @@ def load(root: Path, *, source_root: Path | None = None) -> Catalogue:
             if not line.strip():
                 continue
             try:
-                v = json.loads(line)
+                # The build's refusing reader (MODEL-554): a row that repeats a key, in any
+                # spelling, is a finding and never counts as its last value.
+                v = loads(line)
                 if not verification_counts(
                     v["outcome"], v["collector"]["model_family"], v["verifier"]["model_family"]
                 ):
@@ -115,6 +117,9 @@ def load(root: Path, *, source_root: Path | None = None) -> Catalogue:
                     c.verifications[key]["date"]
                 ):
                     c.verifications[key] = v
+            except RepeatedKeyError:
+                c.findings.append(Finding(f"verification/log.jsonl:{index}", "record",
+                                          "duplicate_json_key"))
             except (ValueError, KeyError, TypeError):
                 c.findings.append(Finding(f"verification/log.jsonl:{index}", "record", "parse"))
 

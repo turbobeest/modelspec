@@ -86,8 +86,9 @@ def test_flag_off_agent_copy_matches_reviewed_catalogue():
     copy = agent_copy.copy()
     # Reviewed hardware-fit copy and MODEL-404's detailed-board links.
     # MODEL-458 refreshed the guide hash when hosted snapshot replay was qualified.
-    assert hashlib.sha256(agent_copy.render(copy).encode()).hexdigest() == "e96214d3414d787ac61b8a5e2f1ac8060d18766bde74a66a8c2b1c0551d5b96a"
-    assert hashlib.sha256(agent_copy.guide()[1].encode()).hexdigest() == "f388412bbb28eaece530bae22ffed2822b7480f36302b4e05916c8c6f9439028"
+    # MODEL-470 refreshed the rendered copy and the guide when the one sentence changed.
+    assert hashlib.sha256(agent_copy.render(copy).encode()).hexdigest() == "650e4fbd502cc97191e1cec9118ed94e55721dcb2262cd07e18bb323e63bd00e"
+    assert hashlib.sha256(agent_copy.guide()[1].encode()).hexdigest() == "dbdbad3f62fae2e1aa4c501765cde583c80e01d4f8fdd33c2d8e5e7b2776e146"
     raw = json.dumps(agent_copy.cli_text(), sort_keys=True).encode()
     assert hashlib.sha256(raw).hexdigest() == "625b4b758472c68f454847573d4bdd9ff1fc2aa7a5800f739dba925cf547ee86"
 

@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.turbobeest/modelspec",
-  "description": "Find AI models that fit a job from your requirements, sourced benchmarks and real cost.",
+  "description": "Find AI models that fit a job from your requirements, sourced benchmarks, and real costs.",
   "title": "ModelSpec",
   "repository": {
     "url": "https://github.com/turbobeest/modelspec",

@@ -13,7 +13,12 @@ import yaml
 
 from pipeline.load import LoadError, split_front_matter
 from schema.card import ModelCard
-from schema.yaml_loader import duplicate_key_diagnostics
+from schema.yaml_loader import (
+    DuplicateKeyError,
+    duplicate_key_diagnostics,
+    load_yaml,
+    load_yaml_unique,
+)
 
 CARD = """---
 model_id: lab/yaml
@@ -116,10 +121,14 @@ def test_malformed_public_yaml_preserves_python_diagnostics(loader_mode, monkeyp
     assert diagnostic.__context__ is None
 
 
-def test_duplicate_aliases_load_and_report(loader_mode):
+def test_duplicate_aliases_are_refused_and_reported(loader_mode):
     yaml_text = "aliases: [first]\naliases: [second]"
-    front, _ = split_front_matter(f"---\n{yaml_text}\n---\n")
-    assert front["aliases"] == ["second"]
+    with pytest.raises(LoadError) as refused:
+        split_front_matter(f"---\n{yaml_text}\n---\n")
+    assert str(refused.value) == "front matter: duplicate_yaml_key: line 3, column 1 " \
+        "(1 repeated key(s))"
+    assert "first" not in str(refused.value) and "second" not in str(refused.value)
+    assert load_yaml(yaml_text)["aliases"] == ["second"]
     found = duplicate_key_diagnostics(yaml_text)
     assert [item.diagnostic(line_offset=1) for item in found] == [
         "duplicate_yaml_key: line 3, column 1"
@@ -135,9 +144,14 @@ def test_duplicate_aliases_load_and_report(loader_mode):
     "outer: {&key private-key: first, *key: second}",
     "outer: {<<: {a: 1}, <<: {b: 2}}",
 ])
-def test_nested_duplicate_mapping_is_reported(loader_mode, mapping):
-    front, _ = split_front_matter(f"---\n{mapping}\n---\n")
-    assert front == yaml.safe_load(mapping)
+def test_nested_duplicate_mapping_is_refused_and_reported(loader_mode, mapping):
+    with pytest.raises(LoadError) as refused:
+        split_front_matter(f"---\n{mapping}\n---\n")
+    assert "duplicate_yaml_key" in str(refused.value)
+    assert "private-key" not in str(refused.value) and "first" not in str(refused.value)
+    with pytest.raises(DuplicateKeyError):
+        load_yaml_unique(mapping)
+    assert load_yaml(mapping) == yaml.safe_load(mapping)
     found = duplicate_key_diagnostics(mapping)
     assert found
     rendered = " ".join(item.diagnostic() for item in found)
@@ -147,6 +161,7 @@ def test_nested_duplicate_mapping_is_reported(loader_mode, mapping):
 
 
 def test_safe_tags_and_authored_merge_overrides_remain_supported(loader_mode):
+    """``load_yaml`` keeps merge overrides; the build's loader refuses them (MODEL-554)."""
     text = """---
 base: &base {a: 1, b: 2}
 other: &other {a: 3, c: 4}
@@ -160,7 +175,9 @@ set: !!set {one: null, two: null}
 value-key: {=: text}
 ---
 """
-    front, _ = split_front_matter(text)
+    with pytest.raises(LoadError, match="duplicate_yaml_key"):
+        split_front_matter(text)
+    front = load_yaml(text.split("---\n")[1])
     assert front["merged"] == {"a": 1, "b": 5, "c": 4}
     assert front["reused"] == {"a": 1, "b": 5, "c": 6}
     assert front["again"] is front["merged"]

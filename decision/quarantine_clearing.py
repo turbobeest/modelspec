@@ -246,21 +246,24 @@ def _event_target(event: Mapping[str, Any]) -> str | None:
 
 
 def queue_history(path: Path, ids: set[str]) -> dict[str, list[dict[str, Any]]]:
-    """Target id -> its ``collected`` and ``checked`` events, in queue order (by time, a later
-    line on a tie), for the ids asked for. An absent queue has none."""
+    """Target id -> its ``collected``, ``checked`` and ``retired`` events, in queue order (by
+    time, a later line on a tie), for the ids asked for. An absent queue has none."""
+    from decision.owner_ruling import loads
+
     rows: dict[str, list[tuple[datetime, int, dict[str, Any]]]] = {}
     if not ids or not path.is_file():
         return {}
     with path.open(encoding="utf-8") as handle:
         for index, raw in enumerate(handle):
-            if ('"collected"' not in raw and '"checked"' not in raw) \
+            if ('"collected"' not in raw and '"checked"' not in raw
+                    and '"retired"' not in raw) \
                     or not any(i in raw for i in ids):
                 continue
-            event = json.loads(raw)
+            event = loads(raw)  # a repeated key refuses (MODEL-554)
             target = _event_target(event)
             at = _event_at(event)
             if target in ids and at is not None \
-                    and event.get("event") in ("collected", "checked"):
+                    and event.get("event") in ("collected", "checked", "retired"):
                 rows.setdefault(target, []).append((at, index, event))
     return {k: [e for _, _, e in sorted(v, key=lambda r: (r[0], r[1]))] for k, v in rows.items()}
 
@@ -351,7 +354,11 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
             filed = filed[-1:]  # the claim it follows, nothing for another value in between
         binding = [e for e in filed if claim_binds(e.get("claim") or {}, verdict)] \
             if covers is not False else []
-        if binding:
+        # A claim retired before the check (``Queue.retire``, MODEL-557) was not what it covered.
+        start = max((i for i, e in enumerate(history[:index]) if binding and e is binding[-1]),
+                    default=index)
+        if binding and not any(e.get("event") == "retired" and _event_target(e) == target
+                               for e in history[start + 1:index]):
             pair = (binding[-1], event)
     if pair is None:
         return None

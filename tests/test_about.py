@@ -56,6 +56,8 @@ def _blocks(page: str) -> list[str]:
 def _expected(tiers: dict) -> list[str]:
     return [
         entity.ABOUT_HEADING,
+        entity.TAGLINE,
+        entity.ROUTER_LINE,
         f"{entity.DISAMBIGUATION} {entity.ONE_SENTENCE}",
         entity.CLAIMS_HEADING,
         *[claim.statement for claim in entity.CLAIMS],
@@ -74,8 +76,10 @@ def test_raw_html_shows_the_sentence_disambiguation_first_and_every_claim() -> N
     page = about.page(tiers, ROOT)
     blocks = _blocks(page)
     assert blocks == _expected(tiers)
-    assert blocks[1].startswith(entity.DISAMBIGUATION)
-    assert entity.ONE_SENTENCE in blocks[1]
+    assert blocks[1] == entity.TAGLINE
+    assert blocks[2] == entity.ROUTER_LINE
+    assert blocks[3].startswith(entity.DISAMBIGUATION)
+    assert entity.ONE_SENTENCE in blocks[3]
     for claim in entity.CLAIMS:
         assert claim.statement in blocks
     assert "<h1" in page

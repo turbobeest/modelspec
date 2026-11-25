@@ -33,8 +33,12 @@ def page(tiers: dict[str, Any], root: Path) -> str:
     costs = "".join(_item(line) for line in entity.cost_statements(tiers))
     description = html.escape(entity.ONE_SENTENCE, quote=True)
     heading = html.escape(entity.ABOUT_HEADING, quote=False)
-    lead = (html.escape(entity.DISAMBIGUATION, quote=False) + " "
-            + html.escape(entity.ONE_SENTENCE, quote=False))
+    lead = (
+        "<p>" + html.escape(entity.TAGLINE, quote=False) + "</p><p>"
+        + html.escape(entity.ROUTER_LINE, quote=False) + "</p><p>"
+        + html.escape(entity.DISAMBIGUATION, quote=False) + " "
+        + html.escape(entity.ONE_SENTENCE, quote=False) + "</p>"
+    )
     script = structured_data.script(structured_data.graph("/about/", root, root))
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
@@ -50,8 +54,8 @@ def page(tiers: dict[str, Any], root: Path) -> str:
         + script
         + "</head><body><div class=\"axis\" aria-hidden=\"true\"></div>"
         + landing_chrome.site_header(current="/about/")
-        + "<main><section class=\"method-hero\"><div><h1>" + heading + "</h1><p>" + lead
-        + "</p></div></section><section><h2>"
+        + "<main><section class=\"method-hero\"><div><h1>" + heading + "</h1>" + lead
+        + "</div></section><section><h2>"
         + html.escape(entity.CLAIMS_HEADING, quote=False) + "</h2><ul>" + claims
         + "</ul></section><section><h2>"
         + html.escape(entity.CALL_HEADING, quote=False) + "</h2><ul>" + calls

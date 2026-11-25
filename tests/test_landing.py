@@ -17,7 +17,7 @@ from decision.engine import decide
 from decision.registry import default
 from decision.snapshot import build_from_repo, load_built_snapshot
 from decision.templates import load_catalogue
-from pipeline import coverage, landing
+from pipeline import coverage, entity, landing
 from pipeline.load import load_models
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -287,11 +287,18 @@ def test_plain_and_campaign_root_urls_stay_on_the_landing(search: str) -> None:
 
 
 def test_the_landing_head_carries_the_current_headline(data: landing.LandingData) -> None:
-    assert landing.HEADLINE_LEAD == "Model routers make educated guesses."
-    assert landing.HEADLINE_SUB == (
-        "ModelSpec makes informed, unbiased decisions from evidence.")
+    assert landing.HEADLINE == entity.TAGLINE == "Which model, and why."
     for variant in ("live", "holding"):
         page = landing.render(data, variant=variant)
+        # MODEL-470: the tagline is the one h1; the router line and the one
+        # sentence follow it. The old headline is gone from the page.
+        assert page.count("<h1") == 1
+        assert f"<h1>{entity.TAGLINE}</h1>" in page
+        assert (page.index(f"<h1>{entity.TAGLINE}</h1>")
+                < page.index(f'<p class="subline">{entity.ROUTER_LINE}</p>')
+                < page.index('<p class="close">'))
+        assert "educated guesses" not in page
+        assert "informed, unbiased" not in page
         assert f"<title>{landing.TITLE}</title>" in page
         assert f'<meta name="description" content="{landing.DESCRIPTION}">' in page
         assert f'<meta property="og:title" content="{landing.TITLE}">' in page
@@ -322,8 +329,7 @@ def test_the_headline_figures_come_from_the_engine(data: landing.LandingData) ->
     assert data.cheapest_p == cheapest.p_beats_leader
 
     page = landing.render(data, variant="live")
-    assert (f'<h1><span class="h1-lead">{landing.HEADLINE_LEAD}</span> '
-            f'<span class="h1-sub">{landing.HEADLINE_SUB}</span></h1>') in page
+    assert f"<h1>{landing.HEADLINE}</h1>" in page
     assert 'class="eyebrow"' not in page
     hero = page[page.index('<section class="hero">'):page.index('<section class="receipt"')]
     assert f"{ratio:.1f}× less" in hero

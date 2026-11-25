@@ -229,7 +229,11 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
     try:
         found = lookup(subject, facet, root)
         registry = _source_rows(root)
-    except (LookupFailed, OSError, KeyError, TypeError, yaml.YAMLError) as error:
+    except LookupFailed as error:
+        if str(error) == "DuplicateKeyError":  # the lookup's refusing loader (MODEL-554)
+            raise Refused("malformed", "the fact file does not parse or repeats a key") from None
+        raise Refused("registry_lookup_failed", type(error).__name__) from None
+    except (OSError, KeyError, TypeError, yaml.YAMLError) as error:
         raise Refused("registry_lookup_failed", type(error).__name__) from None
     if (found.kind == "offering") != (facet_def.subject == "offering") or found.path is None:
         raise Refused("registry_lookup_failed", "the facet is not a facet of this subject")
