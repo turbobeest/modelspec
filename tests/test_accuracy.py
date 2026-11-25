@@ -2224,6 +2224,58 @@ def test_an_undetermined_share_failure_names_the_limit() -> None:
         assert "share-sentinel" not in text
 
 
+def test_a_fidelity_fail_with_no_failures_names_its_cause_in_counts() -> None:
+    """MODEL-553: shell pages, refused hops and a short sample fail the layer with
+    zero failures; the public line says which, in counts only."""
+    report = accuracy.AccuracyReport(
+        generated_at="2026-11-25T06:23:00Z",
+        profile="nightly",
+        snapshot=None,
+        layers=(accuracy.LayerResult(
+            "data_fidelity", "fail", True, "private summary cause-sentinel",
+            {"verified": 9, "mismatch": 0, "unreachable": 0, "undetermined": 8},
+            {
+                "undetermined_share": 0.4,
+                "max_undetermined_share": 0.6,
+                "shell_page": 4,
+                "redirect_unclassified": 2,
+                "actual_sample_size": 9,
+                "requested_sample_size": 12,
+                "sample": [{"target": "fact:cause-sentinel",
+                            "sources": [{"url": "https://cause.example/x"}]}],
+            },
+        ),),
+    )
+
+    for text in (
+        accuracy.public_nightly_report(report),
+        accuracy.public_nightly_report(report.to_dict()),
+    ):
+        assert (
+            "| data_fidelity | FAIL | yes | failures 0; mismatches 0; unreachable 0; "
+            "undetermined 8; over the undetermined limit: no; shell pages 4; "
+            "refused at the terms register 2; assessed 9 of 12. |"
+        ) in text
+        assert "cause-sentinel" not in text
+        assert "http" not in text
+
+
+def test_a_fidelity_line_without_those_causes_is_unchanged() -> None:
+    from scripts.accuracy_public import _public_summary
+
+    text = _public_summary(
+        "data_fidelity", "pass",
+        {"verified": 12, "mismatch": 0, "unreachable": 0, "undetermined": 3},
+        {"shell_page": 0, "redirect_unclassified": 0,
+         "actual_sample_size": 12, "requested_sample_size": 12},
+    )
+
+    assert text == (
+        "failures 0; mismatches 0; unreachable 0; undetermined 3; "
+        "over the undetermined limit: no."
+    )
+
+
 def test_recall_fail_verdicts_are_not_called_failures() -> None:
     passing = accuracy.AccuracyReport(
         generated_at="2026-11-12T06:23:00Z",
