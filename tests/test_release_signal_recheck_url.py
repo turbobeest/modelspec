@@ -20,7 +20,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from release_signals.pipeline import FetchResult, clear_catalogue_cache
+from release_signals.pipeline import ChangePolicy, FetchResult, clear_catalogue_cache
 from scripts import process_release_signals as processor
 from tests.test_release_signals import FIXTURES, _write_card
 
@@ -313,17 +313,27 @@ class InterleavingKV(KV):
     that put brought a completed row back, however briefly.
     """
 
-    def __init__(self, service, watched: str, complete) -> None:
+    def __init__(self, service, watched: str, complete, *, on_read: int = 1) -> None:
         super().__init__()
         self.service, self.watched, self.complete = service, watched, complete
+        self.done = service.RECHECK_DONE_PREFIX + watched.removeprefix(service.RECHECK_PREFIX)
         self.armed = False
+        self.on_read, self.reads = on_read, 0
+        #: Reads of the watched marker that still miss it once it is written, as a
+        #: remote KV read can lag its write.
+        self.lagging_marker_reads = 0
         self.resurrected: list[str] = []
 
     async def get(self, key: str) -> str | None:
+        if key == self.done and self.lagging_marker_reads:
+            self.lagging_marker_reads -= 1
+            return None
         value = self.rows.get(key)
         if self.armed and key == self.watched:
-            self.armed = False
-            await self.complete(self)
+            self.reads += 1
+            if self.reads == self.on_read:
+                self.armed = False
+                await self.complete(self)
         return value
 
     async def put(self, key: str, value: str, *, expiration_ttl: int | None = None) -> None:
@@ -353,6 +363,52 @@ def test_a_parallel_ack_that_completes_a_row_after_the_first_read_never_rewrites
         assert not kv.armed
         assert kv.resurrected == []
         assert await _due(service, kv, date(2026, 10, 26)) == {30: PR_URL}
+
+    asyncio.run(scenario())
+
+
+def test_a_row_revived_after_the_final_read_is_never_served_and_is_cleaned_up(
+    service,
+) -> None:
+    async def complete_day_seven(kv: InterleavingKV) -> None:
+        done = await _ack(service, kv, date(2026, 10, 3), **_day(7, "2026-10-03", ISSUE_URL))
+        assert done.status == 200
+        kv.lagging_marker_reads = 1  # the relink's check after its put misses the marker
+
+    async def scenario() -> None:
+        watched = f"{service.RECHECK_PREFIX}2026-10-03/{SIGNAL_ID}"
+        # The second read of row 7 is the relink's final read before its put.
+        kv = InterleavingKV(service, watched, complete_day_seven, on_read=2)
+        await _seeded(service, kv)
+        kv.armed = True
+        relinked = await _ack(service, kv, date(2026, 10, 3), **_day(1, "2026-09-27"))
+        assert relinked.status == 200
+        assert not kv.armed
+        # The put landed on the completed row and nothing undid it ...
+        assert kv.resurrected == [watched]
+        assert watched in kv.rows
+        # ... but the queue never serves it, and reading the queue removes it.
+        assert await _due(service, kv, date(2026, 10, 26)) == {30: PR_URL}
+        assert watched not in kv.rows
+        # A late acknowledgement of the revived row changes nothing else either.
+        retried = await _ack(service, kv, date(2026, 10, 3), **_day(7, "2026-10-03"))
+        assert (retried.status, retried.body["recheck_days"]) == (200, [])
+        assert await _due(service, kv, date(2026, 10, 26)) == {30: PR_URL}
+
+    asyncio.run(scenario())
+
+
+def test_a_stale_retry_never_reverts_a_later_relink(service) -> None:
+    async def scenario() -> None:
+        kv = await _seeded(service, KV())
+        await _ack(service, kv, date(2026, 9, 27), **_day(1, "2026-09-27", PR_URL))
+        await _ack(service, kv, date(2026, 10, 3), **_day(7, "2026-10-03", LATER_PR_URL))
+        assert await _due(service, kv, date(2026, 10, 26)) == {30: LATER_PR_URL}
+        before = dict(kv.rows)
+        stale = await _ack(service, kv, date(2026, 10, 4), **_day(1, "2026-09-27", PR_URL))
+        assert (stale.status, stale.body["recheck_days"]) == (200, [])
+        assert kv.rows == before
+        assert await _due(service, kv, date(2026, 10, 26)) == {30: LATER_PR_URL}
 
     asyncio.run(scenario())
 
@@ -423,9 +479,11 @@ def _step(name: str) -> dict:
 
 
 BRANCH = "data/release-signal-grok-20260926-123456789-1"
+REFRESH_PR_URL = "https://github.com/turbobeest/modelspec-data/pull/9999"
 
 
-def _gh_stub(tmp_path: Path, state: str) -> Path:
+def _tools(tmp_path: Path, state: str) -> Path:
+    """`gh`, `curl` and an engine `python` for the workflow steps, all offline."""
     stub = tmp_path / "bin"
     stub.mkdir(exist_ok=True)
     (stub / "gh").write_text(
@@ -434,28 +492,45 @@ def _gh_stub(tmp_path: Path, state: str) -> Path:
         "case \"$1 $2\" in\n"
         f"  'pr view') printf '%s' '{{\"state\":\"{state}\",\"headRefName\":\"{BRANCH}\","
         "\"headRepositoryOwner\":{\"login\":\"turbobeest\"}}' ;;\n"
-        "  'pr create') echo 'https://github.com/turbobeest/modelspec-data/pull/9999' ;;\n"
+        f"  'pr create') echo '{REFRESH_PR_URL}' ;;\n"
         "esac\n",
         encoding="utf-8",
     )
-    (stub / "gh").chmod(0o755)
+    # The acknowledgement step posts with curl; keep the body for the Worker.
+    (stub / "curl").write_text(
+        "#!/bin/bash\n"
+        "printf '%s\\n' \"${@: -1}\" > \"$RUNNER_TEMP/posted-to\"\n"
+        "while [ $# -gt 0 ]; do\n"
+        "  if [ \"$1\" = --data-binary ]; then cp \"${2#@}\" \"$RUNNER_TEMP/posted.json\"; fi\n"
+        "  shift\n"
+        "done\n",
+        encoding="utf-8",
+    )
+    # The runner's python sees the engine; `-I` would hide PYTHONPATH here.
+    (stub / "python").write_text(
+        "#!/bin/sh\n"
+        "[ \"$1\" = -I ] && shift\n"
+        f"PYTHONPATH={ROOT} exec {sys.executable} \"$@\"\n",
+        encoding="utf-8",
+    )
+    for name in ("gh", "curl", "python"):
+        (stub / name).chmod(0o755)
     return stub
 
 
-def _run(step: dict, tmp_path: Path, state: str, env: dict[str, str]) -> dict[str, str]:
+def _run(
+    step: dict, tmp_path: Path, state: str, env: dict[str, str], *, cwd: Path | None = None,
+) -> dict[str, str]:
     output = tmp_path / "github-output"
     output.write_text("", encoding="utf-8")
     done = subprocess.run(
         ["bash", "-e", "-c", step["run"]],
-        cwd=tmp_path, capture_output=True, text=True,
+        cwd=cwd or tmp_path, capture_output=True, text=True,
         env=os.environ | {
             "RUNNER_TEMP": str(tmp_path),
             "GITHUB_OUTPUT": str(output),
             "GH_TOKEN": "offline-fixture",
-            "PATH": os.pathsep.join(
-                (str(_gh_stub(tmp_path, state)), str(Path(sys.executable).parent),
-                 os.environ["PATH"])
-            ),
+            "PATH": os.pathsep.join((str(_tools(tmp_path, state)), os.environ["PATH"])),
         } | env,
     )
     assert done.returncode == 0, done.stderr
@@ -478,6 +553,9 @@ def _data_repo(tmp_path: Path, *, merged: bool) -> Path:
     repo.mkdir()
     _git(repo, "init", "-q", "-b", "main")
     _write_card(repo, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    for folder in ("offerings", "registry", "verification"):
+        (repo / folder).mkdir()
+        (repo / folder / ".keep").write_text("", encoding="utf-8")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-q", "-m", "base")
     _git(repo, "checkout", "-q", "-b", BRANCH)
@@ -519,30 +597,28 @@ def _offline_sources(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_no_second_draft_opens_for_a_signal_with_an_open_or_merged_card_pull_request(
     service, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, first_url, state,
 ) -> None:
+    """Worker queue, then the process job's steps in order, then the Worker again."""
     clear_catalogue_cache()
-
-    async def day_seven() -> dict:
-        kv = await _seeded(service, KV(), first_url)
-        await _ack(service, kv, date(2026, 9, 27), **_day(1, "2026-09-27"))
-        listed = await service.pending(
-            authorization=KEY, read_key="read-secret", kv=kv, today=date(2026, 10, 3),
-        )
-        return listed.body
-
-    pending = asyncio.run(day_seven())
+    kv = asyncio.run(_seeded(service, KV(), first_url))
+    asyncio.run(_ack(service, kv, date(2026, 9, 27), **_day(1, "2026-09-27")))
+    pending = asyncio.run(service.pending(
+        authorization=KEY, read_key="read-secret", kv=kv, today=date(2026, 10, 3),
+    )).body
     assert [(row["day"], row["pr_url"]) for row in pending["rechecks"]] == [(7, PR_URL)]
+    work_url = pending["rechecks"][0]["pr_url"]
 
     base = _run(_step("Select the re-check base"), tmp_path, state, {
-        "PR_URL": PR_URL, "DEFAULT_BRANCH": "main", "REPOSITORY_OWNER": "turbobeest",
+        "PR_URL": work_url, "DEFAULT_BRANCH": "main", "REPOSITORY_OWNER": "turbobeest",
     })
     if state == "OPEN":
         assert base == {"mode": "open", "ref": BRANCH, "branch": BRANCH}
     else:
         assert base == {"mode": "merged", "ref": "main", "branch": ""}
 
-    # Check out what the workflow checks out, then process the Worker's day-7 row.
+    # Check out what the workflow checks out, then run the job's steps there.
     repo = _data_repo(tmp_path, merged=state == "MERGED")
     _git(repo, "checkout", "-q", base["ref"])
+    _run(_step("Preserve the mechanically checked baseline"), tmp_path, state, {}, cwd=repo)
     _offline_sources(monkeypatch)
     (tmp_path / "pending.json").write_text(json.dumps(pending), encoding="utf-8")
     result = processor.process(
@@ -555,13 +631,47 @@ def test_no_second_draft_opens_for_a_signal_with_an_open_or_merged_card_pull_req
     assert sorted(path.name for path in (repo / "models" / "acme").glob("*.md")) == [
         "orbit-1.md", "orbit-2.md",
     ]
+    classified = _run(_step("Classify the generated change"), tmp_path, state, {}, cwd=repo)
+    assert classified["resolution"] == "existing"
+    # The policy sees the existing card's own update: no card created, no identity change.
+    decision = ChangePolicy.classify(tmp_path / "before", tmp_path / "after")
+    assert "new-model" not in decision.labels
+    assert not [reason for reason in decision.reasons if reason.startswith(("card ", "identity "))]
 
+    opened_url = ""
+    if classified["changed"] == "true":
+        opened_url = _run(_step("Open or update the pull request"), tmp_path, state, {
+            "PR_MODE": base["mode"], "EXISTING_PR_URL": work_url,
+            "HUMAN": classified["human"], "REGRESSED": "false", "REGRESSION_IDS": "",
+            "BRANCH": base["branch"] or f"data/release-signal-{SIGNAL_ID}-7",
+        }, cwd=repo)["url"]
+    # The workflow's final step: RESULT_URL is the opened PR, else the work item's.
+    _run(_step("Acknowledge the signal and schedule its 1, 7, and 30 day re-checks"),
+         tmp_path, state, {
+             "RESULT_URL": opened_url or work_url,
+             "MODELSPEC_SIGNALS_READ_KEY": "read-secret",
+             "SIGNALS_ORIGIN": "https://signals.invalid",
+         }, cwd=repo)
+    posted = json.loads((tmp_path / "posted.json").read_text(encoding="utf-8"))
+    acknowledged = asyncio.run(service.acknowledge(
+        authorization=KEY, read_key="read-secret", kv=kv, payload=posted,
+        today=date(2026, 10, 3),
+    ))
+    assert (acknowledged.status, acknowledged.body["recheck_days"]) == (200, [])
+    assert posted["result"] == "existing"
+
+    calls = (tmp_path / "gh-calls").read_text(encoding="utf-8").splitlines()
+    created = [call for call in calls if call.startswith("pr create")]
     if state == "OPEN":
-        opened = _run(_step("Open or update the pull request"), tmp_path, state, {
-            "PR_MODE": base["mode"], "EXISTING_PR_URL": PR_URL, "HUMAN": "true",
-            "REGRESSED": "false", "REGRESSION_IDS": "", "BRANCH": base["branch"],
-        })
-        calls = (tmp_path / "gh-calls").read_text(encoding="utf-8")
-        assert opened == {"url": PR_URL}
-        assert "pr create" not in calls
-        assert f"pr comment {PR_URL}" in calls
+        # The open card PR is updated in place: no second PR of any kind.
+        assert created == []
+        assert posted["pr_url"] == PR_URL
+        if classified["changed"] == "true":
+            assert f"pr comment {PR_URL} --body-file {tmp_path}/result.json" in calls
+    else:
+        # The card is on main: the re-check ends `existing` against it, and at
+        # most one PR updates that card from main; the Worker then follows it.
+        assert len(created) <= 1
+        assert all(f"--head data/release-signal-{SIGNAL_ID}-7" in call for call in created)
+        assert posted["pr_url"] == (REFRESH_PR_URL if created else PR_URL)
+    assert asyncio.run(_due(service, kv, date(2026, 10, 26))) == {30: posted["pr_url"]}

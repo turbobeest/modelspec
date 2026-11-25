@@ -32,10 +32,12 @@ SEEN_PREFIX = "release-signals/v1/seen/"
 DISCOVERED_PREFIX = "release-signals/v1/discovered/"
 AUDIT_PREFIX = "release-signals/v1/audit/"
 RECHECK_PREFIX = "release-signals/v1/recheck/"
-#: One permanent marker per completed re-check row, `<due>/<signal_id>` (MODEL-475).
+#: One marker per completed re-check row, `<due>/<signal_id>` (MODEL-475).
 #: Written before the row is deleted. It makes a retried acknowledgement a no-op
 #: success, and it lets a concurrent relink undo a put that landed on a deleted row.
 RECHECK_DONE_PREFIX = "release-signals/v1/recheck-done/"
+#: `pending` never serves a row with a marker and deletes it, so a row revived
+#: between a relink's last read and its put is never worked again.
 #: A done marker outlives the signal's last re-check by 45 days: 75 days from the
 #: first acknowledgement, so KV does not grow without limit (MODEL-475).
 RECHECK_DONE_KEEP_AFTER_LAST = timedelta(days=45)
@@ -281,6 +283,10 @@ async def pending(
         parts = key.removeprefix(RECHECK_PREFIX).split("/", 1)
         if len(parts) != 2 or parts[0] > today.isoformat():
             continue
+        if await kv.get(RECHECK_DONE_PREFIX + key.removeprefix(RECHECK_PREFIX)) is not None:
+            # Completed: a relink that raced its completion revived it. Never serve it.
+            await kv.delete(key)
+            continue
         raw = await kv.get(key)
         if raw:
             rechecks.append(json.loads(str(raw)))
@@ -372,13 +378,13 @@ async def acknowledge(
     source = await kv.get(pending_key)
     recheck_key = f"{RECHECK_PREFIX}{recheck_due}/{signal_id}" if recheck_due else ""
     recheck = await kv.get(recheck_key) if source is None and recheck_key else None
-    if source is None and recheck is not None:
-        source = json.dumps(json.loads(str(recheck))["signal"])
     if source is None and recheck_key and await kv.get(
         RECHECK_DONE_PREFIX + recheck_key.removeprefix(RECHECK_PREFIX)
     ) is not None:
-        # A retry of a completed re-check: finish any relink it left, change nothing else.
-        await _relink_rechecks(kv, signal_id, payload.get("pr_url"), acknowledged_key=recheck_key)
+        # A retry of a completed re-check is a no-op: it moves no other row, so a
+        # stale retry cannot undo a later relink. A revived copy of the row goes.
+        if recheck is not None:
+            await kv.delete(recheck_key)
         return Outcome(200, {
             "schema_version": SCHEMA_VERSION,
             "endpoint": "signals.ack",
@@ -386,6 +392,8 @@ async def acknowledge(
             "signal_id": signal_id,
             "recheck_days": [],
         })
+    if source is None and recheck is not None:
+        source = json.dumps(json.loads(str(recheck))["signal"])
     if not signal_id or source is None:
         return _error(404, "signal_not_found", "the pending signal does not exist")
     audit = {
