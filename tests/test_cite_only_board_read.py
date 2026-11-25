@@ -138,7 +138,8 @@ def run_cited(monkeypatch, tmp_path: Path, body: bytes, *, card_text: str = CARD
         row_template=template)
     monkeypatch.setattr(refresh, "collect_readings", lambda *_a, **_k: ([board], []))
     report = refresh.run(observed_at=OBSERVED, dry_run=False, root=root, source_cache=cache,
-                         model_ids=("lab/orbit",), add_missing=add_missing)
+                         model_ids=("lab/orbit",), add_missing=add_missing,
+                         collector=refresh.COLLECTOR if add_missing else None)
     front = yaml.safe_load(card.read_text(encoding="utf-8").split("---", 2)[1])
     evidence = front["benchmarks"]["evidence"]
     return report, (evidence[0] if evidence else None), ref, root, cache

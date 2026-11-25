@@ -31,7 +31,7 @@ import urllib.parse
 import urllib.request
 import zipfile
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -282,10 +282,55 @@ class PublicationMark:
 
 
 @dataclass(frozen=True)
+class FirstRow:
+    """One first row the weekly job planned on a card with no row on that board (MODEL-478).
+
+    The audit entry the design asks for: the card, the benchmark, the board's name for
+    the row, the match key, the source URL, and whether the cap stopped it.
+    """
+
+    card: str
+    model_id: str
+    benchmark: str
+    board_name: str
+    match_key: str
+    source: str
+    score: float
+    evidence_date: str
+    capped: bool = False
+
+
+@dataclass(frozen=True)
+class FirstRowRefusal:
+    """A board row the first-row filer did not file, and why.
+
+    ``model_id`` is the card the row resolved to, or, for a name refused before the
+    match (parentheses), the one card its normalised name would name; empty when no
+    card has the name.
+    """
+
+    benchmark: str
+    board_name: str
+    match_key: str
+    reason: str
+    model_id: str = ""
+
+
+@dataclass(frozen=True)
 class ScoreOnlyResult:
     ok: bool
     errors: tuple[str, ...] = ()
     classes: Mapping[str, int] = field(default_factory=dict)
+
+    @property
+    def merge_class(self) -> str:
+        """``human-review`` when the diff adds a first row; ``score-only`` otherwise."""
+        return FIRST_ROW_MERGE_CLASS if self.classes.get("first_row") else SCORE_ONLY_MERGE_CLASS
+
+    @property
+    def labels(self) -> tuple[str, ...]:
+        """The pull-request labels this diff needs: ``first-row`` when it adds one."""
+        return (FIRST_ROW_LABEL,) if self.classes.get("first_row") else ()
 
 
 @dataclass
@@ -313,6 +358,18 @@ class RefreshReport:
     arena_revision: str = ""
     arena_revision_fallback: str | None = None
     arena_revision_latest: bool = False
+    #: Arena boards this run wrote whole (``_refresh_arena_boards``). First rows read only these.
+    arena_boards_written: list[str] = field(default_factory=list)
+    #: True when the run planned first rows (``first_rows=True``).
+    first_rows_considered: bool = False
+    #: First rows written this run, at most ``FIRST_ROWS_PER_RUN`` (MODEL-478).
+    first_rows: list[FirstRow] = field(default_factory=list)
+    #: First rows that passed every check and that the cap stopped: listed, not written.
+    first_rows_capped: list[FirstRow] = field(default_factory=list)
+    #: Board rows naming a model with no row on that board that were not filed, and why.
+    first_rows_refused: list[FirstRowRefusal] = field(default_factory=list)
+    #: Board rows whose normalised name no card has, per board: counted, not listed.
+    first_rows_unmatched: dict[str, int] = field(default_factory=dict)
     #: Per Arena board, rows at the publish date this run read, and rows left older.
     #: A board the run did not read is ``not read`` and is left out of the count.
     #: None until the run attaches the census. An empty list is a real zero.
@@ -1514,7 +1571,9 @@ def align_observation_cards(root: Path) -> list[str]:
 
 
 def _claim(model_id: str, front: Mapping[str, Any], row: Mapping[str, Any],
-           board: BoardReading) -> Claim:
+           board: BoardReading, collector: VerificationActor | None = None) -> Claim:
+    """The claim a written row files. ``collector`` is the run's actor; None is the
+    weekly refresh's ``COLLECTOR`` (read when called, so a caller's override holds)."""
     names = tuple(dict.fromkeys(filter(None, (
         row.get("model_id_as_evaluated"), front.get("display_name"), front.get("version"),
         model_id.rsplit("/", 1)[-1],
@@ -1532,7 +1591,7 @@ def _claim(model_id: str, front: Mapping[str, Any], row: Mapping[str, Any],
         unit=row.get("unit"),
         conditions={"effort": row.get("effort"), "harness": row.get("harness"),
                     "date": row.get("evidence_date")},
-        collector=COLLECTOR,
+        collector=collector or COLLECTOR,
         sources=(source,),
     )
 
@@ -1545,6 +1604,7 @@ def _verifier_skip_reason(
     regions: StoredRegions,
     observed_at: str,
     extractors: Sequence[Any],
+    collector: VerificationActor | None = None,
 ) -> tuple[str | None, tuple[Diff, ...], str]:
     """The verifier's refusal, its diffs, and an outcome tag.
 
@@ -1552,7 +1612,7 @@ def _verifier_skip_reason(
     Skip classes read the diffs. The reason text is not a class.
     """
     result = verify_one(
-        _claim(model_id, front, row, board),
+        _claim(model_id, front, row, board, collector),
         regions,
         extractors,
         today=date.fromisoformat(observed_at),
@@ -1705,16 +1765,81 @@ def _board_renamed_to_an_effort(board: BoardReading, stored_name: str) -> bool:
     )
 
 
+#: An added Arena dataset row's date is the board's ``leaderboard_publish_date``: the
+#: vocabulary every other Arena dataset-root row on the cards uses (MODEL-511).
+PUBLISHED_DATE_TYPE = "published"
+
+
+def _added_date_type(board: BoardReading, row: Mapping[str, Any], source_url: str) -> str:
+    """``published`` for an Arena dataset-root row the board dates; ``evaluated`` otherwise."""
+    if _arena_dataset_root_url(source_url) and row.get("leaderboard_publish_date"):
+        return PUBLISHED_DATE_TYPE
+    return OBSERVATION_DATE_TYPE
+
+
+def _arena_reading_fields(
+    benchmark_id: str, matched: Mapping[str, Any], score: float,
+) -> dict[str, Any]:
+    """``configuration``, ``interval`` and ``n`` for an added Arena dataset-root row.
+
+    The sentence quotes the reading in the form the weekly refresh retells on peer rows:
+    the subset, the category, ``leaderboard_publish_date``, then ``Rating <score>
+    [<lower>, <upper>], <n> votes, rank <rank>.`` A figure the dataset row does not
+    state is left out of the sentence and the field, so the next refresh never meets a
+    quote it cannot rewrite. An interval that does not contain the score is left out.
+    """
+    config, category = ARENA_BOARDS.get(benchmark_id, (None, None))
+    if config is None:
+        return {}
+    interval, _reason = _matched_interval(matched, score)
+    votes = _matched_votes(matched)
+    rank = _matched_rank(matched)
+    publish = _iso_day(matched.get("leaderboard_publish_date")) or None
+    head = f"LMArena leaderboard dataset, subset {config}, category {category}"
+    if publish:
+        head += f", leaderboard_publish_date {publish}"
+    reading = f"Rating {score:.2f}"
+    if interval is not None:
+        reading += f" [{interval[0]:.2f}, {interval[1]:.2f}]"
+    if votes is not None:
+        reading += f", {votes} votes"
+    if rank is not None:
+        reading += f", rank {rank}"
+    fields: dict[str, Any] = {"configuration": f"{head}. {reading}."}
+    if interval is not None:
+        fields["interval"] = [interval[0], interval[1]]
+    if votes is not None:
+        fields["n"] = votes
+    return fields
+
+
 def _new_evidence(
     *, root: Path, model_id: str, front: Mapping[str, Any], board: BoardReading,
 ) -> tuple[list[dict[str, Any]], list[RowFailure]]:
     matched = _matching_new_row(board, front)
     if matched is None or matched.get(board.value_field) is None:
         return [], []
+    return _rows_for_match(root=root, model_id=model_id, board=board, matched=matched)
+
+
+def _rows_for_match(
+    *, root: Path, model_id: str, board: BoardReading, matched: Mapping[str, Any],
+    templates: dict[str, Mapping[str, Any] | None] | None = None,
+) -> tuple[list[dict[str, Any]], list[RowFailure]]:
+    """The rows one matched board row adds to ``model_id``'s card, one per benchmark.
+
+    ``templates`` caches ``_evidence_template`` per benchmark for a caller that
+    builds many rows in one run.
+    """
     rows: list[dict[str, Any]] = []
     failures: list[RowFailure] = []
     for benchmark_id in sorted(board.benchmark_ids):
-        template = _evidence_template(root, board, benchmark_id)
+        if templates is not None and benchmark_id in templates:
+            template = templates[benchmark_id]
+        else:
+            template = _evidence_template(root, board, benchmark_id)
+            if templates is not None:
+                templates[benchmark_id] = template
         if template is None:
             failures.append(RowFailure(
                 model_id, benchmark_id, board.source_url,
@@ -1723,15 +1848,16 @@ def _new_evidence(
             continue
         source_url = template["source_url"]
         raw = _value(board, matched, str(template["unit"]))
+        score = _stored_score(raw, {"benchmark_id": benchmark_id, "source_url": source_url})
         row = {
             "benchmark_id": benchmark_id,
             "model_id_as_evaluated": _subject(matched),
-            "score": _stored_score(raw, {"benchmark_id": benchmark_id, "source_url": source_url}),
+            "score": score,
             "unit": template["unit"],
             "source_url": source_url,
             "source_kind": template["source_kind"],
             "evidence_date": _evidence_date(board, matched),
-            "date_type": "evaluated",
+            "date_type": _added_date_type(board, matched, str(source_url)),
             "observed_at": board.observed_at,
             "verified_at": board.observed_at,
             "benchmark_version": template.get("benchmark_version", "") if board.row_template else "",
@@ -1747,6 +1873,14 @@ def _new_evidence(
                 cited_regions=["rows"],
             ).model_dump(mode="json")],
         }
+        if _arena_reading_row(row):
+            # The reading the weekly refresh writes on peer rows (MODEL-511), with the
+            # interval and vote count beside the score, where peer rows keep them.
+            reading = _arena_reading_fields(benchmark_id, matched, float(score))
+            row["configuration"] = reading.pop("configuration", "")
+            row = {**{key: row[key] for key in ("benchmark_id", "model_id_as_evaluated",
+                                                "score", "unit")},
+                   **reading, **row}
         if board.effort_basis is not None:
             effort = readers._effort(matched)
             if effort not in verify.EFFORT_LEVELS:
@@ -2123,6 +2257,7 @@ def _prepare_refreshed_row(
     regions: StoredRegions,
     extractors: Sequence[Any],
     observed_at: str,
+    collector: VerificationActor | None = None,
 ) -> tuple[dict[str, Any] | None, str | None, tuple[Diff, ...], str]:
     new, reason = _copy_matched_reading(old, observation, observed_at=observed_at)
     if new is None:
@@ -2139,7 +2274,7 @@ def _prepare_refreshed_row(
     new["id"] = evidence_id(model_id, new)
     if observation.reading_checked:
         reason, diffs, outcome = _verifier_skip_reason(
-            model_id, front, new, board, regions, observed_at, extractors,
+            model_id, front, new, board, regions, observed_at, extractors, collector,
         )
         if reason:
             return None, reason, diffs, outcome
@@ -2164,6 +2299,7 @@ def _refresh_arena_boards(
     pending_updates: dict[Path, list[tuple[tuple[object, ...], dict[str, Any]]]],
     pending_additions: dict[Path, list[dict[str, Any]]],
     claims: list[Claim],
+    collector: VerificationActor | None = None,
 ) -> None:
     """Write each Arena board whole, oldest planned write first, or leave it whole."""
     report.arena_rows_without_board = _arena_rows_without_board(root)
@@ -2219,7 +2355,7 @@ def _refresh_arena_boards(
                            and float(row["score"]) == observation.old_value)
                 prepared, reason, diffs, outcome = _prepare_refreshed_row(
                     model_id, old, observation, board, fronts[model_id],
-                    regions, extractors, observed_at,
+                    regions, extractors, observed_at, collector,
                 )
                 if prepared is None:
                     skips.append((
@@ -2281,13 +2417,14 @@ def _refresh_arena_boards(
             report.arena_rows_left += len(writes) + len(additions)
             continue
         rewrites += board_rewrites
+        report.arena_boards_written.append(board.key)
         summary["rows_rewritten"] = sum(1 for write in writes if write[-1] == "rewrite")
         summary["rows_reconfirmed"] = sum(1 for write in writes if write[-1] == "reconfirm")
         summary["rows_left"] = 0
         reconfirmed_models: set[str] = set()
         for path, model_id, old, prepared, observation, kind in writes:
             pending_updates.setdefault(path, []).append((evidence_key(old), prepared))
-            claims.append(_claim(model_id, fronts[model_id], prepared, board))
+            claims.append(_claim(model_id, fronts[model_id], prepared, board, collector))
             if observation.changed:
                 report.changes.append(observation.score_change())
             else:
@@ -2295,7 +2432,7 @@ def _refresh_arena_boards(
                 reconfirmed_models.add(model_id)
         for path, model_id, row in additions:
             pending_additions.setdefault(path, []).append(row)
-            claims.append(_claim(model_id, fronts[model_id], row, board))
+            claims.append(_claim(model_id, fronts[model_id], row, board, collector))
             report.added += 1
         summary["models_reconfirmed"] += len(reconfirmed_models)
         summary["values_changed"] = sum(
@@ -2304,12 +2441,274 @@ def _refresh_arena_boards(
         )
 
 
+# --- first-row filing (MODEL-478, docs/design/first-row-filing.md) -----------------------------
+
+#: First rows one weekly run writes. Later candidates are reported, not written.
+FIRST_ROWS_PER_RUN = 25
+#: The label a pull request that adds a first row carries. A first row is a new fact,
+#: not a score-only change: a person reviews and merges it.
+FIRST_ROW_LABEL = "first-row"
+FIRST_ROW_MERGE_CLASS = "human-review"
+SCORE_ONLY_MERGE_CLASS = "score-only"
+#: The boards whose first rows this filer writes. Arena (CC BY 4.0) first; another
+#: board joins only after its reuse terms are checked.
+FIRST_ROW_BOARD_PREFIXES: tuple[str, ...] = ("arena:",)
+#: Classes of ``registry/source-terms.json`` whose host may receive a first row.
+FIRST_ROW_HOST_CLASSES = frozenset({"permits", "restricts"})
+
+_FIRST_ROW_PARENTHESES = "board name contains parentheses"
+_FIRST_ROW_NO_CARD = "no card has this name"
+_FIRST_ROW_PUBLISHER = "publisher prefix is not the card's lab"
+_FIRST_ROW_INACTIVE = "card is not active"
+_FIRST_ROW_TWO_ROWS = "two board rows name this card"
+
+
+def first_row_host_class(url: str, terms: Mapping[str, str]) -> str:
+    """The terms class of ``url``'s canonical host, for the first-row gate.
+
+    ``cite-only`` for a host the public list or the register holds back, ``excluded``
+    for an excluded publisher, ``missing`` for a host the register does not name or a
+    URL that does not parse, else the register's class. Only ``permits`` and
+    ``restricts`` file a first row.
+    """
+    from decision.retention import canonical_host, cite_only_status
+
+    if excluded_sources().url(url):
+        return "excluded"
+    try:
+        host = canonical_host(url)
+    except ValueError:
+        return "missing"
+    if host is None:
+        return "missing"
+    held = cite_only_status(url)
+    if held is None:
+        return "missing"
+    if terms.get(host) == "forbids":
+        return "forbids"
+    if held or terms.get(host) == "cite-only":
+        return "cite-only"
+    return str(terms.get(host) or "missing")
+
+
+def first_row_index(fronts: Mapping[str, Mapping[str, Any]]) -> dict[str, set[str]]:
+    """``slug(strip=False)`` of each card's display name and model id -> those model ids.
+
+    Every card is indexed, whatever its status, so a name an inactive card shares is
+    still shared. Aliases are not keys: only the name and the id are.
+    """
+    from scripts.premier_slice1 import slug
+
+    index: dict[str, set[str]] = {}
+    for model_id, front in fronts.items():
+        for name in (front.get("display_name"), model_id):
+            key = slug(str(name or ""), strip=False)
+            if key:
+                index.setdefault(key, set()).add(model_id)
+    return index
+
+
+def first_row_match(
+    name: str, index: Mapping[str, set[str]], fronts: Mapping[str, Mapping[str, Any]],
+) -> tuple[str | None, str, str | None, str]:
+    """``(model_id, key, refusal, nearest)`` for one board name.
+
+    The design's matcher, not ``match_index`` and not the refresh's token sort. A name
+    with parentheses is refused before the match (``slug`` would drop their text). The
+    key is ``slug(name, strip=False)``; it must equal the key of exactly one card. A
+    publisher prefix (``lab/`` before the first ``/`` of a name that is not a URL)
+    must be that card's lab. The card must be active. ``nearest`` is the one card the
+    key names, even when the name is refused; it is empty when no single card does.
+    """
+    from scripts.premier_slice1 import slug
+
+    key = slug(name, strip=False)
+    hits = index.get(key, set()) if key else set()
+    nearest = next(iter(hits)) if len(hits) == 1 else ""
+    if "(" in name or ")" in name:
+        return None, key, _FIRST_ROW_PARENTHESES, nearest
+    if not hits:
+        return None, key, _FIRST_ROW_NO_CARD, ""
+    if len(hits) > 1:
+        return None, key, f"{len(hits)} cards share this name", ""
+    model_id = nearest
+    if "/" in name and "://" not in name:
+        publisher = name.split("/", 1)[0].strip().casefold()
+        if publisher != model_id.split("/", 1)[0].casefold():
+            return None, key, _FIRST_ROW_PUBLISHER, model_id
+    if str(fronts[model_id].get("status") or "") != "active":
+        return None, key, _FIRST_ROW_INACTIVE, model_id
+    return model_id, key, None, model_id
+
+
+def _catalogue(root: Path) -> tuple[dict[str, Path], dict[str, dict[str, Any]]]:
+    """Every card in the catalogue: model id -> path, and model id -> front matter."""
+    paths: dict[str, Path] = {}
+    fronts: dict[str, dict[str, Any]] = {}
+    for path in sorted((root / "models").glob("*/*.md")):
+        front = _front(path)
+        model_id = str(front.get("model_id") or "")
+        if model_id:
+            paths[model_id] = path
+            fronts[model_id] = front
+    return paths, fronts
+
+
+def _has_row_on(front: Mapping[str, Any], benchmark_ids: Iterable[str]) -> bool:
+    wanted = set(benchmark_ids)
+    return any(
+        isinstance(row, Mapping) and row.get("benchmark_id") in wanted
+        for row in (front.get("benchmarks") or {}).get("evidence") or []
+    )
+
+
+def plan_first_rows(
+    *,
+    root: Path,
+    report: RefreshReport,
+    boards: Sequence[BoardReading],
+    terms: Mapping[str, str],
+    regions: StoredRegions,
+    extractors: Sequence[Any],
+    observed_at: str,
+    collector: VerificationActor,
+    pending_additions: Mapping[Path, Sequence[Mapping[str, Any]]] | None = None,
+) -> list[tuple[Path, str, dict[str, Any], BoardReading]]:
+    """First rows for active catalogue cards with no row on a board the run read.
+
+    A board qualifies when its key is in ``FIRST_ROW_BOARD_PREFIXES``, the run wrote
+    it whole, it was not read as cite-only, and the canonical host of its fetch URL and
+    of the row's source URL is ``permits`` or ``restricts``. One board row files one
+    row on one card, and only when the matcher names that card and no other board row
+    names it too. The verifier must accept the row before it is planned. Rows past
+    ``FIRST_ROWS_PER_RUN`` are reported and not returned. Fills the report's
+    ``first_rows*`` fields; returns ``(path, model_id, row, board)`` to write.
+    """
+    report.first_rows_considered = True
+    paths, fronts = _catalogue(root)
+    index = first_row_index(fronts)
+    written = set(report.arena_boards_written)
+    planned_keys = {
+        (path, str(row.get("benchmark_id"))) for path, rows in (pending_additions or {}).items()
+        for row in rows
+    }
+    accepted: list[tuple[Path, str, dict[str, Any], BoardReading, FirstRow]] = []
+    for board in sorted(boards, key=lambda item: item.key):
+        if not board.key.startswith(FIRST_ROW_BOARD_PREFIXES) or board.key not in written:
+            continue
+        benchmark_label = ",".join(sorted(board.benchmark_ids))
+        if board.cite_only:
+            report.failures.append(RowFailure(
+                "*", benchmark_label, board.source_url,
+                "first rows: the board was read as cite-only; no first row filed",
+            ))
+            continue
+        host = first_row_host_class(board.source_url, terms)
+        if host not in FIRST_ROW_HOST_CLASSES:
+            report.failures.append(RowFailure(
+                "*", benchmark_label, board.source_url,
+                f"first rows: the board's host is {host}; no first row filed",
+            ))
+            continue
+        named: dict[str, list[tuple[Mapping[str, Any], str]]] = {}
+        unmatched = 0
+        for dataset_row in board.rows:
+            name = _subject(dataset_row)
+            if not name or dataset_row.get(board.value_field) is None:
+                continue
+            model_id, key, refusal, nearest = first_row_match(name, index, fronts)
+            near = model_id or nearest
+            if near and _has_row_on(fronts[near], board.benchmark_ids):
+                continue  # the card already has a row here: the refresh owns it
+            if refusal == _FIRST_ROW_NO_CARD:
+                unmatched += 1
+                continue
+            if refusal is not None:
+                report.first_rows_refused.append(FirstRowRefusal(
+                    benchmark_label, name, key, refusal, near,
+                ))
+                continue
+            named.setdefault(str(model_id), []).append((dataset_row, key))
+        if unmatched:
+            report.first_rows_unmatched[board.key] = unmatched
+        templates: dict[str, Mapping[str, Any] | None] = {}
+        for model_id, hits in sorted(named.items()):
+            if len(hits) > 1:
+                report.first_rows_refused.extend(
+                    FirstRowRefusal(benchmark_label, _subject(row), key, _FIRST_ROW_TWO_ROWS,
+                                    model_id)
+                    for row, key in hits
+                )
+                continue
+            dataset_row, key = hits[0]
+            name = _subject(dataset_row)
+            rows, failures = _rows_for_match(
+                root=root, model_id=model_id, board=board, matched=dataset_row,
+                templates=templates,
+            )
+            for failure in failures:
+                report.first_rows_refused.append(FirstRowRefusal(
+                    failure.benchmark, name, key, failure.reason, model_id,
+                ))
+            for row in rows:
+                benchmark = str(row["benchmark_id"])
+                source_host = first_row_host_class(str(row["source_url"]), terms)
+                if source_host not in FIRST_ROW_HOST_CLASSES:
+                    report.first_rows_refused.append(FirstRowRefusal(
+                        benchmark, name, key, f"the row's source host is {source_host}",
+                        model_id,
+                    ))
+                    continue
+                if (paths[model_id], benchmark) in planned_keys:
+                    continue
+                reason, _diffs, _outcome = _verifier_skip_reason(
+                    model_id, fronts[model_id], row, board, regions, observed_at,
+                    extractors, collector,
+                )
+                if reason:
+                    report.first_rows_refused.append(FirstRowRefusal(
+                        benchmark, name, key, reason, model_id,
+                    ))
+                    continue
+                accepted.append((paths[model_id], model_id, row, board, FirstRow(
+                    card=paths[model_id].relative_to(root).as_posix(),
+                    model_id=model_id, benchmark=benchmark, board_name=name, match_key=key,
+                    source=str(row["source_url"]), score=float(row["score"]),
+                    evidence_date=str(row["evidence_date"]),
+                )))
+    accepted.sort(key=lambda item: (item[4].benchmark, item[1]))
+    planned: list[tuple[Path, str, dict[str, Any], BoardReading]] = []
+    for position, (path, model_id, row, board, entry) in enumerate(accepted):
+        if position >= FIRST_ROWS_PER_RUN:
+            report.first_rows_capped.append(replace(entry, capped=True))
+            continue
+        report.first_rows.append(entry)
+        planned.append((path, model_id, row, board))
+    return planned
+
+
 def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         source_cache: Path | None = None,
         model_ids: Iterable[str] | None = None,
         add_missing: bool = False,
         release_held_boards: bool = False,
-        arena_latest: bool | None = None) -> RefreshReport:
+        arena_latest: bool | None = None,
+        first_rows: bool = False,
+        collector: VerificationActor | None = None) -> RefreshReport:
+    """Refresh the boards; with ``first_rows``, also file first rows (MODEL-478).
+
+    ``collector`` is the actor the run's claims and verification log lines name. The
+    weekly refresh leaves it None and logs ``COLLECTOR``. A run that adds rows
+    (``add_missing`` or ``first_rows``) must name its own actor: with none it stops
+    before any request. ``first_rows`` files only on the weekly path (no ``model_ids``).
+    """
+    if (add_missing or first_rows) and collector is None:
+        raise ValueError(
+            "a run that adds evidence rows (add_missing or first_rows) must name its "
+            "collector; none was given"
+        )
+    if first_rows and model_ids is not None:
+        raise ValueError("first rows are filed by the weekly path only, not for model_ids")
     terms = load_terms(root)
     if not terms:
         # Never fall back to treating every host as retaining (S7): stop before any request.
@@ -2434,7 +2833,8 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                             models_read.add(model_id)
                             pending_additions.setdefault(path, []).extend(additions)
                             claims.extend(
-                                _claim(model_id, fronts[model_id], row, board) for row in additions
+                                _claim(model_id, fronts[model_id], row, board, collector)
+                                for row in additions
                             )
                             report.added += len(additions)
                     continue
@@ -2498,7 +2898,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                     new["id"] = evidence_id(model_id, new)
                     pending_updates.setdefault(path, []).append((evidence_key(old), new))
                     if not board.cite_only:  # a cited row has no page copy to verify against
-                        claims.append(_claim(model_id, fronts[model_id], new, board))
+                        claims.append(_claim(model_id, fronts[model_id], new, board, collector))
                     if observation.changed:
                         report.changes.append(observation.score_change())
                     else:
@@ -2529,7 +2929,20 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
         pending_updates=pending_updates,
         pending_additions=pending_additions,
         claims=claims,
+        collector=collector,
     )
+    if first_rows and _unwritten_arena_reason(report) is None:
+        assert collector is not None  # checked on entry
+        for path, model_id, row, board in plan_first_rows(
+            root=root, report=report, boards=boards, terms=terms, regions=regions,
+            extractors=extractors, observed_at=observed_at, collector=collector,
+            pending_additions=pending_additions,
+        ):
+            pending_additions.setdefault(path, []).append(row)
+            claims.append(_claim(model_id, _front(path), row, board, collector))
+            report.added += 1
+    elif first_rows:
+        report.first_rows_considered = True
 
     model_of = {path: model for model, path in cards.items()}
     refreshed = {
@@ -2766,6 +3179,52 @@ def _publication_payload(report: RefreshReport) -> dict[str, list[dict[str, str]
     return grouped
 
 
+def _first_row_lines(report: RefreshReport) -> list[str]:
+    """The first-row section: filed rows, capped rows, refusals, unmatched counts."""
+    if not report.first_rows_considered:
+        return []
+    lines = [
+        "## First rows (human review)", "",
+        f"Merge class: {FIRST_ROW_MERGE_CLASS if report.first_rows else SCORE_ONLY_MERGE_CLASS}. "
+        + (f"Label: `{FIRST_ROW_LABEL}`. A first row is a new fact, not a score-only change: "
+           "a person reviews and merges this pull request."
+           if report.first_rows else "No first row was filed."),
+        "",
+        f"Filed {len(report.first_rows)}, stopped by the cap of {FIRST_ROWS_PER_RUN}: "
+        f"{len(report.first_rows_capped)}, refused {len(report.first_rows_refused)}.",
+    ]
+    for title, entries in (("Filed", report.first_rows),
+                           ("Not written: the cap stopped them", report.first_rows_capped)):
+        if not entries:
+            continue
+        lines.extend(["", f"### {title}", "",
+                      "| Card | Benchmark | Board name | Match key | Source | Cap stopped |",
+                      "|---|---|---|---|---|---|"])
+        lines.extend(
+            f"| `{entry.model_id}` | `{entry.benchmark}` | {entry.board_name} | "
+            f"`{entry.match_key}` | {entry.source} | {'yes' if entry.capped else 'no'} |"
+            for entry in entries
+        )
+    if report.first_rows_refused:
+        counts: dict[str, int] = {}
+        for entry in report.first_rows_refused:
+            counts[entry.reason] = counts.get(entry.reason, 0) + 1
+        lines.extend(["", "### Refused", "", "| Why | Rows |", "|---|---:|"])
+        lines.extend(f"| {reason} | {count} |" for reason, count in sorted(counts.items()))
+        lines.extend(["", "| Card | Benchmark | Board name | Why |", "|---|---|---|---|"])
+        lines.extend(
+            f"| {('`' + entry.model_id + '`') if entry.model_id else '-'} | `{entry.benchmark}` | "
+            f"{entry.board_name} | {entry.reason} |"
+            for entry in sorted(report.first_rows_refused,
+                                key=lambda item: (item.benchmark, item.model_id, item.board_name))
+        )
+    if report.first_rows_unmatched:
+        lines.extend(["", "Board rows no card names: " + ", ".join(
+            f"{board} {count}" for board, count in sorted(report.first_rows_unmatched.items())
+        ) + "."])
+    return lines
+
+
 def render_report(report: RefreshReport) -> str:
     lines: list[str] = []
     census = _arena_census_lines(report)
@@ -2844,6 +3303,9 @@ def render_report(report: RefreshReport) -> str:
             for board, skipped in refused
         )
     lines.extend(_dates_a_person_must_rewrite(report.failures))
+    first = _first_row_lines(report)
+    if first:
+        lines.extend(["", *first])
     lines.extend(["", "## Score changes", "", audit_markdown(report.changes)])
     publication = _publication_lines(report)
     if publication:
@@ -3647,7 +4109,61 @@ def _fronts_match_after_refresh(
     return before == after
 
 
-def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
+def _appended_log_lines(before: Path, after: Path) -> list[Mapping[str, Any]]:
+    """The verification log lines ``after`` appended to ``before``; [] when it was rewritten."""
+    rel = "verification/log.jsonl"
+    old = (before / rel).read_bytes() if (before / rel).is_file() else b""
+    new = (after / rel).read_bytes() if (after / rel).is_file() else b""
+    if not new.startswith(old):
+        return []
+    lines = []
+    for line in new[len(old):].decode("utf-8").splitlines():
+        if line.strip():
+            try:
+                lines.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+    return lines
+
+
+def _first_row_refusal(
+    model_id: str, before_rows: Sequence[Mapping[str, Any]], row: Mapping[str, Any],
+    logged: Sequence[Mapping[str, Any]], terms: Mapping[str, str],
+) -> str | None:
+    """Why the guard refuses one appended evidence row as a first row, or None.
+
+    The row is the weekly job's: an Arena board it reads, the dataset-root source URL
+    the refresh matches on, a ``permits`` or ``restricts`` host, its own evidence id,
+    dated by this run's observation, and one appended verification log line that
+    verified it with the weekly refresh collector. The card had no row on that board.
+    """
+    benchmark = str(row.get("benchmark_id") or "")
+    if "arena:" not in FIRST_ROW_BOARD_PREFIXES or benchmark not in ARENA_BOARDS:
+        return "added row is not on a board the first-row filer reads"
+    if str(row.get("source_url") or "") != ARENA_DATASET_ROOT:
+        return "added row's source_url is not the Arena dataset root"
+    host = first_row_host_class(ARENA_DATASET_ROOT, terms)
+    if host not in FIRST_ROW_HOST_CLASSES:
+        return f"added row's host is {host}"
+    if any(old.get("benchmark_id") == benchmark for old in before_rows):
+        return "added row is not the card's first row on that board"
+    if row.get("id") != evidence_id(model_id, dict(row)):
+        return "added row's id is not its evidence id"
+    observed = _iso_day(row.get("observed_at"))
+    if not observed or _iso_day(row.get("verified_at")) != observed:
+        return "added row is not dated by this run's observation"
+    expected = COLLECTOR.model_dump(mode="json")
+    for line in logged:
+        target = line.get("target") or {}
+        if (target.get("kind") == "evidence" and target.get("id") == row.get("id")
+                and line.get("collector") == expected and line.get("outcome") == "verified"
+                and _iso_day(line.get("date")) == observed):
+            return None
+    return "added row has no verified log line from the weekly refresh collector"
+
+
+def check_score_only(before: Path, after: Path, *, first_rows: bool = False,
+                     terms: Mapping[str, str] | None = None) -> ScoreOnlyResult:
     """Mechanically prove a generated refresh did not add cards or alter identities.
 
     Existing evidence rows may change their score, observation/verification
@@ -3671,10 +4187,20 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
     One date replaced by another is refused. The key beside any other changed
     field is judged as that other field.
     Verification JSONL files may only grow.
+
+    ``first_rows`` (MODEL-478) also accepts evidence rows appended to an existing
+    card's list when each is a first row ``_first_row_refusal`` accepts, at most
+    ``FIRST_ROWS_PER_RUN`` in all; ``terms`` is the source-terms register (default
+    ``load_terms(ROOT)``), and an empty one refuses every first row. Such rows are
+    counted under the class ``first_row``, which makes ``merge_class``
+    ``human-review``: the pull request is labelled ``first-row`` and a person merges it.
+    Without ``first_rows`` any change in the row count is refused, as before.
     """
     old, new = _files(before), _files(after)
     errors: list[str] = []
     classes: dict[str, int] = {}
+    logged = _appended_log_lines(before, after) if first_rows else []
+    register = (load_terms(ROOT) if terms is None else dict(terms)) if first_rows else {}
     for rel in sorted(new.keys() - old.keys()):
         if rel.startswith("models/") and rel.endswith(".md"):
             errors.append(f"card created: {rel}")
@@ -3689,6 +4215,25 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
             before_front, after_front = _front(old[rel]), _front(new[rel])
             before_rows = ((before_front.get("benchmarks") or {}).get("evidence") or [])
             after_rows = ((after_front.get("benchmarks") or {}).get("evidence") or [])
+            if first_rows and len(after_rows) > len(before_rows):
+                added = after_rows[len(before_rows):]
+                model_id = str(after_front.get("model_id") or "")
+                refusals = [
+                    _first_row_refusal(model_id, before_rows, row, logged, register)
+                    for row in added
+                ]
+                if len({str(row.get("benchmark_id")) for row in added}) != len(added):
+                    refusals.append("two rows added on one board")
+                if model_id != str(before_front.get("model_id") or ""):
+                    refusals.append("model id changed")
+                if any(refusals):
+                    errors.extend(f"first row refused: {rel}: {reason}"
+                                  for reason in refusals if reason)
+                else:
+                    classes["first_row"] = classes.get("first_row", 0) + len(added)
+                    trimmed = copy.deepcopy(after_front)
+                    trimmed["benchmarks"]["evidence"] = list(after_rows[:len(before_rows)])
+                    after_front, after_rows = trimmed, trimmed["benchmarks"]["evidence"]
             if len(before_rows) != len(after_rows):
                 errors.append(f"evidence row count changed: {rel}")
             elif not _fronts_match_after_refresh(before_front, after_front):
@@ -3706,6 +4251,10 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
                 errors.append(f"append-only file rewritten: {rel}")
         else:
             errors.append(f"file changed outside refresh outputs: {rel}")
+    if classes.get("first_row", 0) > FIRST_ROWS_PER_RUN:
+        errors.append(
+            f"first rows over the cap: {classes['first_row']} (cap {FIRST_ROWS_PER_RUN})"
+        )
     return ScoreOnlyResult(not errors, tuple(errors), classes)
 
 
@@ -3752,6 +4301,13 @@ def write_report_json(path: Path, report: RefreshReport) -> None:
         "left_stale": [row.__dict__ for row in report.left_stale],
         "not_published_since": _publication_payload(report),
         "added": report.added,
+        # MODEL-478: a first row sends the pull request to a person, never the score-only merge.
+        "merge_class": FIRST_ROW_MERGE_CLASS if report.first_rows else SCORE_ONLY_MERGE_CLASS,
+        "labels": [FIRST_ROW_LABEL] if report.first_rows else [],
+        "first_rows": [row.__dict__ for row in report.first_rows],
+        "first_rows_capped": [row.__dict__ for row in report.first_rows_capped],
+        "first_rows_refused": [row.__dict__ for row in report.first_rows_refused],
+        "first_rows_unmatched": report.first_rows_unmatched,
     }
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
@@ -4573,11 +5129,22 @@ def main(argv: list[str] | None = None) -> None:
         help="Read Arena at the current Hugging Face dataset revision. "
              "A failure keeps the pinned revision and says so in the report.",
     )
+    parser.add_argument(
+        "--first-rows",
+        action="store_true",
+        help="Also file first rows on the Arena boards for active cards with no row there "
+             f"(MODEL-478), at most {FIRST_ROWS_PER_RUN}. The report's merge class is then "
+             f"{FIRST_ROW_MERGE_CLASS} and its label {FIRST_ROW_LABEL}; "
+             "the guard needs first_rows=True.",
+    )
     args = parser.parse_args(argv)
     # The network collector is wired below; keeping the CLI here makes the pure
     # planning and diff guard independently testable.
     report = run(observed_at=args.observed_at, dry_run=args.dry_run,
-                 arena_latest=True if args.arena_latest else None)
+                 arena_latest=True if args.arena_latest else None,
+                 first_rows=args.first_rows,
+                 # The weekly job files its first rows as itself (the guard checks it).
+                 collector=COLLECTOR if args.first_rows else None)
     print(render_report(report))
     if args.audit_json:
         write_audit(args.audit_json, report.changes)
