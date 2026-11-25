@@ -38,7 +38,7 @@ from urllib.parse import urljoin, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from decision.cited_change import (
-    cited_change_block, cited_change_facts, cited_change_readings, reread_due,
+    RETAINED_RULE, cited_change_block, cited_change_facts, cited_change_readings, reread_due,
 )
 from decision.cited_reader import text_sha256
 from decision.retention import cite_only_origin_restrictive
@@ -347,6 +347,8 @@ class Report:
     unread: list[str] = field(default_factory=list)
     #: Cited-change facts whose page sha256 changed: two readers must read them again.
     cited_change_rereads: list[str] = field(default_factory=list)
+    #: Retaining-host agreements (MODEL-558) whose origin is now cite-only: listed, not read.
+    retained_now_cite_only: list[str] = field(default_factory=list)
     redirects_kept: list[str] = field(default_factory=list)
     #: Watched pages (source ids) whose visible text changed since the last run.
     watched_changed: list[str] = field(default_factory=list)
@@ -374,6 +376,7 @@ class Report:
             "mismatches": sorted(self.mismatches), "unreachable": sorted(self.unreachable),
             "unread": sorted(self.unread),
             "cited_change_rereads_required": sorted(self.cited_change_rereads),
+            "retained_agreements_now_cite_only": sorted(self.retained_now_cite_only),
             "source_redirects_kept": sorted(self.redirects_kept),
             "source_redirects_dropped": sorted(self.redirects_dropped),
             "blocked_redirect_hosts": dict(self.blocked_hosts),
@@ -519,8 +522,23 @@ def cited_change_rereads(root: Path, terms: dict[str, str], report: "Report", *,
     last = _last_requests(root)
     pages: dict[str, Fetched] = {}
     for fact in [*cited_change_facts(root), *cited_change_readings(root)]:
-        url = cited_change_block(fact)["url"]
-        if host_class(url, terms) not in {"forbids", "cite-only"}:
+        block = cited_change_block(fact)
+        url = block["url"]
+        # The origin's current class is read before any request (MODEL-558 review). A
+        # retaining-host agreement is re-read only while its origin still retains copies: one on
+        # a now cite-only origin is not fetched here, and is listed for the cite-only path. Any
+        # other block is re-read only on a cite-only origin.
+        current = host_class(url, terms)
+        if block.get("rule") == RETAINED_RULE:
+            if current in {"forbids", "cite-only"}:
+                report.note("retained_agreement_now_cite_only", host_of(url))
+                report.retained_now_cite_only.append(
+                    fact.get("target") or f"{fact['subject']}#{fact['facet']}")
+                continue
+            wanted = {"retaining"}
+        else:
+            wanted = {"forbids", "cite-only"}
+        if current not in wanted:
             report.note("cited_change_skipped", host_of(url))
             continue
         if url not in pages:
