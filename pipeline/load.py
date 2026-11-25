@@ -45,7 +45,7 @@ class LoadError(RuntimeError):
 #: The frozen public image's ten benchmark pages that repeat ``aliases`` from before MODEL-554,
 #: by file name and the SHA-256 of the whole file. The data repository has fixed them; the
 #: image, which this repository may not change, has not. A page warns (as a count, keeping the
-#: last value) only when it is read at ``benchmarks/<that name>``, its bytes are exactly these,
+#: last value) only when it is read at ``benchmarks/<that name>``, the text parsed hashes to these,
 #: and ``aliases`` is its only repeated key; tests stand copies of the image in for private
 #: data, so the root may differ. Anything else that repeats a key is refused: an edited page,
 #: a copy under another name, the same text as a card. Drop an entry once the image is fixed.
@@ -64,15 +64,13 @@ FROZEN_DUPLICATE_PAGES = {
 _FROZEN_REPEATED_KEYS = frozenset({"aliases"})
 
 
-def _frozen_duplicate(path: Path | None, exc: DuplicateKeyError) -> bool:
-    """Whether a refused page is one of ``FROZEN_DUPLICATE_PAGES``, exactly."""
+def _frozen_duplicate(text: str, path: Path | None, exc: DuplicateKeyError) -> bool:
+    """Whether a refused page is one of ``FROZEN_DUPLICATE_PAGES``, exactly. The hash is of the
+    text that was parsed (UTF-8), never of a second read of the file."""
     if path is None or path.parent.name != "benchmarks" or set(exc.keys) != _FROZEN_REPEATED_KEYS:
         return False
     expected = FROZEN_DUPLICATE_PAGES.get(path.name)
-    try:
-        return expected is not None and hashlib.sha256(path.read_bytes()).hexdigest() == expected
-    except OSError:
-        return False
+    return expected is not None and hashlib.sha256(text.encode("utf-8")).hexdigest() == expected
 
 
 def split_front_matter(text: str, *, path: Path | None = None,
@@ -89,7 +87,7 @@ def split_front_matter(text: str, *, path: Path | None = None,
     except DuplicateKeyError as exc:
         # Counts and a location only, so the message is safe for private data too.
         message = f"{path or 'front matter'}: {exc.diagnostic(line_offset=1)}"
-        if duplicates is None and _frozen_duplicate(path, exc):
+        if duplicates is None and _frozen_duplicate(text, path, exc):
             duplicates = "warn"
         if duplicates != "warn":
             raise LoadError(message) from None

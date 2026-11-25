@@ -304,3 +304,57 @@ def test_the_graph_and_ranking_card_reader_refuses_a_repeated_key(tmp_path, card
         ModelCard.from_yaml_file(path)
     with pytest.raises((ValueError, yaml.YAMLError), match="DuplicateKeyError|duplicate_yaml_key"):
         ModelCard.from_yaml_string(card)
+
+
+def test_the_frozen_hash_is_of_the_text_parsed_not_a_second_read(tmp_path, monkeypatch):
+    """The exemption binds what was parsed: pinned bytes on disk do not exempt other text,
+    and the pinned text is exempt whatever the disk holds."""
+    from pipeline.load import split_front_matter
+
+    _repo(tmp_path, benchmark=ALIASES_PAGE)
+    page = tmp_path / "benchmarks/bench-a.md"
+    _pin(monkeypatch, page)
+    with pytest.raises(LoadError, match="duplicate_yaml_key"):
+        split_front_matter(ALIASES_PAGE.replace("name: Bench A", "name: Bench B"), path=page)
+    page.write_text("not the pinned page\n")
+    front, _ = split_front_matter(ALIASES_PAGE, path=page)
+    assert front["aliases"] == ["Bench A"]
+
+
+# --- the rule-15 readers, the trust audit and the PR validator -----------------------------------
+
+
+def test_the_cited_change_readers_refuse_a_card_or_offering_that_repeats_a_key(tmp_path):
+    from decision.cited_change import _front, cited_change_facts, cited_change_readings, lookup
+    from schema.yaml_loader import DuplicateKeyError
+
+    _repo(tmp_path, card=CARD, subscription=SUBSCRIPTION)
+    with pytest.raises(LookupFailed, match="^DuplicateKeyError$"):
+        lookup(MID, "model.context_window", tmp_path)
+    with pytest.raises(LookupFailed, match="^DuplicateKeyError$"):
+        lookup("host/subscription/pro", "offering.subscription.price", tmp_path)
+    with pytest.raises(DuplicateKeyError):
+        _front(tmp_path / f"models/{MID}.md")
+    # The scans never read a repeated key as its last value: the file is not read at all.
+    assert cited_change_facts(tmp_path) == [] and cited_change_readings(tmp_path) == []
+
+
+def test_the_trust_audit_flags_a_log_row_that_repeats_a_key_and_never_counts_it(tmp_path):
+    from scripts.data_trust.catalogue import load
+
+    _repo(tmp_path, log=[_row("verified"), ESCAPED_OUTCOME])
+    catalogue = load(tmp_path)
+    assert [(f.id, f.rule) for f in catalogue.findings if f.field == "record"] == [
+        ("verification/log.jsonl:2", "duplicate_json_key")]
+    [(_, counted)] = catalogue.verifications.items()
+    assert counted["outcome"] == "verified" and counted == json.loads(_row("verified"))
+
+
+def test_the_pr_validator_still_treats_a_card_that_repeats_a_key_as_a_card(tmp_path):
+    from scripts.validate_pr import is_model_card, validate_card
+
+    _repo(tmp_path, card=CARD)
+    path = str(tmp_path / f"models/{MID}.md")
+    assert is_model_card(path)
+    result = validate_card(path, compute_diff=False)
+    assert result["status"] != "valid"

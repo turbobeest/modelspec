@@ -24,6 +24,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from schema.card import ModelCard  # noqa: E402
+from schema.yaml_loader import load_yaml_unique  # noqa: E402
 
 
 # ─── Field helpers ─────────────────────────────────────────────
@@ -113,7 +114,9 @@ def is_model_card(filepath: str) -> bool:
     if not match:
         return False
     try:
-        front = yaml.safe_load(match.group(1))
+        # The build's refusing loader (MODEL-554): a card that repeats a key is still a card,
+        # and the validator reports it.
+        front = load_yaml_unique(match.group(1))
     except yaml.YAMLError:
         # Malformed front matter in a file that looks like a card is a real
         # failure; let the validator report it rather than silently skipping.

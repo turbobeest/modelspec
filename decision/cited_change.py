@@ -66,6 +66,7 @@ from urllib.parse import urljoin
 
 import yaml
 from pydantic import JsonValue
+from schema.yaml_loader import load_yaml_unique
 
 from decision.cited_reader import (
     INPUT_FIELDS, MAX_PAGE_CHARS, Reader, ReaderAnswer, ReaderError, attempts, build_prompt,
@@ -242,7 +243,7 @@ def _offering_lookup(root: Path, subject: str, facet: str) -> Lookup:
         match = _OFFERING.fullmatch(subject)
         provider, lab, model = match.group(1), match.group(2), match.group(3)
         path = root / "offerings" / provider / lab / f"{model}.yaml"
-    rows = yaml.safe_load(path.read_text(encoding="utf-8"))
+    rows = load_yaml_unique(path.read_text(encoding="utf-8"))
     # The row is found by its own identity, as the build makes it, never by a stored id.
     hits = [(row, f) for row in rows if _row_id(row) == subject
             for f in row.get("facts") or [] if f.get("facet") == facet]
@@ -257,7 +258,7 @@ def _offering_lookup(root: Path, subject: str, facet: str) -> Lookup:
         name = f"{row['name']}, a {provider_name} subscription plan"
     else:
         card = (root / "models" / f"{row['model']}.md").read_text(encoding="utf-8")
-        names = (yaml.safe_load(card.split("---", 2)[1])["display_name"],)
+        names = (load_yaml_unique(card.split("---", 2)[1])["display_name"],)
         name = f"{names[0]}, as {provider_name} serves it"
     sources, redirects = _registry(root)
     if not all(isinstance(n, str) and n for n in names):
@@ -297,7 +298,7 @@ def lookup(subject: str, facet: str, data_dir: str | Path | None = None) -> Look
             found = _offering_lookup(root, subject, facet)
         else:
             path = root / "models" / f"{subject}.md"
-            front = yaml.safe_load(path.read_text(encoding="utf-8").split("---", 2)[1])
+            front = load_yaml_unique(path.read_text(encoding="utf-8").split("---", 2)[1])
             facts = [f for f in front["facts"] if f.get("facet") == facet]
             if len(facts) != 1:
                 raise KeyError("card fact")
@@ -829,7 +830,7 @@ def reading_epoch(reading: Mapping[str, Any], row: Mapping[str, Any] | None = No
 
 
 def _front(path: Path) -> dict[str, Any]:
-    front = yaml.safe_load(path.read_text(encoding="utf-8").split("---", 2)[1])
+    front = load_yaml_unique(path.read_text(encoding="utf-8").split("---", 2)[1])
     if not isinstance(front, dict):
         raise ValueError("front matter")
     return front
@@ -1150,7 +1151,7 @@ def cited_change_facts(data_dir: str | Path) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for path in sorted((Path(data_dir) / "models").glob("*/*.md")):
         try:
-            front = yaml.safe_load(path.read_text("utf-8").split("---", 2)[1])
+            front = load_yaml_unique(path.read_text("utf-8").split("---", 2)[1])
             facts = front.get("facts") or []
         except (OSError, IndexError, AttributeError, yaml.YAMLError):
             continue
@@ -1162,7 +1163,7 @@ def cited_change_facts(data_dir: str | Path) -> list[dict[str, Any]]:
                             "source_id": sources[0].get("source_id")})
     for path in sorted((Path(data_dir) / "offerings").rglob("*.yaml")):
         try:
-            rows = yaml.safe_load(path.read_text("utf-8")) or []
+            rows = load_yaml_unique(path.read_text("utf-8")) or []
             facts = [f for row in rows for f in row.get("facts") or []]
         except (OSError, AttributeError, TypeError, yaml.YAMLError):
             continue
@@ -1183,7 +1184,7 @@ def cited_change_readings(data_dir: str | Path) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for path in sorted((Path(data_dir) / "models").glob("*/*.md")):
         try:
-            front = yaml.safe_load(path.read_text("utf-8").split("---", 2)[1])
+            front = load_yaml_unique(path.read_text("utf-8").split("---", 2)[1])
             rows = (front.get("benchmarks") or {}).get("evidence") or []
         except (OSError, IndexError, AttributeError, yaml.YAMLError):
             continue
