@@ -49,6 +49,7 @@ from decision.cited_change import (
     RETAINED_RULE, cited_change_block, cited_change_facts, cited_change_readings, reread_due,
 )
 from decision.cited_reader import text_sha256
+from decision.final_hosts import FINAL_HOST_CHANGED, observe
 from decision.quarantine_clearing import is_cleared
 from decision.retention import cite_only_origin_restrictive
 
@@ -92,6 +93,9 @@ RULED_OUTCOMES = ("current", "reopened", "open", "unbaselined", "no_text_hash",
 #: Per watched page: the sha256 of its normalised visible text and the day it was read.
 #: Hashes only, never page text, so a cite-only host keeps no bytes here.
 WATCH_STATE = "reports/evidence-reread/watched-pages.json"
+#: Where each source's fetch ended (MODEL-525), shared with the live-board refresh: the
+#: weekly job commits this directory.
+FINAL_HOSTS = "reports/evidence-reread/final-hosts.json"
 GONE = frozenset({404, 410})
 
 
@@ -390,6 +394,8 @@ class Report:
     #: cited-change fact. The verdict they cleared stays logged, so the gate still refuses them
     #: (``quarantined``) until a clearing can carry past a later change; counted for the owner.
     cleared_facts_changed: int = 0
+    #: Sources whose fetch now ends on another host than last recorded (MODEL-525).
+    final_host_changed: list[dict[str, str]] = field(default_factory=list)
 
     def note(self, outcome: str, host: str, target_id: str = "") -> None:
         self.counts[outcome] += 1
@@ -431,6 +437,8 @@ class Report:
         if self.cleared_facts_checked:
             data["cleared_facts_checked"] = self.cleared_facts_checked
             data["cleared_facts_changed"] = self.cleared_facts_changed
+        if self.final_host_changed:
+            data[FINAL_HOST_CHANGED] = self.final_host_changed
         return data
 
 
@@ -486,6 +494,12 @@ def run(root: Path, *, observed_at: date, dry_run: bool, store_root: Path,
                 target.write_bytes(gzip.compress(result.body, mtime=0))
                 report.copies_retained += 1
                 report.bytes_retained += target.stat().st_size
+
+    # Each source read: the URL it was asked for, then each redirect it followed.
+    finals = {ref.source_id: (url, *pages[url].resolved)
+              for row in window.rows for ref, url in zip(row.claim.sources, row.urls, strict=True)
+              if pages[url].kind == "ok"}
+    report.final_host_changed = observe(root / FINAL_HOSTS, finals, observed_at, write=not dry_run)
 
     for row in window.rows:
         claim, host = row.claim, host_of(row.urls[0])
@@ -873,6 +887,10 @@ def render(report: Report) -> str:
         lines += ["", "### Watched pages changed: re-read these facts against their page", ""]
         lines += [f"- page {source_id}" for source_id in data["watched_pages_changed"]]
         lines += [f"- {target}" for target in data["watched_rereads_required"]]
+    if data.get(FINAL_HOST_CHANGED):
+        lines += ["", "### Final host changed: a fetch now ends on another host", ""]
+        lines += [f"- {c['source']}: {c['old_host']} -> {c['new_host']}"
+                  for c in data[FINAL_HOST_CHANGED]]
     if data["blocked_redirect_hosts"] or data["unclassed_hosts_not_requested"]:
         lines += ["", "### Hosts not requested (unclassed, for the owner)", ""]
         for host, n in {**data["unclassed_hosts_not_requested"],

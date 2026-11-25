@@ -16,6 +16,9 @@ from datetime import date
 from pathlib import Path
 from urllib.parse import urlsplit
 
+# Re-exported: the helper lives with the retention rules, which the Worker bundles.
+from decision.retention import ending_at_final as ending_at_final
+
 #: The name a changed final host carries in a job's report.
 FINAL_HOST_CHANGED = "final_host_changed"
 #: Where the price re-read keeps the record, inside the data tree it already commits.
