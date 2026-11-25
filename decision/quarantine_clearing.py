@@ -1,0 +1,343 @@
+"""A fresh two-reader agreement clears a mismatch quarantine (MODEL-552, Jamie 2026-11-25).
+
+Rule 15 (``decision.cited_change``) refuses a fact or board reading whose verification log holds
+an unresolved ``mismatch`` or ``unreachable`` verdict (``quarantined``). Jamie's decision: a fresh
+two-reader agreement may clear a mismatch quarantine, only when all of these hold:
+
+1. The agreement comes from a later reading than the quarantining verdict: a later day, and a
+   later epoch. The verdict records no page text hash (``Verification`` has none), so a
+   "different page text hash" can never be shown against it; the later epoch is the branch that
+   can. The gate reads a quarantined subject in its clearing epoch,
+   ``<epoch>:clear:<verdict hash>``: it is named by the verdict's own hash, so no attempt in it
+   can come before the verdict, and it is the only epoch a clearing may come from.
+2. Its two readers are of two distinct known families (``cited_change._check_identities``).
+3. No disagreement is recorded in that epoch, nor in the epoch the subject is in: every complete
+   attempt there agreed, and every answer recorded there, complete or not, is the cleared value.
+4. Each clearing is one line of the append-only ``CLEARINGS_FILE`` (exactly ``FIELDS``) naming the
+   quarantining verdict (its target, ``verdict_sha256`` and day) and the agreement that cleared it
+   (the attempt's ``attempt_id`` and its subject, facet and epoch).
+
+Only a ``mismatch`` is cleared. An ``unreachable`` verdict stays blocked: the agreement reads one
+page, and does not show that the source the verdict could not reach is reachable. A subject with
+more than one held verdict stays blocked, and so does a fact that carries an owner's ruling (a
+ruling never lifts a quarantine, MODEL-551). The gate clears only when its caller asks
+(``clear_quarantine``).
+
+The build admits the cleared value only through such a line (``fact_cleared``,
+``reading_cleared``): the line must name the winning verdict exactly, its agreement must be in the
+attempt log and meet every limit above at build time, the fact or row must be at its location and
+carry the cited-change block that agreement made, with that value. A cleared fact is served as
+any cited fact is: ``verification`` null and its ``citation``; nothing of the clearing is served.
+Nothing here writes but ``append``; the gate's callers (``scripts/cited_offering.py``,
+``scripts/cited_reading.py``) append the lines the gate returns.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+from collections.abc import Callable, Mapping, Sequence
+from datetime import UTC, date, datetime
+from pathlib import Path
+from typing import Any
+
+#: The append-only clearing log, under the data directory.
+CLEARINGS_FILE = "verification/quarantine-clearings.jsonl"
+RULE = "quarantine-clearing@1"
+DECIDED_BY = "Jamie 2026-11-25 (MODEL-552)"
+#: Exactly the fields of a clearing line.
+FIELDS = ("rule", "decided_by", "target", "verdict_sha256", "verdict_date", "subject", "facet",
+          "epoch", "agreement", "value", "cleared_at")
+CLEAR_MARK = ":clear:"
+_HEX = re.compile(r"[0-9a-f]{64}")
+_REF = re.compile(r"sha256:[0-9a-f]{64}")
+
+Key = tuple[str, str, str]
+
+
+def _json(value: Any) -> str:
+    return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"),
+                      default=str)
+
+
+def verdict_sha256(row: Mapping[str, Any]) -> str:
+    """The quarantining verdict's id: the sha256 of its canonical JSON (a day is its ISO text)."""
+    return "sha256:" + hashlib.sha256(_json(dict(row)).encode("utf-8")).hexdigest()
+
+
+def clearing_epoch(base: str, verdict: str) -> str:
+    """The epoch a clearing agreement is read in: the subject's epoch, marked with the verdict."""
+    return f"{base}{CLEAR_MARK}{verdict.removeprefix('sha256:')}"
+
+
+def base_epoch(epoch: Any, verdict: str) -> str | None:
+    """The subject's epoch a clearing epoch was opened in, or ``None`` if it is not that
+    verdict's clearing epoch."""
+    suffix = CLEAR_MARK + verdict.removeprefix("sha256:")
+    if not isinstance(epoch, str) or not epoch.endswith(suffix) or len(epoch) == len(suffix):
+        return None
+    return epoch[:-len(suffix)]
+
+
+def clearable(held: Sequence[tuple[Key, Mapping[str, Any]]]) -> str | None:
+    """Why the held verdicts cannot be cleared, or ``None``: exactly one, a mismatch."""
+    if len(held) != 1:
+        return f"{len(held)} held verdicts; a clearing clears exactly one"
+    if held[0][1].get("outcome") != "mismatch":
+        return "an unreachable verdict is not cleared by an agreement"
+    return None
+
+
+def _day(value: Any) -> date | None:
+    try:
+        return date.fromisoformat(str(value))
+    except ValueError:
+        return None
+
+
+def _at(value: Any) -> datetime | None:
+    if isinstance(value, datetime):
+        return value if value.tzinfo is not None else None
+    try:
+        at = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return at if at.tzinfo is not None else None
+
+
+def later_than(verdict: Mapping[str, Any], at: datetime) -> bool:
+    """Whether ``at`` is on a later UTC day than the verdict's day."""
+    day = _day(verdict.get("date"))
+    return day is not None and at.astimezone(UTC).date() > day
+
+
+def _canonical(value: Any, facet_id: str) -> str:
+    from decision.cited_reader import canonical
+
+    return canonical(value, facet_id)
+
+
+def epoch_problem(entries: Sequence[Mapping[str, Any]], value: Any, facet_id: str) -> str | None:
+    """A disagreement recorded among ``entries``: a complete attempt that did not agree, or any
+    recorded answer (agreed, or inside an incomplete attempt) that is not ``value``."""
+    want = _canonical(value, facet_id)
+    for entry in entries:
+        if entry.get("complete"):
+            if entry.get("agreed") is not True:
+                return "a complete attempt in the epoch did not agree"
+            if _canonical(entry.get("agreed_value"), facet_id) != want:
+                return "an agreement in the epoch is on another value"
+        else:
+            for reader in entry.get("readers") or ():
+                if isinstance(reader, Mapping) and "value" in reader \
+                        and _canonical(reader["value"], facet_id) != want:
+                    return "an answer in an incomplete attempt in the epoch is another value"
+    return None
+
+
+def agreement_problem(attempt: Mapping[str, Any], value: Any, facet_id: str) -> str | None:
+    """Why ``attempt`` is not a two-reader agreement on ``value`` made through the harness."""
+    from types import SimpleNamespace
+
+    from decision.cited_change import _check_identities
+
+    readers = attempt.get("readers")
+    if not (attempt.get("complete") is True and attempt.get("agreed") is True
+            and attempt.get("harness") is True
+            and all(_HEX.fullmatch(str(attempt.get(k) or ""))
+                    for k in ("prompt_sha256", "page_sha256", "text_sha256"))
+            and isinstance(readers, list) and len(readers) == 2
+            and all(isinstance(r, Mapping) and "value" in r for r in readers)):
+        return "the agreement is not a complete agreed harness attempt with its hashes"
+    pair = [SimpleNamespace(**{k: r.get(k) for k in ("reader_id", "family", "version")})
+            for r in readers]
+    if _check_identities(pair) is not None:
+        return "the agreement's readers are not two distinct known families"
+    want = _canonical(value, facet_id)
+    if any(_canonical(v, facet_id) != want
+           for v in (readers[0]["value"], readers[1]["value"], attempt.get("agreed_value"))):
+        return "the agreement is not on the cleared value"
+    if _at(attempt.get("at")) is None:
+        return "the agreement has no zoned time"
+    return None
+
+
+def line(*, key: Key, verdict: Mapping[str, Any], subject: str, facet: str, epoch: str,
+         attempt: Mapping[str, Any], value: Any, at: datetime) -> dict[str, Any]:
+    """The clearing line for one verdict and the agreement that clears it."""
+    from decision.owner_ruling import attempt_id
+
+    return {
+        "rule": RULE,
+        "decided_by": DECIDED_BY,
+        "target": {"kind": key[0], "id": key[1], "value_hash": key[2]},
+        "verdict_sha256": verdict_sha256(verdict),
+        "verdict_date": str(verdict.get("date")),
+        "subject": subject,
+        "facet": facet,
+        "epoch": epoch,
+        "agreement": attempt_id(attempt),
+        "value": value,
+        "cleared_at": at.astimezone(UTC).replace(microsecond=0).isoformat(),
+    }
+
+
+def line_problem(entry: Any, *, verdict: Mapping[str, Any], subject: str, facet: str,
+                 ids: Callable[[str], bool], attempts: Sequence[Mapping[str, Any]],
+                 cutoff: date) -> tuple[str, Mapping[str, Any] | None]:
+    """``(problem, attempt)``: why ``entry`` does not clear ``verdict`` for this subject and facet
+    (empty when it does), and the agreement it names when that is logged. ``ids`` says whether a
+    target id is the subject's own; ``cutoff`` is the last day the build may know."""
+    from decision.owner_ruling import attempt_id
+
+    if not isinstance(entry, Mapping) or set(entry) != set(FIELDS):
+        return f"a clearing has exactly {len(FIELDS)} fields", None
+    if entry["rule"] != RULE or entry["decided_by"] != DECIDED_BY:
+        return "the clearing names another rule", None
+    target, wanted = entry["target"], verdict.get("target") or {}
+    if not isinstance(target, Mapping) or set(target) != {"kind", "id", "value_hash"} \
+            or any(target.get(k) != wanted.get(k) for k in ("kind", "id")) \
+            or str(target.get("value_hash") or "") != str(wanted.get("value_hash") or ""):
+        return "the clearing names another verdict's target", None
+    if not isinstance(target["id"], str) or not ids(target["id"]):
+        return "the clearing's target is not this subject's", None
+    if verdict.get("outcome") != "mismatch":
+        return "only a mismatch is cleared", None
+    if entry["verdict_sha256"] != verdict_sha256(verdict) \
+            or entry["verdict_date"] != str(verdict.get("date")):
+        return "the clearing names another verdict", None
+    if (entry["subject"], entry["facet"]) != (subject, facet):
+        return "the clearing is for another subject or facet", None
+    base = base_epoch(entry["epoch"], entry["verdict_sha256"])
+    if base is None:
+        return "the clearing's epoch is not the verdict's clearing epoch", None
+    if not isinstance(entry["agreement"], str) or not _REF.fullmatch(entry["agreement"]):
+        return "the clearing names no agreement", None
+    found = [a for a in attempts if attempt_id(a) == entry["agreement"]]
+    if len(found) != 1:
+        return "the clearing's agreement is not in the attempt log", None
+    attempt = found[0]
+    if (attempt.get("subject"), attempt.get("facet"), attempt.get("epoch")) \
+            != (subject, facet, entry["epoch"]):
+        return "the agreement is for another subject, facet or epoch", None
+    problem = agreement_problem(attempt, entry["value"], facet)
+    if problem is not None:
+        return problem, None
+    at, cleared = _at(attempt["at"]), _at(entry["cleared_at"])
+    if not later_than(verdict, at):
+        return "the agreement is not on a later day than the verdict", None
+    if cleared is None or cleared < at or cleared.astimezone(UTC).date() > cutoff:
+        return "the clearing time is before its agreement or after the build's day", None
+    for epoch in (entry["epoch"], base):
+        key = (subject, facet, epoch)
+        in_epoch = [a for a in attempts
+                    if (a.get("subject"), a.get("facet"), a.get("epoch")) == key]
+        problem = epoch_problem(in_epoch, entry["value"], facet)
+        if problem is not None:
+            return problem, None
+    return "", attempt
+
+
+def _block(record: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    derivation = record.get("derivation") if isinstance(record, Mapping) else None
+    block = derivation.get("cited_change") if isinstance(derivation, Mapping) else None
+    return block if isinstance(block, Mapping) else None
+
+
+def made_by(record: Mapping[str, Any], attempt: Mapping[str, Any]) -> bool:
+    """Whether the record carries the cited-change block ``attempt`` made, and cites that copy:
+    the page and text hashes and URL are the attempt's, both recorded readers are its readers
+    (id, family, version, value) and were sent its prompt."""
+    block = _block(record)
+    if block is None:
+        return False
+    readers = block.get("readers")
+    if not isinstance(readers, list) or len(readers) != 2 \
+            or not all(isinstance(r, Mapping) for r in readers):
+        return False
+    fields = ("reader_id", "family", "version", "value")
+    if sorted(_json({k: r.get(k) for k in fields}) for r in readers) \
+            != sorted(_json({k: r.get(k) for k in fields}) for r in attempt["readers"]):
+        return False
+    copy = f"sha256:{attempt['page_sha256']}"
+    return (block.get("sha256") == attempt["page_sha256"]
+            and block.get("text_sha256") == attempt["text_sha256"]
+            and block.get("url") == attempt.get("url")
+            and all(r.get("prompt_sha256") == attempt["prompt_sha256"] for r in readers)
+            and any(isinstance(ref, Mapping) and ref.get("snapshot_ref") == copy
+                    for ref in record.get("sources") or ()))
+
+
+def _clears(record: Mapping[str, Any], *, verdict: Mapping[str, Any], subject: str, facet: str,
+            ids: Callable[[str], bool], value: Any, clearings: Sequence[Mapping[str, Any]],
+            attempts: Sequence[Mapping[str, Any]], cutoff: date) -> bool:
+    for entry in clearings:
+        problem, attempt = line_problem(entry, verdict=verdict, subject=subject, facet=facet,
+                                        ids=ids, attempts=attempts, cutoff=cutoff)
+        if problem or attempt is None:
+            continue
+        if _canonical(value, facet) == _canonical(entry["value"], facet) \
+                and made_by(record, attempt):
+            return True
+    return False
+
+
+def fact_cleared(fact: Mapping[str, Any], subject: str, *, verdict: Mapping[str, Any],
+                 clearings: Sequence[Mapping[str, Any]], attempts: Sequence[Mapping[str, Any]],
+                 cutoff: date) -> bool:
+    """Whether a cited fact whose winning verdict is ``verdict`` (a mismatch) is admitted on a
+    clearing line. ``subject`` is the fact's owner as the build places it. The fact's stored id,
+    when any, is its location id; it carries no owner's ruling; its value and state are the
+    cleared value's; and it carries the block its clearing agreement made."""
+    from decision.owner_ruling import has_ruling
+
+    facet = str(fact.get("facet"))
+    location = f"{subject}#{facet}"
+    stored = fact.get("id")
+    if has_ruling(fact) or (stored is not None and stored != location):
+        return False
+    value = fact.get("value")
+    if fact.get("state") != ("not_disclosed" if value is None else "known"):
+        return False
+    return _clears(fact, verdict=verdict, subject=subject, facet=facet,
+                   ids=lambda rid: rid == location, value=value, clearings=clearings,
+                   attempts=attempts, cutoff=cutoff)
+
+
+def reading_cleared(row: Mapping[str, Any], subject: str, *, verdict: Mapping[str, Any],
+                    owns: Callable[[str], bool], clearings: Sequence[Mapping[str, Any]],
+                    attempts: Sequence[Mapping[str, Any]], cutoff: date) -> bool:
+    """Whether a cited board reading's held ``verdict`` (a mismatch on one of its ids, ``owns``)
+    is cleared for this row: the line's epoch is this reading's (its settings), and the row
+    carries the block the agreement made, with its score."""
+    from decision.cited_change import BENCHMARK_PREFIX, READING_KEYS, reading_epoch
+
+    facet = BENCHMARK_PREFIX + str(row.get("benchmark_id"))
+    settings = reading_epoch({k: row.get(k) for k in READING_KEYS})
+    live = [e for e in clearings if isinstance(e, Mapping)
+            and isinstance(e.get("epoch"), str)
+            and (e["epoch"] == settings or e["epoch"].startswith(settings + ":"))]
+    return _clears(row, verdict=verdict, subject=subject, facet=facet, ids=owns,
+                   value=row.get("score"), clearings=live, attempts=attempts, cutoff=cutoff)
+
+
+def read_clearings(path: Path) -> list[dict[str, Any]]:
+    """Every line of the clearing log as an object; an absent file is empty. Raises
+    ``ValueError`` on a line that is not a JSON object or repeats a key."""
+    from decision.owner_ruling import read_lines
+
+    return read_lines(path)
+
+
+def append(lines: Sequence[Mapping[str, Any]], data_dir: str | Path) -> None:
+    """Append clearing lines to the data directory's log. Append-only; nothing is rewritten."""
+    if not lines:
+        return
+    path = Path(data_dir) / CLEARINGS_FILE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        for entry in lines:
+            if set(entry) != set(FIELDS):
+                raise ValueError("a clearing line has exactly its fields")
+            handle.write(json.dumps(dict(entry), sort_keys=True, ensure_ascii=False) + "\n")

@@ -1,7 +1,7 @@
 """Run the rule-15 gate for one offering fact and write what it returns (MODEL-544).
 
 ``python -m scripts.cited_offering --data-dir <data checkout> --subject <offering id>
---facet <facet> --source <source id> [--accept-not-disclosed] [--no-write]``
+--facet <facet> --source <source id> [--accept-not-disclosed] [--clear-quarantine] [--no-write]``
 
 ``decision.cited_change.cited_change`` fetches the page in memory, has two subscription-CLI
 readers of different families read it and returns a record or a named refusal. Only a
@@ -10,8 +10,11 @@ is kept byte for byte) and its claim is filed in ``verification/queue/events.jso
 (``collected``, then ``checked`` with outcome ``cited``). The offering reference and the claim
 are written from one source reference, so they name the same copy (``snapshot_ref``,
 ``retrieved_at``), as the data repository's claim-copy check requires (MODEL-542). Nothing is
-written to the verification log: no quarantine is lifted here. The output is the outcome, the
-reason and the readers' values; never page text.
+written to the verification log. With ``--clear-quarantine`` a fresh agreement may clear the
+fact's one held mismatch (MODEL-552, ``decision.quarantine_clearing``): the clearing line the gate
+returns is appended to ``verification/quarantine-clearings.jsonl`` after the claim, and the build
+admits the value only through it. The output is the outcome, the reason and the readers' values;
+never page text.
 """
 
 from __future__ import annotations
@@ -163,7 +166,7 @@ def apply(outcome: CitedChange, *, data_dir: str | Path) -> Path:
     """Write a ``cited_change`` outcome for an offering fact: the file, then the claim."""
     if not outcome.changed or outcome.record is None:
         raise WriteRefused("only a cited_change is written")
-    record = outcome.record
+    record = {k: v for k, v in outcome.record.items() if k != "clearings"}
     found = lookup(record["subject"], record["facet"], data_dir)
     if found.kind != "offering" or found.path is None:
         raise WriteRefused("not an offering fact")
@@ -179,6 +182,9 @@ def apply(outcome: CitedChange, *, data_dir: str | Path) -> Path:
     queue.checked(Result(filed.target, "cited",
                          reason="cite-only; two readers of different families agree (cited_change)"),
                   at=at)
+    from decision.quarantine_clearing import append
+
+    append(outcome.record.get("clearings") or (), data_dir)
     return found.path
 
 
@@ -201,19 +207,25 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--accept-not-disclosed", action="store_true",
                     help="two readers agreeing the page does not state the value file "
                          "not_disclosed (otherwise no_value)")
+    ap.add_argument("--clear-quarantine", action="store_true",
+                    help="let a fresh agreement clear the fact's one held mismatch, within the "
+                         "MODEL-552 limits, and append the clearing line")
     ap.add_argument("--no-write", action="store_true",
                     help="run the gate (it still logs its attempt) but write nothing")
     args = ap.parse_args(argv)
     os.environ["MODELSPEC_DATA_DIR"] = str(args.data_dir)
     outcome = cited_change(subject=args.subject, facet=args.facet, source_id=args.source,
                            readers=default_readers(),
-                           accept_not_disclosed=args.accept_not_disclosed)
+                           accept_not_disclosed=args.accept_not_disclosed,
+                           clear_quarantine=args.clear_quarantine)
     written = None
     if outcome.changed and not args.no_write:
         written = str(apply(outcome, data_dir=args.data_dir).relative_to(args.data_dir))
     print(json.dumps({"outcome": outcome.outcome, "reason": outcome.reason, "detail": outcome.detail,
                       "readers": _readers_seen(outcome, args.data_dir, args.subject, args.facet),
-                      "state": (outcome.record or {}).get("state"), "written": written}))
+                      "state": (outcome.record or {}).get("state"),
+                      "clearings": len((outcome.record or {}).get("clearings") or ()),
+                      "written": written}))
     return 0
 
 

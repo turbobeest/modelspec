@@ -553,7 +553,8 @@ def test_an_unreadable_verification_log_refuses_the_reading(data):
 
 def test_the_snapshot_still_excludes_a_quarantined_reading_the_gate_refused():
     """The build keeps the filed reading out under its mismatch. A changed score gets a new
-    id and would enter as cited (the gap the refusal closes); the gate refuses that write."""
+    id; the gate refuses that write, and since MODEL-552 the build also holds the new row by the
+    verdict on its earlier id (a clearing line is the only way in)."""
     from datetime import date
 
     from decision.model import evidence_verification_value
@@ -577,5 +578,8 @@ def test_the_snapshot_still_excludes_a_quarantined_reading_the_gate_refused():
     log = [verification("evidence", "lab/alpha#bench_x#old", "mismatch", day="2026-10-14",
                         value=evidence_verification_value(filed))]
     assert readings(46.6, "lab/alpha#bench_x#old", log) == ()  # as filed: excluded
-    assert readings(51.2, "lab/alpha#bench_x#new", log)  # around the verdict: it would enter
+    assert readings(51.2, "lab/alpha#bench_x#new", log) == ()  # held by its earlier id's verdict
+    other = [verification("evidence", "lab/beta#bench_x#old", "mismatch", day="2026-10-14",
+                          value=evidence_verification_value(filed))]
+    assert readings(51.2, "lab/alpha#bench_x#new", other)  # another model's verdict is not its
     assert readings(46.6, "lab/alpha#bench_x#old", [])  # not quarantined: it enters

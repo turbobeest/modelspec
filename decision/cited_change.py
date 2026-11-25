@@ -36,12 +36,15 @@ reference and the claim name the same copy.
 only when the caller asks for one (``accept_not_disclosed``) and the page can show silence:
 the readers saw all of its visible text, there is enough of it, and the fact cites no other
 page of a permitted kind. Each reader's finding (``not_stated``) is recorded. Any
-disagreement, and any earlier agreed attempt on a value, files nothing. Nothing here lifts a
-quarantine. A mismatch or unreachable verdict binds the value it was logged for, so a new value
-would enter the build as cited while the old verdict stayed logged: the gate refuses up front
-(``quarantined``) any fact, card or offering, whose verification log or inline verification
-holds an unresolved mismatch or unreachable verdict for any value. That is the owner's call
-(MODEL-544 review).
+disagreement, and any earlier agreed attempt on a value, files nothing. A mismatch or
+unreachable verdict binds the value it was logged for, so a new value would enter the build as
+cited while the old verdict stayed logged: the gate refuses up front (``quarantined``) any fact,
+card or offering, whose verification log or inline verification holds an unresolved mismatch or
+unreachable verdict for any value (MODEL-544 review). The one exception (MODEL-552, Jamie
+2026-11-25): when the caller asks (``clear_quarantine``), a fresh two-reader agreement may clear
+one held mismatch within the limits in ``decision.quarantine_clearing``, and the record then
+carries the clearing line the build admits the value through. An unreachable verdict, more than
+one held verdict, and a fact that carries an owner's ruling stay refused.
 
 ``cited_change`` is the only gate. It checks every condition in code and either
 returns the whole record or refuses with one named reason. It never writes a partial
@@ -140,6 +143,7 @@ REFUSALS = (
     "value_differs",
     "attempts_exhausted",
     "epoch_not_current",
+    "clearing_not_later",
 )
 #: The most attempts, complete or not, at one subject, facet and epoch (MODEL-558 review): a
 #: re-run cannot reset the retry budget to read again until two readers happen to agree.
@@ -613,6 +617,15 @@ def quarantine_verdicts(fact_ids: Sequence[str], fact: Mapping[str, Any],
     value, not only the filed one: a verdict binds its own value, so a change to another value
     would step around it. Raises ``LookupFailed`` when the log cannot be read.
     """
+    return [key[1:] for key, _ in quarantine_rows(fact_ids, fact, data_dir, kind=kind, owns=owns)]
+
+
+def quarantine_rows(fact_ids: Sequence[str], fact: Mapping[str, Any],
+                    data_dir: str | Path | None = None, *, kind: str = "fact",
+                    owns: Callable[[str], bool] | None = None
+                    ) -> list[tuple[tuple[str, str, str], dict[str, Any]]]:
+    """``quarantine_verdicts`` with each held verdict's key and winning row (MODEL-552: a
+    clearing names the row it clears). Raises ``LookupFailed`` when the log cannot be read."""
     import os
 
     from decision.snapshot import _Compiler
@@ -624,8 +637,7 @@ def quarantine_verdicts(fact_ids: Sequence[str], fact: Mapping[str, Any],
     try:
         rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()
                 if line.strip()] if path.is_file() else []
-        return held_verdicts(_Compiler._verification_log(rows), fact_ids, fact, kind=kind,
-                             owns=owns)
+        return held_rows(_Compiler._verification_log(rows), fact_ids, fact, kind=kind, owns=owns)
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
         raise LookupFailed(f"verification log: {type(error).__name__}") from None
 
@@ -636,6 +648,14 @@ def held_verdicts(latest: Mapping[tuple[str, str, str], Any], fact_ids: Sequence
     """``quarantine_verdicts`` over a log already ranked by ``_Compiler._verification_log``
     (the build's own index): the fact's inline verification is ranked in, and every value of
     every identity counts. Raises ``KeyError``/``TypeError`` on a malformed inline record."""
+    return [key[1:] for key, _ in held_rows(latest, fact_ids, fact, kind=kind, owns=owns)]
+
+
+def held_rows(latest: Mapping[tuple[str, str, str], Any], fact_ids: Sequence[str],
+              fact: Mapping[str, Any], *, kind: str = "fact",
+              owns: Callable[[str], bool] | None = None
+              ) -> list[tuple[tuple[str, str, str], dict[str, Any]]]:
+    """``held_verdicts`` with each held verdict's ``(kind, id, value hash)`` and winning row."""
     from decision.snapshot import _counts
 
     ids = set(fact_ids)
@@ -648,9 +668,9 @@ def held_verdicts(latest: Mapping[tuple[str, str, str], Any], fact_ids: Sequence
         entry = (str(inline["date"]), 0, dict(inline))
         if key not in latest or entry[:2] >= latest[key][:2]:
             latest[key] = entry
-    return sorted((rid, value) for (target_kind, rid, value), (_, _, row) in latest.items()
-                  if target_kind == kind and (rid in ids or (owns is not None and owns(rid)))
-                  and row.get("outcome") != "verified")
+    return sorted(((key, dict(row)) for key, (_, _, row) in latest.items()
+                   if key[0] == kind and (key[1] in ids or (owns is not None and owns(key[1])))
+                   and row.get("outcome") != "verified"), key=lambda item: item[0])
 
 
 def _check_silence(found: Lookup, facet: Any, source_id: str, page_bytes: bytes,
@@ -755,14 +775,84 @@ def _incomplete_values(entries: Sequence[Mapping[str, Any]]) -> list[JsonValue]:
             for r in a.get("readers") or [] if "value" in r]
 
 
+QUARANTINED = "lifting it is the owner's call"
+
+
+def _clearing_target(held: Sequence[tuple[tuple[str, str, str], Mapping[str, Any]]],
+                     subject_record: Mapping[str, Any], now: datetime, *, allowed: bool,
+                     kind: str = "fact"
+                     ) -> tuple[CitedChange | None, tuple[tuple[str, str, str], dict] | None]:
+    """``(refusal, None)`` unless the one held verdict may be cleared (MODEL-552), then
+    ``(None, (key, row))``. Only when the caller asks (``allowed``), never for a fact that carries
+    an owner's ruling, only one verdict, only a mismatch, and only on a later day than it."""
+    from decision.owner_ruling import has_ruling
+    from decision.quarantine_clearing import clearable, later_than
+
+    what = "fact" if kind == "fact" else "reading"
+    if not allowed:
+        return _refuse("quarantined", f"{len(held)} value(s) of this {what} hold an unresolved "
+                       f"mismatch or unreachable verdict; {QUARANTINED}"), None
+    if kind == "fact" and has_ruling(subject_record):
+        return _refuse("quarantined", "the fact carries an owner's ruling; a ruling never lifts "
+                       "a quarantine, and a clearing does not apply to a ruled fact"), None
+    problem = clearable(held)
+    if problem is not None:
+        return _refuse("quarantined", f"{problem}; {QUARANTINED}"), None
+    key, row = held[0]
+    if not later_than(row, now):
+        return _refuse("clearing_not_later",
+                       "the agreement would not be on a later day than the verdict"), None
+    return None, (key, dict(row))
+
+
+def _with_clearing(outcome: CitedChange, clearing: tuple[tuple[str, str, str], dict], *,
+                   subject: str, facet: str, epoch: str, base: str,
+                   answers: Sequence[ReaderAnswer], now: datetime) -> CitedChange:
+    """The outcome with ``record["clearings"]``: the one line that clears the verdict, naming the
+    agreement just logged. The line is checked as the build checks it; a failure refuses."""
+    from decision.quarantine_clearing import (
+        agreement_problem,
+        base_epoch,
+        epoch_problem,
+        later_than,
+        line,
+        verdict_sha256,
+    )
+
+    key, verdict = clearing
+    if base_epoch(epoch, verdict_sha256(verdict)) != base:
+        return _refuse("epoch_not_current", "the read was not in the verdict's clearing epoch")
+    record = dict(outcome.record or {})
+    value = record.get("value")
+    logged = attempts(subject, facet, epoch)
+    entry = logged[-1] if logged else {}
+    if entry.get("prompt_sha256") != (answers[0].prompt_sha256 if answers else None) \
+            or agreement_problem(entry, value, facet) is not None:
+        return _refuse("registry_lookup_failed",
+                       "the agreement just logged is not the attempt log's last line")
+    for counted in (logged, attempts(subject, facet, base)):
+        problem = epoch_problem(counted, value, facet)
+        if problem is not None:
+            return _refuse("prior_attempt_disagreed", problem)
+    at = datetime.fromisoformat(str(entry["at"]))
+    if not later_than(verdict, at):
+        return _refuse("clearing_not_later", "the agreement is not on a later day than the verdict")
+    record["clearings"] = [line(key=key, verdict=verdict, subject=subject, facet=facet,
+                                epoch=epoch, attempt=entry, value=value, at=max(now, at))]
+    return CitedChange(outcome.outcome, outcome.reason, outcome.detail, record)
+
+
 def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader],
           request: Request | None, allow_unchanged: bool,
           page: tuple[bytes, tuple[str, ...]] | None = None,
           now: datetime | None = None, accept_not_disclosed: bool = False,
-          retaining: bool = False, epoch: str | None = None) -> CitedChange:
+          retaining: bool = False, epoch: str | None = None,
+          clear_quarantine: bool = False) -> CitedChange:
     """The rule-15 gate. ``epoch``, when given, only states which epoch the caller means: the gate
     reads in the filed fact's own epoch (``fact_epoch``) and refuses (``epoch_not_current``) if
-    the two differ. A caller never chooses the epoch the gate reads in."""
+    the two differ. A caller never chooses the epoch the gate reads in. ``clear_quarantine`` lets
+    a fresh agreement clear a held mismatch within Jamie's limits
+    (``decision.quarantine_clearing``); the fact is then read in that verdict's clearing epoch."""
     now = now or datetime.now(UTC)
     facet_def = _facet(facet)
     if facet_def is None:
@@ -774,14 +864,18 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         found = lookup(subject, facet)
     except LookupFailed as error:
         return _refuse("registry_lookup_failed", str(error))
-    # Up front, before any read or attempt: an unresolved verdict on this fact is not lifted here.
+    # Up front, before any read or attempt: an unresolved verdict on this fact is not lifted here,
+    # unless the caller asks for a clearing and the verdict may be cleared (MODEL-552).
     try:
-        held = quarantine_verdicts(found.fact_ids or (f"{subject}#{facet}",), found.fact)
+        held = quarantine_rows(found.fact_ids or (f"{subject}#{facet}",), found.fact)
     except LookupFailed as error:
         return _refuse("registry_lookup_failed", str(error))
+    clearing = None
     if held:
-        return _refuse("quarantined", f"{len(held)} value(s) of this fact hold an unresolved "
-                       "mismatch or unreachable verdict; lifting it is the owner's call")
+        refusal, clearing = _clearing_target(held, found.fact, now,
+                                             allowed=clear_quarantine and not retaining)
+        if refusal is not None:
+            return refusal
     row = found.sources.get(source_id)
     if row is None or not row.get("url"):
         return _refuse("registry_lookup_failed", "the cited source is not in the source registry")
@@ -797,19 +891,31 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     # this harness (``harness`` true); an agreement from reads whose blindness was never proven
     # (``harness`` false, seeded) authorises nothing, but a disagreement from them still blocks.
     # The epoch is the filed fact's own (``fact_epoch``), never the caller's.
-    current = fact_epoch(found.fact)
+    current = base = fact_epoch(found.fact)
+    if clearing is not None:
+        # A clearing is read in the verdict's own clearing epoch (MODEL-552): no attempt in it can
+        # come before the verdict. The fact's epoch is counted too: a disagreement there blocks.
+        from decision.quarantine_clearing import clearing_epoch, verdict_sha256
+
+        current = clearing_epoch(base, verdict_sha256(clearing[1]))
     if epoch is not None and epoch != current:
         return _refuse("epoch_not_current",
                        "the named epoch is not the filed fact's; the gate reads only in that one")
     epoch = current
+
+    def recorded() -> list[dict]:
+        """Every attempt counted for disagreement: this epoch's, and the fact's when clearing."""
+        return attempts(subject, facet, epoch) + (
+            attempts(subject, facet, base) if clearing is not None else [])
+
     logged = attempts(subject, facet, epoch)
-    history = [a for a in logged if a.get("complete")]
+    history = [a for a in recorded() if a.get("complete")]
     if any(not a.get("agreed") for a in history):
         return _refuse("prior_attempt_disagreed",
                        "an earlier complete attempt at this fact did not agree")
     # An answer inside an incomplete attempt counts: two that differ, or one that differs from
     # an agreed value, is a disagreement (MODEL-558 review).
-    seen = {_canonical(v, facet_def) for v in _incomplete_values(logged)} | {
+    seen = {_canonical(v, facet_def) for v in _incomplete_values(recorded())} | {
         _canonical(a.get("agreed_value"), facet_def) for a in history if a.get("agreed")}
     if len(seen) > 1:
         return _refuse("prior_attempt_disagreed",
@@ -853,7 +959,7 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         except ReaderError:
             continue
     if not answers:
-        values = _incomplete_values(attempts(subject, facet, epoch))
+        values = _incomplete_values(recorded())
         if len({_canonical(v, facet_def) for v in values}) > 1:
             return _refuse("prior_attempt_disagreed",
                            "answers recorded in the incomplete attempts do not agree")
@@ -865,9 +971,17 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     value = answers[0].value
     filed = found.fact.get("value")
     if any(_canonical(v, facet_def) != _canonical(value, facet_def)
-           for v in _incomplete_values(attempts(subject, facet, epoch))):
+           for v in _incomplete_values(recorded())):
         return _refuse("prior_attempt_disagreed",
                        "an answer recorded in an incomplete attempt differs from this agreement")
+
+    def cleared(outcome: CitedChange) -> CitedChange:
+        """The outcome, with the clearing line it needs when it clears a quarantine."""
+        if clearing is None or not outcome.changed or outcome.record is None:
+            return outcome
+        return _with_clearing(outcome, clearing, subject=subject, facet=facet, epoch=epoch,
+                              base=base, answers=answers, now=now)
+
     if retaining:
         return _retained_outcome(subject, facet_def, value, filed, found, row, source_id, now,
                                  page_bytes, answers, resolved, history)
@@ -885,7 +999,7 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         record["state"] = "not_disclosed"
         for entry in record["derivation"]["cited_change"]["readers"]:
             entry["finding"] = "not_stated"
-        return CitedChange("cited_change", None, "", record)
+        return cleared(CitedChange("cited_change", None, "", record))
     if accept_not_disclosed and any(a.get("agreed") and a.get("agreed_value") is None
                                     for a in history):
         return _refuse("prior_attempt_disagreed", "an earlier agreed attempt found the page silent")
@@ -900,10 +1014,10 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     if not allow_unchanged and found.fact.get("state") == "known" \
             and _canonical(value, facet_def) == _canonical(filed, facet_def):
         return _refuse("value_unchanged", "the agreed value is the filed value")
-    return CitedChange("cited_change", None, "", _record(
+    return cleared(CitedChange("cited_change", None, "", _record(
         subject, facet, value, row, source_id, now, sha256(page_bytes), text_sha256(page_bytes),
         answers, filed,
-        found.registered_ids, resolved))
+        found.registered_ids, resolved)))
 
 
 def _retained_outcome(subject: str, facet_def: Any, value: JsonValue, filed: JsonValue,
@@ -955,7 +1069,8 @@ def retained_agreement(*, subject: str, facet: str, source_id: str, readers: Seq
 
 def cited_change(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader],
                  request: Request | None = None,
-                 accept_not_disclosed: bool = False) -> CitedChange:
+                 accept_not_disclosed: bool = False,
+                 clear_quarantine: bool = False) -> CitedChange:
     """Fetch the page, have two readers read it, and write their agreed value as ``cited``,
     or refuse with a named reason.
 
@@ -968,10 +1083,15 @@ def cited_change(*, subject: str, facet: str, source_id: str, readers: Sequence[
 
     ``accept_not_disclosed`` lets two readers' agreement that the page does not state the
     value file ``not_disclosed`` (see ``_check_silence``); without it that is ``no_value``.
+
+    ``clear_quarantine`` (MODEL-552) lets a fresh agreement clear the fact's one held mismatch,
+    within ``decision.quarantine_clearing``'s limits: the record then carries ``clearings``, the
+    line the caller appends to the clearing log, and the build admits the value only through it.
+    Without it a quarantined fact is refused up front, as before.
     """
     return _gate(subject=subject, facet=facet, source_id=source_id, readers=readers,
                  request=request, allow_unchanged=False,
-                 accept_not_disclosed=accept_not_disclosed)
+                 accept_not_disclosed=accept_not_disclosed, clear_quarantine=clear_quarantine)
 
 
 # --- a benchmark board reading (Jamie 2026-11-22) -------------------------------------------------
@@ -1227,13 +1347,15 @@ def pending_absences(history: Sequence[Mapping[str, Any]]) -> list[Mapping[str, 
 
 def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any], source_id: str,
                   readers: Sequence[Reader], request: Request | None = None,
-                  allow_unchanged: bool = False) -> CitedChange:
+                  allow_unchanged: bool = False, clear_quarantine: bool = False) -> CitedChange:
     """The gate for one board reading: fetch the board in memory, have two readers read the one
     row, and return their agreed score as ``cited``, an absence (pending or, on the second read
     at least 24 h later, marked), or a named refusal. Everything but the readers and the
     transport is looked up here. The clock is the gate's own: it cannot be injected.
     ``allow_unchanged`` returns a record for an agreed score equal to the filed one, to give a
-    row written before the record existed its ``derivation``."""
+    row written before the record existed its ``derivation``. ``clear_quarantine`` (MODEL-552)
+    lets a fresh agreement on a score clear the reading's one held mismatch, read in that
+    verdict's clearing epoch; the record then carries ``clearings`` (``cited_change``)."""
     now = datetime.now(UTC)
     if now.tzinfo is None or now > datetime.now(UTC):
         return _refuse("bad_read_date", "the read time is missing, naive or in the future")
@@ -1243,12 +1365,15 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     facet_id = BENCHMARK_PREFIX + benchmark_id
     # Up front, before any read or attempt (MODEL-547): the fact gate's predicate, for evidence.
     try:
-        held = quarantine_verdicts(found.evidence_ids, found.row, kind="evidence", owns=found.owns)
+        held = quarantine_rows(found.evidence_ids, found.row, kind="evidence", owns=found.owns)
     except LookupFailed as error:
         return _refuse("registry_lookup_failed", str(error))
+    clearing = None
     if held:
-        return _refuse("quarantined", f"{len(held)} value(s) of this reading hold an unresolved "
-                       "mismatch or unreachable verdict; lifting it is the owner's call")
+        refusal, clearing = _clearing_target(held, found.row, now, allowed=clear_quarantine,
+                                             kind="evidence")
+        if refusal is not None:
+            return refusal
     refusal = _check_board_source(found, source_id, now) \
         or _check_retaining(found.lookup(found.own), _ReadingFacet(facet_id, _EveryKind()), now) \
         or _check_retaining(found.lookup(found.cited), _ReadingFacet(facet_id, _EveryKind()), now)
@@ -1256,8 +1381,14 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
         refusal = _check_identities(readers)
     if refusal is not None:
         return refusal
-    epoch = reading_epoch(reading, found.row)
+    epoch = base = reading_epoch(reading, found.row)
+    if clearing is not None:
+        from decision.quarantine_clearing import clearing_epoch, verdict_sha256
+
+        epoch = clearing_epoch(base, verdict_sha256(clearing[1]))
     history = [a for a in attempts(subject, facet_id, epoch) if a.get("complete")]
+    if clearing is not None:
+        history += [a for a in attempts(subject, facet_id, base) if a.get("complete")]
     if any(_entry_time(a) is None for a in history):
         return _refuse("bad_read_date", "a logged attempt has a missing, naive or unreadable time")
     if any(not a.get("agreed") for a in history):
@@ -1294,6 +1425,9 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     value = answers[0].value
     mark = {"subject": subject, "benchmark_id": benchmark_id,
             "reading": {k: reading[k] for k in READING_KEYS}}
+    if value is None and clearing is not None:
+        return _refuse("no_value", "the readers agree the board lists no such row; an absence "
+                       "clears no quarantine")
     if value is None:
         pending = pending_absences(history)
         first = _entry_time(pending[0]) if pending else None
@@ -1325,7 +1459,11 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     record["reading"] = mark["reading"]
     record["clears_not_published_since"] = found.row.get("not_published_since") not in (None, "")
     del record["facet"]
-    return CitedChange("cited_change", None, "", record)
+    outcome = CitedChange("cited_change", None, "", record)
+    if clearing is not None:
+        return _with_clearing(outcome, clearing, subject=subject, facet=facet_id, epoch=epoch,
+                              base=base, answers=answers, now=now)
+    return outcome
 
 
 # --- the re-read ---------------------------------------------------------------------------------

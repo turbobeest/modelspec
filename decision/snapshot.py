@@ -389,6 +389,10 @@ class SnapshotInputs:
     #: Fact id -> its queue events, for the same facts: a ruling stands at a build's cutoff
     #: only once its claim line is filed and checked by then (``owner_ruling.stands_at``).
     owner_ruling_history: Mapping[str, Sequence[Mapping[str, Any]]] = field(default_factory=dict)
+    #: Append-only lines that clear one held mismatch on a fresh two-reader agreement (MODEL-552,
+    #: ``decision.quarantine_clearing``), checked against ``cited_attempts``. A cited fact or
+    #: board reading held by a mismatch is admitted only through a valid line.
+    quarantine_clearings: Sequence[Mapping[str, Any]] = ()
     #: Lab id -> ``decision.labs.Lab``. Empty when the checkout has no lab registry.
     labs: Mapping[str, Any] = field(default_factory=dict)
     #: Sourced hardware YAML records. Metadata, never ranking candidates.
@@ -803,6 +807,9 @@ class _Compiler:
         self.owner_ruling_claims = {str(k): dict(v) for k, v in inputs.owner_ruling_claims.items()}
         self.owner_ruling_history = {str(k): tuple(v)
                                      for k, v in inputs.owner_ruling_history.items()}
+        self.quarantine_clearings = tuple(dict(r) for r in inputs.quarantine_clearings)
+        #: (subject id, benchmark id) -> the ids of its current evidence rows (MODEL-552).
+        self._reading_ids: dict[tuple[str, str], set[str]] | None = None
         #: record ID -> the mismatches a supersession retired, for provenance.
         self.superseded: dict[str, list[dict[str, Any]]] = {}
         #: subject id -> {"kind", "model", "lifecycle"}
@@ -960,11 +967,15 @@ class _Compiler:
     def _admit(self, kind: str, rid: Any, inline: Any, value: Any, source_ids: list[str],
                extra_urls: Iterable[Any] = (), benchmark: Any = None,
                citation: dict | None = None, facet: Any = None,
-               refs: Sequence[Any] = ()) -> str | None:
+               refs: Sequence[Any] = (), record: Mapping[str, Any] | None = None,
+               subject: str | None = None) -> str | None:
         """Why a record stays out, or ``None`` when it enters.
 
         A cited fact's mismatch can be superseded (MODEL-415): see
-        ``_supersede``. The fact then enters as cited, never as verified.
+        ``_supersede``. The fact then enters as cited, never as verified. A cited
+        fact's mismatch can also be cleared by a fresh two-reader agreement
+        (MODEL-552): see ``_cleared_fact``. A cited board reading whose earlier ids
+        hold a verdict enters only once each is cleared (``_reading_hold``).
         """
         urls = [self.sources[s] for s in source_ids if s in self.sources]
         if self.guard is not None and (any(self.guard.url(u) for u in [*urls, *extra_urls])
@@ -976,7 +987,8 @@ class _Compiler:
             return "quarantined (unbound set verification)"
         if kind == "fact" and citation is not None and outcome == "mismatch":
             refused = self._supersede(rid, inline, value, refs, facet)
-            if refused is not None:
+            if refused is not None and not self._cleared_fact(
+                    subject, record, rid, inline, value, facet):
                 return refused
         elif citation is not None and outcome in {"mismatch", "unreachable"}:
             return f"quarantined ({outcome})"
@@ -991,7 +1003,108 @@ class _Compiler:
 
             if any(is_cite_only_restrictive(url) for url in [*urls, *extra_urls]):
                 return "quarantined (cited)"
+        if kind == "evidence" and citation is not None and record is not None \
+                and subject is not None:
+            return self._reading_hold(subject, record)
+        if kind == "fact" and citation is not None and record is not None \
+                and subject is not None:
+            return self._fact_hold(subject, record, rid, inline, value, facet)
         return None
+
+    # quarantine clearing (MODEL-552) ------------------------------------------
+
+    def _clearing_cutoff(self) -> date:
+        from decision.owner_ruling import ruling_cutoff
+
+        return ruling_cutoff(self.as_of)
+
+    def _cleared_fact(self, subject: str | None, record: Mapping[str, Any] | None, rid: Any,
+                      inline: Any, value: Any, facet: Any) -> bool:
+        """Whether a cited fact's winning mismatch is cleared by a valid clearing line naming
+        exactly that verdict, whose agreement made the fact's cited-change block."""
+        if not self.quarantine_clearings or record is None or subject is None:
+            return False
+        winner = self._verification("fact", rid, inline, value, facet)
+        if winner is None or winner.get("outcome") != "mismatch":
+            return False
+        from decision.quarantine_clearing import fact_cleared
+
+        return fact_cleared(record, subject, verdict=winner, clearings=self.quarantine_clearings,
+                            attempts=self.cited_attempts, cutoff=self._clearing_cutoff())
+
+    def _fact_hold(self, subject: str, record: Mapping[str, Any], rid: Any, inline: Any,
+                   value: Any, facet: Any) -> str | None:
+        """Why a cited fact the rule-15 gate wrote (it carries ``derivation.cited_change``) stays
+        out: a verdict that is not ``verified`` on any value of its ids, as the gate's own
+        refusal reads them, that no clearing line clears for it. A superseded mismatch
+        (MODEL-415) is resolved. Other cited facts are admitted as before."""
+        derivation = record.get("derivation")
+        if not isinstance(derivation, Mapping) or "cited_change" not in derivation:
+            return None
+        from decision.cited_change import held_rows
+
+        ids = tuple(dict.fromkeys(i for i in (rid, f"{subject}#{facet}")
+                                  if isinstance(i, str) and i))
+        try:
+            held = held_rows(self.log, ids, record)
+        except (KeyError, TypeError, AttributeError):
+            return "quarantined (invalid verification)"
+        if str(rid) in self.superseded:
+            winner = self._verification("fact", rid, inline, value, facet)
+            held = [h for h in held if h[1] != winner]
+        if not held:
+            return None
+        if len(held) == 1 and self.quarantine_clearings:
+            from decision.quarantine_clearing import fact_cleared
+
+            if fact_cleared(record, subject, verdict=held[0][1],
+                            clearings=self.quarantine_clearings, attempts=self.cited_attempts,
+                            cutoff=self._clearing_cutoff()):
+                return None
+        return f"quarantined ({held[0][1].get('outcome')})"
+
+    def _sibling_ids(self, subject: str, benchmark: str) -> set[str]:
+        if self._reading_ids is None:
+            self._reading_ids = {}
+            for raw in self.inputs.evidence:
+                e = _as_dict(raw)
+                sid = (e.get("subject") or {}).get("id")
+                if sid is not None and e.get("id"):
+                    self._reading_ids.setdefault((str(sid), str(e.get("benchmark_id"))),
+                                                 set()).add(str(e["id"]))
+        return self._reading_ids.get((subject, benchmark), set())
+
+    def _reading_hold(self, subject: str, e: Mapping[str, Any]) -> str | None:
+        """Why a cited board reading stays out: a verdict that is not ``verified`` on one of its
+        ids (its own, any value, or an earlier one under ``<model>#<benchmark>#`` that no other
+        current row of the benchmark has, as ``decision.cited_change.ReadingLookup.owns``), not
+        cleared by a valid clearing line for this row. A reading's id changes with its score and
+        date, so a new score never carries the verdict its old id holds; the gate refuses it, and
+        the build admits it only through a clearing."""
+        from decision.cited_change import held_rows
+
+        own = str(e.get("id") or "")
+        benchmark = str(e.get("benchmark_id"))
+        siblings = self._sibling_ids(subject, benchmark) - {own}
+        prefix = f"{subject}#{benchmark}#"
+
+        def owns(logged: str) -> bool:
+            return logged == own or (logged not in siblings and logged.startswith(prefix))
+
+        try:
+            held = held_rows(self.log, (own,), e, kind="evidence", owns=owns)
+        except (KeyError, TypeError, AttributeError):
+            return "quarantined (invalid verification)"
+        if not held:
+            return None
+        if len(held) == 1 and self.quarantine_clearings:
+            from decision.quarantine_clearing import reading_cleared
+
+            if reading_cleared(e, subject, verdict=held[0][1], owns=owns,
+                               clearings=self.quarantine_clearings,
+                               attempts=self.cited_attempts, cutoff=self._clearing_cutoff()):
+                return None
+        return f"quarantined ({held[0][1].get('outcome')})"
 
     @staticmethod
     def _supersession_index(rows: Sequence[Any]) -> dict:
@@ -1121,7 +1234,7 @@ class _Compiler:
                 else self._admit(
                     "fact", f.get("id"), f.get("verification"),
                     fact_verification_value(f), source_ids, citation=citation, facet=facet_id,
-                    refs=f.get("sources") or (),
+                    refs=f.get("sources") or (), record=f, subject=sid,
                     extra_urls=[url for ref in f.get("sources") or ()
                                 for url in ref.get("resolved_urls") or ()])
             )
@@ -1353,7 +1466,7 @@ class _Compiler:
             extra_urls=[e.get("source_url"), *(url for ref in e.get("sources") or ()
                                              for url in ref.get("resolved_urls") or ())],
             benchmark=e.get("benchmark_id"),
-            citation=citation)
+            citation=citation, record=e, subject=str(sid))
         if reason is None:
             from schema.benchmark_values import validate_value
 
@@ -2115,6 +2228,15 @@ def collect_repo(root: Path) -> SnapshotInputs:
 
         supersessions = read_store(supersession_store)
     owner_rulings, cited_attempts, ruling_claims, ruling_history = [], [], {}, {}
+    clearings_store = root / "verification" / "quarantine-clearings.jsonl"
+    quarantine_clearings: list[dict[str, Any]] = []
+    if clearings_store.is_file():
+        from decision.quarantine_clearing import read_clearings
+
+        try:
+            quarantine_clearings = read_clearings(clearings_store)
+        except ValueError as exc:
+            raise SnapshotBuildError(f"{clearings_store}: {type(exc).__name__}") from exc
     rulings_store = root / "verification" / "owner-rulings.jsonl"
     if rulings_store.is_file():
         from decision.owner_ruling import read_ruling_inputs
@@ -2128,6 +2250,14 @@ def collect_repo(root: Path) -> SnapshotInputs:
         cited_attempts = list(ruling_inputs.attempts)
         ruling_claims = dict(ruling_inputs.claims)
         ruling_history = dict(ruling_inputs.history)
+    if quarantine_clearings and not cited_attempts:
+        from decision.cited_reader import ATTEMPTS_FILE
+        from decision.owner_ruling import read_lines
+
+        try:
+            cited_attempts = read_lines(root / ATTEMPTS_FILE)
+        except ValueError as exc:
+            raise SnapshotBuildError(f"{ATTEMPTS_FILE}: {type(exc).__name__}") from exc
     from decision.labs import load_labs
 
     fit_path = root / "hardware" / "fit" / "records.yaml"
@@ -2145,6 +2275,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
                           owner_rulings=owner_rulings, cited_attempts=cited_attempts,
                           owner_ruling_claims=ruling_claims,
                           owner_ruling_history=ruling_history,
+                          quarantine_clearings=quarantine_clearings,
                           labs=load_labs(root), hardware_fit_records=fit_records,
                           hardware=[yaml.safe_load(path.read_text(encoding="utf-8"))
                                     for path in sorted((root / "hardware").glob("*.yaml"))
