@@ -402,12 +402,23 @@ class _RecordingFetcher:
         return getattr(self._fetcher, name)
 
 
+def _unpinned(url: str) -> str:
+    """``url`` with an Arena parquet's revision segment blanked, so a read pinned to a
+    revision maps back to the registered URL it was built from (``at_revision``)."""
+    return _RESOLVE_SEGMENT.sub(r"\g<1>*\g<2>", url, count=1) if is_arena(url) else url
+
+
 def registered_finals(c: Catalogue, ended: dict[str, tuple[str, ...]]) -> dict[str, tuple[str, ...]]:
-    """Each registered source the audit fetched, with the URLs its fetch resolved through."""
+    """Each registered source the audit fetched, with the URLs its fetch resolved through.
+
+    A revision-pinned Arena read counts for the source it was pinned from; when several
+    revisions were read, the last read stands (MODEL-525).
+    """
+    by_url = {_unpinned(url): chain for url, chain in ended.items() if chain}
     return {
-        sid: ended[str(row["url"])]
+        sid: by_url[_unpinned(str(row["url"]))]
         for sid, row in c.sources.items()
-        if isinstance(row, dict) and ended.get(str(row.get("url")))
+        if isinstance(row, dict) and row.get("url") and _unpinned(str(row["url"])) in by_url
     }
 
 
