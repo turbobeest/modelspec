@@ -177,17 +177,8 @@ nav > a:not(.button) {
   font-size: clamp(40px, 3.75vw, 54px);
   line-height: 1;
 }
-.h1-lead,
-.h1-sub {
-  display: block;
-}
-.h1-sub {
-  margin-top: 0.15em;
-}
-/* Both headline lines: one size, in the brand yellow (Jamie, 2026-09-30). */
-.hero h1,
-.hero h1 .h1-lead,
-.hero h1 .h1-sub {
+/* The headline, in the brand yellow (Jamie, 2026-09-30). */
+.hero h1 {
   color: var(--yellow);
 }
 .eyebrow,
@@ -201,22 +192,13 @@ nav > a:not(.button) {
   color: var(--yellow);
   margin-bottom: -8px;
 }
-.hero .identity {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.hero .strapline,
+/* The router line, under the headline (MODEL-470). */
 .hero .subline {
-  margin: 0;
+  margin: -8px 0 0;
   font-family: "JetBrains Mono", monospace;
-  letter-spacing: 0.02em;
-}
-.hero .strapline {
   font-size: 17px;
-}
-.hero .subline {
-  font-size: 15px;
+  letter-spacing: 0.02em;
+  overflow-wrap: break-word;
 }
 .close a,
 .agents p a {
@@ -767,14 +749,10 @@ footer a {
     margin: 0;
     font-size: 17px;
   }
-  .hero .identity {
-    min-width: 0;
-  }
-  .hero .strapline {
-    font-size: 14px;
-  }
   .hero .subline {
-    font-size: 13px;
+    min-width: 0;
+    margin-top: -6px;
+    font-size: 14px;
   }
   .close {
     font-size: 18px;

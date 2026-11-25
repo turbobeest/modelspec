@@ -143,6 +143,8 @@ class Page(HTMLParser):
         self.in_ld = False
         self.paragraphs: list[str] = []
         self.paragraph: int | None = None
+        self.headings: list[str] = []
+        self.heading: int | None = None
         self.feed(text)
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -175,6 +177,9 @@ class Page(HTMLParser):
             if tag == "p":
                 self.paragraph = len(self.paragraphs)
                 self.paragraphs.append("")
+            if tag == "h1":
+                self.heading = len(self.headings)
+                self.headings.append("")
 
     @property
     def hidden(self) -> bool:
@@ -183,6 +188,8 @@ class Page(HTMLParser):
     def handle_endtag(self, tag: str) -> None:
         if tag == "p":
             self.paragraph = None
+        if tag == "h1":
+            self.heading = None
         if tag == "title":
             self.in_title = False
         if tag == "script":
@@ -203,6 +210,8 @@ class Page(HTMLParser):
             self.parts.append(text)
             if self.paragraph is not None:
                 self.paragraphs[self.paragraph] += text
+            if self.heading is not None:
+                self.headings[self.heading] += text
 
     @property
     def visible(self) -> str:
@@ -515,21 +524,24 @@ def presence(
         actual = normalize(page.meta.get(key, ""))
         if entity.ONE_SENTENCE not in actual:
             findings.append(Finding("index.html", "presence." + key, actual, entity.ONE_SENTENCE))
-    landing_paragraphs = _paragraphs(page)
-    if not landing_paragraphs or landing_paragraphs[0] != entity.TAGLINE:
+    # The landing's one h1 is the tagline (MODEL-470). The router line and the
+    # one sentence are the first two paragraphs after it.
+    headings = [normalize(heading) for heading in page.headings]
+    if headings != [entity.TAGLINE]:
         findings.append(
-            Finding("index.html", "presence.tagline", (landing_paragraphs or [""])[0][:200], entity.TAGLINE)
+            Finding("index.html", "presence.tagline", " | ".join(headings)[:200], entity.TAGLINE)
         )
-    if len(landing_paragraphs) < 2 or landing_paragraphs[1] != entity.ROUTER_LINE:
+    landing_paragraphs = _paragraphs(page)
+    if not landing_paragraphs or landing_paragraphs[0] != entity.ROUTER_LINE:
         findings.append(
             Finding(
                 "index.html",
                 "presence.router_line",
-                (landing_paragraphs[1] if len(landing_paragraphs) > 1 else "")[:200],
+                (landing_paragraphs or [""])[0][:200],
                 entity.ROUTER_LINE,
             )
         )
-    lead = landing_paragraphs[2] if len(landing_paragraphs) > 2 else ""
+    lead = landing_paragraphs[1] if len(landing_paragraphs) > 1 else ""
     if not lead.startswith(entity.ONE_SENTENCE):
         findings.append(Finding("index.html", "presence.lead", lead[:200], entity.ONE_SENTENCE))
     for path in SENTENCE_FILES:

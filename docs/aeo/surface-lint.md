@@ -21,7 +21,7 @@ The weekly workflow also has `workflow_dispatch`. Runs serialize. A closed issue
 |---|---|
 | Landing title | `TITLE`, exact equality |
 | Landing meta description, `og:description` | `ONE_SENTENCE` |
-| Landing first paragraphs | `TAGLINE`, then `ROUTER_LINE`, then a lead that starts with `ONE_SENTENCE` |
+| Landing headline and first paragraphs | the one `h1` is `TAGLINE`; then the first paragraph is `ROUTER_LINE` and the second is a lead that starts with `ONE_SENTENCE` |
 | `/method/` first paragraph; `/about/`, `llms.txt`, `index.md`, agent skill, brand page | `ONE_SENTENCE` |
 | `/about/` first paragraphs | `TAGLINE`, `ROUTER_LINE`, then `DISAMBIGUATION` and `ONE_SENTENCE` |
 | `llms.txt`, `index.md`, agent skill | `TAGLINE`, `ROUTER_LINE`, `ONE_SENTENCE`, in that order |

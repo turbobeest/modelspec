@@ -86,11 +86,11 @@ def test_the_landing_shows_the_tagline_then_the_router_line_then_the_lead(
         surfaces: dict[str, str]) -> None:
     for name in ("landing", "landing holding"):
         page = surfaces[name]
-        assert len(re.findall(r"<h1\b", page)) == 1, name
+        headings = [_visible(item) for item in re.findall(r"<h1\b[^>]*>(.*?)</h1>", page, re.S)]
+        assert headings == [entity.TAGLINE], name
         paragraphs = [_visible(item) for item in re.findall(r"<p\b[^>]*>(.*?)</p>", page, re.S)]
-        assert paragraphs[0] == entity.TAGLINE, name
-        assert paragraphs[1] == entity.ROUTER_LINE, name
-        assert paragraphs[2].startswith(entity.ONE_SENTENCE), name
+        assert paragraphs[0] == entity.ROUTER_LINE, name
+        assert paragraphs[1].startswith(entity.ONE_SENTENCE), name
 
 
 def test_the_method_page_opens_with_the_sentence_then_the_disambiguation(surfaces: dict[str, str]) -> None:

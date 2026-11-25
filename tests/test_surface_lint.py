@@ -46,7 +46,7 @@ def texts(copy: dict) -> dict[str, str]:
     }
     return {
         "index.html": page(
-            f"<p>{entity.TAGLINE}</p><p>{entity.ROUTER_LINE}</p><p>{entity.ONE_SENTENCE}</p>", org
+            f"<h1>{entity.TAGLINE}</h1><p>{entity.ROUTER_LINE}</p><p>{entity.ONE_SENTENCE}</p>", org
         ),
         "about/index.html": page(
             f"<h1>{entity.ABOUT_HEADING}</h1>"
@@ -179,6 +179,34 @@ def test_a_landing_missing_the_tagline_fails(texts: dict[str, str]) -> None:
     texts["index.html"] = texts["index.html"].replace(entity.TAGLINE, "A different strapline")
     checks = {f.check for f in sl.presence(texts) if f.surface == "index.html"}
     assert "presence.tagline" in checks
+
+
+def test_the_landing_tagline_is_the_one_h1(texts: dict[str, str]) -> None:
+    """MODEL-470: the tagline is the headline, not a paragraph under another h1."""
+    assert [f for f in sl.presence(texts) if f.surface == "index.html"] == []
+    texts["index.html"] = page(
+        f"<h1>Some other headline</h1><p>{entity.TAGLINE}</p>"
+        f"<p>{entity.ROUTER_LINE}</p><p>{entity.ONE_SENTENCE}</p>"
+    )
+    checks = {f.check for f in sl.presence(texts) if f.surface == "index.html"}
+    assert {"presence.tagline", "presence.router_line", "presence.lead"} <= checks
+    texts["index.html"] = page(
+        f"<h1>{entity.TAGLINE}</h1><p>{entity.ROUTER_LINE}</p><p>{entity.ONE_SENTENCE}</p>"
+        "<h1>A second headline</h1>"
+    )
+    checks = {f.check for f in sl.presence(texts) if f.surface == "index.html"}
+    assert "presence.tagline" in checks
+
+
+def test_the_landing_router_line_and_sentence_follow_the_headline(
+    texts: dict[str, str],
+) -> None:
+    texts["index.html"] = page(
+        f"<h1>{entity.TAGLINE}</h1><p>{entity.ONE_SENTENCE}</p><p>{entity.ROUTER_LINE}</p>"
+    )
+    checks = {f.check for f in sl.presence(texts) if f.surface == "index.html"}
+    assert {"presence.router_line", "presence.lead"} <= checks
+    assert "presence.tagline" not in checks
 
 
 def test_identity_lines_are_not_copied_outside_the_registry() -> None:
@@ -958,7 +986,7 @@ def test_live_holding_skips_only_files_the_holding_builder_omits(
     texts["robots.txt"] = holding.ROBOTS
     del texts["sitemap.xml"]
     texts["index.html"] = page(
-        f"<p>{entity.TAGLINE}</p><p>{entity.ROUTER_LINE}</p><p>{entity.ONE_SENTENCE}</p>"
+        f"<h1>{entity.TAGLINE}</h1><p>{entity.ROUTER_LINE}</p><p>{entity.ONE_SENTENCE}</p>"
     )
     for path in live.PAGES:
         rel = path.lstrip("/") + "index.html"
