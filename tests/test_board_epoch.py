@@ -196,7 +196,7 @@ def legacy(data, page, *, text=True, url="https://cursor.com/cursorbench"):
             "at": "2026-11-23T00:14:57+00:00", "complete": True, "harness": True,
             "agreed": False, "agreed_value": None,
             "readers": [{"reader_id": "a", "family": "anthropic", "version": "1", "value": None},
-                        {"reader_id": "b", "family": "google", "version": "1", "value": 48.6}]}
+                        {"reader_id": "b", "family": "mistral", "version": "1", "value": 47.3}]}
     if text:
         line["text_sha256"] = text_sha256(page)
     path = data.root / ATTEMPTS_FILE
@@ -222,13 +222,13 @@ def test_a_legacy_split_blocks_the_page_it_read(html_data, own):
 
 
 def test_a_legacy_split_on_a_page_whose_text_changed_opens_a_board_epoch(html_data, own):
-    legacy(html_data, board(score="48.6"))
+    legacy(html_data, board(score="47.3"))
     out = read()
     assert out.changed and epochs(html_data)[-1].startswith(BASE + BOARD_MARK)
 
 
 def test_a_legacy_split_with_no_text_hash_is_named_through_a_recorded_block(html_data, own):
-    old = board(score="48.6")
+    old = board(score="47.3")
     legacy(html_data, old, text=False)
     refused("prior_attempt_disagreed")              # its page cannot be named: nothing opens
     link_by_block(html_data, old)
