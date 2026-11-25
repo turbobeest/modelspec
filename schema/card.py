@@ -55,7 +55,7 @@ from .enums import (
     TrainingMethod,
     UsePermission,
 )
-from .yaml_loader import load_yaml
+from .yaml_loader import load_yaml_unique
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1097,7 +1097,9 @@ class ModelCard(BaseModel):
             yaml_str = content
             prose = ""
 
-        data = load_yaml(yaml_str) or {}
+        # The build's refusing loader (MODEL-554): a card that repeats a key is not re-read
+        # last-key-wins by the graph or ranking after ``pipeline.load`` refused it.
+        data = load_yaml_unique(yaml_str) or {}
 
         # Map flat YAML to nested Pydantic structure
         identity_data = {

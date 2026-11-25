@@ -2124,7 +2124,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
         # ``outcome`` would read as its last value and could hide a mismatch.
         verifications = read_json_lines(verification_log)
     except RepeatedKeyError as exc:
-        raise SnapshotBuildError(f"{verification_log}: {exc}") from None
+        raise SnapshotBuildError(str(exc)) from None
     supersessions = []
     supersession_store = root / "verification" / "supersessions.jsonl"
     if supersession_store.is_file():

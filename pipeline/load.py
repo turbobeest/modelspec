@@ -42,23 +42,37 @@ class LoadError(RuntimeError):
     """A file that should have parsed did not."""
 
 
-#: SHA-256 of the front matter of the frozen public image's ten benchmark pages that repeat a
-#: key (``aliases``) from before MODEL-554. The data repository has fixed them; the image, which
-#: this repository may not change, has not. Only these exact texts, wherever they are read (tests
-#: stand the image in for private data), warn as a count and keep the last value. Any other
-#: card or benchmark page that repeats a key is refused. Drop an entry once the image is fixed.
-FROZEN_DUPLICATE_PAGES = frozenset({
-    "eb0312bd9270f6192ce7709bd3e94b751348f92474046cdccaac47e7c299343c",  # aime_2024.md
-    "edcecc1706132fa107eaf32efd7e5f08b47614bea0d6639c4c0fe62a2dd743e5",  # aime_2026.md
-    "9fdc12b192772bf5f9ef39cf15c424a86e518b35cf18c0e42231e5399d6f36bf",  # arc_challenge.md
-    "a8ddcea17c1ed2ac44f68ead4cbcaccbad6f9b0903848df693ae18b06ccd36a1",  # bbh.md
-    "d0d6731e296850e4dc224a2360827527eff61d6f6da5778d4bf80ba31ecc53bc",  # big_bench.md
-    "0b06eab11098825fb4ad647f0e2d8282898250aad748b6dce040955a02021241",  # gpqa.md
-    "ad8254d7b3c4deb089cae7980cf7163fb6c9109dbbff05066a32e4577b6d9b2e",  # humaneval.md
-    "8bcd8db39d80fa2ccdf50e7ee93e796f7a2b45564e626c3ea321ed58150e4cc5",  # mbpp.md
-    "96a1bd6ef53f12f6df126211131bddecbb6d7446a8001cf08ce5fae43a5502d3",  # model_written_evals.md
-    "970e9a10a5e6ec05ca96e12fa0fd700e2c84fbe5f7be9020400e79feba57a4f5",  # siqa.md
-})
+#: The frozen public image's ten benchmark pages that repeat ``aliases`` from before MODEL-554,
+#: by file name and the SHA-256 of the whole file. The data repository has fixed them; the
+#: image, which this repository may not change, has not. A page warns (as a count, keeping the
+#: last value) only when it is read at ``benchmarks/<that name>``, its bytes are exactly these,
+#: and ``aliases`` is its only repeated key; tests stand copies of the image in for private
+#: data, so the root may differ. Anything else that repeats a key is refused: an edited page,
+#: a copy under another name, the same text as a card. Drop an entry once the image is fixed.
+FROZEN_DUPLICATE_PAGES = {
+    "aime_2024.md": "d0b612a0e51afe1bef63a67f2a8d47453d02bdc1e5c614afb1e48ed90c8bd250",
+    "aime_2026.md": "803907c48d2ac4e660a738ad48c04b4400a94cbf8cfd2a5cc65eef73b61c8839",
+    "arc_challenge.md": "688473a466cac5d595805f8e70c995b4e168ddc6118da5c0f1c65744b5a1b235",
+    "bbh.md": "cc037545ec97340ff06ccdb3cf56e0eb87870c8b8fb1b1e2ee7e0c0532b261ca",
+    "big_bench.md": "b0bae3290e9ec40b9dc49b3bc83d7a8cd757e18e5f9bbe515fcadf4303c85662",
+    "gpqa.md": "93020240ac7ad9cde162e316324eac2e0e5946c25c4deeb97ffe966909e5db14",
+    "humaneval.md": "cb3e3260777e062c57d1b5979954a613a18048408eb084f1d41246a57721974e",
+    "mbpp.md": "43182a51a1c169c6492779f0a48a586b8eb93fc6fa43316e165bad234972b7d0",
+    "model_written_evals.md": "297623b58c9fc308594d74a7fca3c2f545525090f8356e64cce4ef1d1d59cba7",
+    "siqa.md": "02a315b5ca35ac46e75497d2f2e46c30f918d8ad52f8bf9df4ca97b40ff654ae",
+}
+_FROZEN_REPEATED_KEYS = frozenset({"aliases"})
+
+
+def _frozen_duplicate(path: Path | None, exc: DuplicateKeyError) -> bool:
+    """Whether a refused page is one of ``FROZEN_DUPLICATE_PAGES``, exactly."""
+    if path is None or path.parent.name != "benchmarks" or set(exc.keys) != _FROZEN_REPEATED_KEYS:
+        return False
+    expected = FROZEN_DUPLICATE_PAGES.get(path.name)
+    try:
+        return expected is not None and hashlib.sha256(path.read_bytes()).hexdigest() == expected
+    except OSError:
+        return False
 
 
 def split_front_matter(text: str, *, path: Path | None = None,
@@ -75,8 +89,7 @@ def split_front_matter(text: str, *, path: Path | None = None,
     except DuplicateKeyError as exc:
         # Counts and a location only, so the message is safe for private data too.
         message = f"{path or 'front matter'}: {exc.diagnostic(line_offset=1)}"
-        if duplicates is None and hashlib.sha256(
-                match.group(1).encode("utf-8")).hexdigest() in FROZEN_DUPLICATE_PAGES:
+        if duplicates is None and _frozen_duplicate(path, exc):
             duplicates = "warn"
         if duplicates != "warn":
             raise LoadError(message) from None
@@ -248,7 +261,13 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
     """Every card. ``as_of`` is the build's day, as the snapshot build is given it: a ruled
     fact is withheld unless its ruling stands at min(as_of, the UTC day)."""
     from decision.citation import fact_citation
-    from decision.owner_ruling import has_ruling, read_ruling_inputs, ruling_refused, served_fact
+    from decision.owner_ruling import (
+        RepeatedKeyError,
+        has_ruling,
+        read_ruling_inputs,
+        ruling_refused,
+        served_fact,
+    )
     from decision.sources import configured_copy_store, load_sources
 
     root = root or REPO_ROOT
@@ -284,6 +303,9 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
                 if rulings is None:
                     try:
                         rulings = read_ruling_inputs(root)
+                    except RepeatedKeyError as error:
+                        # The counts-only message every path gives (MODEL-554).
+                        raise LoadError(str(error)) from None
                     except (OSError, ValueError, KeyError, TypeError) as error:
                         raise LoadError(f"owner rulings: {type(error).__name__}") from None
                 if ruling_refused(fact, str(model_id), cited=bool(citation) and valid,

@@ -78,7 +78,8 @@ def test_the_snapshot_refuses_a_log_row_that_repeats_a_key(tmp_path, line):
 
 def test_the_refusal_counts_every_line_that_repeats_a_key(tmp_path):
     _repo(tmp_path, log=[_row(), REPEATED_OUTCOME, "", ESCAPED_OUTCOME])
-    with pytest.raises(RepeatedKeyError, match=r"^line 2: .* \(2 line\(s\) repeat a key\)$"):
+    with pytest.raises(RepeatedKeyError,
+                       match=r"log\.jsonl: line 2: .* \(2 line\(s\) repeat a key\)$"):
         read_json_lines(tmp_path / "verification/log.jsonl")
 
 
@@ -95,7 +96,7 @@ def test_every_other_reader_of_the_log_refuses_it_too(tmp_path, line):
     _repo(tmp_path, log=[line])
     # The site's owner-ruling inputs (``pipeline.load.load_models`` reads the log through them).
     (tmp_path / RULINGS_FILE).write_text("{}\n")
-    with pytest.raises(RepeatedKeyError, match="^line 1: "):
+    with pytest.raises(RepeatedKeyError, match=r"log\.jsonl: line 1: a JSON object"):
         read_ruling_inputs(tmp_path)
     # The rule-15 quarantine lookup, which parses the log as the build parses it.
     with pytest.raises(LookupFailed, match="RepeatedKeyError"):
@@ -181,40 +182,125 @@ def test_the_build_refuses_an_offering_file_that_repeats_a_key(tmp_path, kind, l
     assert "0.5" not in message and "plus" not in message
 
 
-def test_only_the_frozen_public_pages_warn_on_a_repeated_key(tmp_path, monkeypatch, caplog):
-    """The public image predates the refusal and this repository may not change it: its known
-    pages warn, as a count, and keep the last value. Nothing else is let through."""
+#: A page that repeats only ``aliases``, the frozen image's one repeated key.
+ALIASES_PAGE = """---
+id: bench-a
+aliases: ["bench-a"]
+name: Bench A
+aliases:
+  - Bench A
+---
+Synthetic fixture.
+"""
+
+
+def _pin(monkeypatch, path):
+    """Exempt exactly this file, as ``FROZEN_DUPLICATE_PAGES`` exempts the image's pages."""
     import pipeline.load as load
 
-    _repo(tmp_path, benchmark=BENCHMARK)
-    front = BENCHMARK.split("---\n")[1].rstrip("\n")
-    monkeypatch.setattr(load, "FROZEN_DUPLICATE_PAGES", frozenset(
-        {hashlib.sha256(front.encode()).hexdigest()}))
+    monkeypatch.setattr(load, "FROZEN_DUPLICATE_PAGES",
+                        {path.name: hashlib.sha256(path.read_bytes()).hexdigest()})
+
+
+def test_a_pinned_frozen_page_warns_as_a_count_and_keeps_its_last_value(
+        tmp_path, monkeypatch, caplog):
+    _repo(tmp_path, benchmark=ALIASES_PAGE)
+    _pin(monkeypatch, tmp_path / "benchmarks/bench-a.md")
     with caplog.at_level("WARNING", logger="pipeline.load"):
         [page] = load_benchmarks(tmp_path)
-    assert page.front["metric"]["direction"] == "lower_is_better"
+    assert page.front["aliases"] == ["Bench A"]
     [record] = [r for r in caplog.records if "duplicate_yaml_key" in r.getMessage()]
-    assert "line 6, column 3 (1 repeated key(s))" in record.getMessage()
-    assert "lower_is_better" not in record.getMessage()
-    # A card beside it is still refused.
-    (tmp_path / f"models/{MID}.md").parent.mkdir(parents=True)
-    (tmp_path / f"models/{MID}.md").write_text(CARD)
-    with pytest.raises(LoadError, match="duplicate_yaml_key"):
-        load_models(tmp_path)
-    # So is the same page with any other text.
-    (tmp_path / "benchmarks/bench-a.md").write_text(BENCHMARK.replace("Bench A", "Bench B"))
+    assert "line 5, column 1 (1 repeated key(s))" in record.getMessage()
+    assert "Bench A" not in record.getMessage()
+
+
+@pytest.mark.parametrize("change", ["body", "front", "renamed", "card", "other-key"])
+def test_anything_but_the_exact_pinned_page_is_refused(tmp_path, monkeypatch, change):
+    """The exemption holds for one file name, its exact bytes and ``aliases`` alone."""
+    _repo(tmp_path, benchmark=BENCHMARK if change == "other-key" else ALIASES_PAGE)
+    page = tmp_path / "benchmarks/bench-a.md"
+    _pin(monkeypatch, page)
+    if change == "body":
+        page.write_text(page.read_text() + "One more line.\n")
+    elif change == "front":
+        page.write_text(page.read_text().replace("name: Bench A", "name: Bench B"))
+    elif change == "renamed":
+        page.rename(page.with_name("bench-b.md"))
+    elif change == "card":
+        # The same bytes at a card path, under the pinned name.
+        card = tmp_path / "models/lab/bench-a.md"
+        card.parent.mkdir(parents=True)
+        card.write_bytes(page.read_bytes().replace(b"id: bench-a", b"model_id: lab/bench-a"))
+        _pin(monkeypatch, card)
+        with pytest.raises(LoadError, match="duplicate_yaml_key"):
+            load_models(tmp_path)
+        return
     with pytest.raises(LoadError, match="duplicate_yaml_key"):
         load_benchmarks(tmp_path)
 
 
-def test_every_page_of_the_public_image_that_repeats_a_key_is_a_known_frozen_page():
-    """The frozen image still builds; a new repeat could not be added without failing it."""
+def test_a_page_read_without_its_path_is_never_exempt(monkeypatch, tmp_path):
+    from pipeline.load import split_front_matter
+
+    _repo(tmp_path, benchmark=ALIASES_PAGE)
+    _pin(monkeypatch, tmp_path / "benchmarks/bench-a.md")
+    with pytest.raises(LoadError, match="^front matter: duplicate_yaml_key"):
+        split_front_matter(ALIASES_PAGE)
+
+
+def test_the_public_image_repeats_only_on_its_pinned_pages_and_still_loads():
+    """The frozen image still builds, and every page of it that repeats a key is pinned by
+    name and bytes; a new repeat could not be added without failing this."""
     from pipeline.load import FRONT_MATTER, FROZEN_DUPLICATE_PAGES, REPO_ROOT
     from schema.yaml_loader import duplicate_key_diagnostics
 
-    repeating = set()
+    repeating = {}
     for path in sorted((REPO_ROOT / "benchmarks").glob("*.md")):
         match = FRONT_MATTER.match(path.read_text(encoding="utf-8", errors="replace"))
         if match and duplicate_key_diagnostics(match.group(1)):
-            repeating.add(hashlib.sha256(match.group(1).encode()).hexdigest())
-    assert repeating <= FROZEN_DUPLICATE_PAGES
+            repeating[path.name] = hashlib.sha256(path.read_bytes()).hexdigest()
+    assert repeating.items() <= FROZEN_DUPLICATE_PAGES.items()
+    assert load_benchmarks(REPO_ROOT)
+
+
+# --- merge keys and the card re-read -------------------------------------------------------------
+
+
+#: A fact that inherits ``value`` through a merge and sets it again: an override, refused.
+MERGED_CARD = """---
+model_id: lab/alpha
+display_name: Alpha
+base: &base {facet: model.context_window, value: 128000, state: known}
+facts:
+  - <<: *base
+    value: 262144
+---
+Synthetic fixture.
+"""
+
+
+def test_both_paths_refuse_a_key_inherited_through_a_merge_and_set_again(tmp_path):
+    _repo(tmp_path, card=MERGED_CARD)
+    for path in (collect_repo, load_models):
+        with pytest.raises(LoadError, match=r"alpha\.md: duplicate_yaml_key: line 7, column 5"):
+            path(tmp_path)
+
+
+def test_a_merge_without_an_override_still_loads():
+    from schema.yaml_loader import load_yaml_unique
+
+    text = "base: &base {a: 1}\nmerged: {<<: *base, b: 2}\n"
+    assert load_yaml_unique(text)["merged"] == {"a": 1, "b": 2}
+
+
+@pytest.mark.parametrize("card", [CARD, MERGED_CARD], ids=["repeated", "merge-override"])
+def test_the_graph_and_ranking_card_reader_refuses_a_repeated_key(tmp_path, card):
+    """``pipeline.build`` and ``pipeline.ranking`` re-read cards with ``ModelCard``."""
+    from schema.card import ModelCard
+
+    path = tmp_path / "card.md"
+    path.write_text(card)
+    with pytest.raises(ValueError, match="DuplicateKeyError|duplicate_yaml_key"):
+        ModelCard.from_yaml_file(path)
+    with pytest.raises((ValueError, yaml.YAMLError), match="DuplicateKeyError|duplicate_yaml_key"):
+        ModelCard.from_yaml_string(card)

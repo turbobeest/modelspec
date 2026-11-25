@@ -161,6 +161,7 @@ def test_nested_duplicate_mapping_is_refused_and_reported(loader_mode, mapping):
 
 
 def test_safe_tags_and_authored_merge_overrides_remain_supported(loader_mode):
+    """``load_yaml`` keeps merge overrides; the build's loader refuses them (MODEL-554)."""
     text = """---
 base: &base {a: 1, b: 2}
 other: &other {a: 3, c: 4}
@@ -174,7 +175,9 @@ set: !!set {one: null, two: null}
 value-key: {=: text}
 ---
 """
-    front, _ = split_front_matter(text)
+    with pytest.raises(LoadError, match="duplicate_yaml_key"):
+        split_front_matter(text)
+    front = load_yaml(text.split("---\n")[1])
     assert front["merged"] == {"a": 1, "b": 5, "c": 4}
     assert front["reused"] == {"a": 1, "b": 5, "c": 6}
     assert front["again"] is front["merged"]

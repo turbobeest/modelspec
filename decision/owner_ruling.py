@@ -126,7 +126,7 @@ def read_json_lines(path: Path) -> list[Any]:
     """Every non-blank line of a JSON-lines file, decoded by ``loads``; an absent file is
     empty. The build reads ``verification/log.jsonl`` through this (MODEL-554): a row that
     repeats ``outcome`` would otherwise read as its last spelling. Raises ``RepeatedKeyError``
-    naming the line number and how many lines repeat a key; other decoding errors as
+    naming the file, the first line and how many lines repeat a key; other decoding errors as
     ``json.loads`` raises them."""
     if not path.is_file():
         return []
@@ -139,8 +139,8 @@ def read_json_lines(path: Path) -> list[Any]:
         except RepeatedKeyError:
             repeated.append(number)
     if repeated:
-        raise RepeatedKeyError(f"line {repeated[0]}: a JSON object repeats a key "
-                          f"({len(repeated)} line(s) repeat a key)")
+        raise RepeatedKeyError(f"{path}: line {repeated[0]}: a JSON object repeats a key "
+                               f"({len(repeated)} line(s) repeat a key)")
     return out
 
 

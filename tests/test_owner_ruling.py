@@ -961,7 +961,9 @@ def test_both_paths_refuse_a_verification_row_that_repeats_outcome(tmp_path):
     (tmp_path / "verification/log.jsonl").write_text(
         row[:-1] + ', "outc\\u006fme": "verified"}\n')
     for path in (load_models, collect_repo):  # the snapshot reads cards through load_models
-        with pytest.raises(LoadError, match="^owner rulings: RepeatedKeyError$"):
+        # The counts-only message every path gives: the file, the line and the count.
+        with pytest.raises(LoadError, match=r"log\.jsonl: line 1: a JSON object repeats a key "
+                                            r"\(1 line\(s\) repeat a key\)$"):
             path(tmp_path)
 
 
