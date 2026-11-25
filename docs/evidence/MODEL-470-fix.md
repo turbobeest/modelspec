@@ -144,3 +144,8 @@ PYTHONPATH=$PWD /home/turbobeest/dev/04-modelspec/modelspec/.venv/bin/python -m 
 ```
 
 Both exited 0. The lint reported 0 findings.
+
+Tests, run on jjt5090 with Python 3.12 and Node v22.23.2:
+
+- `tests/test_surface_lint.py`, `tests/test_landing.py`, `tests/test_holding.py`, `tests/test_social_cards.py`, `tests/test_about.py`, `tests/test_agent_ready.py`, `tests/test_entity.py`, `tests/test_decision_link.py`, `tests/test_agent_copy.py` with `-n 4`: 450 passed. The 12 landing browser checks errored there because `web/dist` had not been built yet.
+- After `npm ci`, `npm run build` and `npm test` in `web/` (exit 0; Vitest 949 passed, 66 files, 1 file skipped), `tests/test_landing.py` alone: 33 passed, including the 12 browser checks. Exit 0.
