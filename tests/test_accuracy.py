@@ -2224,6 +2224,97 @@ def test_an_undetermined_share_failure_names_the_limit() -> None:
         assert "share-sentinel" not in text
 
 
+def test_a_fidelity_fail_with_no_failures_names_its_cause_in_counts() -> None:
+    """MODEL-553: shell pages, refused hops and a short sample fail the layer with
+    zero failures; the public line says which, in counts only."""
+    report = accuracy.AccuracyReport(
+        generated_at="2026-11-25T06:23:00Z",
+        profile="nightly",
+        snapshot=None,
+        layers=(accuracy.LayerResult(
+            "data_fidelity", "fail", True, "private summary cause-sentinel",
+            {"verified": 9, "mismatch": 0, "unreachable": 0, "undetermined": 8},
+            {
+                "undetermined_share": 0.4,
+                "max_undetermined_share": 0.6,
+                "shell_page": 4,
+                "redirect_unclassified": 2,
+                "actual_sample_size": 9,
+                "requested_sample_size": 12,
+                "sample": [{"target": "fact:cause-sentinel",
+                            "sources": [{"url": "https://cause.example/x"}]}],
+            },
+        ),),
+    )
+
+    for text in (
+        accuracy.public_nightly_report(report),
+        accuracy.public_nightly_report(report.to_dict()),
+    ):
+        assert (
+            "| data_fidelity | FAIL | yes | failures 0; mismatches 0; unreachable 0; "
+            "undetermined 8; over the undetermined limit: no; shell pages 4; "
+            "refused at the terms register 2; assessed 9 of 12. |"
+        ) in text
+        assert "cause-sentinel" not in text
+        assert "http" not in text
+
+
+def test_the_public_limit_word_follows_the_gate_not_the_rounded_share(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    """MODEL-553: a raw share of 0.60004 fails a 0.6 limit; the stored share rounds to
+    0.6, so the public line must take the gate's own comparison."""
+    public, private, _ = _public_and_private_fidelity(tmp_path, monkeypatch)
+    raw = 0.60004
+    monkeypatch.setattr(accuracy, "fidelity_verdict",
+                        lambda counts, **kwargs: ("fail", "boundary", raw))
+    layer = accuracy.data_fidelity(
+        public, as_of=date(2026, 10, 13), config=accuracy.load_config().data_fidelity,
+        seed="model335", private_data_root=private)
+
+    assert layer.status == "fail"
+    assert layer.details["undetermined_share"] == 0.6
+    assert layer.details["max_undetermined_share"] == 0.6
+    assert layer.details["over_undetermined_limit"] is True
+    report = accuracy.AccuracyReport(
+        generated_at="2026-11-25T06:23:00Z", profile="nightly", snapshot=None,
+        layers=(layer,),
+    )
+    for text in (accuracy.public_nightly_report(report),
+                 accuracy.public_nightly_report(report.to_dict())):
+        assert "over the undetermined limit: yes" in text
+
+
+@pytest.mark.parametrize("over,word", [(True, "yes"), (False, "no")])
+def test_the_gate_comparison_wins_at_the_limit(over: bool, word: str) -> None:
+    from scripts.accuracy_public import _public_summary
+
+    text = _public_summary(
+        "data_fidelity", "fail" if over else "pass", {"undetermined": 6},
+        {"undetermined_share": 0.6, "max_undetermined_share": 0.6,
+         "over_undetermined_limit": over},
+    )
+
+    assert f"over the undetermined limit: {word}." in text
+
+
+def test_a_fidelity_line_without_those_causes_is_unchanged() -> None:
+    from scripts.accuracy_public import _public_summary
+
+    text = _public_summary(
+        "data_fidelity", "pass",
+        {"verified": 12, "mismatch": 0, "unreachable": 0, "undetermined": 3},
+        {"shell_page": 0, "redirect_unclassified": 0,
+         "actual_sample_size": 12, "requested_sample_size": 12},
+    )
+
+    assert text == (
+        "failures 0; mismatches 0; unreachable 0; undetermined 3; "
+        "over the undetermined limit: no."
+    )
+
+
 def test_recall_fail_verdicts_are_not_called_failures() -> None:
     passing = accuracy.AccuracyReport(
         generated_at="2026-11-12T06:23:00Z",

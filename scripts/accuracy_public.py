@@ -46,6 +46,10 @@ def _stored_count(counts: Mapping[str, Any], key: str) -> int | None:
 def _over_undetermined_limit(details: object) -> str:
     if not isinstance(details, Mapping):
         return "no"
+    over = details.get("over_undetermined_limit")
+    if isinstance(over, bool):
+        # The gate's raw comparison wins over the rounded share (MODEL-553).
+        return "yes" if over else "no"
     share = details.get("undetermined_share")
     limit = details.get("max_undetermined_share")
     if isinstance(share, bool) or isinstance(limit, bool):
@@ -53,6 +57,30 @@ def _over_undetermined_limit(details: object) -> str:
     if isinstance(share, (int, float)) and isinstance(limit, (int, float)) and share > limit:
         return "yes"
     return "no"
+
+
+def _other_fail_causes(details: object) -> list[str]:
+    """Counts for the data-fidelity fail causes that are not failures (MODEL-553).
+
+    A shell page (MODEL-519), a hop refused at the terms register (MODEL-509) and
+    an assessed sample short of N each fail the layer with zero failures. Without
+    their counts the public line reads as a fail with nothing wrong. Each is shown
+    only when it fired, so a line without one is unchanged.
+    """
+    if not isinstance(details, Mapping):
+        return []
+    parts = []
+    shell = _stored_count(details, "shell_page")
+    if shell:
+        parts.append(f"shell pages {shell}")
+    refused = _stored_count(details, "redirect_unclassified")
+    if refused:
+        parts.append(f"refused at the terms register {refused}")
+    assessed = _stored_count(details, "actual_sample_size")
+    wanted = _stored_count(details, "requested_sample_size")
+    if assessed is not None and wanted is not None and assessed < wanted:
+        parts.append(f"assessed {assessed} of {wanted}")
+    return parts
 
 
 def _public_summary(
@@ -84,6 +112,7 @@ def _public_summary(
         f"undetermined {0 if undetermined is None else undetermined}",
         f"over the undetermined limit: {_over_undetermined_limit(details)}",
     ]
+    parts.extend(_other_fail_causes(details))
     if recall:
         differ = 0
         for key in ("regressions", "improvements", "baseline_regressions"):

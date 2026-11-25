@@ -1485,6 +1485,8 @@ def data_fidelity(
             "max_values_drawn": config.max_values_drawn,
             "undetermined_share": round(share, 4),
             "max_undetermined_share": config.max_undetermined_share,
+            # The gate's own raw comparison; the share above is rounded (MODEL-553).
+            "over_undetermined_limit": share > config.max_undetermined_share,
             "undetermined_reasons": {
                 reason: sum(row["reason"] == reason for row in sample)
                 for reason in ("source_unchanged", "source_changed", "render_required",
