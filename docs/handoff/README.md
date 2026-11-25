@@ -78,6 +78,15 @@ Learned expensively during 2026-09-09/10.
     its citation says so. It does not allow `unbounded` when the terms mention a
     cap, a tier limit or "contact sales above N", or when the commercial terms
     were not read in full.
+
+    **Operational usage limits are not a user cap** (MODEL-491, decided by the
+    owner, 2026-11-25). Limits on use that an order form or the documentation
+    sets, such as rate, token, throughput or messaging quotas, are not a
+    licence user cap, even where the terms count end-user limits among them and
+    forbid circumventing them. `unbounded` stands when the terms set no seat,
+    user or monthly-active-user threshold. "A tier limit" above means
+    a seat, user or monthly-active-user threshold that a tier sets, not an
+    operational quota.
 14. **Rules 12 and 13 on a cite-only source.** On a cite-only source the fact is
     filed as a cited fact, with the pages and the date they were read, and
     carries no machine verification: the engine returns `cited` and logs no

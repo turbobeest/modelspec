@@ -57,6 +57,8 @@ LICENCE_READING_RULES: dict[str, str] = {
         "once a monthly-active-user threshold is exceeded. "
         "A threshold that only triggers a display, naming or attribution duty is not a cap, "
         "and neither is a revenue threshold. "
+        "Operational usage limits that an order form or the documentation sets, such as "
+        "rate, token, throughput or messaging quotas, are not a cap either. "
         "With no such monthly-active-user threshold the value is unbounded, "
         "because the registry definition says unbounded when the licence sets no such cap. "
         "Never use not_disclosed for user_cap when the cited region is the licence text."
