@@ -3764,6 +3764,346 @@ class HFConfigExtractor:
         return [Reading(subject, value, "experts")]
 
 
+# --- Hugging Face structured readers (MODEL-558, Jamie 2026-11-25) -------------------------------
+#
+# Three deterministic readers for facts a Hub repository states in structured form: the context
+# window in ``config.json`` and in README spec tables, the modalities in the repository's declared
+# task (``pipeline_tag``), and weights openness in its file list. Each reads only when the page is
+# not in doubt and abstains otherwise: an abstention is no reading, never a mismatch.
+
+#: Architecture names whose ``max_position_embeddings`` is a generative model's window.
+_HF_GENERATIVE_ARCHITECTURE = re.compile(r"(?:ForCausalLM|ForConditionalGeneration)$")
+
+
+def hf_config_context_window(config: Mapping[str, Any]) -> int | None:
+    """The text backbone's ``max_position_embeddings``, when it is the model's whole window.
+
+    Read only for a generative architecture (``*ForCausalLM`` or ``*ForConditionalGeneration``;
+    an encoder's or embedder's positional range is not its documented input limit), from the
+    text maps only, when every text map that states it gives one positive integer, and when that
+    map has either no RoPE scaling or a YaRN scaling whose ``original_max_position_embeddings``
+    times ``factor`` is that integer (the config already states the extended window). Any other
+    scaling (linear, dynamic, or a YaRN factor the stated window does not reflect) is ambiguous.
+    """
+    architectures = config.get("architectures")
+    if not isinstance(architectures, list) or not architectures or not all(
+        isinstance(name, str) and _HF_GENERATIVE_ARCHITECTURE.search(name) for name in architectures
+    ):
+        return None
+    found: set[int] = set()
+    for part in _config_maps(config, text_only=True):
+        if "max_position_embeddings" not in part:
+            continue
+        window = part["max_position_embeddings"]
+        if isinstance(window, bool) or not isinstance(window, int) or window <= 0:
+            return None
+        scaling = part.get("rope_scaling")
+        if scaling is not None:
+            if not isinstance(scaling, Mapping):
+                return None
+            kind = scaling.get("rope_type", scaling.get("type"))
+            original = scaling.get("original_max_position_embeddings")
+            factor = scaling.get("factor")
+            if kind != "yarn" or isinstance(original, bool) or not isinstance(original, int) \
+                    or isinstance(factor, bool) or not isinstance(factor, (int, float)) \
+                    or original * factor != window:
+                return None
+        found.add(window)
+    return next(iter(found)) if len(found) == 1 else None
+
+
+def _hf_config_url(url: str | None) -> bool:
+    parts = _url_parts(url or "")
+    return bool(parts) and parts[0].casefold() == "huggingface.co" and len(parts) == 6 \
+        and parts[3] in {"raw", "resolve", "blob"} and parts[5] == "config.json"
+
+
+class HFConfigContextExtractor:
+    """``model.context_window`` from a retained ``config.json`` (``hf_config_context_window``)."""
+
+    actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
+                              method="hf-config-context@1")
+    fields = frozenset({"model.context_window"})
+
+    def bound_to(self, claim: Claim, source_url: str | None) -> bool:
+        return claim.field in self.fields and _hf_config_url(source_url)
+
+    def accepts(self, text: str) -> bool:
+        return _hf_config(text) is not None
+
+    def extract(self, claim: Claim, text: str, *, page_url: str | None = None) -> list[Reading]:
+        if not self.bound_to(claim, page_url):
+            return []
+        config = _hf_config(text)
+        subject = _hf_bound_subject(claim, text, page_url)
+        if config is None or subject is None:
+            return []
+        window = hf_config_context_window(config)
+        return [Reading(subject, str(window), claim.unit)] if window is not None else []
+
+
+#: Declared Hub tasks whose output modality is not in doubt.
+_HF_TASK_OUTPUT = {
+    "sentence-similarity": "embedding",
+    "feature-extraction": "embedding",
+    "text-generation": "text",
+    "text2text-generation": "text",
+    "image-text-to-text": "text",
+}
+#: Declared Hub tasks that take text alone (``image-text-to-text`` names no full input set).
+_HF_TEXT_INPUT_TASKS = frozenset({
+    "sentence-similarity", "feature-extraction", "text-generation", "text2text-generation",
+})
+#: A tag, architecture or model type that names another modality: a text-only reading abstains.
+_HF_NONTEXT_HINT = re.compile(
+    r"(?i)image|vision|visual|video|audio|speech|multimodal|multi-modal|omni|clip|siglip"
+    r"|(?:^|[-_ ])vl(?:$|[-_ ])|conditionalgeneration|any-to-any")
+#: File suffixes that hold trained weights. Any one of them in a repository is no closed reading.
+_HF_WEIGHT_SUFFIX = re.compile(
+    r"(?i)\.(?:safetensors|gguf|bin|pt|pth|ckpt|onnx|h5|msgpack|tflite|mlmodel|nemo|keras|npz"
+    r"|ggml|mlx)$")
+#: The suffixes that are weights whatever the file's name.
+_HF_STRONG_WEIGHT_SUFFIX = re.compile(r"(?i)\.(?:safetensors|gguf)$")
+#: Checkpoint names that are weights in the other suffixes.
+_HF_WEIGHT_NAME = re.compile(
+    r"(?i)(?:^|/)(?:pytorch_model|model|tf_model|flax_model|consolidated)(?:[-.]\d+(?:-of-\d+)?)*"
+    r"\.(?:bin|pt|pth|h5|msgpack|ckpt)$")
+
+
+def _hf_api_repo(url: str | None) -> tuple[str, str] | None:
+    """``(owner, repo)`` of a Hub model API URL (``/api/models/<owner>/<repo>``)."""
+    parts = _url_parts(url or "")
+    if not parts or parts[0].casefold() != "huggingface.co" or len(parts) != 5 \
+            or parts[1:3] != ["api", "models"]:
+        return None
+    return parts[3], parts[4]
+
+
+def _hf_readme_url(url: str | None) -> bool:
+    parts = _url_parts(url or "")
+    return bool(parts) and parts[0].casefold() == "huggingface.co" and len(parts) == 6 \
+        and parts[3] in {"raw", "resolve", "blob"} and parts[5] == "README.md"
+
+
+def _hf_declared(text: str, page_url: str | None) -> tuple[str, list[str], list[str]] | None:
+    """``(pipeline_tag, tags, architectures and model type)`` the repository declares.
+
+    From the API JSON of the URL's own repository (its ``id`` must be that repository), or from
+    a README's front matter. ``None`` when either is malformed or declares no task.
+    """
+    if (repo := _hf_api_repo(page_url)) is not None:
+        data = _hf_json(text)
+        if data is None or not isinstance(data.get("id"), str) \
+                or data["id"].casefold() != "/".join(repo).casefold():
+            return None
+        config = data.get("config") if isinstance(data.get("config"), Mapping) else {}
+        model = [*(config.get("architectures") or []), config.get("model_type") or ""]
+    elif _hf_readme_url(page_url):
+        data = _front_matter_mapping(text)
+        if data is None:
+            return None
+        model = []
+    else:
+        return None
+    task, tags = data.get("pipeline_tag"), data.get("tags") or []
+    if not isinstance(task, str) or not isinstance(tags, list) \
+            or not all(isinstance(item, str) for item in [*tags, *model]):
+        return None
+    return task.strip().casefold(), list(tags), list(model)
+
+
+def hf_task_modalities(field: str, task: str, tags: Sequence[str],
+                       model: Sequence[str] = ()) -> str | None:
+    """A modality set (as the comma list ``compare`` reads) a declared task leaves in no doubt.
+
+    Output: one modality per task in ``_HF_TASK_OUTPUT``. Input: ``text`` for a text-only task,
+    and only when no tag, architecture or model type names another modality. Otherwise ``None``.
+    """
+    if field == "model.output_modalities":
+        return _HF_TASK_OUTPUT.get(task)
+    if field == "model.input_modalities" and task in _HF_TEXT_INPUT_TASKS \
+            and not any(_HF_NONTEXT_HINT.search(item) for item in [*tags, *model]):
+        return "text"
+    return None
+
+
+def hf_weights_openness(data: Mapping[str, Any]) -> str | None:
+    """``open_weights`` or ``closed_weights`` from a Hub API JSON's file list, else ``None``.
+
+    Open: a ``.safetensors`` or ``.gguf`` file, a checkpoint named as weights, or a populated
+    ``safetensors`` census. Closed: a non-empty file list with no file of any weight suffix and no
+    census, in a repository that is not private. Anything between is no reading.
+    """
+    siblings = data.get("siblings")
+    if not isinstance(siblings, list) or not siblings:
+        return None
+    names = [item.get("rfilename") for item in siblings if isinstance(item, Mapping)]
+    if len(names) != len(siblings) or not all(isinstance(name, str) and name for name in names):
+        return None
+    census = data.get("safetensors")
+    if any(_HF_STRONG_WEIGHT_SUFFIX.search(name) or _HF_WEIGHT_NAME.search(name)
+           for name in names) or (isinstance(census, Mapping) and census.get("parameters")):
+        return "open_weights"
+    if census is None and data.get("private") is False and data.get("gguf") is None \
+            and not any(_HF_WEIGHT_SUFFIX.search(name) for name in names):
+        return "closed_weights"
+    return None
+
+
+class HFRepoMetadataExtractor:
+    """Modalities and weights openness from what a Hub repository declares (MODEL-558).
+
+    ``model.input_modalities`` and ``model.output_modalities`` are read from the declared task
+    (``pipeline_tag``) in the repository's API JSON or README front matter
+    (``hf_task_modalities``); ``model.weights_openness`` from the API JSON's file list
+    (``hf_weights_openness``). The URL must be the subject's own repository.
+    """
+
+    actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
+                              method="hf-repo-metadata@1")
+    fields = frozenset({"model.input_modalities", "model.output_modalities",
+                        "model.weights_openness"})
+
+    def bound_to(self, claim: Claim, source_url: str | None) -> bool:
+        if claim.field not in self.fields:
+            return False
+        if _hf_api_repo(source_url) is not None:
+            return True
+        return claim.field != "model.weights_openness" and _hf_readme_url(source_url)
+
+    def accepts(self, text: str) -> bool:
+        return bool(text.strip())
+
+    def _subject(self, claim: Claim, page_url: str | None) -> str | None:
+        repo = _hf_api_repo(page_url)
+        if repo is None:
+            parts = _url_parts(page_url or "") or []
+            repo = (parts[1], parts[2]) if len(parts) >= 3 else None
+        if repo is None:
+            return None
+        qualified = [name for name in claim.names if "/" in name]
+        if qualified and _published_subject("/".join(repo), qualified) is None:
+            return None
+        return _published_subject(repo[1], claim.names)
+
+    def extract(self, claim: Claim, text: str, *, page_url: str | None = None) -> list[Reading]:
+        if not self.bound_to(claim, page_url):
+            return []
+        subject = self._subject(claim, page_url)
+        if subject is None:
+            return []
+        if claim.field == "model.weights_openness":
+            data = _hf_json(text)
+            repo = _hf_api_repo(page_url)
+            if data is None or repo is None or not isinstance(data.get("id"), str) \
+                    or data["id"].casefold() != "/".join(repo).casefold():
+                return []
+            value = hf_weights_openness(data)
+        else:
+            declared = _hf_declared(text, page_url)
+            value = hf_task_modalities(claim.field, *declared) if declared else None
+        return [Reading(subject, value)] if value is not None else []
+
+
+#: README labels that name the context window, in a two-column table, a bullet or a row header.
+_HF_CONTEXT_LABELS = frozenset({
+    "context length", "context window", "context size", "max context length",
+    "maximum context length", "max sequence length", "maximum sequence length",
+    "max input tokens", "maximum input tokens",
+})
+#: A column header of a per-model table that names the window, beside the labels above.
+_HF_CONTEXT_COLUMNS = _HF_CONTEXT_LABELS | {"max tokens"}
+#: An exact token count: digits, thousands separators, an optional ``tokens``. No K or M:
+#: "256K" is 256,000 or 262,144, and a reader does not choose.
+_HF_EXACT_TOKENS = re.compile(r"^(\d{1,3}(?:,\d{3})+|\d+)(?:\s*tokens?)?$", re.I)
+_MD_LINK = re.compile(r"\[([^\]]*)\]\([^)]*\)")
+_HTML_ROW = re.compile(r"(?is)<tr\b[^>]*>(.*?)</tr>")
+_HTML_CELL = re.compile(r"(?is)<t[dh]\b[^>]*>(.*?)</t[dh]>")
+
+
+def _plain_cell(cell: str) -> str:
+    text = _MD_LINK.sub(r"\1", html.unescape(_HTML_TAG.sub(" ", cell)))
+    return re.sub(r"\s+", " ", text.replace("**", "").replace("`", "")).strip()
+
+
+def _exact_tokens(cell: str) -> int | None:
+    match = _HF_EXACT_TOKENS.match(_plain_cell(cell))
+    return int(match.group(1).replace(",", "")) if match else None
+
+
+def hf_readme_context_cells(text: str, names: Sequence[str]) -> list[str]:
+    """Every value cell a README gives the context window under, for the subject.
+
+    Two-column markdown rows (``| **Context Length** | 256K |``), ``- Label: value`` bullets and
+    two-cell HTML rows are about the README's own model. A per-model table counts only in the row
+    whose ``Model`` cell is the subject. The cells are returned as written.
+    """
+    cells: list[str] = []
+    lines = text.splitlines()
+    header: list[str] | None = None
+    for line in lines:
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            header = None
+            bullet = re.match(r"^[-*]\s+(.+?)\s*:\s+(.+)$", stripped)
+            if bullet and normalise_name(_plain_cell(bullet.group(1))) in _HF_CONTEXT_LABELS:
+                cells.append(bullet.group(2))
+            continue
+        row = [_plain_cell(cell) for cell in stripped.strip("|").split("|")]
+        if all(re.fullmatch(r":?-{3,}:?", cell) for cell in row if cell):
+            continue
+        names_row = [normalise_name(cell) for cell in row]
+        if header is None:
+            header = names_row
+            if len(row) == 2 and names_row[0] in _HF_CONTEXT_LABELS:
+                cells.append(row[1])
+            continue
+        if len(row) == 2 and len(header) == 2 and names_row[0] in _HF_CONTEXT_LABELS:
+            cells.append(row[1])
+        elif "model" in header and len(row) == len(header):
+            model_col = header.index("model")
+            if _published_subject(row[model_col], names) is not None:
+                cells.extend(row[i] for i, name in enumerate(header) if name in _HF_CONTEXT_COLUMNS)
+    for block in _HTML_ROW.findall(text):
+        row = [_plain_cell(cell) for cell in _HTML_CELL.findall(block)]
+        if len(row) == 2 and normalise_name(row[0]) in _HF_CONTEXT_LABELS:
+            cells.append(row[1])
+    return cells
+
+
+class HFReadmeSpecExtractor:
+    """``model.context_window`` from a Hub README's spec tables (MODEL-558).
+
+    Reads ``hf_readme_context_cells`` for the subject's own README. Every cell must be an exact
+    token count and all of them one number; an abbreviated count ("256K", "1M"), a cell that is
+    not a number, or two different numbers is no reading.
+    """
+
+    actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
+                              method="hf-readme-spec@1")
+    fields = frozenset({"model.context_window"})
+
+    def bound_to(self, claim: Claim, source_url: str | None) -> bool:
+        return claim.field in self.fields and _hf_readme_url(source_url)
+
+    def accepts(self, text: str) -> bool:
+        return bool(text.strip())
+
+    def extract(self, claim: Claim, text: str, *, page_url: str | None = None) -> list[Reading]:
+        if not self.bound_to(claim, page_url):
+            return []
+        subject = _hf_bound_subject(claim, text, page_url)
+        cells = hf_readme_context_cells(text, claim.names)
+        values = {_exact_tokens(cell) for cell in cells}
+        if subject is None or not cells or None in values or len(values) != 1:
+            return []
+        return [Reading(subject, str(values.pop()), claim.unit)]
+
+
+#: The readers above, which ``_readers_for`` routes by source URL.
+HF_STRUCTURED_READERS = (HFConfigContextExtractor, HFRepoMetadataExtractor, HFReadmeSpecExtractor)
+
+
 def _hf_parameters(text: str) -> int | None:
     data = _hf_json(text)
     if data is None or not isinstance(data.get("id"), str):
@@ -6608,7 +6948,8 @@ class XaiMatrixExtractor:
 
 
 def deterministic_extractors() -> list[Extractor]:
-    return [XaiMatrixExtractor(), HFConfigExtractor(), ModelCardParamsExtractor(),
+    return [XaiMatrixExtractor(), HFConfigExtractor(), HFConfigContextExtractor(),
+            HFRepoMetadataExtractor(), HFReadmeSpecExtractor(), ModelCardParamsExtractor(),
             DenseActiveEqualsTotalExtractor(),
             HFParametersExtractor(), CanonicalLicenceExtractor(), LicenceTermsExtractor(),
             StructuredDataExtractor(),
@@ -7555,12 +7896,20 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
     ) and extractor.accepts(text)]
     if specialized:
         return specialized
-    chosen = []
+    # The Hugging Face structured readers (MODEL-558) read only the URL they are bound to. A
+    # config or API JSON is theirs alone; a README is read by them beside the other readers.
+    structured = [extractor for extractor in extractors
+                  if isinstance(extractor, HF_STRUCTURED_READERS)
+                  and extractor.bound_to(claim, source_url) and extractor.accepts(text)]
+    if structured and not _hf_readme_url(source_url):
+        return structured
+    chosen = list(structured)
     for extractor in extractors:
         if isinstance(extractor, (
             LicenceExtractor, CanonicalLicenceExtractor, LicenceTermsExtractor, HFConfigExtractor,
             HFParametersExtractor, ModelCardParamsExtractor, DenseActiveEqualsTotalExtractor,
             MistralOutputModalitiesExtractor, PerplexityFaqExtractor, XaiMatrixExtractor,
+            *HF_STRUCTURED_READERS,
         )):
             continue
         accepts = extractor.accepts
@@ -7990,7 +8339,8 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                         if not html:
                             raise ExtractorError("template drifted")
                         readings = extractor.extract(read_claim, html)
-                    elif isinstance(extractor, (KeyValueExtractor, ModelPageExtractor)):
+                    elif isinstance(extractor, (KeyValueExtractor, ModelPageExtractor,
+                                                *HF_STRUCTURED_READERS)):
                         readings = extractor.extract(read_claim, read, page_url=source_url)
                     else:
                         readings = extractor.extract(read_claim, read)

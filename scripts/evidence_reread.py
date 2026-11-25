@@ -38,7 +38,7 @@ from urllib.parse import urljoin, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from decision.cited_change import (
-    cited_change_block, cited_change_facts, cited_change_readings, reread_due,
+    RETAINED_RULE, cited_change_block, cited_change_facts, cited_change_readings, reread_due,
 )
 from decision.cited_reader import text_sha256
 from decision.retention import cite_only_origin_restrictive
@@ -519,8 +519,13 @@ def cited_change_rereads(root: Path, terms: dict[str, str], report: "Report", *,
     last = _last_requests(root)
     pages: dict[str, Fetched] = {}
     for fact in [*cited_change_facts(root), *cited_change_readings(root)]:
-        url = cited_change_block(fact)["url"]
-        if host_class(url, terms) not in {"forbids", "cite-only"}:
+        block = cited_change_block(fact)
+        url = block["url"]
+        # A retaining-host agreement (MODEL-558) is re-read too; any other block on a retaining
+        # or unclassed host is not.
+        wanted = {"forbids", "cite-only"} | (
+            {"retaining"} if block.get("rule") == RETAINED_RULE else set())
+        if host_class(url, terms) not in wanted:
             report.note("cited_change_skipped", host_of(url))
             continue
         if url not in pages:
