@@ -3837,8 +3837,9 @@ def hf_config_context_window(config: Mapping[str, Any]) -> int | None:
     window = holder["max_position_embeddings"]
     if isinstance(window, bool) or not isinstance(window, int) or window <= 0:
         return None
-    # Another window field at either level that states a different number is a conflict.
-    for part in (config, text) if text_has else (config,):
+    # Another window field anywhere in the text model (the config, its ``text_config`` and every
+    # text map below them, at any depth) that states a different number is a conflict.
+    for part in _config_maps(config, text_only=True):
         for key in _HF_OTHER_WINDOW_KEYS:
             other = part.get(key)
             if other is not None and other != window:
@@ -4052,8 +4053,9 @@ def hf_weights_openness(data: Mapping[str, Any]) -> str | None:
     Read only for a public repository that is not gated (``private`` and ``gated`` both
     ``False``), is not an adapter (no ``adapter_config``/``adapter_model`` file, no ``peft``,
     ``lora`` or ``adapter`` tag) and is not metadata only (some file is neither metadata nor
-    docs). Open: a ``.safetensors`` or ``.gguf`` file, a checkpoint named as weights, or a
-    populated ``safetensors`` census. It never reads ``closed_weights``: a public repository
+    docs). Open: a ``.safetensors`` or ``.gguf`` file or a checkpoint named as weights in the
+    repository's own file listing, with no ``safetensors`` census or a populated one; a census
+    without such a file, or an empty census beside one, is no reading. It never reads ``closed_weights``: a public repository
     with no weight file may link to weights elsewhere. Everything else is no reading.
     """
     siblings = data.get("siblings")
@@ -4069,9 +4071,14 @@ def hf_weights_openness(data: Mapping[str, Any]) -> str | None:
             or all(_HF_METADATA_FILE.search(name) for name in names):
         return None
     census = data.get("safetensors")
-    if any(_HF_STRONG_WEIGHT_SUFFIX.search(name) or _HF_WEIGHT_NAME.search(name)
-           for name in names) or (isinstance(census, Mapping) and census.get("parameters")):
+    files = any(_HF_STRONG_WEIGHT_SUFFIX.search(name) or _HF_WEIGHT_NAME.search(name)
+                for name in names)
+    # The repository's own file listing must hold the weights: a populated census alone, or a
+    # census and a listing that disagree, is no reading (MODEL-558 review, round 3).
+    if files and (census is None or (isinstance(census, Mapping) and census.get("parameters"))):
         return "open_weights"
+    if isinstance(census, Mapping) and census.get("parameters") and not files:
+        return None
     # No weight file here is no reading: the repository may link to weights elsewhere. Only a
     # gated or absent repository plus an explicit API-only statement can support
     # ``closed_weights``, and that is not this reader's to read (MODEL-558 review).

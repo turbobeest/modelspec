@@ -113,6 +113,12 @@ def test_config_yarn_window_is_read_only_when_the_scaling_reaches_it():
     # Another window field that differs.
     {"max_position_embeddings": 8192, "n_positions": 4096},
     {"text_config": {"max_position_embeddings": 8192, "max_sequence_length": 4096}},
+    # A top-level window against an alias in the text model at any depth (round 3).
+    {"max_position_embeddings": 8192, "text_config": {"max_seq_len": 4096}},
+    {"max_position_embeddings": 8192, "text_config": {"model_type": "a",
+                                                      "attention": {"seq_length": 4096}}},
+    {"max_position_embeddings": 8192, "max_sequence_length": 4096},
+    {"max_position_embeddings": 8192, "language_model": {"n_positions": 4096}},
 ])
 def test_config_window_abstains_when_in_doubt(cfg):
     assert hf_config_context_window(json.loads(config(**cfg))) is None
@@ -359,6 +365,20 @@ def test_weight_files_read_open_and_no_weight_file_reads_closed():
     # A public repository with no weight file may link to weights elsewhere: no reading.
     assert hf_weights_openness(files(".gitattributes", "README.md", "config.json",
                                      "handler.py")) is None
+
+
+@pytest.mark.parametrize("data,value", [
+    # A populated census with no weight file in the listing is no reading (round 3).
+    (files("README.md", "config.json", "handler.py",
+           safetensors={"parameters": {"BF16": 7_000_000_000}, "total": 7_000_000_000}), None),
+    # A weight file beside an empty census: the two disagree.
+    (files("README.md", "model.safetensors", safetensors={"total": 0}), None),
+    (files("README.md", "model.safetensors",
+           safetensors={"parameters": {"BF16": 7_000_000_000}, "total": 7_000_000_000}),
+     "open_weights"),
+])
+def test_the_census_and_the_file_listing_must_agree(data, value):
+    assert hf_weights_openness(data) == value
 
 
 @pytest.mark.parametrize("data", [
