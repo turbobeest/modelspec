@@ -778,6 +778,33 @@ def _incomplete_values(entries: Sequence[Mapping[str, Any]]) -> list[JsonValue]:
 QUARANTINED = "lifting it is the owner's call"
 
 
+def _epoch_at_verdict(verdict: Mapping[str, Any], *, subject: str, facet: str, first: str,
+                      base: str, settings: Any = None) -> CitedChange | None:
+    """Refuse unless the subject's epoch now (``base``) is the one rule 15 derives for the record
+    as filed when the verdict was made (``quarantine_clearing.verdict_epoch``, from the queue)."""
+    import os
+
+    from decision.cited_reader import ATTEMPTS_FILE
+    from decision.quarantine_clearing import QUEUE_FILE, AttemptLog, queue_history, verdict_epoch
+
+    root = Path(os.environ.get(DATA_DIR_ENV, "").strip() or ".")
+    target = str((verdict.get("target") or {}).get("id"))
+    try:
+        history = queue_history(root / QUEUE_FILE, {target}).get(target, [])
+        log = AttemptLog.read(root / ATTEMPTS_FILE)
+    except (OSError, ValueError) as error:
+        return _refuse("registry_lookup_failed", f"queue or attempt log: {type(error).__name__}")
+    derived = verdict_epoch(verdict, history=history, log=log, subject=subject, facet=facet,
+                            first=first, settings=settings)
+    if derived is None:
+        return _refuse("quarantined", "the record's epoch when the verdict was made cannot be "
+                       f"shown; {QUARANTINED}")
+    if derived != base:
+        return _refuse("epoch_not_current",
+                       "the record's epoch now is not its epoch when the verdict was made")
+    return None
+
+
 def _clearing_target(held: Sequence[tuple[tuple[str, str, str], Mapping[str, Any]]],
                      subject_record: Mapping[str, Any], now: datetime, *, allowed: bool,
                      kind: str = "fact"
@@ -913,6 +940,10 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         from decision.quarantine_clearing import clearing_epoch, verdict_sha256
 
         current = clearing_epoch(base, verdict_sha256(clearing[1]))
+        refusal = _epoch_at_verdict(clearing[1], subject=subject, facet=facet, first="initial",
+                                    base=base)
+        if refusal is not None:
+            return refusal
     if epoch is not None and epoch != current:
         return _refuse("epoch_not_current",
                        "the named epoch is not the filed fact's; the gate reads only in that one")
@@ -1171,11 +1202,12 @@ class ReadingLookup:
     sibling_ids: frozenset[str] = frozenset()
 
     def owns(self, logged_id: str) -> bool:
-        """A logged evidence id that is this reading's: its own, or an earlier one (an id that
-        no other current row of the benchmark on the card has, under the reading's prefix)."""
-        return logged_id in self.evidence_ids or (
-            logged_id not in self.sibling_ids
-            and any(logged_id.startswith(prefix) for prefix in self.id_prefixes))
+        """A logged evidence id that holds this reading: its own, or any id under the reading's
+        ``<model>#<benchmark>#`` prefix. No other row of the benchmark takes a verdict over
+        (MODEL-552 review): a verdict holds every row of its subject and benchmark until a
+        clearing line releases that exact verdict."""
+        return logged_id in self.evidence_ids \
+            or any(logged_id.startswith(prefix) for prefix in self.id_prefixes)
 
     @property
     def cited(self) -> tuple[str, ...]:
@@ -1402,7 +1434,14 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     if clearing is not None:
         from decision.quarantine_clearing import clearing_epoch, verdict_sha256
 
+        from decision.quarantine_clearing import reading_settings
+
         epoch = clearing_epoch(base, verdict_sha256(clearing[1]))
+        refusal = _epoch_at_verdict(clearing[1], subject=subject, facet=facet_id,
+                                    first=reading_epoch(reading), base=base,
+                                    settings=reading_settings({**found.row, **reading}))
+        if refusal is not None:
+            return refusal
     history = [a for a in attempts(subject, facet_id, epoch) if a.get("complete")]
     if clearing is not None:
         history += [a for a in attempts(subject, facet_id, base) if a.get("complete")]

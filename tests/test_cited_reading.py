@@ -523,14 +523,16 @@ def test_a_verdict_under_the_cards_model_id_holds_the_reading(data):
     quarantined(data)
 
 
-def test_a_sibling_rows_verdict_is_its_own(data):
+def test_a_sibling_rows_verdict_holds_the_reading_too(data):
+    """MODEL-552 review: no row of the benchmark takes a verdict over. A verdict on any id of the
+    subject and benchmark holds every row of it until a clearing releases that exact verdict."""
     sibling = dict(data.row, id=f"{SUBJECT}#{BENCH}#bbbbbbbbbbbb", effort="low",
                    model_id_as_evaluated="Orbit 9 (low)")
     card = yaml.safe_dump({"display_name": "Orbit 9", "benchmarks": {"scores": {}, "evidence": [
         dict(data.row, id=ROW_ID), sibling]}}, sort_keys=False)
     (data.root / "models/acme/orbit-9.md").write_text(f"---\n{card}---\n")
     plant(data, sibling["id"])
-    assert run().changed  # the other setting's mismatch does not hold this reading
+    quarantined(data)
 
 
 def test_a_cleared_reading_still_files_but_a_same_family_verified_does_not_clear(data):
