@@ -215,6 +215,62 @@ Learned expensively during 2026-09-09/10.
     (`prior_attempt_disagreed` still holds); a fresh agreement in a later epoch follows the
     rule above.
 
+16. **A confirmed fact no engine reader can read** (MODEL-558, Jamie 2026-11-25, queue 16f).
+    Extend the engine's readers first; the two readers come second, and no new verification
+    kind or contract field is added. `decision/verify.py` has three deterministic readers for
+    structured Hugging Face pages. Each is versioned and abstains whenever the page is in doubt
+    (an abstention is no reading, never a mismatch):
+    - `hf-config-context@1` reads `model.context_window` from the top-level text model's
+      `max_position_embeddings` in a generative model's `config.json` (the config itself or its
+      one `text_config`). It abstains on any nested encoder or decoder subconfig that states a
+      window, on a window at both levels, on another window field (`n_positions`,
+      `max_sequence_length` and the like) that differs, on RoPE scaling at the parent level, on
+      a `rope_type` and a `type` that differ, and on any scaling other than a YaRN one that the
+      stated window already reflects. The convention (Jamie, 2026-11-25): `model.context_window` stores the
+      value the lab states, in prose or a spec table. A config field never overrides a stated
+      value and sets the value only when the lab states none. So the reader reads only when the
+      fact also cites that repository's README, the README was read, and no cited page states a
+      window in any form (`lab_states_context`, a bare integer after a context label included).
+    - `hf-readme-spec@1` reads it from README spec tables, bullets and HTML rows, under labels
+      that mean context length only. "Max tokens", "max input tokens" and "max sequence length"
+      are not read, and only exact token counts are: "256K" and "1M" are not, because decimal
+      or binary is the page's own ambiguity.
+    - `hf-repo-metadata@1` reads one modality from the declared task (`pipeline_tag` in the API
+      JSON; a README's front matter is not read), only when the filed set is exactly that
+      modality, no tag, architecture, model type or the task itself names another modality, and
+      a structural signal confirms it (`hf_structural_modality`): text input needs text-model
+      architectures, a tokenizer file and no processor file for another input; embedding output
+      a sentence-transformers pooling module; text output `*ForCausalLM` architectures. A task
+      tag alone, singleton included, verifies nothing. It reads `model.weights_openness` as
+      `open_weights` only, from the weight files of a public, ungated, non-adapter repository;
+      it never reads `closed_weights` (a repository with no weight file may link to weights
+      elsewhere; only a gated or absent repository plus an explicit API-only statement can
+      support `closed_weights`).
+
+    For the rest, `decision.cited_change.retained_agreement` runs the rule-15 gate on a page
+    whose host retains copies. Every rule-15 safeguard holds, and the attempt log and its key
+    are shared, so a disagreement on either path blocks both. The epoch is the filed fact's own,
+    never the caller's. An answer inside an incomplete attempt counts: one that differs blocks.
+    Each subject, facet and epoch gets at most `MAX_ATTEMPTS` (3) attempts, complete or not, so
+    a re-run cannot reset the retry budget. In place of the cite-only conditions:
+    - the origin's current class is checked before any request, and the host and every redirect
+      hop must be classed and retain copies;
+    - no deterministic engine reader may find a value for the fact on any retaining source the
+      fact cites (`engine_reader_reads`: the verified path wins). Each source is read through
+      `StoredRegions` (so a PDF takes its own route), in the context of the fact's full cited set
+      (so a reader that needs another source, such as the config reader, sees it); a source that
+      cannot be read refuses;
+    - it only confirms. An agreed value other than the filed, known one is refused
+      (`value_differs`) and the fact is listed for the owner; an agreed absence files nothing
+      (`no_value`).
+
+    The record is the `cited_change` block with rule `two-readers-retained-agreement@1`. No
+    `Verification` is written, and the build serves the fact as before. A fact that cites a
+    cite-only page keeps that citation, so its served basis is not upgraded. The rolling
+    re-read re-reads these facts while their origin still retains copies; it reads the origin's
+    class first, and one whose origin is now cite-only is listed
+    (`retained_agreements_now_cite_only`), not fetched.
+
 Public PR bodies and evidence must not contain private modelspec-data commit SHAs or per-card private values. Private PR numbers, ages and clone URLs are not sensitive.
 
 ## Pytest CI shards

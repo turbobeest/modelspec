@@ -68,6 +68,35 @@ def disagree(facet=RETENTION, **kw):
     refused(out, "readers_disagree")
 
 
+def read_in(epoch, readers):
+    """A real harness read logged in ``epoch`` (``decision.cited_reader.read_page``). The gate
+    reads only in the filed fact's own epoch (MODEL-558), so an attempt in another epoch, as a
+    past re-read left it, is made through the harness, not by naming an epoch to the gate."""
+    from decision.cited_change import lookup
+    from decision.cited_reader import read_page
+    from tests.test_cited_offering import PAGE
+
+    found = lookup(SUBJECT, RETENTION)
+    return read_page(subject=SUBJECT, url=URL, facet_id=RETENTION,
+                     subject_name=found.subject_name, page_bytes=PAGE, readers=readers,
+                     epoch=epoch, definition=found.definition)
+
+
+def enter_epoch(data, text_sha):
+    """Put the filed fact in the re-read epoch ``reread:<text_sha>``, as a re-read of a changed
+    page does: the fact's cited-change block names the text hash the readers read."""
+    rows = yaml.safe_load(data.offering_path.read_text())
+    for row in rows:
+        for fact in row.get("facts") or []:
+            if fact.get("id") == FACT_ID:
+                derivation = dict(fact.get("derivation") or {})
+                derivation["cited_change"] = {**(derivation.get("cited_change") or {}),
+                                              "text_sha256": text_sha}
+                fact["derivation"] = derivation
+    data.offering_path.write_text(HEADER + yaml.safe_dump(rows, sort_keys=False))
+    return "reread:" + text_sha
+
+
 def args(**kw):
     base = dict(subject=SUBJECT, facet=RETENTION, value=30, state="known", ruled_by="jamie",
                 ruled_at=TODAY, ticket="MODEL-1", source_ids=["data"],
@@ -195,9 +224,12 @@ def test_an_incomplete_attempt_is_not_a_disagreement(data):
 
 
 def test_a_disagreement_in_another_epoch_is_refused(data):
+    # The gate will not read in an epoch that is not the filed fact's own.
     refused(_gate(subject=SUBJECT, facet=RETENTION, source_id="data",
                   readers=pair(30, "unbounded"), request=serve(), allow_unchanged=False,
-                  epoch="reread:" + "b" * 64), "readers_disagree")
+                  epoch="reread:" + "b" * 64), "epoch_not_current")
+    read_in("reread:" + "b" * 64, pair(30, "unbounded"))  # a past re-read's disagreement
+    assert attempts(data)[-1]["agreed"] is False
     refuses(data, "no_disagreement")  # the ruling is for the initial epoch
     refuses(data, "epoch_not_current", epoch="reread:" + "b" * 64)  # the fact is not there
     other = attempt_id(attempts(data)[0])
@@ -556,6 +588,7 @@ def test_the_gate_logs_the_text_hash_the_epoch_is_named_by(data):
 def test_the_filer_refuses_a_fabricated_cited_change_block(data):
     data.fact(derivation={"cited_change": {"sha256": "9" * 64, "text_sha256": "a" * 64,
                                            "readers": [{"prompt_sha256": "1" * 64}]}})
+    # The fabricated block names the epoch, so the gate reads there (it is the fact's own).
     refused(_gate(subject=SUBJECT, facet=RETENTION, source_id="data",
                   readers=pair(30, "unbounded"), request=serve(), allow_unchanged=False,
                   epoch="reread:" + "a" * 64), "readers_disagree")
@@ -582,9 +615,12 @@ def test_an_agreed_attempt_the_gate_refused_does_not_supersede_a_ruling(data):
     disagree()
     file(data)
     # a later agreed read in a new epoch that the gate refuses (the value is the ruled one)
+    ruled_text = data.offering_path.read_text()
+    epoch = enter_epoch(data, "d" * 64)
     refused(_gate(subject=SUBJECT, facet=RETENTION, source_id="data", readers=pair(30),
-                  request=serve(), allow_unchanged=False, epoch="reread:" + "d" * 64),
+                  request=serve(), allow_unchanged=False, epoch=epoch),
             "value_unchanged")
+    data.offering_path.write_text(ruled_text)  # the fact stays as ruled
     assert attempts(data)[-1]["agreed"] is True
     assert admits(offering_fact(data), SUBJECT, rulings=rulings(data), attempts=attempts(data),
                   sources=urls(data), claims=claims(data))
@@ -598,8 +634,9 @@ def test_a_ruling_copied_back_after_an_admitted_change_does_not_stand(data):
     ruled_text = data.offering_path.read_text()
     ruled = offering_fact(data)
     # an admitted change in a new epoch: it passed the gate and was applied, with its claim
+    epoch = enter_epoch(data, "e" * 64)
     out = _gate(subject=SUBJECT, facet=RETENTION, source_id="data", readers=pair(45),
-                request=serve(), allow_unchanged=False, epoch="reread:" + "e" * 64)
+                request=serve(), allow_unchanged=False, epoch=epoch)
     writer.apply(out, data_dir=data.root)
     assert offering_fact(data)["value"] == 45
     data.offering_path.write_text(ruled_text)  # the ruled fact copied back by hand
@@ -710,16 +747,28 @@ def test_after_a_ruling_the_epoch_still_blocks_readers_and_a_new_epoch_is_normal
     # the same epoch: a later agreement on another value is still blocked
     refused(cited_change(subject=SUBJECT, facet=RETENTION, source_id="data", readers=pair(45),
                          request=serve()), "prior_attempt_disagreed")
-    # a fresh agreement in a new epoch follows the normal rules and supersedes the ruling
+    # naming another epoch does not move the gate there
+    refused(_gate(subject=SUBJECT, facet=RETENTION, source_id="data", readers=pair(45),
+                  request=serve(), allow_unchanged=False, epoch="reread:" + "e" * 64),
+            "epoch_not_current")
+    # a fresh agreement in a new epoch (the fact's own, after a re-read) follows the normal
+    # rules and supersedes the ruling
+    ruled_text = data.offering_path.read_text()
+    epoch = enter_epoch(data, "e" * 64)
     out = _gate(subject=SUBJECT, facet=RETENTION, source_id="data", readers=pair(45),
-                request=serve(), allow_unchanged=False, epoch="reread:" + "e" * 64)
+                request=serve(), allow_unchanged=False, epoch=epoch)
     assert out.changed and out.record["value"] == 45 and out.record["state"] == "known"
     assert "owner_ruling" not in out.record["derivation"]
-    # and a disagreement in that new epoch blocks only it
+    # and a disagreement in yet another new epoch blocks only it
+    data.offering_path.write_text(ruled_text)
+    other = enter_epoch(data, "f" * 64)
     refused(_gate(subject=SUBJECT, facet=RETENTION, source_id="data",
                   readers=[reader("codex", "openai", 45), reader("claude", "anthropic", 46)],
-                  request=serve(), allow_unchanged=False,
-                  epoch="reread:" + "f" * 64), "readers_disagree")
+                  request=serve(), allow_unchanged=False, epoch=other), "readers_disagree")
+    assert [a["epoch"] for a in attempts(data) if not a.get("agreed")][-1] == other
+    data.offering_path.write_text(ruled_text)
+    refused(cited_change(subject=SUBJECT, facet=RETENTION, source_id="data", readers=pair(45),
+                         request=serve()), "prior_attempt_disagreed")  # initial: still blocked
 
 
 # --- the build: a valid ruling admits that epoch's value, served as any cited fact ---------------
