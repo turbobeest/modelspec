@@ -4055,8 +4055,9 @@ def hf_weights_openness(data: Mapping[str, Any]) -> str | None:
     ``lora`` or ``adapter`` tag) and is not metadata only (some file is neither metadata nor
     docs). Open: a ``.safetensors`` or ``.gguf`` file or a checkpoint named as weights in the
     repository's own file listing, with no ``safetensors`` census or a populated one; a census
-    without such a file, or an empty census beside one, is no reading. It never reads ``closed_weights``: a public repository
-    with no weight file may link to weights elsewhere. Everything else is no reading.
+    without such a file, or an empty census beside one, is no reading. It never reads
+    ``closed_weights``: a public repository with no weight file may link to weights elsewhere.
+    Everything else is no reading.
     """
     siblings = data.get("siblings")
     if not isinstance(siblings, list) or not siblings:
