@@ -44,17 +44,13 @@ Exit 0. Vitest: 937 passed, 64 files, 1 file skipped.
 
 ## Screenshots
 
-Desktop window 1280×900, kept from round 1. This round did not change the page.
+Retaken in round 2 (2026-11-25), after the headline change. Before is a build of `origin/main` at `4822b31b`. After is a build of this branch. Each is a Playwright Chromium viewport capture of the built landing page, device scale 1.
 
-- `docs/evidence/MODEL-470/desktop-before.png`
-- `docs/evidence/MODEL-470/desktop-after.png`
+- Desktop, 1280×900: `docs/evidence/MODEL-470/desktop-before.png`, `docs/evidence/MODEL-470/desktop-after.png`
+- Phone, 375×812: `docs/evidence/MODEL-470/mobile-375-before.png`, `docs/evidence/MODEL-470/mobile-375-after.png`
+- Phone, 390×844: `docs/evidence/MODEL-470/mobile-390-before.png`, `docs/evidence/MODEL-470/mobile-390-after.png`
 
-Round 1's mobile files were a wide layout cropped to 390×844. Round 2 replaced them with captures from the built sites at a 390×844 viewport, device scale 1.
-
-- `docs/evidence/MODEL-470/mobile-before.png` from the build of `58748fec`
-- `docs/evidence/MODEL-470/mobile-after.png` from the build of this round
-
-On the current page the router line is `Evidence-backed logic that powers complex model routing.` and it wraps onto two line boxes. `documentElement.scrollWidth` is 390, the same as `innerWidth`. The page has one `h1`. The pre-change page has no router line. Its hero text fits the same 390-wide viewport.
+Round 1's mobile pair was a wide layout cropped to 390×844, and the first round-2 pair was 390 only. Both pairs are replaced by the files above.
 
 ## Generators
 
@@ -116,3 +112,35 @@ The branch was behind `origin/main` (`3c9bc73a`, MODEL-468). That merge does not
 The first GitHub check after the round-2 push failed while installing the package. `hatch_build.py` refused `cli/modelspec/agent-bundle.json` because the digest of `pipeline/entity.py` was stale. Pytest shards, the package smoke test, the rank Worker bundle, and the Worker memory job all stopped on that same `ValueError`. `python -m pipeline.agent_copy write` changed only that digest. `python -m pipeline.agent_copy check` exited 0.
 
 Not observed here: a browser session against modelspec.dev, and the `web/` test suite.
+
+## Round 2, headline (2026-11-25)
+
+Jamie, 2026-11-25: "Go with anything you have a recommendation for." The recommendation on record was to make the tagline the landing headline.
+
+- The landing hero's one `h1` is `entity.TAGLINE`, through `landing.HEADLINE`. The previous two-line headline is gone from the page. The landing social card and its `og:image:alt` read `landing.HEADLINE` as well.
+- The router line is the first paragraph after the `h1`, and the one sentence leads the second. `/about/` is unchanged: its own heading, then the three paragraphs.
+- `pipeline/surface_lint.py` now requires the landing's only `h1` to be the tagline, then the router line, then a lead that starts with the one sentence. New tests: `test_the_landing_tagline_is_the_one_h1` and `test_the_landing_router_line_and_sentence_follow_the_headline` in `tests/test_surface_lint.py`. `tests/test_entity.py`, `tests/test_landing.py` and `tests/test_holding.py` check the same order and that the old headline is absent.
+- Unchanged: `<title>`, `entity.SHORT` (the MCP card short description), every contract version and enum, `docs/legal/`, ranking and neutrality.
+
+Hero layout, from the built pages (`node` with Playwright, five viewports). At every width `documentElement.scrollWidth` equals `innerWidth`, the page has one `h1`, no element in the hero extends past the viewport, and the router line's scroll width equals its client width.
+
+| Width | `h1` height (one line) | Router line height |
+| --- | --- | --- |
+| 320 | 32px | 36px (two lines) |
+| 375 | 32px | 36px (two lines) |
+| 390 | 32px | 36px (two lines) |
+| 899 | 32px | 18px |
+| 1280 | 48px | 22px |
+
+Merges: `origin/main` was merged twice (no rebase). The first merge had one conflict, the source hashes in `qa/fixtures/mcp-tools.json`. It was resolved by running the generators: `python -m pipeline.agent_copy write`, `python api/worker/openapi.py`, `python -m qa.contracts`. `python -m pipeline.agent_copy check` exited 0. The second merge had no conflict.
+
+Round-2 review items, checked on this branch: the two ablation fixtures match `origin/main` byte for byte; the copy lint reads every git-tracked text file; `SUPERSEDED` lists the retired cost tail; the phone screenshots are real 375 and 390 viewports.
+
+The site build and the lint on the built tree:
+
+```bash
+PYTHONPATH=$PWD /home/turbobeest/dev/04-modelspec/modelspec/.venv/bin/python -m pipeline.build --out <scratch>/after-dist
+PYTHONPATH=$PWD /home/turbobeest/dev/04-modelspec/modelspec/.venv/bin/python -m pipeline.surface_lint --tree <scratch>/after-dist/modelspec
+```
+
+Both exited 0. The lint reported 0 findings.
