@@ -47,16 +47,28 @@ def data(tmp_path, monkeypatch):
     return fact_gate.Data(tmp_path / "data", monkeypatch)
 
 
-def events(verdict, *, method="read", sources=(), effort=None, harness=None, names=None):
+def _value_of(verdict):
+    """The synthetic value a fixture verdict was made for (its value hash names it)."""
+    from decision.model import value_hash
+
+    for value in (262144, 131072, 65536, 30, 45, 46.6, 51.2, None, ["lab/alpha"]):
+        if value_hash(value) == verdict["target"]["value_hash"]:
+            return value
+    raise AssertionError("an unknown fixture value")
+
+
+def events(verdict, *, method="read", sources=(), effort=None, harness=None, names=None,
+           value=..., filed=None):
     """The verdict's queue trail: the claim it checked (filed the day before) and its check."""
     from datetime import timedelta
 
     target = {"kind": verdict["target"]["kind"], "id": verdict["target"]["id"]}
     day = date.fromisoformat(str(verdict["date"]))
     claim = {"target": target, "sources": list(sources), "names": list(names or [MID]),
+             "value": _value_of(verdict) if value is ... else value, "field": FACET,
              "conditions": {"date": str(day), "effort": effort, "harness": harness},
              "collector": {"agent": "collector-a", "model_family": "family-a", "method": method}}
-    return [{"event": "collected", "at": f"{day - timedelta(days=1)}T09:00:00+00:00",
+    return [{"event": "collected", "at": filed or f"{day - timedelta(days=1)}T09:00:00+00:00",
              "claim": claim},
             {"event": "checked", "at": f"{day}T21:00:00+00:00", "target": target,
              "outcome": verdict["outcome"]}]
@@ -738,3 +750,54 @@ def test_an_agreement_on_the_filed_score_clears_a_board_row(board):
                         readers=reading_gate.pair(46.6), request=reading_gate.serve(),
                         clear_quarantine=True)
     assert out.changed and out.record["value"] == 46.6 and len(out.record["clearings"]) == 1
+
+
+# --- review round 3 (MODEL-552) -------------------------------------------------------------------
+
+
+def test_only_the_claim_for_the_verdicts_value_supplies_the_epoch():
+    """A claim for another value under the same id, even a later rule-15 one, never counts."""
+    from decision.quarantine_clearing import verdict_epoch
+
+    opened = {**agreement("initial", at="2026-09-01T09:00:00+00:00"), "text_sha256": "b" * 64,
+              "page_sha256": "9" * 64}
+    copy = [{"source_id": "src-cite", "snapshot_ref": "sha256:" + "9" * 64}]
+    plain = events(VERDICT)  # the claim for the verdict's value, then its check
+    other = events(VERDICT, method="two-readers-cited-change@3", sources=copy, value=1,
+                   filed="2026-09-30T12:00:00+00:00")[0]  # another value, filed after it
+    trail = [plain[0], other, plain[1]]
+    kw = dict(log=AttemptLog([raw(opened)]), subject=MID, facet=FACET, first="initial")
+    assert verdict_epoch(VERDICT, history=trail, **kw) == "initial"
+    assert verdict_epoch(VERDICT, history=[other, plain[1]], **kw) is None  # only another value
+
+    def case(base):
+        attempt = agreement(clearing_epoch(base, verdict_sha256(VERDICT)))
+        return build(cleared_row(attempt, base=base), [clearing(attempt)], [opened, attempt],
+                     history={FID: trail})
+
+    assert not admitted(case("reread:" + "b" * 64))
+    assert admitted(case("initial"))
+
+
+def test_an_opening_attempt_logged_after_the_claim_does_not_set_the_epoch():
+    from decision.quarantine_clearing import verdict_epoch
+
+    copy = [{"source_id": "src-cite", "snapshot_ref": "sha256:" + "9" * 64}]
+    trail = events(VERDICT, method="two-readers-cited-change@3", sources=copy)  # filed 09-30 09:00
+
+    def opened(at):
+        return {**agreement("initial", at=at), "text_sha256": "b" * 64, "page_sha256": "9" * 64}
+
+    def epoch(at):
+        return verdict_epoch(VERDICT, history=trail, log=AttemptLog([raw(opened(at))]),
+                             subject=MID, facet=FACET, first="initial")
+
+    assert epoch("2026-09-30T09:00:00+00:00") == "reread:" + "b" * 64  # at the claim: counts
+    assert epoch("2026-09-30T08:59:59+00:00") == "reread:" + "b" * 64
+    assert epoch("2026-09-30T09:00:01+00:00") is None  # after the claim, before the check
+    assert epoch("2026-10-02T09:00:00+00:00") is None  # after the verdict
+    late = opened("2026-09-30T12:00:00+00:00")
+    attempt = agreement(clearing_epoch("reread:" + "b" * 64, verdict_sha256(VERDICT)))
+    index = build(cleared_row(attempt, base="reread:" + "b" * 64), [clearing(attempt)],
+                  [late, attempt], history={FID: trail})
+    assert not admitted(index)

@@ -265,33 +265,70 @@ def queue_history(path: Path, ids: set[str]) -> dict[str, list[dict[str, Any]]]:
     return {k: [e for _, _, e in sorted(v, key=lambda r: (r[0], r[1]))] for k, v in rows.items()}
 
 
+def claim_binds(claim: Mapping[str, Any], verdict: Mapping[str, Any]) -> bool:
+    """Whether the claim is for the value the verdict holds: its verification value, as
+    ``decision.verify`` binds a claim (``claim_verification_value``; a set facet's members in any
+    order), hashes to the verdict's ``value_hash``, under the verdict's own id and kind."""
+    from decision.model import fact_verification_value, matching_value_hashes, unordered_facet
+
+    target, wanted = claim.get("target") or {}, verdict.get("target") or {}
+    if not isinstance(target, Mapping) or (target.get("kind"), target.get("id")) \
+            != (wanted.get("kind"), wanted.get("id")) or "value" not in claim:
+        return False
+    conditions = claim.get("conditions") if isinstance(claim.get("conditions"), Mapping) else {}
+    value = fact_verification_value({"value": claim["value"], **{
+        k: conditions.get(k) for k in ("effective_from", "effective_until")}})
+    unordered = False
+    if wanted.get("kind") == "fact":
+        from decision.registry import default
+
+        try:
+            unordered = unordered_facet(default().facet(str(claim.get("field"))))
+        except KeyError:
+            unordered = False
+    recorded = str(wanted.get("value_hash") or "")
+    try:
+        return recorded in matching_value_hashes(value, [recorded], unordered=unordered)
+    except (TypeError, ValueError):
+        return False
+
+
 def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, Any]],
                   log: AttemptLog, subject: str, facet: str, first: str,
                   settings: Settings | None = None) -> str | None:
     """The epoch rule 15 derives for the quarantined record as it was filed when ``verdict`` was
     made, or ``None`` when that cannot be shown. ``history`` is the verdict target's queue events
     (``queue_history``). The check the verdict records is its ``checked`` event (same target,
-    outcome and UTC day; the latest that day), and the record as filed is the latest claim filed
-    before it. A claim the rule-15 gate filed (method ``two-readers-...``) put the record in the
-    re-read epoch of the agreed harness attempt that read the copy it cites
+    outcome and UTC day; the latest that day), and the record as filed is the claim it checked:
+    the latest claim filed before it, in queue order, under that id and for the very value the
+    verdict holds (``claim_binds``). A claim for another value under the same id never supplies
+    the epoch: the verdict binds its own value, so the check that made it checked that value.
+    A claim the rule-15 gate filed (method ``two-readers-...``) put the record in the re-read epoch of the agreed harness attempt that read the copy it cites, logged
+    at or before the claim was filed and before the check, in the queue's time order
     (``<first>:reread:<text hash>``; a fact's is ``reread:<text hash>``, as ``fact_epoch``); any
     other claim left it in its first epoch (``initial``, or a reading's settings epoch). A claim
     under an owner's ruling, a claim ``settings`` rejects (a reading's settings are not shown to
-    be this row's), no matching check or no claim before it cannot be shown."""
+    be this row's), no matching check or no such claim before it cannot be shown."""
     target = (verdict.get("target") or {}).get("id")
     day = _day(verdict.get("date"))
-    checks = [i for i, e in enumerate(history)
-              if e.get("event") == "checked" and _event_target(e) == target
-              and e.get("outcome") == verdict.get("outcome") and day is not None
-              and (at := _event_at(e)) is not None and at.astimezone(UTC).date() == day]
-    if not checks:
+    pair = None
+    for index in reversed(range(len(history))):
+        event = history[index]
+        at = _event_at(event)
+        if not (event.get("event") == "checked" and _event_target(event) == target
+                and event.get("outcome") == verdict.get("outcome") and day is not None
+                and at is not None and at.astimezone(UTC).date() == day):
+            continue
+        filed = [e for e in history[:index]
+                 if e.get("event") == "collected" and _event_target(e) == target
+                 and claim_binds(e.get("claim") or {}, verdict)]
+        if filed:
+            pair = (filed[-1], event)
+            break
+    if pair is None:
         return None
-    checked = history[checks[-1]]
-    claims = [e for e in history[:checks[-1]]
-              if e.get("event") == "collected" and _event_target(e) == target]
-    if not claims:
-        return None
-    claim = claims[-1]["claim"]
+    filed_event, checked = pair
+    claim = filed_event["claim"]
     if settings is not None and not settings(claim):
         return None
     method = str((claim.get("collector") or {}).get("method") or "")
@@ -301,13 +338,14 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
         return first
     copies = {str(ref.get("snapshot_ref")) for ref in claim.get("sources") or ()
               if isinstance(ref, Mapping)}
-    before = _event_at(checked)
+    filed_at, checked_at = _event_at(filed_event), _event_at(checked)
     for entry in reversed(log.entries):
         at = _at(entry.get("at"))
         if (entry.get("subject"), entry.get("facet")) == (subject, facet) \
                 and entry.get("complete") is True and entry.get("agreed") is True \
-                and entry.get("harness") is True and at is not None and before is not None \
-                and at <= before and f"sha256:{entry.get('page_sha256')}" in copies \
+                and entry.get("harness") is True and at is not None and filed_at is not None \
+                and checked_at is not None and at <= filed_at and at < checked_at \
+                and f"sha256:{entry.get('page_sha256')}" in copies \
                 and _HEX.fullmatch(str(entry.get("text_sha256") or "")):
             prefix = "" if first == "initial" else first + ":"
             return f"{prefix}reread:{entry['text_sha256']}"
