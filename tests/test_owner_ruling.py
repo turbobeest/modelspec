@@ -74,7 +74,6 @@ def read_in(epoch, readers):
     past re-read left it, is made through the harness, not by naming an epoch to the gate."""
     from decision.cited_change import lookup
     from decision.cited_reader import read_page
-
     from tests.test_cited_offering import PAGE
 
     found = lookup(SUBJECT, RETENTION)
