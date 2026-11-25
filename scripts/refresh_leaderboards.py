@@ -1689,13 +1689,20 @@ def _agent_configuration(board: BoardReading, row: Mapping[str, Any], effort: st
 
 def _evidence_template(
     root: Path, board: BoardReading, benchmark_id: str,
+    fronts: Iterable[Mapping[str, Any]] | None = None,
 ) -> Mapping[str, Any] | None:
+    """The unit and source kind a new row on ``benchmark_id`` copies from the cards.
+
+    ``fronts`` is the catalogue's front matter, in path order, for a caller that
+    already parsed it; None reads every card under ``root``.
+    """
     if board.row_template is not None:
         return {**board.row_template, "source_url": board.source_url}
     allowed_urls = board.card_urls or frozenset({board.source_url})
     templates = []
-    for path in sorted((root / "models").glob("*/*.md")):
-        front = _front(path)
+    if fronts is None:
+        fronts = (_front(path) for path in sorted((root / "models").glob("*/*.md")))
+    for front in fronts:
         for row in (front.get("benchmarks") or {}).get("evidence") or []:
             if row.get("benchmark_id") == benchmark_id \
                     and str(row.get("source_url") or "") in allowed_urls:
@@ -1825,11 +1832,12 @@ def _new_evidence(
 def _rows_for_match(
     *, root: Path, model_id: str, board: BoardReading, matched: Mapping[str, Any],
     templates: dict[str, Mapping[str, Any] | None] | None = None,
+    fronts: Sequence[Mapping[str, Any]] | None = None,
 ) -> tuple[list[dict[str, Any]], list[RowFailure]]:
     """The rows one matched board row adds to ``model_id``'s card, one per benchmark.
 
     ``templates`` caches ``_evidence_template`` per benchmark for a caller that
-    builds many rows in one run.
+    builds many rows in one run; ``fronts`` is the parsed catalogue it reads.
     """
     rows: list[dict[str, Any]] = []
     failures: list[RowFailure] = []
@@ -1837,7 +1845,7 @@ def _rows_for_match(
         if templates is not None and benchmark_id in templates:
             template = templates[benchmark_id]
         else:
-            template = _evidence_template(root, board, benchmark_id)
+            template = _evidence_template(root, board, benchmark_id, fronts)
             if templates is not None:
                 templates[benchmark_id] = template
         if template is None:
@@ -2586,6 +2594,7 @@ def plan_first_rows(
     """
     report.first_rows_considered = True
     paths, fronts = _catalogue(root)
+    catalogue_fronts = list(fronts.values())  # path order, as _evidence_template reads it
     index = first_row_index(fronts)
     written = set(report.arena_boards_written)
     planned_keys = {
@@ -2644,7 +2653,7 @@ def plan_first_rows(
             name = _subject(dataset_row)
             rows, failures = _rows_for_match(
                 root=root, model_id=model_id, board=board, matched=dataset_row,
-                templates=templates,
+                templates=templates, fronts=catalogue_fronts,
             )
             for failure in failures:
                 report.first_rows_refused.append(FirstRowRefusal(
