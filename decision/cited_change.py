@@ -679,9 +679,10 @@ def _engine_reads(found: Lookup, subject: str, facet: Any, pages: Mapping[str, b
     """The method of a deterministic engine reader that reads the fact from a cited page, if any.
 
     On a host that retains copies the verified path wins (MODEL-558). ``pages`` holds the bytes
-    of every retaining source the fact cites. Each page is put in a temporary copy store, read
-    through ``StoredRegions`` (so a PDF takes ``decision.pdf_templates`` as in ``verify``), and
-    read by the deterministic extractors together and then each alone, nothing logged. A reader
+    of every retaining source the fact cites. Each page is put in a temporary copy store and read
+    through ``StoredRegions`` (so a PDF takes ``decision.pdf_templates`` as in ``verify``), in
+    the context of the full cited set, by the deterministic extractors together and then each
+    alone, nothing logged. A reader
     that confirms the value, or finds another one, on any page reads the fact, and the two-reader
     path does not apply. Only when every engine reader finds no value on every page (no reading,
     or a reading of ``None``) are the pages left to the two readers. A check that cannot run
@@ -705,6 +706,7 @@ def _engine_reads(found: Lookup, subject: str, facet: Any, pages: Mapping[str, b
     with tempfile.TemporaryDirectory() as scratch:
         store = CopyStore(scratch)
         regions = StoredRegions(store, registry)
+        refs: list[SourceRef] = []
         for source_id, page_bytes in pages.items():
             source = registry.get(source_id)
             if source is None:
@@ -715,18 +717,23 @@ def _engine_reads(found: Lookup, subject: str, facet: Any, pages: Mapping[str, b
                 return f"unrun ({type(error).__name__})"
             cited = next((s.get("cited_regions") for s in found.fact.get("sources") or []
                           if s.get("source_id") == source_id), None)
-            region_ids = list(cited or [r.id for r in source.cited_regions] or ["page"])
+            refs.append(SourceRef(source_id=source_id, snapshot_ref=ref, cited_regions=list(
+                cited or [r.id for r in source.cited_regions] or ["page"])))
+        # Each source is read in the context of the fact's full cited set (MODEL-558 review): a
+        # reader that needs another source (the config reader needs the README) sees it. The
+        # source under test goes first, so its own first mismatch is the one ``verify`` reports.
+        extractors = deterministic_extractors()
+        for n, first in enumerate(refs):
+            ordered = (first, *refs[:n], *refs[n + 1:])
             claim = Claim(
                 target=TargetRef(kind="fact", id=target), subject=subject, names=names,
                 field=facet.id, value=found.fact.get("value"),
                 collector=VerificationActor(agent="cited-change-gate", model_family="unrecorded",
                                             method=RETAINED_RULE),
-                sources=(SourceRef(source_id=source_id, snapshot_ref=ref,
-                                   cited_regions=region_ids),),
-                unit=facet.unit, label=facet.label, state=found.fact.get("state"))
+                sources=ordered, unit=facet.unit, label=facet.label,
+                state=found.fact.get("state"))
             # All readers together (the PDF route), then one at a time: ``verify`` reports only
             # its first mismatch, and a ``None`` reading must not hide a later reader's value.
-            extractors = deterministic_extractors()
             for chosen in [extractors, *([e] for e in extractors)]:
                 try:
                     result = verify(claim, regions, chosen, today=today)
@@ -737,7 +744,7 @@ def _engine_reads(found: Lookup, subject: str, facet: Any, pages: Mapping[str, b
                 if result.outcome == "verified" or (result.outcome == "mismatch" and any(
                         d.field in {"value", "unit"} and d.found is not None
                         for d in result.diffs)):
-                    return f"{result.verification.verifier.method} on {source_id}"
+                    return f"{result.verification.verifier.method} on {first.source_id}"
     return None
 
 

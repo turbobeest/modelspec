@@ -3793,6 +3793,12 @@ def _rope_window(scaling: Any, window: int) -> bool:
         and original * factor == window
 
 
+#: Config fields that also state a window. One that differs from ``max_position_embeddings``
+#: makes the window unclear.
+_HF_OTHER_WINDOW_KEYS = ("n_positions", "n_ctx", "max_sequence_length", "seq_length",
+                         "max_seq_len", "model_max_length", "max_position_embeddings")
+
+
 def hf_config_context_window(config: Mapping[str, Any]) -> int | None:
     """The text model's ``max_position_embeddings``, when it is the model's whole window.
 
@@ -3831,6 +3837,12 @@ def hf_config_context_window(config: Mapping[str, Any]) -> int | None:
     window = holder["max_position_embeddings"]
     if isinstance(window, bool) or not isinstance(window, int) or window <= 0:
         return None
+    # Another window field at either level that states a different number is a conflict.
+    for part in (config, text) if text_has else (config,):
+        for key in _HF_OTHER_WINDOW_KEYS:
+            other = part.get(key)
+            if other is not None and other != window:
+                return None
     if text_has and any(key in config for key in ("rope_scaling", "rope_parameters")):
         return None  # scaling at the parent level: which window it extends is not stated
     if "rope_parameters" in holder or not _rope_window(holder.get("rope_scaling"), window):
@@ -3848,6 +3860,9 @@ def _hf_config_url(url: str | None) -> bool:
 _CONTEXT_PROSE = re.compile(
     r"(?i)\bcontext(?:[ -](?:length|window|size))?\b[^.\n|]{0,60}?\b\d[\d,.]*\s*"
     r"(?:k\b|m\b|million\b|tokens?\b)"
+    # A bare integer after a context label: "a context length of 131072", "context window: 8192".
+    r"|\bcontext(?:[ -](?:length|window|size))\b[^.\n|]{0,60}?(?<![\d,.])"
+    r"(?:\d{1,3}(?:,\d{3})+|\d{3,})(?![\d,]*\.\d)"
     r"|\b\d[\d,.]*\s*(?:k|m|million)?[- ]?tokens?\b[^.\n|]{0,30}?\bcontext\b"
     r"|\b(?:one|two|four)[- ]million[- ]token\b[^.\n|]{0,30}?\bcontext\b")
 
@@ -3955,18 +3970,52 @@ def _hf_declared(text: str, page_url: str | None) -> tuple[str, list[str], list[
             return None
         config = data.get("config") if isinstance(data.get("config"), Mapping) else {}
         model = [*(config.get("architectures") or []), config.get("model_type") or ""]
-    elif _hf_readme_url(page_url):
-        data = _front_matter_mapping(text)
-        if data is None:
-            return None
-        model = []
     else:
-        return None
+        return None  # a README's front matter has a task tag and no structural signal
     task, tags = data.get("pipeline_tag"), data.get("tags") or []
     if not isinstance(task, str) or not isinstance(tags, list) \
             or not all(isinstance(item, str) for item in [*tags, *model]):
         return None
     return task.strip().casefold(), list(tags), list(model)
+
+
+#: Text-model architecture names (the structural signal for text input).
+_HF_TEXT_ARCHITECTURE = re.compile(r"(?:ForCausalLM|Model|ForMaskedLM|EncoderModel)$")
+#: Files of a processor for a non-text input: a repository with one is not text-only.
+_HF_PROCESSOR_FILE = re.compile(
+    r"(?i)(?:^|/)(?:preprocessor_config|processor_config|image_processor\w*|video_preprocessor\w*"
+    r"|feature_extractor\w*|audio\w*)\.json$")
+_HF_TOKENIZER_FILE = re.compile(r"(?i)(?:^|/)tokenizer(?:_config)?\.json$|(?:^|/)tokenizer\.model$")
+#: A sentence-transformers pooling module: the structural signal for embedding output.
+_HF_POOLING_FILE = re.compile(r"(?i)(?:^|/)\d+_Pooling/config\.json$")
+
+
+def hf_structural_modality(field: str, value: str, data: Mapping[str, Any]) -> bool:
+    """Whether the repository's structure confirms the one modality its task tag gave.
+
+    A task tag never verifies a modality on its own (MODEL-558 review). Text input needs
+    every architecture to be a text model, a tokenizer file, and no processor file for another
+    input. Embedding output needs a sentence-transformers pooling module. Text output needs
+    every architecture to be a ``*ForCausalLM`` decoder and no pooling module."""
+    config = data.get("config") if isinstance(data.get("config"), Mapping) else {}
+    arch = config.get("architectures")
+    siblings = data.get("siblings")
+    if not isinstance(arch, list) or not arch or not all(isinstance(a, str) for a in arch) \
+            or not isinstance(siblings, list):
+        return False
+    names = [item.get("rfilename") for item in siblings if isinstance(item, Mapping)]
+    if not names or not all(isinstance(name, str) for name in names):
+        return False
+    pooling = any(_HF_POOLING_FILE.search(name) for name in names)
+    if field == "model.input_modalities" and value == "text":
+        return all(_HF_TEXT_ARCHITECTURE.search(a) for a in arch) \
+            and any(_HF_TOKENIZER_FILE.search(name) for name in names) \
+            and not any(_HF_PROCESSOR_FILE.search(name) for name in names)
+    if field == "model.output_modalities" and value == "embedding":
+        return pooling
+    if field == "model.output_modalities" and value == "text":
+        return all(a.endswith("ForCausalLM") for a in arch) and not pooling
+    return False
 
 
 def hf_task_modalities(field: str, task: str, tags: Sequence[str],
@@ -4004,8 +4053,8 @@ def hf_weights_openness(data: Mapping[str, Any]) -> str | None:
     ``False``), is not an adapter (no ``adapter_config``/``adapter_model`` file, no ``peft``,
     ``lora`` or ``adapter`` tag) and is not metadata only (some file is neither metadata nor
     docs). Open: a ``.safetensors`` or ``.gguf`` file, a checkpoint named as weights, or a
-    populated ``safetensors`` census. Closed: no file of any weight suffix and no census.
-    Anything between, and every repository above, is no reading.
+    populated ``safetensors`` census. It never reads ``closed_weights``: a public repository
+    with no weight file may link to weights elsewhere. Everything else is no reading.
     """
     siblings = data.get("siblings")
     if not isinstance(siblings, list) or not siblings:
@@ -4023,9 +4072,9 @@ def hf_weights_openness(data: Mapping[str, Any]) -> str | None:
     if any(_HF_STRONG_WEIGHT_SUFFIX.search(name) or _HF_WEIGHT_NAME.search(name)
            for name in names) or (isinstance(census, Mapping) and census.get("parameters")):
         return "open_weights"
-    if census is None and data.get("gguf") is None \
-            and not any(_HF_WEIGHT_SUFFIX.search(name) for name in names):
-        return "closed_weights"
+    # No weight file here is no reading: the repository may link to weights elsewhere. Only a
+    # gated or absent repository plus an explicit API-only statement can support
+    # ``closed_weights``, and that is not this reader's to read (MODEL-558 review).
     return None
 
 
@@ -4033,9 +4082,10 @@ class HFRepoMetadataExtractor:
     """Modalities and weights openness from what a Hub repository declares (MODEL-558).
 
     ``model.input_modalities`` and ``model.output_modalities`` are read from the declared task
-    (``pipeline_tag``) in the repository's API JSON or README front matter
-    (``hf_task_modalities``); ``model.weights_openness`` from the API JSON's file list
-    (``hf_weights_openness``). The URL must be the subject's own repository.
+    (``pipeline_tag``) in the repository's API JSON (``hf_task_modalities``), only when the
+    repository's structure confirms it (``hf_structural_modality``); ``model.weights_openness``
+    from the API JSON's file list (``hf_weights_openness``, open only). The URL must be the
+    subject's own repository's API JSON.
     """
 
     actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
@@ -4048,7 +4098,7 @@ class HFRepoMetadataExtractor:
             return False
         if _hf_api_repo(source_url) is not None:
             return True
-        return claim.field != "model.weights_openness" and _hf_readme_url(source_url)
+        return False
 
     def accepts(self, text: str) -> bool:
         return bool(text.strip())
@@ -4081,6 +4131,9 @@ class HFRepoMetadataExtractor:
         else:
             declared = _hf_declared(text, page_url)
             value = hf_task_modalities(claim.field, *declared) if declared else None
+            data = _hf_json(text) or {}
+            if value is not None and not hf_structural_modality(claim.field, value, data):
+                value = None  # a task tag alone verifies nothing
             # A task proves one modality, never a complete set: a filed set that is not exactly
             # that modality is no reading (not a mismatch).
             filed = claim.value if isinstance(claim.value, list) else None

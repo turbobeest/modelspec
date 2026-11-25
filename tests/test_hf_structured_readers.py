@@ -105,6 +105,14 @@ def test_config_yarn_window_is_read_only_when_the_scaling_reaches_it():
         "rope_type": "yarn", "type": "linear", "factor": 32,
         "original_max_position_embeddings": 4096}},
     {"max_position_embeddings": 131072, "rope_parameters": {"rope_type": "default"}},
+    # A top-level window and a nested text_config or decoder window that differ.
+    {"max_position_embeddings": 8192, "text_config": {"max_position_embeddings": 4096}},
+    {"max_position_embeddings": 8192, "decoder": {"max_position_embeddings": 4096}},
+    {"text_config": {"max_position_embeddings": 8192},
+     "language_model": {"max_position_embeddings": 4096}},
+    # Another window field that differs.
+    {"max_position_embeddings": 8192, "n_positions": 4096},
+    {"text_config": {"max_position_embeddings": 8192, "max_sequence_length": 4096}},
 ])
 def test_config_window_abstains_when_in_doubt(cfg):
     assert hf_config_context_window(json.loads(config(**cfg))) is None
@@ -131,6 +139,10 @@ def test_config_window_reads_the_text_tower_only():
     "- Context window: 128k\n",
     "Trained with a context length of 131,072 tokens.\n",
     "It supports a 1M-token context window.\n",
+    # A bare integer, no unit (MODEL-558 review, round 2).
+    "The model has a context length of 131072.\n",
+    "Context window: 8192\n",
+    "We trained with a context size of 65,536 throughout.\n",
 ])
 def test_config_window_never_overrides_a_window_the_lab_states(page):
     # Jamie, MODEL-558: the facet stores the lab's stated value; a config sets it only when the
@@ -266,14 +278,53 @@ def test_output_abstains_on_any_multimodal_hint(task, tags, model):
     assert hf_task_modalities("model.output_modalities", task, tags, model) is None
 
 
-def test_modalities_from_the_api_json_and_the_readme_front_matter():
-    readings, diffs = read(HFRepoMetadataExtractor(), "model.output_modalities", ["embedding"],
-                           api(pipeline_tag="sentence-similarity"), API)
-    assert [r.value for r in readings] == ["embedding"] and diffs == []
+EMBEDDER_FILES = [{"rfilename": n} for n in (
+    "README.md", "config.json", "tokenizer.json", "tokenizer_config.json", "1_Pooling/config.json",
+    "model.safetensors")]
+DECODER_FILES = [{"rfilename": n} for n in (
+    "README.md", "config.json", "tokenizer.json", "model-00001-of-00002.safetensors")]
+
+
+def test_modalities_need_the_task_and_a_structural_signal():
+    embedder = dict(pipeline_tag="sentence-similarity", siblings=EMBEDDER_FILES)
+    for field, filed, value in (("model.output_modalities", ["embedding"], "embedding"),
+                                ("model.input_modalities", ["text"], "text")):
+        readings, diffs = read(HFRepoMetadataExtractor(), field, filed, api(**embedder), API)
+        assert [r.value for r in readings] == [value] and diffs == []
+    decoder = api(pipeline_tag="text-generation", siblings=DECODER_FILES,
+                  config={"architectures": ["WidgetForCausalLM"], "model_type": "widget"})
+    readings, _ = read(HFRepoMetadataExtractor(), "model.output_modalities", ["text"], decoder, API)
+    assert [r.value for r in readings] == ["text"]
+
+
+@pytest.mark.parametrize("field,filed,data", [
+    # A task tag alone, singleton included, verifies nothing (MODEL-558 review, round 2).
+    ("model.output_modalities", ["embedding"], dict(pipeline_tag="sentence-similarity")),
+    ("model.output_modalities", ["embedding"], dict(
+        pipeline_tag="feature-extraction",
+        siblings=[{"rfilename": n} for n in ("README.md", "tokenizer.json")])),
+    ("model.input_modalities", ["text"], dict(pipeline_tag="sentence-similarity")),
+    ("model.input_modalities", ["text"], dict(
+        pipeline_tag="feature-extraction",
+        siblings=EMBEDDER_FILES + [{"rfilename": "preprocessor_config.json"}])),
+    ("model.input_modalities", ["text"], dict(
+        pipeline_tag="feature-extraction",
+        siblings=[{"rfilename": "1_Pooling/config.json"}, {"rfilename": "model.safetensors"}])),
+    ("model.input_modalities", ["text"], dict(pipeline_tag="feature-extraction",
+                                              siblings=EMBEDDER_FILES, config={})),
+    ("model.output_modalities", ["text"], dict(pipeline_tag="text-generation",
+                                               siblings=EMBEDDER_FILES)),
+])
+def test_a_task_tag_without_a_structural_signal_is_no_reading(field, filed, data):
+    assert read(HFRepoMetadataExtractor(), field, filed, api(**data), API)[0] == []
+
+
+def test_a_readme_front_matter_task_is_no_reading():
     front = "license: mit\npipeline_tag: feature-extraction\ntags:\n- mteb\n\n# Widget 7B\n"
-    readings, diffs = read(HFRepoMetadataExtractor(), "model.input_modalities", ["text"],
-                           front, README)
-    assert [r.value for r in readings] == ["text"] and diffs == []
+    assert not HFRepoMetadataExtractor().bound_to(claim("model.input_modalities", ["text"]),
+                                                  README)
+    assert read(HFRepoMetadataExtractor(), "model.input_modalities", ["text"], front,
+                README)[0] == []
 
 
 @pytest.mark.parametrize("filed", [["text", "image"], ["image"], [], ["text", "text"]])
@@ -305,8 +356,9 @@ def test_weight_files_read_open_and_no_weight_file_reads_closed():
     assert hf_weights_openness(files("README.md", shard)) == "open_weights"
     assert hf_weights_openness(files("README.md", "widget.Q4_K_M.gguf")) == "open_weights"
     assert hf_weights_openness(files("pytorch_model.bin", "config.json")) == "open_weights"
+    # A public repository with no weight file may link to weights elsewhere: no reading.
     assert hf_weights_openness(files(".gitattributes", "README.md", "config.json",
-                                     "handler.py")) == "closed_weights"
+                                     "handler.py")) is None
 
 
 @pytest.mark.parametrize("data", [
@@ -332,13 +384,17 @@ def test_weights_openness_abstains_when_in_doubt(data):
 
 
 def test_weights_openness_reads_only_the_api_json_of_the_subjects_repository():
-    text = json.dumps(files("README.md", "config.json", "handler.py"))
-    readings, diffs = read(HFRepoMetadataExtractor(), "model.weights_openness", "closed_weights",
+    text = json.dumps(files("README.md", "config.json", "model.safetensors"))
+    readings, diffs = read(HFRepoMetadataExtractor(), "model.weights_openness", "open_weights",
                            text, API)
-    assert [r.value for r in readings] == ["closed_weights"] and diffs == []
+    assert [r.value for r in readings] == ["open_weights"] and diffs == []
     other = "https://huggingface.co/api/models/acme/Other-7B"
-    assert read(HFRepoMetadataExtractor(), "model.weights_openness", "closed_weights",
+    assert read(HFRepoMetadataExtractor(), "model.weights_openness", "open_weights",
                 text, other)[0] == []
+    # closed_weights is never read from a file list, gated or not.
+    for data in (files("README.md", "handler.py"), files("README.md", "handler.py", gated="auto")):
+        assert read(HFRepoMetadataExtractor(), "model.weights_openness", "closed_weights",
+                    json.dumps(data), API)[0] == []
     assert not HFRepoMetadataExtractor().bound_to(claim("model.weights_openness", "x"), README)
 
 

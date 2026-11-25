@@ -472,3 +472,44 @@ def test_the_origin_class_is_checked_before_any_reread_fetch(data):
     out = reread({"subject": SUBJECT, "facet": FACET}, source_id="readme", readers=pair(),
                  request=request)
     assert out.reason == "host_unclassed" and request.calls == []
+
+
+# --- review round 2 -------------------------------------------------------------------------------
+
+
+def test_the_veto_reads_each_source_in_the_context_of_the_full_cited_set(data):
+    # The config reader needs the README in its bindings; read alone it abstains, read with the
+    # fact's full cited set it finds 131072, which disagrees with the filed 262144.
+    cfg = "https://huggingface.co/acme/Widget-7B/resolve/0123abc/config.json"
+    data.sources.append(dict(source("cfg", cfg), kind="weights_repository",
+                             normaliser="json-default",
+                             cited_regions=[dict(id="page", locator=dict(kind="page", value=""))]))
+    data.fact.update(facet="model.context_window", value=262144,
+                     id=f"{SUBJECT}#model.context_window")
+    data.fact["sources"].append(dict(source_id="cfg", snapshot_ref="sha256:" + "1" * 64,
+                                     cited_regions=["page"]))
+    data.write()
+    silent = b"# Widget 7B\n\nA text model for long documents.\n"
+    config = json.dumps({"architectures": ["WidgetForCausalLM"], "model_type": "widget",
+                         "num_attention_heads": 8, "max_position_embeddings": 131072}).encode()
+    out = refused("engine_reader_reads", facet="model.context_window", readers=pair(262144),
+                  request=serve({URL: silent, cfg: config}))
+    assert "hf-config-context@1" in out.detail and data.attempts() == []
+
+
+def test_the_rolling_reread_lists_a_retained_agreement_whose_origin_is_now_cite_only(data):
+    from datetime import date, timedelta
+
+    from scripts import evidence_reread as script
+
+    file_record(data, run().record)
+    data.terms["huggingface.co"] = "forbids"
+    data.write()
+    request = serve({URL: PAGE + b"More text.\n"})
+    report = script.Report("x", True)
+    script.cited_change_rereads(data.root, script.load_terms(data.root), report, request=request,
+                                pacer=script.Pacer(0, sleep=lambda s: None),
+                                observed_at=date.today() + timedelta(days=8))
+    assert request.calls == [] and report.cited_change_rereads == []
+    assert report.retained_now_cite_only == [f"{SUBJECT}#{FACET}"]
+    assert report.to_dict()["retained_agreements_now_cite_only"] == [f"{SUBJECT}#{FACET}"]
