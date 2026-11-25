@@ -109,6 +109,8 @@ SOURCES = {
     Path("schema/evidence.py"): Path("schema/evidence.py"),
     Path("schema/benchmark_values.py"): Path("schema/benchmark_values.py"),
     Path("schema/enums.py"): Path("schema/enums.py"),
+    # decision.snapshot reads offering files with the shared refusing loader (MODEL-554).
+    Path("schema/yaml_loader.py"): Path("schema/yaml_loader.py"),
     Path("release_signals/__init__.py"): Path("release_signals/__init__.py"),
     Path("release_signals/contract.py"): Path("release_signals/contract.py"),
     Path("registry/domains.yaml"): Path("registry/domains.yaml"),

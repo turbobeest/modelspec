@@ -547,7 +547,8 @@ def quarantine_verdicts(fact_ids: Sequence[str], fact: Mapping[str, Any],
     what they belong to, not by a list.
 
     The log is parsed as the build parses it (``decision.snapshot.collect_repo``: every line
-    through ``json.loads``, no text match) and ranked by the build's own rule
+    through ``decision.owner_ruling.read_json_lines``, which refuses a repeated key; no text
+    match) and ranked by the build's own rule
     (``_Compiler._verification_log``: latest ``date``, a later line on a tie, a same-family
     ``verified`` does not count). The fact's inline verification counts too, ranked before the
     log's lines, as the build ranks it. Every identity in ``fact_ids`` is checked, and any
@@ -561,10 +562,11 @@ def quarantine_verdicts(fact_ids: Sequence[str], fact: Mapping[str, Any],
     root = data_dir or os.environ.get(DATA_DIR_ENV, "").strip()
     if not root:
         raise LookupFailed("no data directory is named")
+    from decision.owner_ruling import read_json_lines
+
     path = Path(root) / VERIFICATION_LOG
     try:
-        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()
-                if line.strip()] if path.is_file() else []
+        rows = read_json_lines(path)
         return held_verdicts(_Compiler._verification_log(rows), fact_ids, fact, kind=kind,
                              owns=owns)
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:

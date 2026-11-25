@@ -102,13 +102,17 @@ def disagreed(entry: Mapping[str, Any], facet_id: str) -> bool:
         != _canonical(readers[1]["value"], facet_id)
 
 
+class RepeatedKeyError(ValueError):
+    """A JSON object repeats a key once decoded. The message names a line, never a key."""
+
+
 def _unique_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     """A JSON object whose keys are unique once decoded: ``"a"`` and its escaped spelling
     are one key."""
     out: dict[str, Any] = {}
     for key, value in pairs:
         if key in out:
-            raise ValueError("a JSON object repeats a key")
+            raise RepeatedKeyError("a JSON object repeats a key")
         out[key] = value
     return out
 
@@ -118,19 +122,34 @@ def loads(line: str) -> Any:
     return json.loads(line, object_pairs_hook=_unique_keys)
 
 
+def read_json_lines(path: Path) -> list[Any]:
+    """Every non-blank line of a JSON-lines file, decoded by ``loads``; an absent file is
+    empty. The build reads ``verification/log.jsonl`` through this (MODEL-554): a row that
+    repeats ``outcome`` would otherwise read as its last spelling. Raises ``RepeatedKeyError``
+    naming the line number and how many lines repeat a key; other decoding errors as
+    ``json.loads`` raises them."""
+    if not path.is_file():
+        return []
+    out, repeated = [], []
+    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip():
+            continue
+        try:
+            out.append(loads(line))
+        except RepeatedKeyError:
+            repeated.append(number)
+    if repeated:
+        raise RepeatedKeyError(f"line {repeated[0]}: a JSON object repeats a key "
+                          f"({len(repeated)} line(s) repeat a key)")
+    return out
+
+
 def read_lines(path: Path) -> list[dict[str, Any]]:
     """Every line of a JSON-lines file as an object; an absent file is empty. Raises
     ``ValueError`` on a line that is not a JSON object or repeats a key."""
-    if not path.is_file():
-        return []
-    out = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            continue
-        obj = loads(line)
-        if not isinstance(obj, dict):
-            raise ValueError("a line is not a JSON object")
-        out.append(obj)
+    out = read_json_lines(path)
+    if not all(isinstance(obj, dict) for obj in out):
+        raise ValueError("a line is not a JSON object")
     return out
 
 
@@ -494,10 +513,7 @@ def read_ruling_inputs(root: Path, *, verdicts: bool = True) -> RulingInputs:
         from decision.cited_change import VERIFICATION_LOG
         from decision.snapshot import _Compiler
 
-        path = root / VERIFICATION_LOG
-        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()
-                if line.strip()] if path.is_file() else []
-        ranked = _Compiler._verification_log(rows)
+        ranked = _Compiler._verification_log(read_json_lines(root / VERIFICATION_LOG))
     claims, history = ruling_claim_events(root / "verification/queue/events.jsonl")
     return RulingInputs(tuple(rulings), tuple(read_lines(root / ATTEMPTS_FILE)), claims, ranked,
                         history)

@@ -84,7 +84,9 @@ def _documents(repo: Path, rev: Revision, paths: list[str]) -> dict[str, Any]:
         text = stream.read(int(size)).decode()
         stream.read(1)
         result[path] = (
-            split_front_matter(text)[0] if path.endswith(".md") else yaml.safe_load(text)
+            # History, not the build: an old revision may predate MODEL-554's refusal.
+            split_front_matter(text, duplicates="warn")[0] if path.endswith(".md")
+            else yaml.safe_load(text)
         )
     return result
 

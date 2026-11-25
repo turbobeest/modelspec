@@ -15,6 +15,7 @@ worth surfacing.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import re
@@ -26,7 +27,7 @@ from typing import Any
 import yaml
 
 from schema import private_data, redacted_error
-from schema.yaml_loader import load_yaml
+from schema.yaml_loader import DuplicateKeyError, load_yaml, load_yaml_unique
 
 logger = logging.getLogger(__name__)
 
@@ -41,11 +42,45 @@ class LoadError(RuntimeError):
     """A file that should have parsed did not."""
 
 
-def split_front_matter(text: str, *, path: Path | None = None) -> tuple[dict[str, Any], str]:
+#: SHA-256 of the front matter of the frozen public image's ten benchmark pages that repeat a
+#: key (``aliases``) from before MODEL-554. The data repository has fixed them; the image, which
+#: this repository may not change, has not. Only these exact texts, wherever they are read (tests
+#: stand the image in for private data), warn as a count and keep the last value. Any other
+#: card or benchmark page that repeats a key is refused. Drop an entry once the image is fixed.
+FROZEN_DUPLICATE_PAGES = frozenset({
+    "eb0312bd9270f6192ce7709bd3e94b751348f92474046cdccaac47e7c299343c",  # aime_2024.md
+    "edcecc1706132fa107eaf32efd7e5f08b47614bea0d6639c4c0fe62a2dd743e5",  # aime_2026.md
+    "9fdc12b192772bf5f9ef39cf15c424a86e518b35cf18c0e42231e5399d6f36bf",  # arc_challenge.md
+    "a8ddcea17c1ed2ac44f68ead4cbcaccbad6f9b0903848df693ae18b06ccd36a1",  # bbh.md
+    "d0d6731e296850e4dc224a2360827527eff61d6f6da5778d4bf80ba31ecc53bc",  # big_bench.md
+    "0b06eab11098825fb4ad647f0e2d8282898250aad748b6dce040955a02021241",  # gpqa.md
+    "ad8254d7b3c4deb089cae7980cf7163fb6c9109dbbff05066a32e4577b6d9b2e",  # humaneval.md
+    "8bcd8db39d80fa2ccdf50e7ee93e796f7a2b45564e626c3ea321ed58150e4cc5",  # mbpp.md
+    "96a1bd6ef53f12f6df126211131bddecbb6d7446a8001cf08ce5fae43a5502d3",  # model_written_evals.md
+    "970e9a10a5e6ec05ca96e12fa0fd700e2c84fbe5f7be9020400e79feba57a4f5",  # siqa.md
+})
+
+
+def split_front_matter(text: str, *, path: Path | None = None,
+                       duplicates: str | None = None) -> tuple[dict[str, Any], str]:
+    """The front matter and the body. A repeated key is refused (``LoadError``), unless
+    ``duplicates`` is ``"warn"`` (by default, only for a page in ``FROZEN_DUPLICATE_PAGES``):
+    then it is logged as a count and the last value is kept."""
     match = FRONT_MATTER.match(text)
     if not match:
         raise LoadError("no YAML front matter")
     try:
+        # One loader for fact YAML on every path (MODEL-554): a repeated key is refused.
+        front = load_yaml_unique(match.group(1))
+    except DuplicateKeyError as exc:
+        # Counts and a location only, so the message is safe for private data too.
+        message = f"{path or 'front matter'}: {exc.diagnostic(line_offset=1)}"
+        if duplicates is None and hashlib.sha256(
+                match.group(1).encode("utf-8")).hexdigest() in FROZEN_DUPLICATE_PAGES:
+            duplicates = "warn"
+        if duplicates != "warn":
+            raise LoadError(message) from None
+        logger.warning("%s; the last value is kept", message)
         front = load_yaml(match.group(1))
     except yaml.YAMLError as exc:
         if private_data(path):
