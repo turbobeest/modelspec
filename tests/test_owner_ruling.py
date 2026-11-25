@@ -1093,3 +1093,23 @@ def test_a_historical_site_export_does_not_know_a_later_ruling(tmp_path):
     assert models[0].withheld_facets == (FACET,) and not models[0].cited_facts
     assert all(f["facet"] != FACET for f in result["card"]["facts"])
     assert load_models(tmp_path, as_of=date(2026, 10, 12))[0].withheld_facets == ()
+
+
+def test_a_past_cutoff_ruled_fact_with_an_invalid_citation_names_no_source_in_its_gap():
+    """The cutoff check runs before the citation is read: a registered source with an invalid
+    citation hash would otherwise reject the fact with its URL in the gap record."""
+    from decision import registry
+    from decision.snapshot import SnapshotInputs, _compile
+    from tests.snapshot_records import SOURCES, model
+
+    attempt = _attempt()
+    ruling = _ruling(attempt)
+    row = _ruled_fact(ruling)
+    row["sources"][0]["snapshot_ref"] = "sha256:not-a-hash"  # registered source, bad hash
+    inputs = SnapshotInputs(models=[model(MID, facts=[row])],
+                            sources={**SOURCES, "src-cite": CITE}, owner_rulings=[ruling],
+                            cited_attempts=[attempt])
+    compiled = _compile(inputs, registry.default(), None, date(2026, 10, 1), False, None)
+    reason, urls = compiled.rejected[(MID, FACET)]
+    assert reason == "invalid_citation" and urls == ()
+    assert CITE not in json.dumps([str(g) for g in compiled.gaps([MID])])

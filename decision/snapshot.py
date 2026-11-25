@@ -1072,6 +1072,11 @@ class _Compiler:
         row = self.facts.setdefault(sid, {})
         for f in self._resolve_prices(sid, facts):
             facet_id, state = str(f["facet"]), str(f["state"])
+            if not self._ruling_known(sid, f):
+                # A ruled fact this build does not know yet (MODEL-551) is withheld before its
+                # citation is read, so its gap names the facet and a count, never a source.
+                self._reject((sid, facet_id), "invalid_citation", [])
+                continue
             if f.get("effective_from") is not None or f.get("effective_until") is not None:
                 subject = f.get("subject") or {}
                 if (self.subjects[sid]["kind"] != "offering"
@@ -1138,6 +1143,17 @@ class _Compiler:
 
         return RulingInputs(self.owner_rulings, self.cited_attempts, self.owner_ruling_claims,
                             self.log, self.owner_ruling_history)
+
+    def _ruling_known(self, sid: str, fact: Mapping[str, Any]) -> bool:
+        """False for a fact that carries ``derivation.owner_ruling`` whose ruling or claim line
+        is dated after this build's cutoff (``decision.owner_ruling.stands_at``); true for any
+        other fact. It runs first, before any citation is parsed."""
+        derivation = fact.get("derivation")
+        if not isinstance(derivation, Mapping) or "owner_ruling" not in derivation:
+            return True
+        from decision.owner_ruling import ruling_cutoff, stands_at
+
+        return stands_at(fact, sid, ruling_cutoff(self.as_of), self._ruling_inputs())
 
     def _ruling_refused(self, sid: str, fact: Mapping[str, Any], citation: dict | None) -> bool:
         """A fact that carries ``derivation.owner_ruling`` and is not cited, or whose ruling
