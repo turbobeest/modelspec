@@ -23,10 +23,10 @@ watched fact that cites it, for a person to re-read; nothing on a card changes.
 Each run also reads the pages that owner-ruled facts cite (MODEL-562,
 ``decision.ruling_reread``), with the same class check before any request: only a page on a
 cite-only host is read, in memory, and only the sha256 of its normalised visible text is
-used. A page whose text is one read in the ruled epoch is unchanged: the ruled value stands
-and no reader is asked. A page whose text is new reopens the fact to rule 15 in a new epoch,
-and the run appends the hash to ``decision.ruling_reread.RECORD_FILE`` once per epoch. The
-report carries counts only.
+used, with the hash of the regions the fact cites. The ruled page records its region
+baseline; a change outside the cited region changes nothing; a changed cited region reopens
+the fact to rule 15 in a new epoch, appended to ``decision.ruling_reread.RECORD_FILE`` once.
+No reader is asked. The report carries counts only.
 
 No paid client is used, and no model is called.
 """
@@ -77,14 +77,17 @@ RETAINING_CLASSES = frozenset({"permits", "restricts"})
 #: page changes when it deprecates or retires a model, so the lifecycle facet is here.
 #: Adding a facet adds its pages to the weekly rotation.
 WATCHED_FACETS = ("model.lifecycle",)
-#: What the ruled-fact re-read counts (MODEL-562). Per page of a standing ruling: ``current``
-#: (a text read in the ruled epoch), ``reopened`` (a new text: a new epoch recorded),
-#: ``open`` (a reopened epoch recorded already), ``deferred``, ``blocked`` (a refused redirect),
-#: ``no_text_hash`` (an attempt in the ruled epoch recorded none, so no change can be shown).
-#: Per fact: ``invalid`` (no standing ruling), ``now_retaining`` (a source's host retains copies
-#: now: the verified path applies, nothing is read here), ``unclassed`` (not requested).
-RULED_OUTCOMES = ("current", "reopened", "open", "deferred", "blocked", "no_text_hash",
-                  "invalid", "now_retaining", "unclassed")
+#: What the ruled-fact re-read counts (MODEL-562, ``decision.ruling_reread.page_status``). Per
+#: page of a standing ruling: ``current`` (the ruled page, or a change outside the cited region),
+#: ``baselined`` (the ruled page; its region hash recorded now), ``reopened`` (a changed cited
+#: region: a reopened epoch recorded now), ``open`` (one recorded already), ``unbaselined`` (a
+#: new text and no baseline: no change can be shown), ``no_text_hash``, ``unreadable_region``,
+#: ``deferred``, ``blocked`` (a refused redirect). Per fact: ``invalid`` (no ruling the build
+#: admits), ``now_retaining`` (a source's host retains copies now: the verified path applies,
+#: nothing is read here), ``unclassed`` (not requested).
+RULED_OUTCOMES = ("current", "baselined", "reopened", "open", "unbaselined", "no_text_hash",
+                  "unreadable_region", "deferred", "blocked", "invalid", "now_retaining",
+                  "unclassed")
 #: Per watched page: the sha256 of its normalised visible text and the day it was read.
 #: Hashes only, never page text, so a cite-only host keeps no bytes here.
 WATCH_STATE = "reports/evidence-reread/watched-pages.json"
@@ -602,46 +605,50 @@ def cited_change_rereads(root: Path, terms: dict[str, str], report: "Report", *,
 def ruled_fact_rereads(root: Path, terms: dict[str, str], report: Report, *, sources=None,
                        request=None, pacer: Pacer | None = None, observed_at: date | None = None,
                        dry_run: bool = True) -> None:
-    """Read each page an owner-ruled fact cites and reopen the fact when its text is new
-    (MODEL-562, ``decision.ruling_reread``).
+    """Read each page an owner-ruled fact cites and reopen the fact when its cited region
+    changed (MODEL-562, ``decision.ruling_reread``).
 
     The host's class is read before any request: a ruling's source on a host that now retains
     copies is counted (``now_retaining``) and not read here, and an unclassed one is never
-    requested. A cite-only page is read once, in memory; no byte is kept and only its text hash
-    is compared with the texts read in the ruled epoch. An unchanged page changes nothing and
-    asks no reader. A new text appends one line to ``RECORD_FILE`` per fact and epoch, never
-    twice. This run changes no card, no fact and no verification record.
+    requested. A page is read with the gate's own fetch (``decision.cited_change._fetch``:
+    redirects off, every hop cite-only), once, in memory, so the sweep and the gate hash the same
+    bytes; no byte is kept. ``decision.ruling_reread.page_status`` compares it: the ruled page
+    records its region baseline once; a change outside the cited region changes nothing; a
+    changed region appends one ``reopen`` line per fact and epoch, never twice. No reader is
+    asked, and no card, fact or verification record changes. ``sources`` is unused: the gate's
+    own lookup supplies the registry rows.
     """
+    from decision import cited_change as gate
     from decision import ruling_reread as rr
-    from decision.cited_change import fact_epoch
-    from decision.cited_reader import ATTEMPTS_FILE
-    from decision.owner_ruling import RULINGS_FILE, read_lines, ruling_block
+    from decision.owner_ruling import read_ruling_inputs, ruling_block
 
+    del sources
     facts = rr.ruled_facts(root)
     if not facts:
         return
-    if sources is None:
-        from decision.sources import load_sources
-
-        sources = load_sources(root / "registry" / "sources.yaml")
-    urls = {str(k): str(v.url) for k, v in sources.items()}
     pacer = pacer or Pacer()
     day = observed_at or date.today()
     try:
-        rulings = read_lines(root / RULINGS_FILE)
-        attempts = read_lines(root / ATTEMPTS_FILE)
-        done = rr.recorded(root)
-    except (OSError, ValueError):  # a log that cannot be read stands no ruling: nothing is read
+        inputs = read_ruling_inputs(root)
+        records = rr.Records.read(root)
+    except (OSError, ValueError, KeyError, TypeError):  # a log that cannot be read stands nothing
         report.ruled_facts_checked += len(facts)
         report.ruled["invalid"] += len(facts)
         return
-    pages: dict[str, Fetched] = {}
+    pages: dict[str, tuple[bytes, tuple[str, ...]] | object] = {}
     lines: list[dict] = []
     for entry in facts:
-        subject, facet, fact = str(entry["subject"]), str(entry["facet"]), entry["fact"]
+        subject, facet = str(entry["subject"]), str(entry["facet"])
         report.ruled_facts_checked += 1
-        block = ruling_block(fact) or {}
-        cited = [urls.get(str(sid)) for sid in block.get("source_ids") or ()]
+        try:
+            found = gate.lookup(subject, facet, data_dir=root)
+        except gate.LookupFailed:
+            report.ruled["invalid"] += 1
+            continue
+        rows = {str(k): v for k, v in found.sources.items() if isinstance(v, dict)}
+        urls = {k: str(v.get("url")) for k, v in rows.items() if v.get("url")}
+        cited = [urls.get(str(sid)) for sid in (ruling_block(found.fact) or {}).get("source_ids")
+                 or ()]
         classes = [host_class(url, terms) if url else "unclassed" for url in cited]
         if "retaining" in classes:
             report.ruled["now_retaining"] += 1
@@ -653,12 +660,11 @@ def ruled_fact_rereads(root: Path, terms: dict[str, str], report: Report, *, sou
                     host = host_of(url) or "?"
                     report.unclassed_hosts[host] = report.unclassed_hosts.get(host, 0) + 1
             continue
-        ruling = rr.standing_ruling(fact, subject, rulings=rulings, attempts=attempts,
-                                    sources=urls, today=day)
+        ruling = rr.standing_ruling(found.fact, subject, inputs=inputs, sources=urls, today=day)
         if ruling is None:
             report.ruled["invalid"] += 1
             continue
-        ruled = fact_epoch(fact)
+        target = f"{subject}#{facet}"
         for source_id in ruling["source_ids"]:
             url = urls[source_id]
             if host_class(url, terms) not in {"forbids", "cite-only"}:  # read before every request
@@ -666,29 +672,30 @@ def ruled_fact_rereads(root: Path, terms: dict[str, str], report: Report, *, sou
                 continue
             if url not in pages:
                 pacer.wait(host_of(url))
-                pages[url] = fetch(url, terms, request=request)
-                if pages[url].kind == "blocked":
-                    report.blocked_hosts[pages[url].blocked_host] += 1
+                pages[url] = gate._fetch(url, request or gate._http_once)
             page = pages[url]
-            if page.kind != "ok":
-                report.ruled["blocked" if page.kind == "blocked" else "deferred"] += 1
+            if isinstance(page, gate.CitedChange):
+                blocked = page.reason.startswith("redirect_to")
+                report.ruled["blocked" if blocked else "deferred"] += 1
                 continue
-            digest = text_sha256(page.body)
-            seen = rr.ruled_texts(attempts, subject=subject, facet=facet, epoch=ruled, url=url)
-            if not seen:
-                report.ruled["no_text_hash"] += 1
-                continue
-            epoch = rr.epoch_for_page(fact, subject, source_id=source_id, url=url, text_sha=digest,
-                                      rulings=rulings, attempts=attempts, sources=urls, today=day)
-            if epoch == ruled:
-                report.ruled["current"] += 1
-            elif (f"{subject}#{facet}", epoch) in done:
-                report.ruled["open"] += 1
-            else:
+            status = rr.page_status(found.fact, subject, source_id=source_id,
+                                    row=rows[source_id], page_bytes=page[0],
+                                    attempts=inputs.attempts, records=records)
+            if status.kind == "baseline":
+                report.ruled["baselined"] += 1
+                records.baselines[(target, status.ruled_epoch, source_id)] = status.region_sha
+                lines.append(rr.baseline_line(target=target, ruled_epoch=status.ruled_epoch,
+                                              source_id=source_id, region_sha=status.region_sha,
+                                              day=day))
+            elif status.kind == "changed":
                 report.ruled["reopened"] += 1
-                done.add((f"{subject}#{facet}", epoch))
-                lines.append(rr.record_line(subject=subject, facet=facet, ruled_epoch=ruled,
-                                            source_id=source_id, text_sha=digest, day=day))
+                line = rr.reopen_line(target=target, ruled_epoch=status.ruled_epoch,
+                                      source_id=source_id, region_sha=status.region_sha,
+                                      baseline=status.baseline, day=day)
+                records.reopened[(target, line["epoch"])] = line
+                lines.append(line)
+            else:
+                report.ruled[status.kind] += 1
     if lines and not dry_run:
         path = root / rr.RECORD_FILE
         path.parent.mkdir(parents=True, exist_ok=True)

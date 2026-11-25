@@ -169,6 +169,27 @@ def fact_epoch(fact: Mapping[str, Any]) -> str:
     return rule_15_epoch(fact)
 
 
+#: A ruled fact's page that changed reopens rule 15 in ``<ruled epoch>:reopen:<region hash>``
+#: (MODEL-562, ``decision.ruling_reread``); the owner may rule again in such an epoch.
+REOPEN_MARK = ":reopen:"
+_REOPENED = re.compile(rf"(?:{re.escape(REOPEN_MARK)}[0-9a-f]{{64}})+")
+
+
+def ruled_epoch(fact: Mapping[str, Any]) -> str:
+    """The epoch a ruled fact's ruling is checked in: rule 15's (``fact_epoch``), or a reopened
+    epoch that extends it (``<fact_epoch>:reopen:<hash>``, repeated), when the ruling block names
+    one. A block cannot name any other epoch: one that does is checked in rule 15's, where its
+    ruling line is not. Only the gate reads in a reopened epoch, and only once the rolling
+    re-read recorded it, so a disagreement logged there is one the gate made."""
+    base = fact_epoch(fact)
+    block = ruling_block(fact)
+    epoch = block.get("epoch") if block is not None else None
+    if isinstance(epoch, str) and epoch.startswith(base) \
+            and _REOPENED.fullmatch(epoch[len(base):]):
+        return epoch
+    return base
+
+
 def cited_change_logged(fact: Mapping[str, Any], subject: str,
                         attempts: Sequence[Mapping[str, Any]]) -> bool:
     """Whether the fact's cited-change block (which names its re-read epoch) is one the gate
@@ -380,7 +401,8 @@ def admits(fact: Mapping[str, Any], subject: str, *, rulings: Sequence[Mapping[s
     ``subject`` is the fact's owner as the build places it (the card's model id, or the
     offering row's own id), never the fact's stored subject. Exactly one ruling line is
     for this subject, facet and the fact's epoch (rule 15's, never the block's, from a
-    cited-change block the attempt log shows the gate made: ``cited_change_logged``); the
+    cited-change block the attempt log shows the gate made: ``cited_change_logged``; or a
+    reopened epoch that extends it, ``ruled_epoch``, MODEL-562); the
     block is that line; the ruling is valid and the latest admitted change (its claim is the
     fact's latest, ``is_latest_change``; ``claims`` is ``latest_ruling_claims``); the fact's
     stored id (when any) is its location id; its value and state are exactly the ruling's;
@@ -403,7 +425,7 @@ def admits(fact: Mapping[str, Any], subject: str, *, rulings: Sequence[Mapping[s
         return False
     if not cited_change_logged(fact, subject, attempts):
         return False
-    key = (subject, facet, fact_epoch(fact))
+    key = (subject, facet, ruled_epoch(fact))
     lines = [r for r in rulings if (r.get("subject"), r.get("facet"), r.get("epoch")) == key]
     if len(lines) != 1:
         return False

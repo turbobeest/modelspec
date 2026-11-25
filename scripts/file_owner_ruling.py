@@ -9,7 +9,8 @@ Dry-run unless ``--write``. It refuses, with one named reason and nothing writte
 every condition holds:
 
 * a complete ``readers_disagree`` attempt is logged for exactly this subject, facet and
-  epoch (``verification/cited-attempts.jsonl``), and the epoch is the fact's current one;
+  epoch (``verification/cited-attempts.jsonl``), and the epoch is the fact's current one, or a
+  reopened epoch of its standing ruling that the rolling re-read recorded (MODEL-562);
 * ``--ruled-by`` is an owner (``decision.owner_ruling.OWNERS``) and a ticket is given;
 * the fact is not quarantined. Lifting a quarantine is the owner's open question: refused;
 * the value fits the facet's ``value_type`` (``known``), or there is none (``not_disclosed``);
@@ -59,6 +60,7 @@ from decision.owner_ruling import (
     disagreed,
     fact_epoch,
     loads,
+    ruled_epoch,
     ruling_problem,
     source_copies,
 )
@@ -218,6 +220,25 @@ def _source_rows(root: Path) -> dict[str, dict[str, Any]]:
     return {row["id"]: row for row in rows}
 
 
+def reopened(root: Path, found: Any, subject: str, facet: str, epoch: str,
+             urls: dict[str, str], today: Any) -> bool:
+    """Whether ``epoch`` is a reopened epoch of the fact's standing ruling that the rolling
+    re-read recorded (MODEL-562, ``decision.ruling_reread``): the owner may rule on a
+    disagreement there. A ruling the build would not admit reopens nothing."""
+    from decision.owner_ruling import read_ruling_inputs
+    from decision.ruling_reread import Records, standing_ruling
+
+    try:
+        inputs = read_ruling_inputs(root)
+        records = Records.read(root)
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
+    if standing_ruling(found.fact, subject, inputs=inputs, sources=urls, today=today) is None:
+        return False
+    line = records.reopened.get((f"{subject}#{facet}", epoch))
+    return line is not None and line.get("ruled_epoch") == ruled_epoch(found.fact)
+
+
 def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ruled_by: str,
          ruled_at: str, ticket: str, source_ids: list[str], basis: str, epoch: str = "initial",
          resolves: list[str] | None = None, now: datetime | None = None) -> Plan:
@@ -293,7 +314,8 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
     if not cited_change_logged(found.fact, subject, attempts):
         raise Refused("epoch_not_current", "the fact's cited-change block is not one the "
                       "attempt log shows the gate made, so it names no epoch")
-    if fact_epoch(found.fact) != epoch:
+    if epoch not in {fact_epoch(found.fact), ruled_epoch(found.fact)} \
+            and not reopened(root, found, subject, facet, epoch, urls, now.date()):
         raise Refused("epoch_not_current", "the fact is in another epoch than the ruling's")
     from decision.retention import cite_only_status
 
