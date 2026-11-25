@@ -758,6 +758,18 @@ def _incomplete_values(entries: Sequence[Mapping[str, Any]]) -> list[JsonValue]:
             for r in a.get("readers") or [] if "value" in r]
 
 
+def _ruled_epoch(found: Lookup, subject: str, source_id: str, url: str, page_bytes: bytes) -> str:
+    """The epoch a ruled fact is read in, from the page just fetched (MODEL-562)."""
+    import os
+
+    from decision.ruling_reread import gate_epoch
+
+    sources = {str(k): str(v.get("url")) for k, v in found.sources.items()
+               if isinstance(v, Mapping) and v.get("url")}
+    return gate_epoch(found.fact, subject, source_id=source_id, url=url, page_bytes=page_bytes,
+                      sources=sources, data_dir=os.environ.get(DATA_DIR_ENV, "").strip() or ".")
+
+
 def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader],
           request: Request | None, allow_unchanged: bool,
           page: tuple[bytes, tuple[str, ...]] | None = None,
@@ -801,6 +813,18 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     # (``harness`` false, seeded) authorises nothing, but a disagreement from them still blocks.
     # The epoch is the filed fact's own (``fact_epoch``), never the caller's.
     current = fact_epoch(found.fact)
+    from decision.owner_ruling import has_ruling
+
+    if has_ruling(found.fact):
+        # MODEL-562: a ruled fact is read in the epoch its page's text names
+        # (``decision.ruling_reread``), so the page is fetched first. A changed page reopens
+        # rule 15; an unchanged one is the ruling's epoch, where the disagreement still blocks.
+        if page is None:
+            fetched = _fetch(row["url"], request or _http_once, retaining=retaining)
+            if isinstance(fetched, CitedChange):
+                return fetched
+            page = fetched
+        current = _ruled_epoch(found, subject, source_id, row["url"], page[0])
     if epoch is not None and epoch != current:
         return _refuse("epoch_not_current",
                        "the named epoch is not the filed fact's; the gate reads only in that one")

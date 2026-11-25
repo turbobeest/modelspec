@@ -215,6 +215,22 @@ Learned expensively during 2026-09-09/10.
     (`prior_attempt_disagreed` still holds); a fresh agreement in a later epoch follows the
     rule above.
 
+    **A changed page reopens a ruled fact (MODEL-562).** The rolling re-read
+    (`ruled_fact_rereads`, `decision.ruling_reread`) reads each page a standing ruling cites,
+    with the host class read before any request (a cite-only page, in memory, no byte kept;
+    a source whose host now retains copies is counted, not read; an unclassed one is never
+    requested). A page whose visible-text hash is one read in the ruled epoch is unchanged:
+    the ruled value stands and no reader is asked. A new text hash is appended once per fact
+    and epoch to `reports/evidence-reread/ruled-reopenings.jsonl` (ids and hashes only), and
+    the gate then reads the fact in `<ruled epoch>:reopen:<text hash>`, where two agreeing
+    readers may supersede the ruling. The gate derives that epoch from the page it fetched
+    itself, only for a valid ruling, on one of the ruling's sources, when every attempt in the
+    ruled epoch on that page logged a text hash and none is the page's; otherwise the fact
+    stays in its ruled epoch. A page back at a ruled text is the ruled epoch again, and a
+    disagreement in a reopened epoch blocks that epoch. The report carries counts only. A fact
+    a quarantine clearing (MODEL-552) made carries its own cited-change block and is re-read
+    with the cited-change facts, in the epoch that block's text hash names.
+
 16. **A confirmed fact no engine reader can read** (MODEL-558, Jamie 2026-11-25, queue 16f).
     Extend the engine's readers first; the two readers come second, and no new verification
     kind or contract field is added. `decision/verify.py` has three deterministic readers for

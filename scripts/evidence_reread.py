@@ -20,6 +20,14 @@ is read once, in memory, and only the sha256 of its normalised visible text is k
 in ``WATCH_STATE``. A page whose text changed since the last run is listed with every
 watched fact that cites it, for a person to re-read; nothing on a card changes.
 
+Each run also reads the pages that owner-ruled facts cite (MODEL-562,
+``decision.ruling_reread``), with the same class check before any request: only a page on a
+cite-only host is read, in memory, and only the sha256 of its normalised visible text is
+used. A page whose text is one read in the ruled epoch is unchanged: the ruled value stands
+and no reader is asked. A page whose text is new reopens the fact to rule 15 in a new epoch,
+and the run appends the hash to ``decision.ruling_reread.RECORD_FILE`` once per epoch. The
+report carries counts only.
+
 No paid client is used, and no model is called.
 """
 
@@ -69,6 +77,14 @@ RETAINING_CLASSES = frozenset({"permits", "restricts"})
 #: page changes when it deprecates or retires a model, so the lifecycle facet is here.
 #: Adding a facet adds its pages to the weekly rotation.
 WATCHED_FACETS = ("model.lifecycle",)
+#: What the ruled-fact re-read counts (MODEL-562). Per page of a standing ruling: ``current``
+#: (a text read in the ruled epoch), ``reopened`` (a new text: a new epoch recorded),
+#: ``open`` (a reopened epoch recorded already), ``deferred``, ``blocked`` (a refused redirect),
+#: ``no_text_hash`` (an attempt in the ruled epoch recorded none, so no change can be shown).
+#: Per fact: ``invalid`` (no standing ruling), ``now_retaining`` (a source's host retains copies
+#: now: the verified path applies, nothing is read here), ``unclassed`` (not requested).
+RULED_OUTCOMES = ("current", "reopened", "open", "deferred", "blocked", "no_text_hash",
+                  "invalid", "now_retaining", "unclassed")
 #: Per watched page: the sha256 of its normalised visible text and the day it was read.
 #: Hashes only, never page text, so a cite-only host keeps no bytes here.
 WATCH_STATE = "reports/evidence-reread/watched-pages.json"
@@ -359,6 +375,13 @@ class Report:
     #: exactly what it was before the watch existed: no watched fields, no watched line.
     watched_facts_checked: int = 0
     redirects_dropped: list[str] = field(default_factory=list)
+    #: Owner-ruled facts read this run (MODEL-562) and what their pages showed, as counts. With
+    #: none, the report is exactly what it was before: no ruled fields, no ruled line.
+    ruled_facts_checked: int = 0
+    ruled: Counter = field(default_factory=Counter)
+    #: Cited-change facts a quarantine clearing made (their block names a ``clearing_epoch``,
+    #: MODEL-552), re-read with the other cited-change facts. Counted only.
+    cleared_facts_checked: int = 0
 
     def note(self, outcome: str, host: str, target_id: str = "") -> None:
         self.counts[outcome] += 1
@@ -392,6 +415,13 @@ class Report:
                 "watched_pages_changed": sorted(self.watched_changed),
                 "watched_rereads_required": sorted(self.watched_rereads),
             })
+        if self.ruled_facts_checked:
+            data.update({
+                "ruled_facts_checked": self.ruled_facts_checked,
+                "ruled": {k: self.ruled.get(k, 0) for k in RULED_OUTCOMES},
+            })
+        if self.cleared_facts_checked:
+            data["cleared_facts_checked"] = self.cleared_facts_checked
         return data
 
 
@@ -487,6 +517,8 @@ def run(root: Path, *, observed_at: date, dry_run: bool, store_root: Path,
                          dry_run=dry_run)
     watched_page_rereads(root, terms, report, sources=sources, request=request, pacer=pacer,
                          observed_at=observed_at, dry_run=dry_run)
+    ruled_fact_rereads(root, terms, report, sources=sources, request=request, pacer=pacer,
+                       observed_at=observed_at, dry_run=dry_run)
     refresh_redirects(root, terms, report, observed_at=observed_at, dry_run=dry_run, request=request,
                       pacer=pacer)
     return report
@@ -522,7 +554,13 @@ def cited_change_rereads(root: Path, terms: dict[str, str], report: "Report", *,
     last = _last_requests(root)
     pages: dict[str, Fetched] = {}
     for fact in [*cited_change_facts(root), *cited_change_readings(root)]:
+        if "owner_ruling" in (fact.get("derivation") or ()):
+            # A ruled fact keeps the block of the epoch it was ruled in; its page is compared
+            # with the texts read in that epoch, by ``ruled_fact_rereads`` (MODEL-562).
+            continue
         block = cited_change_block(fact)
+        if "clearing_epoch" in block:
+            report.cleared_facts_checked += 1
         url = block["url"]
         # The origin's current class is read before any request (MODEL-558 review). A
         # retaining-host agreement is re-read only while its origin still retains copies: one on
@@ -559,6 +597,104 @@ def cited_change_rereads(root: Path, terms: dict[str, str], report: "Report", *,
                     fh.write(json.dumps({"target": target, "at": now.isoformat()}) + "\n")
         else:
             report.note("cited_change_current", host_of(url))
+
+
+def ruled_fact_rereads(root: Path, terms: dict[str, str], report: Report, *, sources=None,
+                       request=None, pacer: Pacer | None = None, observed_at: date | None = None,
+                       dry_run: bool = True) -> None:
+    """Read each page an owner-ruled fact cites and reopen the fact when its text is new
+    (MODEL-562, ``decision.ruling_reread``).
+
+    The host's class is read before any request: a ruling's source on a host that now retains
+    copies is counted (``now_retaining``) and not read here, and an unclassed one is never
+    requested. A cite-only page is read once, in memory; no byte is kept and only its text hash
+    is compared with the texts read in the ruled epoch. An unchanged page changes nothing and
+    asks no reader. A new text appends one line to ``RECORD_FILE`` per fact and epoch, never
+    twice. This run changes no card, no fact and no verification record.
+    """
+    from decision import ruling_reread as rr
+    from decision.cited_change import fact_epoch
+    from decision.cited_reader import ATTEMPTS_FILE
+    from decision.owner_ruling import RULINGS_FILE, read_lines, ruling_block
+
+    facts = rr.ruled_facts(root)
+    if not facts:
+        return
+    if sources is None:
+        from decision.sources import load_sources
+
+        sources = load_sources(root / "registry" / "sources.yaml")
+    urls = {str(k): str(v.url) for k, v in sources.items()}
+    pacer = pacer or Pacer()
+    day = observed_at or date.today()
+    try:
+        rulings = read_lines(root / RULINGS_FILE)
+        attempts = read_lines(root / ATTEMPTS_FILE)
+        done = rr.recorded(root)
+    except (OSError, ValueError):  # a log that cannot be read stands no ruling: nothing is read
+        report.ruled_facts_checked += len(facts)
+        report.ruled["invalid"] += len(facts)
+        return
+    pages: dict[str, Fetched] = {}
+    lines: list[dict] = []
+    for entry in facts:
+        subject, facet, fact = str(entry["subject"]), str(entry["facet"]), entry["fact"]
+        report.ruled_facts_checked += 1
+        block = ruling_block(fact) or {}
+        cited = [urls.get(str(sid)) for sid in block.get("source_ids") or ()]
+        classes = [host_class(url, terms) if url else "unclassed" for url in cited]
+        if "retaining" in classes:
+            report.ruled["now_retaining"] += 1
+            continue
+        if "unclassed" in classes:
+            report.ruled["unclassed"] += 1
+            for url in cited:
+                if url and host_class(url, terms) == "unclassed":
+                    host = host_of(url) or "?"
+                    report.unclassed_hosts[host] = report.unclassed_hosts.get(host, 0) + 1
+            continue
+        ruling = rr.standing_ruling(fact, subject, rulings=rulings, attempts=attempts,
+                                    sources=urls, today=day)
+        if ruling is None:
+            report.ruled["invalid"] += 1
+            continue
+        ruled = fact_epoch(fact)
+        for source_id in ruling["source_ids"]:
+            url = urls[source_id]
+            if host_class(url, terms) not in {"forbids", "cite-only"}:  # read before every request
+                report.ruled["now_retaining"] += 1
+                continue
+            if url not in pages:
+                pacer.wait(host_of(url))
+                pages[url] = fetch(url, terms, request=request)
+                if pages[url].kind == "blocked":
+                    report.blocked_hosts[pages[url].blocked_host] += 1
+            page = pages[url]
+            if page.kind != "ok":
+                report.ruled["blocked" if page.kind == "blocked" else "deferred"] += 1
+                continue
+            digest = text_sha256(page.body)
+            seen = rr.ruled_texts(attempts, subject=subject, facet=facet, epoch=ruled, url=url)
+            if not seen:
+                report.ruled["no_text_hash"] += 1
+                continue
+            epoch = rr.epoch_for_page(fact, subject, source_id=source_id, url=url, text_sha=digest,
+                                      rulings=rulings, attempts=attempts, sources=urls, today=day)
+            if epoch == ruled:
+                report.ruled["current"] += 1
+            elif (f"{subject}#{facet}", epoch) in done:
+                report.ruled["open"] += 1
+            else:
+                report.ruled["reopened"] += 1
+                done.add((f"{subject}#{facet}", epoch))
+                lines.append(rr.record_line(subject=subject, facet=facet, ruled_epoch=ruled,
+                                            source_id=source_id, text_sha=digest, day=day))
+    if lines and not dry_run:
+        path = root / rr.RECORD_FILE
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as fh:
+            for line in lines:
+                fh.write(json.dumps(line, sort_keys=True) + "\n")
 
 
 def watched_facts(root: Path, facets=WATCHED_FACETS) -> list[dict]:
@@ -713,6 +849,11 @@ def render(report: Report) -> str:
         lines.append(f"- Watched pages ({', '.join(data['watched_facets'])}, "
                      f"{data['watched_facts_checked']} facts): "
                      + ", ".join(f"{k} {n}" for k, n in data["watched_pages"].items()) + ".")
+    if "ruled" in data:
+        lines.append(f"- Owner-ruled facts ({data['ruled_facts_checked']} checked): "
+                     + ", ".join(f"{k} {n}" for k, n in data["ruled"].items()) + ".")
+    if "cleared_facts_checked" in data:
+        lines.append(f"- Quarantine-cleared facts re-read: {data['cleared_facts_checked']}.")
     if data["mismatches"]:
         lines += ["", "### Mismatch: these rows no longer match their source", ""]
         lines += [f"- {target}" for target in data["mismatches"]]
