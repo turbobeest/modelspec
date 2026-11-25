@@ -8194,12 +8194,14 @@ class Queue:
         """Retire filed claims whose data row is gone (MODEL-557): nothing is pending, filed
         or drawn for a target until a collector files it again.
 
-        ``reason`` is one of ``RETIRE_REASONS``, a fixed code, never page text. ``root`` is
-        the data checkout (default: the parent of this queue's ``verification`` directory).
-        The whole call is refused, and nothing is appended, when the root holds no ``models``
-        directory, when a target has no filed claim, or when a card fact, offering fact or
-        evidence row in the root still holds it (``data_row_targets``). No line is edited:
-        the claim lines stay as history.
+        ``reason`` is one of ``RETIRE_REASONS``, a fixed code, never page text. The data
+        checkout is always the parent of this queue's ``verification`` directory, so the
+        rows checked are the rows of the checkout the event is written to; a ``root`` that
+        names another directory is refused. The whole call is refused, and nothing is
+        appended, when the queue is not at ``<root>/verification``, when the root holds no
+        ``models`` directory, when a target has no filed claim, or when a card fact,
+        offering fact or evidence row in the root still holds it (``data_row_targets``).
+        No line is edited: the claim lines stay as history.
         """
         if reason not in RETIRE_REASONS:
             raise ValueError(f"retire reason must be one of {sorted(RETIRE_REASONS)}")
@@ -8208,7 +8210,12 @@ class Queue:
         keys = [_key(ref) for ref in refs]
         if not refs or len(set(keys)) != len(keys):
             raise ValueError("retire needs at least one target, each named once")
-        root = Path(root) if root is not None else self.directory.parent
+        if self.directory.name != "verification":
+            raise ValueError("retire needs a queue at <data root>/verification")
+        derived = self.directory.resolve().parent
+        if root is not None and Path(root).resolve() != derived:
+            raise ValueError("retire refused: root is not the checkout of this queue")
+        root = derived
         if not (root / "models").is_dir():
             raise ValueError("retire needs the data checkout: no models directory at its root")
         filed, rows = self.filed(), data_row_targets(root)

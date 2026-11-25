@@ -86,6 +86,26 @@ def test_queue_retire_refuses_outside_a_data_checkout(tmp_path, monkeypatch):
         queue.retire(BETA.target, at=AT, reason="no_data_row")
 
 
+def test_queue_retire_checks_the_checkout_it_writes_to(root, tmp_path_factory, monkeypatch):
+    """Rows come from the queue's own checkout: another root is refused (MODEL-557)."""
+    other = tmp_path_factory.mktemp("other")
+    (other / "models").mkdir()
+    seen = []
+    monkeypatch.setattr(verify, "data_row_targets", lambda r: seen.append(r) or set())
+    queue = verify.Queue(root / "verification")
+    before = lines(root)
+    with pytest.raises(ValueError, match="not the checkout"):
+        queue.retire(ALPHA.target, at=AT, reason="no_data_row", root=other)
+    assert lines(root) == before and seen == []
+    queue.retire(BETA.target, at=AT, reason="no_data_row", root=root)
+    assert seen == [root.resolve()]
+
+
+def test_queue_retire_refuses_a_queue_outside_verification(root):
+    with pytest.raises(ValueError, match="verification"):
+        verify.Queue(root / "elsewhere").retire(BETA.target, at=AT, reason="no_data_row")
+
+
 def test_accuracy_draws_skip_a_retired_claim(root):
     queue = verify.Queue(root / "verification")
     path = root / "verification" / "queue" / "events.jsonl"
