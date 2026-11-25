@@ -802,7 +802,9 @@ def _epoch_at_verdict(verdict: Mapping[str, Any], *, subject: str, facet: str, f
     if derived is None:
         return _refuse("quarantined", "the record's epoch when the verdict was made cannot be "
                        f"shown; {QUARANTINED}")
-    if derived != base:
+    # A board row filed in its settings epoch is in a board epoch of it once the gate names one
+    # (MODEL-555): the board moved since, and the clearing extends the epoch the row is in now.
+    if derived != base and not (derived == first and is_board_epoch(base, first)):
         return _refuse("epoch_not_current",
                        "the record's epoch now is not its epoch when the verdict was made")
     return None
@@ -1162,13 +1164,13 @@ def cited_change(*, subject: str, facet: str, source_id: str, readers: Sequence[
 #
 # A row's epoch includes the board page (MODEL-555, Jamie 2026-11-25). A row with no cited
 # change used to be read in its settings epoch alone, so one split of its readers blocked it for
-# good, whatever the board later said. Its epoch now names the hash of the board's cited region
-# (``board_region_sha256``), from a page the gate fetched itself (``board_epoch``): re-reading the
+# good, whatever the board later said. Its epoch now names the row's board region
+# (``row_region_sha256``: every eligible source the row cites, each by its cited-region hash,
+# ``board_region_sha256``), from pages the gate fetched itself (``board_epoch``): re-reading the
 # same board, or one that changed outside the cited region, stays in the epoch where the split
 # blocks; a changed cited region opens a new epoch, where two agreeing readers may settle it.
-# Attempts logged before region hashes are compared by the visible-text hash rule 15 records
-# (``text_sha256``, or the one recorded for the same page bytes); one whose page cannot be named
-# keeps the row in its settings epoch.
+# It fails closed: a complete attempt in the settings epoch with no recorded region hash (logged
+# before region hashes, or through a caller's transport) keeps the row in its settings epoch.
 
 BENCHMARK_PREFIX = "benchmark:"
 BENCHMARK_AUTHOR = "benchmark_author"
@@ -1247,9 +1249,9 @@ def reading_epoch(reading: Mapping[str, Any], row: Mapping[str, Any] | None = No
     change, the text hash that change recorded (as the fact gate's re-read epoch). A later
     reading of a board that moved starts a new epoch; a disagreement within one still blocks.
 
-    ``board`` (MODEL-555, Jamie 2026-11-25): for a row with no cited change, the hash of the
-    board page's cited region (``board_region_sha256``) as the gate resolved it from a page it
-    fetched itself (``board_epoch``). The epoch is then ``<settings epoch>:board:<hash>``, so a
+    ``board`` (MODEL-555, Jamie 2026-11-25): for a row with no cited change, the row's board
+    region (``row_region_sha256``) as the gate resolved it from pages it fetched itself
+    (``board_epoch``). The epoch is then ``<settings epoch>:board:<hash>``, so a
     board whose cited region changed opens a new epoch for an unchanged row. A row that carries
     a cited change keeps its re-read epoch."""
     base = "reading:" + sha256(canonical({k: reading.get(k) for k in READING_KEYS}, "_"))[:16]
@@ -1266,19 +1268,77 @@ def _fold(text: str) -> str:
     return re.sub(r"\s+", " ", html.unescape(text)).strip()
 
 
+#: Page parts that announce or rotate, never a board's rows (MODEL-555 review): dropped before the
+#: cited region is hashed, as are clock times with or without a zone.
+_BOARD_VOLATILE_ROLES = frozenset({"banner", "alert", "alertdialog", "status", "marquee", "timer",
+                                   "log"})
+_BOARD_VOLATILE_TOKEN = re.compile(
+    r"^(?:[\w-]*[-_])?(?:banner|announce\w*|alert|toast|marquee|ticker|carousel|slider|slides?"
+    r"|rotat\w*|notice|notification|promo\w*|countdown|clock|timestamp|time-?ago|live)"
+    r"(?:[-_][\w-]*)?$", re.IGNORECASE)
+_BOARD_CLOCK = re.compile(
+    r"\b\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:\s*(?:[ap]\.?m\.?|z\b|utc|gmt|[a-z]{2,4}t\b))?",
+    re.IGNORECASE)
+_HTML_LIKE = re.compile(rb"<(?:html|body|main|div|table|tr|td|p|span|section|article)\b",
+                        re.IGNORECASE)
+
+
+def _board_volatile(node: Any) -> bool:
+    if node.tag in ("marquee", "blink"):
+        return True
+    live = node.attrs.get("aria-live")
+    if live is not None and live.lower() != "off":
+        return True
+    if node.attrs.get("role", "").lower() in _BOARD_VOLATILE_ROLES:
+        return True
+    tokens = (*node.classes, *node.attrs.get("id", "").split())
+    return any(_BOARD_VOLATILE_TOKEN.match(t) for t in tokens)
+
+
+def _drop_board_volatile(node: Any) -> None:
+    from decision.normalise import Node
+
+    node.children = [c for c in node.children
+                     if not (isinstance(c, Node) and _board_volatile(c))]
+    for child in node.children:
+        if isinstance(child, Node):
+            _drop_board_volatile(child)
+
+
+def _board_rows(doc: Any) -> str | None:
+    """A board's rows: the text of every outermost table, or the page text when it has none."""
+    from decision.normalise import _nodes_text
+
+    tables = [n for n in doc.root.elements() if n.tag == "table"
+              and not any(a.tag == "table" for a in _ancestors(n))]
+    return _nodes_text(tables or [doc.root], doc.rules) or None
+
+
+def _ancestors(node: Any):
+    up = node.parent
+    while up is not None:
+        yield up
+        up = up.parent
+
+
 def board_region_sha256(row: Mapping[str, Any], source_id: str, source: Mapping[str, Any],
                         page_bytes: bytes) -> str | None:
     """The hash of the regions of ``source_id`` the board row cites, or ``None`` when they
     cannot be selected (no registered region, an unknown normaliser or locator, content the
-    normaliser refuses). The hash is built as the cited-region hash of engine#1171 (MODEL-562,
+    normaliser refuses). The hash is shaped as the cited-region hash of engine#1171 (MODEL-562,
     ``decision.ruling_reread.region_sha256``): each region the row's source reference names (or
-    every registered one), selected by the source's own normaliser and locator
-    (``decision.normalise``: volatile text such as update times, tracking, page furniture
-    stripped) and folded as rule 15 folds visible text. A text recipe reads rule 15's visible
-    text of the page (``normalised_text``), never its markup, so script and markup churn never
-    reach the hash. A region that matches nothing hashes as absent, which is a change."""
+    every registered one), selected by the source's own locator and folded as rule 15 folds
+    visible text.
+
+    A board is hashed by its rows, never by what rotates around them (MODEL-555 review). An
+    HTML page is parsed as HTML even under a text recipe (its markup is never hashed), page
+    furniture is dropped (``decision.normalise``), and so is anything that announces or rotates
+    (banner, alert, status and live regions, carousels, tickers, clocks). A whole-page region is
+    the page's tables, when it has any. Volatile text (update times) and clock times, with or
+    without a zone, are stripped. A region that matches nothing hashes as absent, a change."""
     from decision.normalise import (
-        NORMALISERS, Locator, UnsupportedContentError, normalise_document, select_region,
+        NORMALISERS, Document, Locator, UnsupportedContentError, _nodes_text, normalise_document,
+        select_region,
     )
 
     ref = next((r for r in row.get("sources") or () if isinstance(r, Mapping)
@@ -1289,18 +1349,55 @@ def board_region_sha256(row: Mapping[str, Any], source_id: str, source: Mapping[
     rules = NORMALISERS.get(str(source.get("normaliser") or "html-default"))
     if not wanted or rules is None or any(i not in registered for i in wanted):
         return None
-    body = normalised_text(page_bytes).encode("utf-8") if rules.content == "text" else page_bytes
+    if rules.content == "text" and _HTML_LIKE.search(page_bytes):
+        rules = NORMALISERS["html-default"]
     try:
-        doc = normalise_document(body, rules)
+        doc = normalise_document(page_bytes, rules)
+        if doc.root is not None:
+            _drop_board_volatile(doc.root)
+            doc = Document(doc.rules, _nodes_text([doc.root], doc.rules), doc.root)
         parts = []
         for region_id in wanted:
             locator = registered[region_id].get("locator") or {}
             kind = str(locator.get("kind") or "page")
             kind = "heading" if kind == "heading_anchor" else kind
-            text = select_region(doc, Locator(kind, str(locator.get("value") or "")))
-            parts.append([region_id, None if text is None else _fold(text)])
+            value = str(locator.get("value") or "")
+            if kind == "page" and not value and doc.root is not None:
+                text = _board_rows(doc)
+            else:
+                text = select_region(doc, Locator(kind, value))
+            if text is not None:
+                text = _fold(_BOARD_CLOCK.sub(" ", text)) or None
+            parts.append([region_id, text])
     except (UnsupportedContentError, ValueError, TypeError):
         return None
+    return sha256(json.dumps(parts, ensure_ascii=False, separators=(",", ":")))
+
+
+def row_region_sha256(found: ReadingLookup, now: datetime, *, chosen: str,
+                      page_bytes: bytes) -> str | None:
+    """The board region of the row, not of one source (MODEL-555 review): the hash of every
+    eligible source the row cites (each the board owner's page on a cite-only host,
+    ``_check_board_source``), in source-id order, with its cited-region hash. The chosen
+    source's page is the one just fetched; every other is fetched here, by the gate, with its
+    own transport. ``None`` when any of them cannot be read or hashed: no epoch can open."""
+    eligible = sorted({str(s.get("source_id")) for s in found.row.get("sources") or ()
+                       if isinstance(s, Mapping) and s.get("source_id")
+                       and _check_board_source(found, str(s["source_id"]), now) is None})
+    if chosen not in eligible:
+        return None
+    parts = []
+    for source_id in eligible:
+        body = page_bytes
+        if source_id != chosen:
+            fetched = _fetch(found.sources[source_id]["url"], _http_once)
+            if isinstance(fetched, CitedChange):
+                return None
+            body = fetched[0]
+        region = board_region_sha256(found.row, source_id, found.sources[source_id], body)
+        if region is None:
+            return None
+        parts.append([source_id, region])
     return sha256(json.dumps(parts, ensure_ascii=False, separators=(",", ":")))
 
 
@@ -1333,77 +1430,36 @@ def _board_epochs(lines: Sequence[Mapping[str, Any]], base: str) -> list[dict[st
             and len(e["epoch"]) > len(base + BOARD_MARK)]
 
 
-def _page_texts(url: str) -> dict[str, set[str]]:
-    """The visible-text hashes the gate recorded for each page hash of ``url``: from attempt
-    lines that logged both, and from the cited-change blocks of every board reading in the data
-    directory (a block records the ``sha256`` and ``text_sha256`` of the page its readers read).
-    It names the page an older attempt read when that attempt logged no text hash."""
-    import os
-
-    from decision.cited_reader import ATTEMPTS_FILE
-
-    root = os.environ.get(DATA_DIR_ENV, "").strip()
-    out: dict[str, set[str]] = {}
-    if not root:
-        return out
-    path = Path(root) / ATTEMPTS_FILE
-    lines = path.read_text(encoding="utf-8").splitlines() if path.is_file() else []
-    for raw in lines:
-        entry = json.loads(raw) if raw.strip() else {}
-        if isinstance(entry, dict) and entry.get("url") == url \
-                and _HEX64.fullmatch(str(entry.get("page_sha256") or "")) \
-                and _HEX64.fullmatch(str(entry.get("text_sha256") or "")):
-            out.setdefault(entry["page_sha256"], set()).add(entry["text_sha256"])
-    for reading in cited_change_readings(root):
-        block = (reading.get("derivation") or {}).get("cited_change") or {}
-        if block.get("url") == url and _HEX64.fullmatch(str(block.get("sha256") or "")) \
-                and _HEX64.fullmatch(str(block.get("text_sha256") or "")):
-            out.setdefault(block["sha256"], set()).add(block["text_sha256"])
-    return out
-
-
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 
 
-def board_epoch(*, base: str, lines: Sequence[Mapping[str, Any]], url: str, page_bytes: bytes,
-                region: str | None) -> str:
-    """The epoch an unchanged board row is read in, from the page the gate just fetched itself
-    (MODEL-555). ``base`` is the row's settings epoch, ``lines`` every logged attempt at the
-    subject and facet, ``region`` the page's cited-region hash (``board_region_sha256``).
+def is_board_epoch(epoch: Any, base: str) -> str | None:
+    """The region hash a board epoch of ``base`` names, or ``None`` if ``epoch`` is not one."""
+    prefix = base + BOARD_MARK
+    rest = epoch[len(prefix):] if isinstance(epoch, str) and epoch.startswith(prefix) else ""
+    return rest if _HEX64.fullmatch(rest) else None
 
-    * No region can be selected: ``base``; no page can open an epoch.
-    * The page is one the settings epoch read: ``base``, where its disagreements still block.
-      A complete attempt there read this page when it logged this region hash, or (an attempt
-      older than region hashes) this visible-text hash or these page bytes.
-    * A complete attempt in the settings epoch whose page cannot be named (no region hash, no
-      text hash, and no recorded text for its page bytes, or more than one): ``base``. No change
-      can be shown against it, so nothing opens.
-    * Otherwise ``<base>:board:<region>``. Re-reading the same board, or a board that changed
-      only outside its cited region (a banner, an update time, script churn), lands in the same
-      board epoch, so a disagreement there blocks it; a changed cited region opens a new one.
-    """
-    if region is None:
+
+def board_epoch(*, base: str, lines: Sequence[Mapping[str, Any]], region: str | None) -> str:
+    """The epoch an unchanged board row is read in (MODEL-555). ``base`` is the row's settings
+    epoch, ``lines`` every logged attempt at the subject and facet, ``region`` the row's board
+    region (``row_region_sha256``) from pages the gate fetched itself.
+
+    It fails closed: the row stays in ``base``, where its disagreements block, when no region
+    can be computed, or when any complete attempt in ``base`` has no recorded region hash (an
+    attempt logged before region hashes, or through a caller's transport: its region cannot be
+    shown, so no change can be shown against it) or recorded this region. Otherwise the epoch is
+    ``<base>:board:<region>``: re-reading the same board, or one that changed only outside its
+    cited region, lands in the same board epoch, so a disagreement there blocks it; a changed
+    cited region opens a new one."""
+    if region is None or not _HEX64.fullmatch(region):
         return base
-    legacy = [e for e in lines if e.get("epoch") == base and e.get("complete") is True]
-    text, page = text_sha256(page_bytes), sha256(page_bytes)
-    links: dict[str, set[str]] | None = None
-    for entry in legacy:
-        logged = entry.get("region_sha256")
-        if isinstance(logged, str) and _HEX64.fullmatch(logged):
-            if logged == region:
-                return base
+    for entry in lines:
+        if entry.get("epoch") != base or entry.get("complete") is not True:
             continue
-        if entry.get("page_sha256") == page or entry.get("text_sha256") == text:
+        logged = entry.get("region_sha256")
+        if not (isinstance(logged, str) and _HEX64.fullmatch(logged)) or logged == region:
             return base
-        known = entry.get("text_sha256")
-        if not (isinstance(known, str) and _HEX64.fullmatch(known)):
-            if links is None:
-                links = _page_texts(url)
-            texts = links.get(str(entry.get("page_sha256") or "")) or set()
-            if len(texts) != 1:
-                return base
-            if text in texts:
-                return base
     return f"{base}{BOARD_MARK}{region}"
 
 
@@ -1580,12 +1636,13 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     lets a fresh agreement on a score clear the reading's one held mismatch, read in that
     verdict's clearing epoch; the record then carries ``clearings`` (``cited_change``).
 
-    A row with no cited change is read in the board epoch its page names (MODEL-555,
+    A row with no cited change is read in the board epoch its pages name (MODEL-555,
     ``board_epoch``): the gate fetches the board itself first, and the epoch is the settings
-    epoch, or ``<settings epoch>:board:<cited-region hash>`` once the board's cited region is
-    shown to differ from every page the settings epoch read. Only bytes the gate fetched with
-    its own transport name a board epoch; with a caller's ``request`` the row is read in its
-    settings epoch and a disagreement in any of its board epochs blocks too."""
+    epoch, or ``<settings epoch>:board:<row region hash>`` (``row_region_sha256``) when nothing
+    in the settings epoch holds the row there. Only bytes the gate fetched with its own transport
+    name a board epoch; with a caller's ``request`` the row is read in its settings epoch and a
+    disagreement in any of its board epochs blocks too. A clearing extends the epoch the row is
+    in now."""
     now = datetime.now(UTC)
     if now.tzinfo is None or now > datetime.now(UTC):
         return _refuse("bad_read_date", "the read time is missing, naive or in the future")
@@ -1615,44 +1672,44 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     url = found.sources[source_id]["url"]
     unchanged = _block_of(found.row) is None
     fetched: tuple[bytes, tuple[str, ...]] | CitedChange | None = None
+    region: str | None = None
     try:
         lines = _reading_lines(subject, facet_id) if unchanged else []
     except (OSError, ValueError) as error:
         return _refuse("registry_lookup_failed", f"the attempt log: {type(error).__name__}")
-    # Every attempt in a board epoch of this row (MODEL-555). Counted for disagreement wherever
-    # the row is not read in a board epoch the gate named itself: a clearing, or a caller's
-    # transport, which reads in the settings epoch.
-    boards = [a for a in _board_epochs(lines, base) if a.get("complete")]
+    current = base
+    if unchanged and request is None:
+        # MODEL-555: an unchanged row's epoch names the row's board region, so the gate fetches
+        # the page first, itself, with its own transport, and every other eligible source the
+        # row cites (``row_region_sha256``). Only these bytes can name a board epoch.
+        fetched = _fetch(url, _http_once)
+        if isinstance(fetched, CitedChange):
+            return fetched
+        region = row_region_sha256(found, now, chosen=source_id, page_bytes=fetched[0])
+        current = board_epoch(base=base, lines=lines, region=region)
+    # Outside a board epoch the gate named itself (a caller's transport, or a row its settings
+    # epoch holds), every board epoch's attempts count for disagreement too.
+    boards = [a for a in _board_epochs(lines, base) if a.get("complete")] \
+        if current == base else []
+    epoch = current
     if clearing is not None:
         from decision.quarantine_clearing import clearing_epoch, verdict_sha256
 
         from decision.quarantine_clearing import reading_settings
 
-        epoch = clearing_epoch(base, verdict_sha256(clearing[1]))
+        # A clearing extends the epoch the row is in now: after a genuine board update, the
+        # board epoch the gate named, so a split under an older board region does not block it
+        # (and the build counts the same two epochs, ``quarantine_clearing.line_problem``).
+        epoch = clearing_epoch(current, verdict_sha256(clearing[1]))
         refusal = _epoch_at_verdict(clearing[1], subject=subject, facet=facet_id,
-                                    first=reading_epoch(reading), base=base,
+                                    first=reading_epoch(reading), base=current,
                                     settings=reading_settings({**found.row, **reading}))
         if refusal is not None:
             return refusal
-    elif unchanged and request is None:
-        # MODEL-555: an unchanged row's epoch names the board's cited region, so the gate
-        # fetches the page first, itself, with its own transport. Only these bytes can open a
-        # board epoch; a caller's transport reads in the settings epoch, where every board
-        # epoch's disagreements count too.
-        fetched = _fetch(url, _http_once)
-        if isinstance(fetched, CitedChange):
-            return fetched
-        region = board_region_sha256(found.row, source_id, found.sources[source_id], fetched[0])
-        try:
-            epoch = board_epoch(base=base, lines=lines, url=url, page_bytes=fetched[0],
-                                region=region)
-        except (OSError, ValueError) as error:
-            return _refuse("registry_lookup_failed", f"the attempt log: {type(error).__name__}")
-        if epoch != base:
-            boards = []
     history = [a for a in attempts(subject, facet_id, epoch) if a.get("complete")]
     if clearing is not None:
-        history += [a for a in attempts(subject, facet_id, base) if a.get("complete")]
+        history += [a for a in attempts(subject, facet_id, current) if a.get("complete")]
+    base = current
     # What blocks: this epoch's attempts and, outside a board epoch, every board epoch's.
     blocking = history + boards
     if any(_entry_time(a) is None for a in blocking):
@@ -1665,7 +1722,6 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     if isinstance(fetched, CitedChange):
         return fetched
     page_bytes, resolved = fetched
-    region = board_region_sha256(found.row, source_id, found.sources[source_id], page_bytes)
     definition = reading_definition(found.benchmark, reading)
     answers: list[ReaderAnswer] = []
     for _ in range(2):
