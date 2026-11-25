@@ -305,7 +305,9 @@ def test_a_variant_name_never_lands_on_another_card(monkeypatch, tmp_path: Path)
     assert row["model_id_as_evaluated"] == "Deep 2 Thinking"
     assert row["score"] == 1230.0 and row.get("effort") is None
     refused = _refusals(report)
-    assert refused["Deep 2 (thinking)"] == ("lab/deep-2", "board name contains parentheses")
+    # The nearest card keeps the qualifier: the folded name is the Thinking card's.
+    assert refused["Deep 2 (thinking)"] == (
+        "lab/deep-2-thinking", "board name contains parentheses")
     assert "deep-2-high" not in refused and "Deep 2 (high)" not in refused
     assert report.first_rows_unmatched == {"arena:arena_elo_overall": 1}
 
@@ -409,6 +411,136 @@ def test_two_effort_rows_for_a_card_read_at_no_effort_file_neither(
 
     assert _rows(card) == []
     assert {entry.reason for entry in report.first_rows_refused} == {_TWO}
+
+
+# --- the MODEL-478 adversarial review's confirmed cases ---------------------------------------
+
+
+def test_an_unqualified_name_never_selects_the_qualified_card(monkeypatch, tmp_path: Path) -> None:
+    """Qwen3-Next: the card side keeps "(Thinking)" and "Instruct"; nothing is stripped."""
+    root = _repo(tmp_path)
+    thinking = _card(root, "qwen3-next-80b-a3b-thinking", "Qwen3-Next 80B-A3B (Thinking)",
+                     lab="qwen")
+    instruct = _card(root, "qwen3-next-80b-a3b-instruct", "Qwen3-Next 80B-A3B Instruct",
+                     lab="qwen")
+
+    report = _run(monkeypatch, tmp_path, root, [_dataset_row("Qwen3-Next 80B-A3B", 1200.0)])
+
+    assert _rows(thinking) == [] and _rows(instruct) == []
+    assert report.first_rows == []
+    assert report.first_rows_unmatched == {"arena:arena_elo_overall": 1}
+
+
+def test_the_full_qualified_name_files_on_its_own_card(monkeypatch, tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    thinking = _card(root, "qwen3-next-80b-a3b-thinking", "Qwen3-Next 80B-A3B (Thinking)",
+                     lab="qwen")
+    instruct = _card(root, "qwen3-next-80b-a3b-instruct", "Qwen3-Next 80B-A3B Instruct",
+                     lab="qwen")
+
+    report = _run(monkeypatch, tmp_path, root, [
+        _dataset_row("qwen3-next-80b-a3b-thinking", 1210.0),
+        _dataset_row("Qwen3-Next 80B-A3B Instruct", 1190.0),
+    ])
+
+    assert report.quarantined == [], report.quarantined
+    assert [(row["model_id_as_evaluated"], row["score"]) for row in _rows(thinking)] == [
+        ("qwen3-next-80b-a3b-thinking", 1210.0)]
+    assert [(row["model_id_as_evaluated"], row["score"]) for row in _rows(instruct)] == [
+        ("Qwen3-Next 80B-A3B Instruct", 1190.0)]
+
+
+def test_a_lone_effort_variant_card_is_never_its_own_base(monkeypatch, tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    by_name = _card(root, "foo-xhigh", "Foo (xHigh)")
+    by_id = _card(root, "bar", "Bar xHigh")
+
+    report = _run(monkeypatch, tmp_path, root, [
+        _dataset_row("Foo (xHigh)", 1200.0), _dataset_row("Bar (xHigh)", 1190.0),
+        _dataset_row("Bar xHigh", 1180.0),
+    ])
+
+    assert _rows(by_name) == [] and _rows(by_id) == []
+    refused = _refusals(report)
+    variant = "the card is itself an effort variant, not a base card"
+    assert refused["Foo (xHigh)"] == ("lab/foo-xhigh", variant)
+    assert refused["Bar (xHigh)"] == ("lab/bar", variant)
+    assert refused["Bar xHigh"] == ("lab/bar", variant)
+
+
+def test_a_sole_dated_snapshot_card_never_takes_a_base_row(monkeypatch, tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    dated = _card(root, "gpt-x-2025-01-31", "GPT X")
+    stamped = _card(root, "orbit-0711", "Orbit")
+
+    report = _run(monkeypatch, tmp_path, root, [
+        _dataset_row("GPT X", 1200.0), _dataset_row("Orbit", 1190.0),
+        _dataset_row("gpt-x-2025-01-31", 1180.0),
+    ])
+
+    refused = _refusals(report)
+    dated_reason = "a dated snapshot card; the board name states none of its dates"
+    assert refused["GPT X"] == ("lab/gpt-x-2025-01-31", dated_reason)
+    assert refused["Orbit"] == ("lab/orbit-0711", dated_reason)
+    assert _rows(stamped) == []
+    # The board name that states the snapshot's date is the snapshot's own name.
+    assert [row["model_id_as_evaluated"] for row in _rows(dated)] == ["gpt-x-2025-01-31"]
+
+
+def _stored_arena_row(name: str, model: str) -> str:
+    return TEMPLATE_ROWS.replace("arena_elo_overall", "arena_webdev").replace(
+        "Template Model", name).replace("lab/template#", f"{model}#")
+
+
+def test_a_former_name_of_another_card_is_refused(monkeypatch, tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    new = _card(root, "orbit-3", "Orbit 3")
+    # Orbit 3 Pro was filed on Arena under the name "Orbit 3" before the board renamed it.
+    pro = _card(root, "orbit-3-pro", "Orbit 3 Pro",
+                rows=_stored_arena_row("Orbit 3", "lab/orbit-3-pro"))
+    renamed = _card(root, "orbit-4", "Orbit 4", extra="former_names:\n- Orbit Four\n")
+    other = _card(root, "orbit-four", "Orbit Four")
+
+    report = _run(monkeypatch, tmp_path, root, [
+        _dataset_row("Orbit 3", 1200.0), _dataset_row("Orbit Four", 1190.0),
+    ])
+
+    assert _rows(new) == [] and _rows(other) == [] and _rows(renamed) == []
+    assert len(_rows(pro)) == 1
+    refused = _refusals(report)
+    alias = "the board name is another card's alias or former name"
+    assert refused["Orbit 3"] == ("lab/orbit-3", alias)
+    assert refused["Orbit Four"] == ("lab/orbit-four", alias)
+
+
+def test_a_name_reused_by_two_cards_is_refused(monkeypatch, tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    one = _card(root, "nova", "Nova", rows=_stored_arena_row("Nova", "lab/nova"))
+    two = _card(root, "nova-2", "Nova 2", rows=_stored_arena_row("Nova", "lab/nova-2"))
+
+    # Nova has a webdev row already; the coding board is its first row there.
+    report = _run(monkeypatch, tmp_path, root, [_dataset_row("Nova", 1200.0)])
+
+    assert len(_rows(one)) == 1 and len(_rows(two)) == 1
+    assert _refusals(report)["Nova"] == (
+        "lab/nova", "the board name is reused by more than one card")
+
+
+def test_the_verifier_reads_the_card_identity_not_the_copied_board_name() -> None:
+    board = refresh.BoardReading(
+        key="arena:arena_elo_overall", source_id=SOURCE_ID, benchmark_ids=frozenset({"x"}),
+        source_url=PARQUET, observed_at=OBSERVED, rows=(), value_field="rating",
+        snapshot_ref="sha256:" + "c" * 64,
+    )
+    row = {"id": "x", "benchmark_id": "arena_elo_overall", "model_id_as_evaluated": "Other",
+           "score": 1.0}
+    front = {"display_name": "Card Name", "version": "card-name-v1"}
+
+    copied = refresh._claim("lab/card", front, row, board).names
+    own = refresh._claim("lab/card", front, row, board, card_identity=True).names
+
+    assert "Other" in copied
+    assert own == ("Card Name", "card-name-v1", "card", "lab/Card Name")
 
 
 def test_two_board_rows_that_name_one_card_file_neither(monkeypatch, tmp_path: Path) -> None:

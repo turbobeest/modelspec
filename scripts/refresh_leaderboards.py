@@ -1576,12 +1576,21 @@ def align_observation_cards(root: Path) -> list[str]:
 
 
 def _claim(model_id: str, front: Mapping[str, Any], row: Mapping[str, Any],
-           board: BoardReading, collector: VerificationActor | None = None) -> Claim:
+           board: BoardReading, collector: VerificationActor | None = None,
+           *, card_identity: bool = False) -> Claim:
     """The claim a written row files. ``collector`` is the run's actor; None is the
-    weekly refresh's ``COLLECTOR`` (read when called, so a caller's override holds)."""
+    weekly refresh's ``COLLECTOR`` (read when called, so a caller's override holds).
+
+    ``card_identity`` (a first row, MODEL-478) names the card only, by its display
+    name, version and model id: the verifier must find the board row from the card's
+    own identity, not from the board name the row copied.
+    """
+    display = front.get("display_name")
     names = tuple(dict.fromkeys(filter(None, (
-        row.get("model_id_as_evaluated"), front.get("display_name"), front.get("version"),
-        model_id.rsplit("/", 1)[-1],
+        None if card_identity else row.get("model_id_as_evaluated"),
+        display, front.get("version"), model_id.rsplit("/", 1)[-1],
+        # The card's lab before its name: a board's own "lab/Name" spelling.
+        f"{model_id.split('/', 1)[0]}/{display}" if card_identity and display else None,
     ))))
     source = SourceRef(source_id=board.source_id, snapshot_ref=board.snapshot_ref,
                        cited_regions=["rows"])
@@ -1610,6 +1619,8 @@ def _verifier_skip_reason(
     observed_at: str,
     extractors: Sequence[Any],
     collector: VerificationActor | None = None,
+    *,
+    card_identity: bool = False,
 ) -> tuple[str | None, tuple[Diff, ...], str]:
     """The verifier's refusal, its diffs, and an outcome tag.
 
@@ -1617,7 +1628,7 @@ def _verifier_skip_reason(
     Skip classes read the diffs. The reason text is not a class.
     """
     result = verify_one(
-        _claim(model_id, front, row, board, collector),
+        _claim(model_id, front, row, board, collector, card_identity=card_identity),
         regions,
         extractors,
         today=date.fromisoformat(observed_at),
@@ -2529,61 +2540,150 @@ def first_row_host_class(url: str, terms: Mapping[str, str]) -> str:
     return str(terms.get(host) or "missing")
 
 
-def first_row_index(fronts: Mapping[str, Mapping[str, Any]]) -> dict[str, set[str]]:
-    """``slug(strip=False)`` of each card's display name and model id -> those model ids.
+_FIRST_ROW_VARIANT_CARD = "the card is itself an effort variant, not a base card"
+_FIRST_ROW_DATED = "a dated snapshot card; the board name states none of its dates"
+_FIRST_ROW_OTHER_ALIAS = "the board name is another card's alias or former name"
+_FIRST_ROW_REUSED = "the board name is reused by more than one card"
+#: Card fields that list other names the card is known by, where a card has them.
+_KNOWN_NAME_FIELDS = ("aliases", "former_names", "previous_names")
 
-    Every card is indexed, whatever its status, so a name an inactive card shares is
-    still shared. Aliases are not keys: only the name and the id are.
-    """
+
+def first_row_fold(name: str) -> str:
+    """A name folded with its qualifiers kept: ``slug(strip=False)`` after the
+    parentheses become spaces, so "(Thinking)", "Instruct" and dates stay in the key."""
     from scripts.premier_slice1 import slug
 
+    return slug(re.sub(r"[()]", " ", name or ""), strip=False)
+
+
+def _date_tokens(key: str) -> set[str]:
+    """Tokens of a folded key that are dates or snapshot stamps: all digits, 4 to 8 long."""
+    return {token for token in key.split("-") if token.isdigit() and 4 <= len(token) <= 8}
+
+
+def _effort_variant_card(model_id: str, front: Mapping[str, Any]) -> bool:
+    """True when the card's own display name or model id ends in an effort label.
+
+    The labels are ``_NAME_EFFORT``'s ("xhigh", "max", ...). "Thinking" and "Instruct"
+    are identity, not effort: a card named for them is its own base.
+    """
+    display = str(front.get("display_name") or "")
+    if _name_effort(display) is not None:
+        return True
+    return any(
+        (first_row_fold(name).rsplit("-", 1)[-1] or "") in _NAME_EFFORT
+        for name in (display, model_id)
+    )
+
+
+def first_row_index(fronts: Mapping[str, Mapping[str, Any]]) -> dict[str, set[str]]:
+    """``first_row_fold`` of each card's display name and model id -> those model ids.
+
+    Every card is indexed, whatever its status, so a name an inactive card shares is
+    still shared. Qualifiers are never stripped on the card side. Aliases are not keys:
+    only the name and the id are (``first_row_known_names`` holds the others).
+    """
     index: dict[str, set[str]] = {}
     for model_id, front in fronts.items():
         for name in (front.get("display_name"), model_id):
-            key = slug(str(name or ""), strip=False)
+            key = first_row_fold(str(name or ""))
             if key:
                 index.setdefault(key, set()).add(model_id)
     return index
 
 
+def first_row_known_names(fronts: Mapping[str, Mapping[str, Any]]) -> dict[str, set[str]]:
+    """Every other name a card is known by, folded -> those model ids.
+
+    The card's ``version``, its alias and former-name fields, the board names its
+    Arena rows were filed under, and the names ``ARENA_RENAMED`` gives those rows now.
+    A board name here that belongs to another card than the name match, or to more
+    than one card, is ambiguous.
+    """
+    known: dict[str, set[str]] = {}
+
+    def add(name: object, model_id: str) -> None:
+        key = first_row_fold(str(name or ""))
+        if key:
+            known.setdefault(key, set()).add(model_id)
+
+    for model_id, front in fronts.items():
+        add(front.get("version"), model_id)
+        for field_name in _KNOWN_NAME_FIELDS:
+            values = front.get(field_name) or []
+            for value in [values] if isinstance(values, str) else values:
+                add(value, model_id)
+        for row in (front.get("benchmarks") or {}).get("evidence") or []:
+            if isinstance(row, Mapping) and _arena_reading_row(row):
+                stored = str(row.get("model_id_as_evaluated") or "")
+                add(stored, model_id)
+                add(ARENA_RENAMED.get(stored), model_id)
+    return known
+
+
 def first_row_match(
     name: str, index: Mapping[str, set[str]], fronts: Mapping[str, Mapping[str, Any]],
+    known: Mapping[str, set[str]] | None = None,
 ) -> tuple[str | None, str, str | None, str, str | None]:
     """``(model_id, key, refusal, nearest, effort)`` for one board name.
 
-    The design's matcher, not ``match_index`` and not the refresh's token sort. A name
-    with parentheses is refused before the match (``slug`` would drop their text), with
-    one exception: one trailing parenthesis that ``_name_effort`` reads as a known
-    effort label ("Claude Fable 5.2 (xHigh)"). That name is matched on its base name,
-    the text before the parenthesis, and ``effort`` is the label; the row is filed on
-    the base card at that effort or not at all. Any other parenthesis is refused. The
-    key is ``slug(name, strip=False)``; it must equal the key of exactly one card. A
-    publisher prefix (``lab/`` before the first ``/`` of a name that is not a URL)
-    must be that card's lab. The card must be active. ``nearest`` is the one card the
+    The design's matcher, not ``match_index`` and not the refresh's token sort, with
+    the MODEL-478 review's rules. The key is ``first_row_fold(name)``: qualifiers are
+    kept on both sides, so "Qwen3-Next 80B-A3B" never names the "(Thinking)" card. It
+    must equal the key of exactly one card's display name or model id.
+
+    A name with parentheses is refused, with one exception: one trailing parenthesis
+    that ``_name_effort`` reads as a known effort label ("Claude Fable 5.2 (xHigh)").
+    That name is matched on its base name, and ``effort`` is the label; the row lands
+    on that base card at that effort or nowhere. The base card's own name must carry
+    no effort qualifier: a lone variant card is never its own base.
+
+    A card whose display name or model id carries a date or snapshot stamp takes only
+    a board name that states one of those dates. A name that ``known`` (from
+    ``first_row_known_names``) gives another card, or more than one card, is refused.
+    A publisher prefix (``lab/`` before the first ``/`` of a name that is not a URL)
+    must be the card's lab. The card must be active. ``nearest`` is the one card the
     key names, even when the name is refused; it is empty when no single card does.
     """
-    from scripts.premier_slice1 import slug
-
+    known = known or {}
     effort = None
     base = name
     if "(" in name or ")" in name:
         effort = _name_effort(name)
         base = _TRAILING_PARENTHESIS.sub("", name) if effort else name
-    key = slug(base, strip=False)
+    key = first_row_fold(base)
     hits = index.get(key, set()) if key else set()
     nearest = next(iter(hits)) if len(hits) == 1 else ""
     if "(" in base or ")" in base:
         return None, key, _FIRST_ROW_PARENTHESES, nearest, None
     if not hits:
+        variants = index.get(first_row_fold(name), set()) if effort else set()
+        if len(variants) == 1:
+            return None, key, _FIRST_ROW_VARIANT_CARD, next(iter(variants)), effort
         return None, key, _FIRST_ROW_NO_CARD, "", effort
     if len(hits) > 1:
         return None, key, f"{len(hits)} cards share this name", "", effort
     model_id = nearest
+    front = fronts[model_id]
+    if _effort_variant_card(model_id, front):
+        return None, key, _FIRST_ROW_VARIANT_CARD, model_id, effort
+    stamps = set().union(*(
+        _date_tokens(first_row_fold(str(value or "")))
+        for value in (front.get("display_name"), model_id)
+    ))
+    if stamps and not stamps & _date_tokens(key):
+        return None, key, _FIRST_ROW_DATED, model_id, effort
+    for folded in dict.fromkeys((key, first_row_fold(name))):
+        owners = set(known.get(folded, set()))
+        if len(owners) > 1:
+            return None, key, _FIRST_ROW_REUSED, model_id, effort
+        if owners and owners != {model_id}:
+            return None, key, _FIRST_ROW_OTHER_ALIAS, model_id, effort
     if "/" in base and "://" not in base:
         publisher = base.split("/", 1)[0].strip().casefold()
         if publisher != model_id.split("/", 1)[0].casefold():
             return None, key, _FIRST_ROW_PUBLISHER, model_id, effort
-    if str(fronts[model_id].get("status") or "") != "active":
+    if str(front.get("status") or "") != "active":
         return None, key, _FIRST_ROW_INACTIVE, model_id, effort
     return model_id, key, None, model_id, effort
 
@@ -2680,6 +2780,7 @@ def plan_first_rows(
     paths, fronts = _catalogue(root)
     catalogue_fronts = list(fronts.values())  # path order, as _evidence_template reads it
     index = first_row_index(fronts)
+    known = first_row_known_names(fronts)
     written = set(report.arena_boards_written)
     planned_keys = {
         (path, str(row.get("benchmark_id"))) for path, rows in (pending_additions or {}).items()
@@ -2710,7 +2811,8 @@ def plan_first_rows(
             name = _subject(dataset_row)
             if not name or dataset_row.get(board.value_field) is None:
                 continue
-            model_id, key, refusal, nearest, effort = first_row_match(name, index, fronts)
+            model_id, key, refusal, nearest, effort = first_row_match(
+                name, index, fronts, known)
             near = model_id or nearest
             if near and _has_row_on(fronts[near], board.benchmark_ids):
                 continue  # the card already has a row here: the refresh owns it
@@ -2768,7 +2870,7 @@ def plan_first_rows(
                     continue
                 reason, _diffs, _outcome = _verifier_skip_reason(
                     model_id, fronts[model_id], row, board, regions, observed_at,
-                    extractors, collector,
+                    extractors, collector, card_identity=True,
                 )
                 if reason:
                     report.first_rows_refused.append(FirstRowRefusal(
@@ -3048,7 +3150,8 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
             pending_additions=pending_additions,
         ):
             pending_additions.setdefault(path, []).append(row)
-            claims.append(_claim(model_id, _front(path), row, board, collector))
+            claims.append(_claim(model_id, _front(path), row, board, collector,
+                                 card_identity=True))
             report.added += 1
     elif first_rows:
         report.first_rows_considered = True

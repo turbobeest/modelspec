@@ -121,10 +121,25 @@ MODEL-467 did not implement the design. MODEL-478 does, below.
 is called, or the CLI gets `--first-rows`. Without the flag the weekly job
 behaves as before. Only the Arena boards file (`FIRST_ROW_BOARD_PREFIXES`).
 
-- `first_row_match` is the matcher above. `first_row_index` keys every card,
-  whatever its status, on `slug(strip=False)` of its display name and its model
-  id. A board row that names a card is skipped when the card already has a row
-  for that benchmark.
+- `first_row_match` is the matcher above, tightened by the MODEL-478
+  adversarial review. Names are folded with `first_row_fold`, which is
+  `slug(strip=False)` after the parentheses become spaces. Qualifiers such as
+  "(Thinking)", "Instruct" and dates stay in the key on both sides, so
+  "Qwen3-Next 80B-A3B" never names the "(Thinking)" card. `first_row_index`
+  keys every card, whatever its status, on the fold of its display name and its
+  model id. A board row that names a card is skipped when the card already has
+  a row for that benchmark.
+- A card whose display name or model id carries a date or snapshot stamp takes
+  only a board name that states one of those dates. A stamp is a digit token 4
+  to 8 long. Even as the sole hit, such a card never takes a base row.
+- `first_row_known_names` collects the other names a card is known by: its
+  `version`, its `aliases`, `former_names` and `previous_names`, the names its
+  Arena rows were filed under, and what `ARENA_RENAMED` calls those now. A board
+  name that this gives another card than the name match is refused as ambiguous.
+  So is one it gives more than one card.
+- The verifier checks a first row against the card's own identity: its display
+  name, version, model id, and lab-prefixed name. It does not check against the
+  board name the row copied (`_claim(card_identity=True)`).
 - Two board rows that name one card file neither.
 - `first_row_host_class` reads the canonical host. The board's fetch host and
   the row's source host must both be `permits` or `restricts`. A board read as
@@ -146,7 +161,9 @@ behaves as before. Only the Arena boards file (`FIRST_ROW_BOARD_PREFIXES`).
 - One exception to the parentheses rule, also by that decision. A name that ends
   in one parenthesis `_name_effort` reads as an effort label, such as
   `Claude Fable 5.2 (xHigh)`, is matched on its base name, the text before the
-  parenthesis. The row lands on that one base card, at that effort. The card's
+  parenthesis. The row lands on that one base card, at that effort. The base
+  card's own name and model id must carry no effort label. A lone variant card,
+  such as "Foo (xHigh)" or "Bar xHigh", is never its own base and is refused. The card's
   Arena rows must be read at that effort already. Or it must be read at no effort
   on Arena and must not state `feature.effort_controls: false`. Any other
   parenthesis is refused, and so is a base name that still has one. When two
