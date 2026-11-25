@@ -283,9 +283,11 @@ or an incorporated acceptable-use or prohibited-use policy.
 - `licence.user_cap`. A number only when the licence requires a separate
   agreement or licence once a monthly-active-user threshold is exceeded. A
   threshold that only triggers a display, naming or attribution duty is not
-  a cap, and neither is a revenue threshold. With no such threshold the
-  value is `unbounded`, as the registry definition says. The value is never
-  `not_disclosed` when the cited region is the licence text.
+  a cap, and neither is a revenue threshold. Operational usage limits that
+  an order form or the documentation sets, such as rate, token, throughput
+  or messaging quotas, are not a cap either (MODEL-491). With no such
+  threshold the value is `unbounded`, as the registry definition says. The
+  value is never `not_disclosed` when the cited region is the licence text.
 - `licence.fine_tuning`. An express grant to modify the model, the Software
   or the Work, or to create derivative works of it, covers fine-tuning.
   `permitted_with_conditions` when using or distributing the result is
