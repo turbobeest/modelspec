@@ -11,6 +11,8 @@ from functools import cache
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from decision.final_hosts import ending_at_final
+
 
 logger = logging.getLogger(__name__)
 
@@ -292,12 +294,19 @@ def cite_only_origin_restrictive(url: object, resolved_urls=()) -> bool:
 
 
 def metadata_origins(metadata: dict) -> tuple[str, ...]:
-    urls = [metadata[key] for key in ("sourceURL", "url", "final_url")
+    """Every origin a fetch's metadata names, ending on the URL the fetch ended at.
+
+    The requested URL (``sourceURL``, ``url``) comes first, then the redirect chain,
+    then ``final_url`` when the metadata names one, so the last origin is the final
+    URL (MODEL-525).
+    """
+    urls = [metadata[key] for key in ("sourceURL", "url")
             if isinstance(metadata.get(key), str) and metadata[key]]
+    final = metadata.get("final_url")
     resolved = metadata.get("resolved_urls", ())
     if not isinstance(resolved, (list, tuple)) or any(not isinstance(url, str) for url in resolved):
         raise ValueError("invalid redirect URL metadata")
-    return tuple(dict.fromkeys((*urls, *resolved)))
+    return ending_at_final((*urls, *resolved, *((final,) if isinstance(final, str) and final else ())))
 
 
 def record_origin_status(record: object) -> bool | None:
@@ -347,7 +356,7 @@ def citation_metadata(url: object, snapshot_ref: str, *, retrieved_at=None,
         "url": require_source_url(url),
         "retrieved_at": when.isoformat() if hasattr(when, "isoformat") else when,
         "snapshot_ref": snapshot_ref,
-        "resolved_urls": list(dict.fromkeys(str(item) for item in resolved_urls)),
+        "resolved_urls": list(ending_at_final(resolved_urls)),
     }
 
 

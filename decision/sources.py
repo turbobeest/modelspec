@@ -42,6 +42,7 @@ if TYPE_CHECKING:
 
 from decision.azure_pricing import wait_for_selected_prices
 from decision.excluded import excluded_sources
+from decision.final_hosts import ending_at_final
 from decision.model import CitedRegion as CitedRegion
 from decision.model import RenderedInteraction, Source, SourceSnapshot
 from decision.retention import (
@@ -807,8 +808,10 @@ class RenderedFetcher:
                 return FetchResult("ok", response.status, body=page.content().encode("utf-8"),
                                    content_type="text/html", charset="utf-8",
                                    error=preparation_error,
-                                   resolved_urls=tuple(dict.fromkeys((*reversed(redirects),
-                                                        str(response.url), str(page.url)))),
+                                   # The page's own URL last: a script can move it back
+                                   # to an earlier hop (MODEL-525).
+                                   resolved_urls=ending_at_final((*reversed(redirects),
+                                                                  str(response.url), str(page.url))),
                                    retrieved_at=datetime.now(UTC))
         except RenderedInteractionError as exc:
             return FetchResult("unreachable", response.status, error=str(exc))
@@ -1340,8 +1343,10 @@ def _check_one(
         # grants the cite-only path (MODEL-420).
         if previous_citation is not None and record_origin_status(previous_citation) is None:
             raise ValueError("invalid previous citation record")
-        resolved_urls = tuple(dict.fromkeys((*result.resolved_urls,
-                              *((previous_citation or {}).get("resolved_urls", ())))))
+        # The previous record's origins first, so this fetch's own chain ends the
+        # tuple and its last URL stays the final one (MODEL-525).
+        resolved_urls = ending_at_final((*((previous_citation or {}).get("resolved_urls", ())),
+                                         *result.resolved_urls))
         cite_only = cite_only_origin_status(source.url, resolved_urls)
         if cite_only is None:
             raise ValueError("invalid redirect URL")

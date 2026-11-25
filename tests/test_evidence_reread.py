@@ -441,3 +441,26 @@ def test_a_watched_fact_citing_several_pages_is_listed_once_with_only_the_change
     assert one.watched["current"] == 1 and one.watched["changed"] == 1
     assert one.watched_changed == ["src-life-1"]
     assert one.watched_rereads == ["acme/one#model.lifecycle"]
+
+
+def test_each_source_read_records_where_its_fetch_ended(reread, data, tmp_path):
+    """MODEL-525: a source whose fetch now ends on another host than recorded is listed in
+    the report and its markdown; a dry run leaves the record, a real run moves it."""
+    data.row(OLD.format("a"), score=50.0)
+    moved = "https://allowed.example.net/moved.json"
+    pages = {OLD.format("a"): (307, moved, b""), moved: body(50.0)}
+    path = data.root / reread.FINAL_HOSTS
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps({"src-1": {
+        "final_url": OLD.format("a"), "final_host": "boards.example.net",
+        "first_seen": "2026-11-01", "last_seen": "2026-11-01"}}))
+    before = path.read_text()
+    change = [{"source": "src-1", "status": "final_host_changed",
+               "old_host": "boards.example.net", "new_host": "allowed.example.net"}]
+    dry = run(reread, data, tmp_path / "one", pages, dry_run=True)
+    assert dry.to_dict()["final_host_changed"] == change
+    assert "### Final host changed" in reread.render(dry)
+    assert path.read_text() == before
+    real = run(reread, data, tmp_path / "two", pages)
+    assert real.final_host_changed == change
+    assert json.loads(path.read_text())["src-1"]["final_url"] == moved

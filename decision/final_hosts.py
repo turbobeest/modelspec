@@ -27,6 +27,20 @@ def final_host(url: str) -> str:
     return (urlsplit(url).hostname or "").rstrip(".").lower()
 
 
+def ending_at_final(urls: Iterable[str]) -> tuple[str, ...]:
+    """Each URL once, in first-seen order, with the last URL kept last (MODEL-525).
+
+    A fetch can come back to a URL it passed earlier (a page script that returns to
+    the start). De-duplicating by first sighting would then end the chain on a URL
+    the fetch left, and ``observe`` takes the last URL as where the fetch ended.
+    """
+    chain = tuple(str(url) for url in urls)
+    if not chain:
+        return ()
+    final = chain[-1]
+    return (*dict.fromkeys(url for url in chain[:-1] if url != final), final)
+
+
 def load(path: Path) -> dict[str, dict[str, str]]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))

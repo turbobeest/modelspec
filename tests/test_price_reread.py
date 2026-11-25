@@ -931,6 +931,43 @@ def test_rendered_from_reconfirms_without_importing_playwright(estate, tmp_path,
     assert replay.fetch(RENDERED_URL) == replay.fetch(RENDERED_URL)
 
 
+class EndingElsewhereRenderer(FakeRenderer):
+    """A renderer whose page ends on another URL than it asked for."""
+
+    FINAL = "https://www.rendered.example/pricing"
+
+    def fetch(self, url, **kwargs):
+        return replace(super().fetch(url), resolved_urls=(url, self.FINAL))
+
+
+def test_a_kept_rendered_page_records_its_final_host_through_the_replay(estate, tmp_path) -> None:
+    """MODEL-525: a rendered source that is not cited keeps its chain in the manifest,
+    so the replay reports where it ended and the re-read records that host."""
+    root, _ = estate
+    artifact = tmp_path / "rendered"
+    price_reread.render_to(root=root, directory=artifact,
+                           rendered=EndingElsewhereRenderer({RENDERED_URL: [page("plans.html")]}))
+    entry = json.loads((artifact / "manifest.json").read_text())[RENDERED_URL]
+    assert entry["resolved_urls"] == [RENDERED_URL, EndingElsewhereRenderer.FINAL]
+    replay = price_reread.RenderedReplayFetcher(artifact)
+    assert replay.fetch(RENDERED_URL).resolved_urls == (RENDERED_URL, EndingElsewhereRenderer.FINAL)
+    report, _ = reread(estate, [page("plans.html")], write=True, rendered=replay)
+    assert report.sources["example-rendered"].outcome == "ok"
+    record = json.loads((root / "verification" / "final-hosts.json").read_text())
+    assert record["example-rendered"]["final_host"] == "www.rendered.example"
+    assert report.final_host_changed == []
+
+
+@pytest.mark.parametrize("chain", [{"not": "a list"}, ["not a url"], ["https://ft.com/x"]])
+def test_rendered_manifest_rejects_a_malformed_or_cite_only_chain(estate, tmp_path, monkeypatch,
+                                                                 chain) -> None:
+    import decision.retention as retention
+
+    monkeypatch.setattr(retention, "cite_only_status", lambda url: "ft.com" in str(url))
+    with pytest.raises(ValueError, match="redirect"):
+        price_reread.RenderedReplayFetcher(_rendered_artifact(tmp_path, resolved_urls=chain))
+
+
 @pytest.mark.parametrize("failed", [False, True])
 def test_missing_and_failed_rendered_entries_become_unreachable_alerts(estate, tmp_path, failed) -> None:
     root, _ = estate

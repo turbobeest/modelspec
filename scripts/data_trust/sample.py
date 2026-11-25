@@ -17,6 +17,7 @@ import httpx
 from pydantic import ValidationError
 
 from decision.excluded import excluded_sources
+from decision.final_hosts import observe
 from decision.model import (
     Source,
     SourceRef,
@@ -380,9 +381,43 @@ def _shell_normaliser(content_type: str) -> str:
     return "text-default"
 
 
+#: The audit's record of each registered source's final host, beside its reports.
+FINAL_HOSTS_FILE = "final-hosts.json"
+
+
+class _RecordingFetcher:
+    """The audit's fetcher, noting the redirect chain of each fetch that read (MODEL-525)."""
+
+    def __init__(self, fetcher) -> None:
+        self._fetcher = fetcher
+        self.ended: dict[str, tuple[str, ...]] = {}
+
+    def fetch(self, url: str, *args, **kwargs):
+        response = self._fetcher.fetch(url, *args, **kwargs)
+        if getattr(response, "outcome", None) == "ok":
+            self.ended[url] = tuple(getattr(response, "resolved_urls", ()) or ())
+        return response
+
+    def __getattr__(self, name: str):
+        return getattr(self._fetcher, name)
+
+
+def registered_finals(c: Catalogue, ended: dict[str, tuple[str, ...]]) -> dict[str, tuple[str, ...]]:
+    """Each registered source the audit fetched, with the URLs its fetch resolved through."""
+    return {
+        sid: ended[str(row["url"])]
+        for sid, row in c.sources.items()
+        if isinstance(row, dict) and ended.get(str(row.get("url")))
+    }
+
+
 def run(
-    c: Catalogue, registry, *, n: int, seed: str, as_of: date, fetcher=None, reader=reread
+    c: Catalogue, registry, *, n: int, seed: str, as_of: date, fetcher=None, reader=reread,
+    final_hosts: Path | None = None, write: bool = False,
 ) -> dict:
+    """The sample. With ``final_hosts``, each registered source's final host is recorded
+    there (written only with ``write``) and a moved host is a ``final_host_changed`` entry.
+    """
     eligible = [
         f
         for f in c.facts
@@ -401,6 +436,7 @@ def run(
     if fetcher is None:
         client = httpx.Client(event_hooks={"request": [guard_request]})
         fetcher = Fetcher(client=client, timeout=15, retries=0)
+    fetcher = _RecordingFetcher(fetcher)
     with tempfile.TemporaryDirectory(prefix="modelspec-data-trust-") as cache_dir:
         store = CopyStore(Path(cache_dir))
         for f in chosen:
@@ -428,6 +464,10 @@ def run(
             )
     if client is not None:
         client.close()
+    moved_hosts = (
+        observe(final_hosts, registered_finals(c, fetcher.ended), as_of, write=write)
+        if final_hosts is not None else []
+    )
     counts = Counter(r["outcome"] for r in results)
     counts = {k: counts[k] for k in ("matched", "mismatched", "unreadable")}
     return {
@@ -447,6 +487,8 @@ def run(
         # A value that differs now but matched the board when read (MODEL-516): reported,
         # and not part of the error rate.
         "source_moved": moved,
+        # A registered source whose fetch now ends on another host (MODEL-525).
+        "final_host_changed": moved_hosts,
         "error_rate": wilson(counts["mismatched"], counts["matched"] + counts["mismatched"]),
         "strata": [
             {

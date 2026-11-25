@@ -113,7 +113,7 @@ from decision.verify import (
 
 from decision.retention import (
     citation_metadata, cite_only_origin_restrictive, cite_only_origin_status, is_cite_only_restrictive,
-    record_origin_status,
+    record_origin_status, redirect_urls,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -359,6 +359,9 @@ def render_to(*, root: Path, directory: Path, rendered: RenderedFetcher) -> None
             (directory / name).write_bytes(result.body)
         manifest[url] = {"file": name, "outcome": result.outcome,
                          "status": result.status, "error": result.error}
+        if result.outcome == "ok" and not restricted:
+            # Where the browser ended, so the replay can record the final host (MODEL-525).
+            manifest[url]["resolved_urls"] = list(result.resolved_urls)
         if result.outcome == "ok" and restricted:
             manifest[url]["error"] = None
             manifest[url]["citation"] = citation_metadata(
@@ -413,6 +416,7 @@ class RenderedReplayFetcher:
                 raise ValueError("rendered manifest keys must be canonical HTTP URLs")
             if not isinstance(entry, dict) or set(entry) not in (
                     {"file", "outcome", "status", "error"},
+                    {"file", "outcome", "status", "error", "resolved_urls"},
                     {"file", "outcome", "status", "error", "citation"}):
                 raise ValueError(f"invalid rendered manifest entry for {url}")
             name = entry["file"]
@@ -426,6 +430,12 @@ class RenderedReplayFetcher:
             if entry["error"] is not None and not isinstance(entry["error"], str):
                 raise ValueError(f"invalid rendered error for {url}")
             path = directory / name
+            if "resolved_urls" in entry:
+                # Only a kept page carries its chain; a cite-only hop would have made it a
+                # hash-only citation instead.
+                if (entry["outcome"] != "ok"
+                        or cite_only_origin_status(url, redirect_urls(entry["resolved_urls"])) is not False):
+                    raise ValueError(f"invalid rendered redirect chain for {url}")
             citation = entry.get("citation")
             if citation is not None:
                 if (not isinstance(citation, dict) or citation.get("url") != url
@@ -457,7 +467,8 @@ class RenderedReplayFetcher:
         return FetchResult("ok", entry["status"],
                            body=_read_rendered_file(self.directory / entry["file"],
                                                     MAX_RENDERED_BODY_BYTES),
-                           content_type="text/html", charset="utf-8", error=entry["error"])
+                           content_type="text/html", charset="utf-8", error=entry["error"],
+                           resolved_urls=tuple(entry.get("resolved_urls", ())))
 
 
 def _fetch_rendered(rendered: RenderedFetcher | RenderedReplayFetcher, url: str,
