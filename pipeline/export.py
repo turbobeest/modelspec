@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from decision.credit import credit_for
+from decision.owner_ruling import has_ruling, served_fact
 from pipeline.load import REPO_ROOT, Benchmark, Catalogue, Model
 from schema.benchmark import INTERNAL_PAGE_KEYS
 from schema.card import applicability_block
@@ -215,7 +216,8 @@ PARTS_ALL = ("index", "models", "catalogue", "benchmarks")
 
 
 def _fact_identity(fact: dict[str, Any]) -> str:
-    return json.dumps({key: value for key, value in fact.items()
+    """A fact's identity in its served form, so a ruled card fact meets its cited copy."""
+    return json.dumps({key: value for key, value in served_fact(fact).items()
                        if key not in {"verification", "citation"}}, sort_keys=True, default=str)
 
 
@@ -240,6 +242,11 @@ def write(out_dir: Path, models: list[Model], benchmarks: list[Benchmark],
             cited_by_identity = {_fact_identity(fact): fact for fact in model.cited_facts}
             card = {**card, "facts": [cited_by_identity.get(_fact_identity(fact), fact)
                                      for fact in card.get("facts") or []]}
+        if model.withheld_facets or any(has_ruling(f) for f in card.get("facts") or []):
+            # MODEL-551: a fact whose owner ruling does not stand is kept out, and a ruled
+            # fact is published in the snapshot's served form (``served_fact``).
+            card = {**card, "facts": [served_fact(f) for f in card.get("facts") or []
+                                      if f.get("facet") not in model.withheld_facets]}
         if model.cited_evidence:
             card = {**card, "benchmarks": {**card["benchmarks"], "evidence": [
                 {**record, "citation": {"status": "cited", "url": record["source_url"]}}

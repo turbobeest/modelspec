@@ -222,7 +222,8 @@ def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_
                               page_bytes=page_bytes, definition=definition)
     answers: list[ReaderAnswer] = []
     entry = {"subject": subject, "facet": facet_id, "url": url, "epoch": epoch,
-             "page_sha256": sha256(page_bytes), "prompt_sha256": sha256(prompt),
+             "page_sha256": sha256(page_bytes), "text_sha256": text_sha256(page_bytes),
+             "prompt_sha256": sha256(prompt),
              "at": datetime.now(UTC).replace(microsecond=0).isoformat(), "complete": False,
              "harness": True,
              "agreed": None, "readers": []}

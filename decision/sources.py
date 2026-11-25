@@ -1448,3 +1448,10 @@ def _check_one(
         last_modified=result.last_modified,
     )
     return SourceState(source.id, snapshot, 0, False, now)
+
+
+def configured_copy_store() -> CopyStore | None:
+    """The fetcher's copy store when ``MODELSPEC_SOURCE_CACHE`` names it, else ``None``: the
+    one configuration the snapshot build and the site loader share, so a build never depends
+    on an unconfigured home-directory cache and both read citation records alike."""
+    return CopyStore() if os.environ.get("MODELSPEC_SOURCE_CACHE") else None

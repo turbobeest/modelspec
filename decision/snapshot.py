@@ -378,6 +378,14 @@ class SnapshotInputs:
     #: Append-only records that supersede a cite-only fact's stale mismatch
     #: (MODEL-415, ``decision.supersession``). Empty: nothing is superseded.
     supersessions: Sequence[Any] = ()
+    #: The owner's rulings past a recorded rule-15 disagreement (MODEL-551,
+    #: ``decision.owner_ruling``) and the attempt log they resolve. A fact that carries
+    #: ``derivation.owner_ruling`` is admitted only on a valid ruling.
+    owner_rulings: Sequence[Mapping[str, Any]] = ()
+    cited_attempts: Sequence[Mapping[str, Any]] = ()
+    #: Fact id -> its latest filed claim, for facts whose latest claim is a ruling's
+    #: (``decision.owner_ruling.latest_ruling_claims``): a ruling stands only while it is.
+    owner_ruling_claims: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
     #: Lab id -> ``decision.labs.Lab``. Empty when the checkout has no lab registry.
     labs: Mapping[str, Any] = field(default_factory=dict)
     #: Sourced hardware YAML records. Metadata, never ranking candidates.
@@ -787,6 +795,9 @@ class _Compiler:
         #: Only a compile with records imports ``decision.supersession``; the
         #: Worker never compiles, so the module stays unimported there.
         self._supersessions = self._supersession_index(inputs.supersessions)
+        self.owner_rulings = tuple(dict(r) for r in inputs.owner_rulings)
+        self.cited_attempts = tuple(dict(a) for a in inputs.cited_attempts)
+        self.owner_ruling_claims = {str(k): dict(v) for k, v in inputs.owner_ruling_claims.items()}
         #: record ID -> the mismatches a supersession retired, for provenance.
         self.superseded: dict[str, list[dict[str, Any]]] = {}
         #: subject id -> {"kind", "model", "lifecycle"}
@@ -910,6 +921,13 @@ class _Compiler:
             # The cited-change derivation (readers, prompt hashes, manifests) is internal: it
             # never enters a snapshot or its record_table.
             record = {k: v for k, v in record.items() if k != "derivation"}
+        if kind == "fact" and isinstance(record.get("derivation"), Mapping) \
+                and "owner_ruling" in record["derivation"]:
+            # The owner's ruling (MODEL-551) is internal, and so is the cited-change block a
+            # ruled re-read fact keeps: one served form, shared with the site exports.
+            from decision.owner_ruling import served_fact
+
+            record = served_fact(record)
         rid = str(record.get("id") or content_hash(record))
         value = (
             fact_verification_value(record)
@@ -1077,6 +1095,11 @@ class _Compiler:
             except ValueError:
                 self._reject((sid, facet_id), "invalid_citation", source_ids)
                 continue
+            if self._ruling_refused(sid, f, citation):
+                # A ruling is the owner's, past a rule-15 disagreement on a cite-only page
+                # (MODEL-551): one that does not stand keeps the fact out, as a bad citation.
+                self._reject((sid, facet_id), "invalid_citation", source_ids)
+                continue
             if citation is not None and facet_id in {"offering.api_model_id", "offering.router_slug"}:
                 self._reject((sid, facet_id), "quarantined (cited identifier)", source_ids)
                 continue
@@ -1103,6 +1126,20 @@ class _Compiler:
                 self.price_periods.setdefault(sid, []).append((
                     _date(f.get("effective_from")), _date(f.get("effective_until")),
                 ))
+
+    def _ruling_refused(self, sid: str, fact: Mapping[str, Any], citation: dict | None) -> bool:
+        """A fact that carries ``derivation.owner_ruling`` and is not cited, or whose ruling
+        does not stand (``decision.owner_ruling.admits``, with the filer's quarantine test on
+        every value of the fact over this build's verification log). Others are not affected."""
+        derivation = fact.get("derivation")
+        if not isinstance(derivation, Mapping) or "owner_ruling" not in derivation:
+            return False
+        from decision.owner_ruling import RulingInputs, ruling_refused
+
+        inputs = RulingInputs(self.owner_rulings, self.cited_attempts, self.owner_ruling_claims,
+                              self.log)
+        return ruling_refused(fact, sid, cited=citation is not None, inputs=inputs,
+                              sources=self.sources, today=self.as_of)
 
     def _resolve_prices(self, sid: str, facts: Iterable[Any]) -> list[dict[str, Any]]:
         facts = [_as_dict(raw) for raw in facts or ()]
@@ -1957,6 +1994,9 @@ def collect_repo(root: Path) -> SnapshotInputs:
     * Domains: each benchmark page's ``domains`` tags.
     * The verification log: ``verification/log.jsonl``.
     * Mismatch supersessions: ``verification/supersessions.jsonl`` (MODEL-415).
+    * Owner rulings: ``verification/owner-rulings.jsonl`` and, when it holds any, the
+      rule-15 attempt log ``verification/cited-attempts.jsonl`` and the facts whose latest
+      claim in ``verification/queue/events.jsonl`` is a ruling's (MODEL-551).
     * Hardware: dated vendor memory specifications in ``hardware/*.yaml``.
     """
     from pipeline.load import load_benchmarks, load_models
@@ -2046,6 +2086,19 @@ def collect_repo(root: Path) -> SnapshotInputs:
         from decision.supersession import read_store
 
         supersessions = read_store(supersession_store)
+    owner_rulings, cited_attempts, ruling_claims = [], [], {}
+    rulings_store = root / "verification" / "owner-rulings.jsonl"
+    if rulings_store.is_file():
+        from decision.owner_ruling import read_ruling_inputs
+
+        try:
+            # The verification log is ranked by the compiler itself.
+            ruling_inputs = read_ruling_inputs(root, verdicts=False)
+        except (ValueError, KeyError, TypeError) as exc:
+            raise SnapshotBuildError(f"{rulings_store}: {exc}") from exc
+        owner_rulings = list(ruling_inputs.rulings)
+        cited_attempts = list(ruling_inputs.attempts)
+        ruling_claims = dict(ruling_inputs.claims)
     from decision.labs import load_labs
 
     fit_path = root / "hardware" / "fit" / "records.yaml"
@@ -2060,6 +2113,8 @@ def collect_repo(root: Path) -> SnapshotInputs:
                           benchmark_refinements=refinements,
                           verifications=verifications,
                           supersessions=supersessions,
+                          owner_rulings=owner_rulings, cited_attempts=cited_attempts,
+                          owner_ruling_claims=ruling_claims,
                           labs=load_labs(root), hardware_fit_records=fit_records,
                           hardware=[yaml.safe_load(path.read_text(encoding="utf-8"))
                                     for path in sorted((root / "hardware").glob("*.yaml"))
@@ -2095,12 +2150,10 @@ def build_from_repo(root: Path, *, premier: str | Path | None, as_of: date | Non
     The fetcher's copy store joins only when ``MODELSPEC_SOURCE_CACHE`` names
     it, so a build never depends on an unconfigured home-directory cache.
     """
-    root = Path(root)
-    store = None
-    if os.environ.get("MODELSPEC_SOURCE_CACHE"):
-        from decision.sources import CopyStore
+    from decision.sources import configured_copy_store
 
-        store = CopyStore()
+    root = Path(root)
+    store = configured_copy_store()
     return build_snapshot(
         collect_repo(root),
         registry=registry if registry is not None else default_registry(),
