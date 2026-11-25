@@ -190,8 +190,31 @@ Learned expensively during 2026-09-09/10.
     saw only part of the page (`page_truncated`), when the page shows too little text to prove
     silence (`page_too_short`), when the fact cites another page of a permitted kind
     (`other_source_unread`), or when an earlier attempt agreed on a value. Any disagreement
-    files nothing. Nothing in the gate or the writer lifts a quarantine: a fresh agreement
-    over an older mismatch is the owner's call.
+    files nothing. Without `clear_quarantine` the gate and the writer lift no quarantine.
+
+    **A fresh agreement clears a mismatch quarantine (MODEL-552, Jamie 2026-11-25).** With
+    `clear_quarantine` (`--clear-quarantine` in `scripts/cited_offering.py` and
+    `scripts/cited_reading.py`), `cited_change` and `cited_reading` read a fact or reading with
+    exactly one held `mismatch` in that verdict's clearing epoch, `<epoch>:clear:<verdict hash>`
+    (`decision.quarantine_clearing`). The agreement clears it only when it is on a later UTC day
+    than the verdict and in that later epoch (a log verdict records no page text hash, so the
+    later epoch is the branch that can be shown), its two readers are distinct known families,
+    and no disagreement is recorded in the clearing epoch or the subject's own epoch. The record
+    then carries `clearings`: one line for the append-only
+    `verification/quarantine-clearings.jsonl` naming the verdict (`target`, `verdict_sha256`,
+    `verdict_date`) and the agreement (`agreement`: the hash of its exact line in
+    `cited-attempts.jsonl`, with `subject`, `facet`, `epoch`). The block records
+    `previous_epoch` (a rule-15 epoch the build re-derives) and `clearing_epoch`. The writers
+    append the line. An agreement on the filed value clears too. The build holds every cited
+    fact (with or without a block) and every cited board reading by a verdict on any value of
+    its ids, unless its own value is independently `verified`; a sibling row claims an id only
+    when it is admitted under it. It admits a held record only through a valid line: it names
+    the winning verdict exactly, its agreement is a byte-identical log line that still meets
+    every limit, and the fact or row is at its location and carries the block that agreement
+    made, with that value, citing the agreement's registered source. An `unreachable` verdict,
+    more than one held verdict and a fact that carries an owner's ruling stay blocked. A cleared
+    fact is served exactly as a plain cited fact (no `derivation`) and no contract field widens. Card facts have no engine writer; a data PR writes the fact,
+    its claim and the line (`quarantine_clearing.append`).
 
     **The owner's ruling past a disagreement (MODEL-551).** A complete `readers_disagree`
     attempt blocks its subject, facet and epoch for good. Only the owner can settle it, with
