@@ -335,3 +335,8 @@ def test_the_rolling_reread_requests_a_retained_agreement_whose_page_text_change
     data.fact["derivation"]["cited_change"]["rule"] = RULE
     data.write()
     assert sweep(PAGE + b"More text.\n").cited_change_rereads == []
+
+
+def test_a_set_agreed_in_another_order_keeps_the_filed_order(data):
+    out = run(readers=pair(["video", "text", "image"]))
+    assert out.changed and out.record["value"] == FILED

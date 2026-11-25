@@ -874,8 +874,9 @@ def _retained_outcome(subject: str, facet_def: Any, value: JsonValue, filed: Jso
             or _canonical(value, facet_def) != _canonical(filed, facet_def):
         return _refuse("value_differs", "the agreed value is not the filed value; a retaining "
                        "page changes nothing, and the fact is listed for the owner")
+    # The filed value is kept as filed (a set's order too): a confirmation changes nothing.
     return CitedChange("cited_change", None, "", _record(
-        subject, facet_def.id, value, row, source_id, now, sha256(page_bytes),
+        subject, facet_def.id, filed, row, source_id, now, sha256(page_bytes),
         text_sha256(page_bytes), answers, filed, found.registered_ids, resolved, retaining=True))
 
 
