@@ -8129,6 +8129,23 @@ class _Pending:
     last: dict[str, Any] | None = None
 
 
+def data_row_targets(root: str | Path) -> set[tuple[str, str]]:
+    """Every ``(kind, id)`` a card fact, an offering fact or an evidence row in ``root``
+    holds, keyed as ``decision.snapshot.collect_repo`` keys them (MODEL-557)."""
+    from decision.snapshot import collect_repo
+
+    inputs = collect_repo(Path(root))
+    rows: set[tuple[str, str]] = set()
+    for record in (*inputs.models, *inputs.offerings, *inputs.subscriptions):
+        for fact in record.get("facts") or []:
+            if fact.get("id"):
+                rows.add(("fact", str(fact["id"])))
+    for row in inputs.evidence:
+        if row.get("id"):
+            rows.add(("evidence", str(row["id"])))
+    return rows
+
+
 #: Why ``Queue.retire`` retires a claim. ``no_data_row``: no card, offering or evidence row
 #: holds the target any more, so nothing the claim describes is published (MODEL-557).
 RETIRE_REASONS = frozenset({"no_data_row"})
@@ -8172,14 +8189,36 @@ class Queue:
                        "target": result.target.model_dump(), "outcome": result.outcome,
                        "diff": [d.to_dict() for d in result.diffs]}])
 
-    def retire(self, target: str | TargetRef, *, at: datetime, reason: str) -> None:
-        """Retire a target's filed claim (MODEL-557): nothing is pending, filed or drawn for
-        it until a collector files it again. ``reason`` is one of ``RETIRE_REASONS``, a fixed
-        code, never page text. No line is edited: the claim lines stay as history."""
+    def retire(self, targets: str | TargetRef | Iterable[str | TargetRef], *, at: datetime,
+               reason: str, root: str | Path | None = None) -> None:
+        """Retire filed claims whose data row is gone (MODEL-557): nothing is pending, filed
+        or drawn for a target until a collector files it again.
+
+        ``reason`` is one of ``RETIRE_REASONS``, a fixed code, never page text. ``root`` is
+        the data checkout (default: the parent of this queue's ``verification`` directory).
+        The whole call is refused, and nothing is appended, when the root holds no ``models``
+        directory, when a target has no filed claim, or when a card fact, offering fact or
+        evidence row in the root still holds it (``data_row_targets``). No line is edited:
+        the claim lines stay as history.
+        """
         if reason not in RETIRE_REASONS:
             raise ValueError(f"retire reason must be one of {sorted(RETIRE_REASONS)}")
-        self._append([{"event": "retired", "at": at.isoformat(),
-                       "target": target_ref(target).model_dump(), "reason": reason}])
+        refs = [target_ref(t) for t in ([targets] if isinstance(targets, (str, TargetRef))
+                                        else targets)]
+        keys = [_key(ref) for ref in refs]
+        if not refs or len(set(keys)) != len(keys):
+            raise ValueError("retire needs at least one target, each named once")
+        root = Path(root) if root is not None else self.directory.parent
+        if not (root / "models").is_dir():
+            raise ValueError("retire needs the data checkout: no models directory at its root")
+        filed, rows = self.filed(), data_row_targets(root)
+        unfiled = sum(key not in filed for key in keys)
+        live = sum(key in rows for key in keys)
+        if unfiled or live:
+            raise ValueError(f"retire refused: {unfiled} targets have no filed claim, "
+                             f"{live} still have a data row; nothing appended")
+        self._append([{"event": "retired", "at": at.isoformat(), "target": ref.model_dump(),
+                       "reason": reason} for ref in refs])
 
     def _state(self) -> dict[tuple[str, str], _Pending]:
         state: dict[tuple[str, str], _Pending] = {}
@@ -8327,7 +8366,7 @@ __all__ = [
     "LabJurisdictionExtractor", "LicenceTermsExtractor",
     "LLMExtractor", "MISTRAL_MODEL", "ModelPageExtractor", "OLLAMA_URL", "OfferingPriceExtractor",
     "APPROVED_OLLAMA_READERS", "OLLAMA_JSON_MODE", "OllamaChatCompletion", "ollama_reader", "Quantity", "Queue", "Reading",
-    "Regions", "Result", "RETIRE_REASONS",
+    "Regions", "Result", "RETIRE_REASONS", "data_row_targets",
     "RunReport", "StoredRegions", "StructuredDataExtractor", "SubscriptionPageExtractor",
     "TableExtractor", "TOLERANCE_RULE",
     "UNITS", "VerificationLog", "compare",

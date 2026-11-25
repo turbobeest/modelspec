@@ -7,7 +7,7 @@ nightly's data-fidelity layer keeps drawing it. This script appends one ``retire
 event per named target (``Queue.retire``). It edits no line and writes nothing else.
 
 Each named target must have a filed claim and must have no data row in the checkout
-(``decision.snapshot.collect_repo``): any target that fails either check refuses the
+(``decision.verify.data_row_targets``; ``Queue.retire`` enforces it again): any target that fails either check refuses the
 whole run, and nothing is written. Output names targets, counts and fixed codes only.
 
 Usage:
@@ -27,18 +27,9 @@ from decision.verify import RETIRE_REASONS, Queue, target_ref
 
 def data_rows(root: Path) -> set[tuple[str, str]]:
     """Every (kind, id) a card fact, an offering fact or an evidence row holds."""
-    from decision.snapshot import collect_repo
+    from decision import verify
 
-    inputs = collect_repo(root)
-    rows: set[tuple[str, str]] = set()
-    for record in (*inputs.models, *inputs.offerings, *inputs.subscriptions):
-        for fact in record.get("facts") or []:
-            if fact.get("id"):
-                rows.add(("fact", str(fact["id"])))
-    for row in inputs.evidence:
-        if row.get("id"):
-            rows.add(("evidence", str(row["id"])))
-    return rows
+    return verify.data_row_targets(root)
 
 
 def plan(root: Path, refs: list[str]) -> tuple[list, list[str]]:
@@ -95,10 +86,9 @@ def main(argv: list[str] | None = None) -> int:
     if not args.write:
         print(f"dry run: {len(targets)} targets would be retired")
         return 0
-    at = datetime.now(UTC)
-    queue = Queue(args.root / "verification")
-    for target in targets:
-        queue.retire(target, at=at, reason=args.reason)
+    # Queue.retire checks the same invariants again, so the write cannot bypass them.
+    Queue(args.root / "verification").retire(targets, at=datetime.now(UTC), reason=args.reason,
+                                             root=args.root)
     print(f"retired {len(targets)} targets")
     return 0
 

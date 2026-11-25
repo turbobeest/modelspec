@@ -27,8 +27,11 @@ The installed `modelspec-dev` client does not include verification commands.
    appends a `retired` event (`Queue.retire`, reason `no_data_row`). The claim
    lines stay; the target leaves `Queue.filed()`, `pending()`,
    `recrawl_requests()` and the nightly's data-fidelity draws until a collector
-   files it again. The script refuses the whole run if a named target still has
-   a data row or has no filed claim (MODEL-557).
+   files it again. `Queue.retire` itself refuses the whole call, appending
+   nothing, if a named target still has a data row (`data_row_targets`) or has no
+   filed claim, so no caller can retire a live fact (MODEL-557). The data-fidelity
+   draws order the queue as `Queue` does (time, then line), so a backdated
+   retirement never hides a newer claim.
 
 ## Extractors
 
