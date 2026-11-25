@@ -49,6 +49,7 @@ from decision.cited_change import (
     RETAINED_RULE, cited_change_block, cited_change_facts, cited_change_readings, reread_due,
 )
 from decision.cited_reader import text_sha256
+from decision.quarantine_clearing import is_cleared
 from decision.retention import cite_only_origin_restrictive
 
 METHOD = "structured-row-match@1"
@@ -385,6 +386,10 @@ class Report:
     #: Cited-change facts a quarantine clearing made (their block names a ``clearing_epoch``,
     #: MODEL-552), re-read with the other cited-change facts. Counted only.
     cleared_facts_checked: int = 0
+    #: Of those, the ones whose page text changed: listed for a two-reader re-read like any
+    #: cited-change fact. The verdict they cleared stays logged, so the gate still refuses them
+    #: (``quarantined``) until a clearing can carry past a later change; counted for the owner.
+    cleared_facts_changed: int = 0
 
     def note(self, outcome: str, host: str, target_id: str = "") -> None:
         self.counts[outcome] += 1
@@ -425,6 +430,7 @@ class Report:
             })
         if self.cleared_facts_checked:
             data["cleared_facts_checked"] = self.cleared_facts_checked
+            data["cleared_facts_changed"] = self.cleared_facts_changed
         return data
 
 
@@ -562,8 +568,8 @@ def cited_change_rereads(root: Path, terms: dict[str, str], report: "Report", *,
             # with the texts read in that epoch, by ``ruled_fact_rereads`` (MODEL-562).
             continue
         block = cited_change_block(fact)
-        if "clearing_epoch" in block:
-            report.cleared_facts_checked += 1
+        cleared = is_cleared(fact)
+        report.cleared_facts_checked += cleared
         url = block["url"]
         # The origin's current class is read before any request (MODEL-558 review). A
         # retaining-host agreement is re-read only while its origin still retains copies: one on
@@ -592,6 +598,7 @@ def cited_change_rereads(root: Path, terms: dict[str, str], report: "Report", *,
         target = fact.get("target") or f"{fact['subject']}#{fact['facet']}"
         if reread_due(fact, page.body, now=now, last_request=last.get(target)):
             report.cited_change_rereads.append(target)
+            report.cleared_facts_changed += cleared
             report.note("cited_change_reread_required", host_of(url))
             if not dry_run:
                 path = root / REREAD_REQUESTS
@@ -860,7 +867,8 @@ def render(report: Report) -> str:
         lines.append(f"- Owner-ruled facts ({data['ruled_facts_checked']} checked): "
                      + ", ".join(f"{k} {n}" for k, n in data["ruled"].items()) + ".")
     if "cleared_facts_checked" in data:
-        lines.append(f"- Quarantine-cleared facts re-read: {data['cleared_facts_checked']}.")
+        lines.append(f"- Quarantine-cleared facts re-read: {data['cleared_facts_checked']}; "
+                     f"page changed: {data['cleared_facts_changed']}.")
     if data["mismatches"]:
         lines += ["", "### Mismatch: these rows no longer match their source", ""]
         lines += [f"- {target}" for target in data["mismatches"]]

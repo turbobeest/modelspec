@@ -391,28 +391,44 @@ def test_a_ruled_epoch_is_rule_15s_or_a_reopened_one_that_extends_it(ruled):
     assert Records.read(ruled.root).reopened == {}
 
 
-def test_a_cleared_fact_is_re_read_in_the_epoch_its_own_block_names(data, web):
-    """MODEL-552 clearings: the cleared record carries a cited-change block naming its
-    ``clearing_epoch``. It is re-read with the cited-change facts, against its own text, and
-    a change is read in ``reread:<text>``, an epoch apart from the clearing's and its base's."""
-    out = own(pair(30))
-    block = out.record["derivation"]["cited_change"]
-    block["previous_epoch"] = "initial"
-    block["clearing_epoch"] = "initial:clear:" + "c" * 64
-    writer.apply(out, data_dir=data.root)
-    fact = offering_fact(data)
+def test_a_cleared_fact_is_re_read_in_the_epoch_its_own_block_names(tmp_path, monkeypatch):
+    """MODEL-552: a fresh agreement cleared the fact's held mismatch (the real gate and writer).
+    The cleared record's block names its ``clearing_epoch``; the rolling re-read reads it with
+    the cited-change facts, against its own text, and counts it. A change is read in
+    ``reread:<text>``, an epoch apart from the clearing's and its base's."""
+    from decision.quarantine_clearing import is_cleared
+    from tests import test_cited_offering as offering
+    from tests.snapshot_records import verification
+    from tests.test_quarantine_clearing import plant
+
+    d = offering.Data(tmp_path / "cleared", monkeypatch)
+    plant(d.root, verification("fact", offering.FACT_ID, "mismatch", day="2026-09-20", value=45))
+    out = offering.retention(clear_quarantine=True)
+    assert out.changed, (out.reason, out.detail)
+    writer.apply(out, data_dir=d.root)
+    fact = offering_fact(d)
+    block = fact["derivation"]["cited_change"]
+    assert is_cleared(fact) and not has_ruling(fact)
     assert fact_epoch(fact) not in {block["previous_epoch"], block["clearing_epoch"]}
 
     def cited(body):
         report = script.Report("x", True)
-        script.cited_change_rereads(data.root, {}, report, request=serve({URL: body}),
+        script.cited_change_rereads(d.root, {}, report, request=serve({URL: body}),
                                     pacer=script.Pacer(0, sleep=lambda s: None),
                                     observed_at=date.today().replace(year=date.today().year + 1))
         return report
 
-    assert cited(RULED).cited_change_rereads == [] and cited(RULED).cleared_facts_checked == 1
-    assert cited(CHANGED).cited_change_rereads == [FACT_ID]
-    assert cited(CHANGED).to_dict()["cleared_facts_checked"] == 1
+    same = cited(offering.PAGE)
+    assert same.cited_change_rereads == [] and same.to_dict()["cleared_facts_checked"] == 1
+    assert same.to_dict()["cleared_facts_changed"] == 0
+    moved = cited(offering.PAGE + b" new")
+    assert moved.cited_change_rereads == [FACT_ID]
+    assert moved.to_dict()["cleared_facts_changed"] == 1
+    assert "Quarantine-cleared facts re-read: 1; page changed: 1." in script.render(moved)
+    # the cleared verdict stays logged, so the gate still holds a re-read for the owner
+    again = reread(fact | {"subject": SUBJECT}, source_id="data", readers=pair(46),
+                   request=serve({URL: offering.PAGE + b" new"}))
+    assert again.outcome == "flagged" and again.reason == "quarantined"
 
 
 def test_the_offering_file_keeps_its_header(ruled, web):

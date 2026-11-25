@@ -418,7 +418,8 @@ def _built(models=(), subscriptions=(), log=()):
 @pytest.mark.parametrize("kind", ["model", "offering"])
 def test_the_snapshot_still_excludes_a_quarantined_fact_the_gate_refused(kind):
     """The build keeps the filed value out under its mismatch. A value written around the
-    verdict would enter as cited (the gap the refusal closes); the gate refuses that write."""
+    verdict is held too since MODEL-552 (every value of the fact is checked, as the gate checks
+    them); the gate refuses that write, and only a clearing line lets it in."""
     from tests.snapshot_records import fact, model, subscription, verification
 
     if kind == "model":
@@ -447,7 +448,7 @@ def test_the_snapshot_still_excludes_a_quarantined_fact_the_gate_refused(kind):
         return plan["facts"].get(facet) is not None
 
     assert not admitted(build(filed, log))  # as filed: excluded
-    assert admitted(build(other, log))  # around the verdict: it would enter
+    assert not admitted(build(other, log))  # around the verdict: held by the old value's verdict
     assert admitted(build(filed, log[:1]))  # not quarantined: it enters
 
 
