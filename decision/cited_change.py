@@ -139,6 +139,7 @@ REFUSALS = (
     "engine_reader_reads",
     "value_differs",
     "attempts_exhausted",
+    "epoch_not_current",
 )
 #: The most attempts, complete or not, at one subject, facet and epoch (MODEL-558 review): a
 #: re-run cannot reset the retry budget to read again until two readers happen to agree.
@@ -758,7 +759,10 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
           request: Request | None, allow_unchanged: bool,
           page: tuple[bytes, tuple[str, ...]] | None = None,
           now: datetime | None = None, accept_not_disclosed: bool = False,
-          retaining: bool = False) -> CitedChange:
+          retaining: bool = False, epoch: str | None = None) -> CitedChange:
+    """The rule-15 gate. ``epoch``, when given, only states which epoch the caller means: the gate
+    reads in the filed fact's own epoch (``fact_epoch``) and refuses (``epoch_not_current``) if
+    the two differ. A caller never chooses the epoch the gate reads in."""
     now = now or datetime.now(UTC)
     facet_def = _facet(facet)
     if facet_def is None:
@@ -793,7 +797,11 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     # this harness (``harness`` true); an agreement from reads whose blindness was never proven
     # (``harness`` false, seeded) authorises nothing, but a disagreement from them still blocks.
     # The epoch is the filed fact's own (``fact_epoch``), never the caller's.
-    epoch = fact_epoch(found.fact)
+    current = fact_epoch(found.fact)
+    if epoch is not None and epoch != current:
+        return _refuse("epoch_not_current",
+                       "the named epoch is not the filed fact's; the gate reads only in that one")
+    epoch = current
     logged = attempts(subject, facet, epoch)
     history = [a for a in logged if a.get("complete")]
     if any(not a.get("agreed") for a in history):

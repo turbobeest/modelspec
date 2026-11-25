@@ -365,6 +365,7 @@ def new_fact(old: dict[str, Any], ruling: dict[str, Any], refs: list[SourceRef])
     if checked:
         fact["checked_sources"] = checked
     # A plain copy: shared objects would dump as YAML anchors and aliases.
+    # No earlier state is stored: a build as of an earlier day reads it from the claim log.
     kept = {k: v for k, v in (old.get("derivation") or {}).items() if k != "owner_ruling"}
     fact["derivation"] = json.loads(json.dumps({**kept, "owner_ruling": ruling}, default=str))
     return fact

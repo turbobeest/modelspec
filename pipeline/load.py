@@ -209,7 +209,9 @@ class Catalogue:
         return sorted(i for i, d in self.dispositions.items() if d.is_active)
 
 
-def load_models(root: Path | None = None) -> list[Model]:
+def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[Model]:
+    """Every card. ``as_of`` is the build's day, as the snapshot build is given it: a ruled
+    fact is withheld unless its ruling stands at min(as_of, the UTC day)."""
     from decision.citation import fact_citation
     from decision.owner_ruling import has_ruling, read_ruling_inputs, ruling_refused, served_fact
     from decision.sources import configured_copy_store, load_sources
@@ -222,7 +224,6 @@ def load_models(root: Path | None = None) -> list[Model]:
     #: The snapshot build's copy store (``build_from_repo``), so a ruled fact's citation is
     #: decided here exactly as there; other facts keep the registry-only citation.
     store = configured_copy_store()
-    today = datetime.now(timezone.utc).date()
     out: list[Model] = []
     for path in sorted(directory.rglob("*.md")):
         if path.name in NOT_CONTENT:
@@ -244,14 +245,14 @@ def load_models(root: Path | None = None) -> list[Model]:
                 logger.warning("%s: a fact's citation is invalid; shown as cited", model_id)
                 citation, valid = {"status": "cited", "sources": []}, False
             if has_ruling(fact):
-                # The snapshot's admission and served form, shared (MODEL-551).
+                # The snapshot's "ruling stands at cutoff" test and served form (MODEL-551).
                 if rulings is None:
                     try:
                         rulings = read_ruling_inputs(root)
                     except (OSError, ValueError, KeyError, TypeError) as error:
                         raise LoadError(f"owner rulings: {type(error).__name__}") from None
                 if ruling_refused(fact, str(model_id), cited=bool(citation) and valid,
-                                  inputs=rulings, sources=sources, today=today):
+                                  inputs=rulings, sources=sources, as_of=as_of):
                     logger.warning("%s: a fact's owner ruling does not stand; withheld", model_id)
                     withheld.append(str(fact.get("facet")))
                     continue
