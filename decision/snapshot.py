@@ -386,6 +386,9 @@ class SnapshotInputs:
     #: Fact id -> its latest filed claim, for facts whose latest claim is a ruling's
     #: (``decision.owner_ruling.latest_ruling_claims``): a ruling stands only while it is.
     owner_ruling_claims: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    #: Fact id -> its queue events, for the same facts: a ruling stands at a build's cutoff
+    #: only once its claim line is filed and checked by then (``owner_ruling.stands_at``).
+    owner_ruling_history: Mapping[str, Sequence[Mapping[str, Any]]] = field(default_factory=dict)
     #: Lab id -> ``decision.labs.Lab``. Empty when the checkout has no lab registry.
     labs: Mapping[str, Any] = field(default_factory=dict)
     #: Sourced hardware YAML records. Metadata, never ranking candidates.
@@ -798,6 +801,8 @@ class _Compiler:
         self.owner_rulings = tuple(dict(r) for r in inputs.owner_rulings)
         self.cited_attempts = tuple(dict(a) for a in inputs.cited_attempts)
         self.owner_ruling_claims = {str(k): dict(v) for k, v in inputs.owner_ruling_claims.items()}
+        self.owner_ruling_history = {str(k): tuple(v)
+                                     for k, v in inputs.owner_ruling_history.items()}
         #: record ID -> the mismatches a supersession retired, for provenance.
         self.superseded: dict[str, list[dict[str, Any]]] = {}
         #: subject id -> {"kind", "model", "lifecycle"}
@@ -1067,6 +1072,11 @@ class _Compiler:
         row = self.facts.setdefault(sid, {})
         for f in self._resolve_prices(sid, facts):
             facet_id, state = str(f["facet"]), str(f["state"])
+            if not self._ruling_known(sid, f):
+                # A ruled fact this build does not know yet (MODEL-551) is withheld before its
+                # citation is read, so its gap names the facet and a count, never a source.
+                self._reject((sid, facet_id), "invalid_citation", [])
+                continue
             if f.get("effective_from") is not None or f.get("effective_until") is not None:
                 subject = f.get("subject") or {}
                 if (self.subjects[sid]["kind"] != "offering"
@@ -1097,8 +1107,9 @@ class _Compiler:
                 continue
             if self._ruling_refused(sid, f, citation):
                 # A ruling is the owner's, past a rule-15 disagreement on a cite-only page
-                # (MODEL-551): one that does not stand keeps the fact out, as a bad citation.
-                self._reject((sid, facet_id), "invalid_citation", source_ids)
+                # (MODEL-551): one that does not stand at this build's cutoff keeps the fact
+                # out, as a bad citation. Its gap names the facet and a count, never a source.
+                self._reject((sid, facet_id), "invalid_citation", [])
                 continue
             if citation is not None and facet_id in {"offering.api_model_id", "offering.router_slug"}:
                 self._reject((sid, facet_id), "quarantined (cited identifier)", source_ids)
@@ -1127,6 +1138,23 @@ class _Compiler:
                     _date(f.get("effective_from")), _date(f.get("effective_until")),
                 ))
 
+    def _ruling_inputs(self):
+        from decision.owner_ruling import RulingInputs
+
+        return RulingInputs(self.owner_rulings, self.cited_attempts, self.owner_ruling_claims,
+                            self.log, self.owner_ruling_history)
+
+    def _ruling_known(self, sid: str, fact: Mapping[str, Any]) -> bool:
+        """False for a fact that carries ``derivation.owner_ruling`` whose ruling or claim line
+        is dated after this build's cutoff (``decision.owner_ruling.stands_at``); true for any
+        other fact. It runs first, before any citation is parsed."""
+        derivation = fact.get("derivation")
+        if not isinstance(derivation, Mapping) or "owner_ruling" not in derivation:
+            return True
+        from decision.owner_ruling import ruling_cutoff, stands_at
+
+        return stands_at(fact, sid, ruling_cutoff(self.as_of), self._ruling_inputs())
+
     def _ruling_refused(self, sid: str, fact: Mapping[str, Any], citation: dict | None) -> bool:
         """A fact that carries ``derivation.owner_ruling`` and is not cited, or whose ruling
         does not stand (``decision.owner_ruling.admits``, with the filer's quarantine test on
@@ -1134,12 +1162,12 @@ class _Compiler:
         derivation = fact.get("derivation")
         if not isinstance(derivation, Mapping) or "owner_ruling" not in derivation:
             return False
-        from decision.owner_ruling import RulingInputs, ruling_refused
+        from decision.owner_ruling import ruling_refused
 
-        inputs = RulingInputs(self.owner_rulings, self.cited_attempts, self.owner_ruling_claims,
-                              self.log)
-        return ruling_refused(fact, sid, cited=citation is not None, inputs=inputs,
-                              sources=self.sources, today=self.as_of)
+        # Withheld unless the ruling and its checked claim line are dated on or before this
+        # build's cutoff, min(as_of, the UTC day): later knowledge never enters a past build.
+        return ruling_refused(fact, sid, cited=citation is not None, inputs=self._ruling_inputs(),
+                              sources=self.sources, as_of=self.as_of)
 
     def _resolve_prices(self, sid: str, facts: Iterable[Any]) -> list[dict[str, Any]]:
         facts = [_as_dict(raw) for raw in facts or ()]
@@ -2086,7 +2114,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
         from decision.supersession import read_store
 
         supersessions = read_store(supersession_store)
-    owner_rulings, cited_attempts, ruling_claims = [], [], {}
+    owner_rulings, cited_attempts, ruling_claims, ruling_history = [], [], {}, {}
     rulings_store = root / "verification" / "owner-rulings.jsonl"
     if rulings_store.is_file():
         from decision.owner_ruling import read_ruling_inputs
@@ -2099,6 +2127,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
         owner_rulings = list(ruling_inputs.rulings)
         cited_attempts = list(ruling_inputs.attempts)
         ruling_claims = dict(ruling_inputs.claims)
+        ruling_history = dict(ruling_inputs.history)
     from decision.labs import load_labs
 
     fit_path = root / "hardware" / "fit" / "records.yaml"
@@ -2115,6 +2144,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
                           supersessions=supersessions,
                           owner_rulings=owner_rulings, cited_attempts=cited_attempts,
                           owner_ruling_claims=ruling_claims,
+                          owner_ruling_history=ruling_history,
                           labs=load_labs(root), hardware_fit_records=fit_records,
                           hardware=[yaml.safe_load(path.read_text(encoding="utf-8"))
                                     for path in sorted((root / "hardware").glob("*.yaml"))

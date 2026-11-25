@@ -179,28 +179,40 @@ def cited_change_logged(fact: Mapping[str, Any], subject: str,
         for a in attempts)
 
 
-def latest_ruling_claims(events_path: Path) -> dict[str, dict[str, Any]]:
-    """``fact id -> claim`` for each fact whose latest filed claim (the latest ``collected``
+def ruling_claim_events(events_path: Path) -> tuple[dict[str, dict[str, Any]],
+                                                     dict[str, tuple[dict[str, Any], ...]]]:
+    """``(claims, history)`` for each fact whose latest filed claim (the latest ``collected``
     event in the queue, ordered as ``decision.verify.Queue``: by time, no zone means UTC, a
-    later line on a tie) was filed by the owner-ruling filer. Any later admitted change files
-    a later claim, so a fact absent here has no standing ruling."""
+    later line on a tie) was filed by the owner-ruling filer. ``claims`` maps the fact id to
+    that claim; ``history`` to every ``collected`` and ``checked`` event for the fact, in queue
+    order, so a build as of an earlier day can find the claim that stood then. Any later
+    admitted change files a later claim, so a fact absent here has no standing ruling."""
     if not events_path.is_file():
-        return {}
-    collected = []
+        return {}, {}
+    events: dict[str, list[tuple[datetime, int, dict[str, Any]]]] = {}
     with events_path.open(encoding="utf-8") as handle:
-        for line in handle:
-            if '"collected"' not in line:
+        for index, line in enumerate(handle):
+            if '"collected"' not in line and '"checked"' not in line:
                 continue
             event = json.loads(line)
-            claim = event.get("claim") if event.get("event") == "collected" else None
-            target = claim.get("target") if isinstance(claim, dict) else None
+            kind = event.get("event")
+            target = ((event.get("claim") or {}).get("target") if kind == "collected"
+                      else event.get("target") if kind == "checked" else None)
             if isinstance(target, dict) and target.get("kind") == "fact" and target.get("id"):
-                collected.append((_event_time(event), event))
-    latest: dict[str, dict[str, Any]] = {}
-    for _, event in sorted(collected, key=lambda item: item[0]):  # stable on ties
-        latest[event["claim"]["target"]["id"]] = event["claim"]
-    return {fid: claim for fid, claim in latest.items()
-            if (claim.get("collector") or {}).get("agent") == AGENT}
+                events.setdefault(target["id"], []).append((_event_time(event), index, event))
+    claims, history = {}, {}
+    for fid, rows in events.items():
+        ordered = [event for _, _, event in sorted(rows, key=lambda r: (r[0], r[1]))]
+        collected = [e for e in ordered if e.get("event") == "collected"]
+        if collected and (collected[-1]["claim"].get("collector") or {}).get("agent") == AGENT:
+            claims[fid] = collected[-1]["claim"]
+            history[fid] = tuple(ordered)
+    return claims, history
+
+
+def latest_ruling_claims(events_path: Path) -> dict[str, dict[str, Any]]:
+    """The ``claims`` half of ``ruling_claim_events``."""
+    return ruling_claim_events(events_path)[0]
 
 
 def _event_time(event: Mapping[str, Any]) -> datetime:
@@ -406,6 +418,40 @@ def admits(fact: Mapping[str, Any], subject: str, *, rulings: Sequence[Mapping[s
 # --- one admission and one served form, for the snapshot and the site ----------------------------
 
 
+def ruling_cutoff(as_of: date | None = None) -> date:
+    """The last day whose rulings a build may know: ``as_of``, never later than the UTC day."""
+    today = datetime.now(UTC).date()
+    return min(as_of, today) if as_of is not None else today
+
+
+def stands_at(fact: Mapping[str, Any], subject: str, cutoff: date,
+              inputs: RulingInputs) -> bool:
+    """Whether a build that knows the record up to ``cutoff`` knows the fact's ruling: the
+    ruling is dated on or before ``cutoff``, and so is its own claim line, both filed (the
+    latest ``collected`` event for the fact) and checked (a ``verified`` or ``cited`` event
+    after it). A backdated ruling is not known before its claim was filed. Nothing is
+    restored: a ruled fact a build does not know yet is withheld."""
+    from datetime import time
+
+    block = ruling_block(fact)
+    day = _day(block.get("ruled_at")) if block is not None else None
+    if day is None or day > cutoff:
+        return False
+    fid = f"{subject}#{fact.get('facet')}"
+    claim = inputs.claims.get(fid)
+    end = datetime.combine(cutoff, time.max, tzinfo=UTC)
+    filed = checked = None
+    for event in inputs.history.get(fid, ()):
+        if event.get("event") == "collected":
+            filed = _event_time(event) if claim is not None \
+                and _exact(event.get("claim")) == _exact(claim) else None
+            checked = None
+        elif filed is not None and checked is None \
+                and event.get("outcome") in ("verified", "cited"):
+            checked = _event_time(event)
+    return filed is not None and checked is not None and filed <= end and checked <= end
+
+
 def has_ruling(fact: Mapping[str, Any]) -> bool:
     """The fact claims an owner ruling (``derivation.owner_ruling`` present, well formed or not)."""
     derivation = fact.get("derivation") if isinstance(fact, Mapping) else None
@@ -430,6 +476,8 @@ class RulingInputs:
     attempts: tuple[Mapping[str, Any], ...] = ()
     claims: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
     verdicts: Mapping[tuple[str, str, str], Any] = field(default_factory=dict)
+    #: Fact id -> its queue events, for the facts in ``claims`` (``ruling_claim_events``).
+    history: Mapping[str, Sequence[Mapping[str, Any]]] = field(default_factory=dict)
 
 
 def read_ruling_inputs(root: Path, *, verdicts: bool = True) -> RulingInputs:
@@ -450,20 +498,24 @@ def read_ruling_inputs(root: Path, *, verdicts: bool = True) -> RulingInputs:
         rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()
                 if line.strip()] if path.is_file() else []
         ranked = _Compiler._verification_log(rows)
-    return RulingInputs(tuple(rulings), tuple(read_lines(root / ATTEMPTS_FILE)),
-                        latest_ruling_claims(root / "verification/queue/events.jsonl"), ranked)
+    claims, history = ruling_claim_events(root / "verification/queue/events.jsonl")
+    return RulingInputs(tuple(rulings), tuple(read_lines(root / ATTEMPTS_FILE)), claims, ranked,
+                        history)
 
 
 def ruling_refused(fact: Mapping[str, Any], subject: str, *, cited: bool, inputs: RulingInputs,
-                   sources: Mapping[str, str], today: date | None = None) -> bool:
-    """The one admission test for a fact that claims a ruling, for the snapshot and the site:
-    refused when it is not cited or its ruling does not stand (``admits``). A fact that
-    claims no ruling is never refused here."""
+                   sources: Mapping[str, str], as_of: date | None = None) -> bool:
+    """The one "ruling stands at cutoff" test for a fact that claims a ruling, for the snapshot
+    and the site: refused (the fact is withheld) when it is not cited, its ruling does not
+    stand as a live build checks it (``admits``: uniqueness, retrieval copies, quarantine,
+    latest claim), or the build's cutoff (``ruling_cutoff(as_of)``) is before the ruling or its
+    claim line (``stands_at``). A ruling dated after the UTC day is refused whatever the
+    ``as_of``. A fact that claims no ruling is never refused here."""
     if not has_ruling(fact):
         return False
-    return not cited or not admits(fact, subject, rulings=inputs.rulings,
-                                   attempts=inputs.attempts, sources=sources,
-                                   verdicts=inputs.verdicts, claims=inputs.claims, today=today)
+    return not cited or not stands_at(fact, subject, ruling_cutoff(as_of), inputs) \
+        or not admits(fact, subject, rulings=inputs.rulings, attempts=inputs.attempts,
+                      sources=sources, verdicts=inputs.verdicts, claims=inputs.claims)
 
 
 def _same_instant(left: Any, right: Any) -> bool:
