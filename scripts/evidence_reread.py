@@ -23,8 +23,8 @@ watched fact that cites it, for a person to re-read; nothing on a card changes.
 Each run also reads the pages that owner-ruled facts cite (MODEL-562,
 ``decision.ruling_reread``), with the same class check before any request: only a page on a
 cite-only host is read, in memory, and only the sha256 of its normalised visible text is
-used, with the hash of the regions the fact cites. The ruled page records its region
-baseline; a change outside the cited region changes nothing; a changed cited region reopens
+used, with the hash of the regions the fact cites, against the hashes the ruling's resolved
+disagreement logged. A change outside the cited region changes nothing; a changed cited region reopens
 the fact to rule 15 in a new epoch, appended to ``decision.ruling_reread.RECORD_FILE`` once.
 No reader is asked. The report carries counts only.
 
@@ -80,13 +80,13 @@ RETAINING_CLASSES = frozenset({"permits", "restricts"})
 WATCHED_FACETS = ("model.lifecycle",)
 #: What the ruled-fact re-read counts (MODEL-562, ``decision.ruling_reread.page_status``). Per
 #: page of a standing ruling: ``current`` (the ruled page, or a change outside the cited region),
-#: ``baselined`` (the ruled page; its region hash recorded now), ``reopened`` (a changed cited
-#: region: a reopened epoch recorded now), ``open`` (one recorded already), ``unbaselined`` (a
-#: new text and no baseline: no change can be shown), ``no_text_hash``, ``unreadable_region``,
+#: ``reopened`` (a changed cited region: a reopened epoch recorded now), ``open`` (one recorded
+#: already), ``unbaselined`` (a new text and no region hash in the resolved attempts: no change
+#: can be shown), ``no_text_hash``, ``unreadable_region``,
 #: ``deferred``, ``blocked`` (a refused redirect). Per fact: ``invalid`` (no ruling the build
 #: admits), ``now_retaining`` (a source's host retains copies now: the verified path applies,
 #: nothing is read here), ``unclassed`` (not requested).
-RULED_OUTCOMES = ("current", "baselined", "reopened", "open", "unbaselined", "no_text_hash",
+RULED_OUTCOMES = ("current", "reopened", "open", "unbaselined", "no_text_hash",
                   "unreadable_region", "deferred", "blocked", "invalid", "now_retaining",
                   "unclassed")
 #: Per watched page: the sha256 of its normalised visible text and the day it was read.
@@ -619,8 +619,8 @@ def ruled_fact_rereads(root: Path, terms: dict[str, str], report: Report, *, sou
     copies is counted (``now_retaining``) and not read here, and an unclassed one is never
     requested. A page is read with the gate's own fetch (``decision.cited_change._fetch``:
     redirects off, every hop cite-only), once, in memory, so the sweep and the gate hash the same
-    bytes; no byte is kept. ``decision.ruling_reread.page_status`` compares it: the ruled page
-    records its region baseline once; a change outside the cited region changes nothing; a
+    bytes; no byte is kept. ``decision.ruling_reread.page_status`` compares it with the page the
+    ruling's resolved disagreement read: a change outside the cited region changes nothing; a
     changed region appends one ``reopen`` line per fact and epoch, never twice. No reader is
     asked, and no card, fact or verification record changes. ``sources`` is unused: the gate's
     own lookup supplies the registry rows.
@@ -688,13 +688,7 @@ def ruled_fact_rereads(root: Path, terms: dict[str, str], report: Report, *, sou
             status = rr.page_status(found.fact, subject, ruling=ruling, source_id=source_id,
                                     row=rows[source_id], page_bytes=page[0],
                                     attempts=inputs.attempts, records=records)
-            if status.kind == "baseline":
-                report.ruled["baselined"] += 1
-                records.add_baseline((target, status.ruled_epoch, source_id), status.region_sha)
-                lines.append(rr.baseline_line(target=target, ruled_epoch=status.ruled_epoch,
-                                              source_id=source_id, region_sha=status.region_sha,
-                                              day=day))
-            elif status.kind == "changed":
+            if status.kind == "changed":
                 report.ruled["reopened"] += 1
                 line = rr.reopen_line(target=target, ruled_epoch=status.ruled_epoch,
                                       source_id=source_id, region_sha=status.region_sha,

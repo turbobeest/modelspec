@@ -243,14 +243,16 @@ Learned expensively during 2026-09-09/10.
     cites, with the host class read before any request and with the gate's own fetch
     (redirects off, every hop cite-only), so the sweep and the gate hash the same bytes. A
     source whose host now retains copies is counted, not read; an unclassed one is never
-    requested. Two hashes are compared, never page text: the visible-text hash against the
-    texts the disagreement the ruling resolves read (no earlier read counts), and the hash of
-    the regions the fact cites (its source's normaliser and locators, volatile text
-    stripped, folded as rule 15 folds text). The ruled
-    page records its region baseline once; a change outside the cited region (a banner, a
-    date) changes nothing; a changed region appends one `reopen` line to
-    `reports/evidence-reread/ruled-reopenings.jsonl` (ids and hashes only). With no baseline
-    nothing reopens (`unbaselined`). The gate reads a ruled fact in `<ruled epoch>:reopen:<region
+    requested. Two hashes are compared, never page text, both against what the disagreement
+    the ruling resolves read (its lines in `verification/cited-attempts.jsonl`, nothing else):
+    the visible-text hash, and the hash of the regions the source registers (its normaliser and
+    locators, volatile text stripped, folded as rule 15 folds text), which the gate now logs
+    with each attempt (`region_sha256`). That logged region hash is the only baseline; it is
+    never read from the record file. A change outside the cited region (a banner, a date)
+    changes nothing; a changed region appends one `reopen` line to
+    `reports/evidence-reread/ruled-reopenings.jsonl` (ids and hashes only). A ruling whose
+    resolved attempts logged no region hash has no baseline, and nothing reopens
+    (`unbaselined`). The gate reads a ruled fact in `<ruled epoch>:reopen:<region
     hash>` only for a page it fetched itself with its own transport, for a ruling the build
     admits, on one of its sources, when the sweep recorded exactly that epoch; otherwise in the
     ruled epoch, where the disagreement still blocks. `reread` compares a ruled page with the

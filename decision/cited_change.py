@@ -887,6 +887,14 @@ def _with_clearing(outcome: CitedChange, clearing: tuple[tuple[str, str, str], d
     return CitedChange(outcome.outcome, outcome.reason, outcome.detail, record)
 
 
+def _region_sha256(row: Mapping[str, Any], page_bytes: bytes) -> str | None:
+    """The hash of the source's cited regions on the page read (MODEL-562): logged with the
+    attempt, so a ruling on it names the region it settled. ``None`` when they cannot be read."""
+    from decision.ruling_reread import region_sha256
+
+    return region_sha256(row, page_bytes)
+
+
 def _ruled_epoch(found: Lookup, subject: str, source_id: str, page_bytes: bytes,
                  own_fetch: bool) -> str:
     """The epoch a ruled fact is read in, from the page just fetched (MODEL-562). Only a page
@@ -1031,7 +1039,8 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         try:
             answers = read_page(subject=subject, url=row["url"], facet_id=facet,
                                 subject_name=found.subject_name, page_bytes=page_bytes,
-                                readers=readers, epoch=epoch, definition=found.definition)
+                                readers=readers, epoch=epoch, definition=found.definition,
+                                region_sha256=_region_sha256(row, page_bytes))
             break
         except ReaderError:
             continue
@@ -1745,7 +1754,7 @@ def _reread_ruled(found: Lookup, subject: str, facet: str, source_id: str,
             records=Records.read(root))
     except (OSError, ValueError, KeyError, TypeError) as error:
         return Reread("flagged", "registry_lookup_failed", None, type(error).__name__)
-    if status is not None and status.kind in {"current", "baseline"}:
+    if status is not None and status.kind == "current":
         return Reread("current")
     outcome = _gate(subject=subject, facet=facet, source_id=source_id, readers=readers,
                     request=request, allow_unchanged=True,

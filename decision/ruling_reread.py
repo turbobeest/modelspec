@@ -10,18 +10,19 @@ compares two hashes, never page text:
 
 * the page's visible-text hash (``decision.cited_reader.text_sha256``), against the texts the
   disagreeing attempts the ruling resolves read (the attempt log records them), and no other;
-* the cited-region hash (``region_sha256``): the text of each region the fact cites, selected
-  by the source's own normaliser and locators (``decision.normalise``, volatile text such as
-  dates and tracking stripped) and folded as rule 15 folds visible text.
+* the cited-region hash (``region_sha256``): the text of each region the source registers
+  (the regions a ruled fact cites), selected by the source's own normaliser and locators
+  (``decision.normalise``, volatile text such as dates and tracking stripped) and folded as
+  rule 15 folds visible text, against the region hash the gate logged with those same
+  resolved attempts (``resolved_region``): the baseline. It is never read from the record.
 
-A page whose visible text is one the resolved disagreement read is the ruled page: its region
-hash is recorded once as the ruled baseline (``RECORD_FILE``), and nothing else happens. A page
-whose visible text is new but whose region hash is the baseline changed outside what the fact
-cites (a banner, a date): nothing happens. Only a region hash that differs from the baseline is
-a change: the sweep appends one ``reopen`` line, and from then on rule 15 reads the fact in
-``<ruled epoch>:reopen:<region hash>``, where two agreeing readers may supersede the ruling.
-With no baseline (the page moved before the first sweep saw it), no change can be shown and
-nothing reopens: the fact is counted ``unbaselined`` for a person.
+A page whose visible text is one the resolved disagreement read, or whose region hash is the
+baseline, is unchanged where the fact cites it (a banner or a date may have moved): nothing
+happens. Only a region hash that differs from the baseline is a change: the sweep appends one
+``reopen`` line (``RECORD_FILE``), and from then on rule 15 reads the fact in
+``<ruled epoch>:reopen:<region hash>``, where two agreeing readers may supersede the ruling. A
+ruling whose resolved attempts logged no region hash (made before the gate logged one) has no
+baseline: no change can be shown and nothing reopens; it is counted ``unbaselined``.
 
 The gate (``decision.cited_change._gate``) reads a ruled fact in a reopened epoch only when all
 of these hold: the ruling stands as the build admits it (``owner_ruling.ruling_refused``); the
@@ -48,11 +49,10 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-#: The append-only record, under the data directory: ``baseline`` and ``reopen`` lines with ids
-#: and hashes only. The weekly refresh keeps ``reports/evidence-reread/`` (its ``add-paths``).
+#: The append-only record, under the data directory: ``reopen`` lines with ids and hashes only.
+#: The weekly refresh keeps ``reports/evidence-reread/`` (its ``add-paths``).
 RECORD_FILE = "reports/evidence-reread/ruled-reopenings.jsonl"
 #: Exactly the fields of each kind of record line.
-BASELINE_FIELDS = ("kind", "target", "ruled_epoch", "source_id", "region_sha256", "recorded_on")
 REOPEN_FIELDS = ("kind", "target", "ruled_epoch", "source_id", "region_sha256",
                  "ruled_region_sha256", "epoch", "recorded_on")
 _HEX = re.compile(r"[0-9a-f]{64}")
@@ -75,23 +75,22 @@ def _fold(text: str) -> str:
     return re.sub(r"\s+", " ", html.unescape(text)).strip()
 
 
-def region_sha256(fact: Mapping[str, Any], source_id: str, row: Mapping[str, Any],
-                  page_bytes: bytes) -> str | None:
-    """The hash of the regions of ``source_id`` the fact cites, or ``None`` when they cannot be
-    selected (no registered region, an unknown normaliser or locator, content the normaliser
-    refuses). A region that matches nothing hashes as absent, which is a change."""
+def region_sha256(row: Mapping[str, Any], page_bytes: bytes) -> str | None:
+    """The hash of the source's registered cited regions on a page (the regions a ruled fact
+    cites: the filer cites every one), or ``None`` when they cannot be selected (no registered
+    region, an unknown normaliser or locator, content the normaliser refuses). A region that
+    matches nothing hashes as absent, which is a change. The rule-15 gate logs it with each
+    attempt (``region_sha256``), so the region a ruling settled is in the attempt it resolves."""
     from decision.cited_reader import sha256
     from decision.normalise import (
         NORMALISERS, Locator, UnsupportedContentError, normalise_document, select_region,
     )
 
-    ref = next((r for r in fact.get("sources") or () if isinstance(r, Mapping)
-                and r.get("source_id") == source_id), None)
     registered = {str(r.get("id")): r for r in row.get("cited_regions") or ()
                   if isinstance(r, Mapping)}
-    wanted = [str(i) for i in (ref or {}).get("cited_regions") or ()] or sorted(registered)
+    wanted = sorted(registered)
     rules = NORMALISERS.get(str(row.get("normaliser") or "html-default"))
-    if not wanted or rules is None or any(i not in registered for i in wanted):
+    if not wanted or rules is None:
         return None
     try:
         doc = normalise_document(page_bytes, rules)
@@ -126,26 +125,31 @@ def resolved_texts(ruling: Mapping[str, Any], attempts: Sequence[Mapping[str, An
     return frozenset(out)
 
 
+def resolved_region(ruling: Mapping[str, Any], attempts: Sequence[Mapping[str, Any]], *,
+                    url: str) -> str | None:
+    """The ruled region: the region hash the disagreeing attempts the ruling resolves logged on
+    ``url``, the one baseline there is. Never read from the record file. ``None`` (no change
+    can be shown) when a resolved attempt on ``url`` logged none, or two logged different ones."""
+    from decision.owner_ruling import resolved_attempts
+
+    found = {entry.get("region_sha256") for entry in resolved_attempts(ruling, attempts).values()
+             if entry.get("url") == url}
+    if len(found) != 1:
+        return None
+    region = found.pop()
+    return region if isinstance(region, str) and _HEX.fullmatch(region) else None
+
+
 # --- the record ----------------------------------------------------------------------------------
 
 
 @dataclass
 class Records:
-    """What ``RECORD_FILE`` holds: the baseline per fact, ruled epoch and source (two lines that
-    differ there are no baseline at all: nothing is shown), and every reopen line per fact and
-    epoch (a line that does not match leaves the others standing)."""
+    """The ``reopen`` lines of ``RECORD_FILE``, every one per fact and epoch (a line that does not
+    match leaves the others standing). A line of any other kind is ignored: the baseline is never
+    read from the record, only from the attempts a ruling resolves (``resolved_region``)."""
 
-    baselines: dict[tuple[str, str, str], str | None] = field(default_factory=dict)
     reopened: dict[tuple[str, str], list[Mapping[str, Any]]] = field(default_factory=dict)
-
-    def baseline(self, key: tuple[str, str, str]) -> str | None:
-        return self.baselines.get(key)
-
-    def add_baseline(self, key: tuple[str, str, str], region: str) -> None:
-        if key not in self.baselines:
-            self.baselines[key] = region
-        elif self.baselines[key] != region:
-            self.baselines[key] = None  # conflicting baselines show nothing
 
     def add_reopen(self, line: Mapping[str, Any]) -> None:
         self.reopened.setdefault((str(line["target"]), str(line["epoch"])), []).append(line)
@@ -158,25 +162,13 @@ class Records:
 
         out = cls()
         for line in read_lines(Path(data_dir) / RECORD_FILE):
-            hashes = [line.get(k) for k in ("region_sha256", "ruled_region_sha256")
-                      if k in line]
-            if not all(isinstance(h, str) and _HEX.fullmatch(h) for h in hashes):
-                continue
-            if line.get("kind") == "baseline" and set(line) == set(BASELINE_FIELDS):
-                out.add_baseline(
-                    (str(line["target"]), str(line["ruled_epoch"]), str(line["source_id"])),
-                    line["region_sha256"])
-            elif line.get("kind") == "reopen" and set(line) == set(REOPEN_FIELDS) \
+            if line.get("kind") == "reopen" and set(line) == set(REOPEN_FIELDS) \
+                    and all(isinstance(line[k], str) and _HEX.fullmatch(line[k])
+                            for k in ("region_sha256", "ruled_region_sha256")) \
                     and line["epoch"] == reopen_epoch(str(line["ruled_epoch"]),
                                                       line["region_sha256"]):
                 out.add_reopen(line)
         return out
-
-
-def baseline_line(*, target: str, ruled_epoch: str, source_id: str, region_sha: str,
-                  day: date) -> dict[str, Any]:
-    return {"kind": "baseline", "target": target, "ruled_epoch": ruled_epoch,
-            "source_id": source_id, "region_sha256": region_sha, "recorded_on": day.isoformat()}
 
 
 def reopen_line(*, target: str, ruled_epoch: str, source_id: str, region_sha: str,
@@ -209,10 +201,10 @@ def standing_ruling(fact: Mapping[str, Any], subject: str, *, inputs: Any,
 @dataclass(frozen=True)
 class PageStatus:
     """What one ruled page shows. ``kind``: ``current`` (the ruled page, or a change outside the
-    cited region), ``baseline`` (the ruled page, its region hash not recorded yet), ``changed``
-    (a new region hash, not recorded yet), ``open`` (a reopened epoch the sweep recorded),
-    ``unbaselined`` (a new text and no baseline: no change can be shown), ``no_text_hash`` (an
-    attempt in the ruled epoch recorded none) or ``unreadable_region``."""
+    cited region), ``changed`` (a region hash other than the baseline, not recorded yet),
+    ``open`` (a reopened epoch the sweep recorded), ``unbaselined`` (a new text and no baseline
+    in the resolved attempts: no change can be shown), ``no_text_hash`` (a resolved attempt
+    recorded none) or ``unreadable_region``."""
 
     kind: str
     ruled_epoch: str
@@ -226,7 +218,8 @@ def page_status(fact: Mapping[str, Any], subject: str, *, ruling: Mapping[str, A
                 attempts: Sequence[Mapping[str, Any]], records: Records) -> PageStatus:
     """The one comparison the sweep, the gate and ``reread`` make for a ruled fact's page.
     ``ruling`` is the fact's standing ruling (``standing_ruling``): the baseline, and what counts
-    as ``current``, is only the page its resolved disagreement read (``resolved_texts``)."""
+    as ``current``, is only the page its resolved disagreement read (``resolved_texts``,
+    ``resolved_region``); a reopen line counts only when it names that baseline."""
     from decision.cited_reader import text_sha256
     from decision.owner_ruling import ruled_epoch
 
@@ -236,20 +229,14 @@ def page_status(fact: Mapping[str, Any], subject: str, *, ruling: Mapping[str, A
     seen = resolved_texts(ruling, attempts, url=str(row.get("url")))
     if not seen:
         return PageStatus("no_text_hash", ruled)
-    region = region_sha256(fact, source_id, row, page_bytes)
+    region = region_sha256(row, page_bytes)
     if region is None:
         return PageStatus("unreadable_region", ruled)
-    key = (target, ruled, source_id)
-    baseline = records.baseline(key)
-    if text_sha256(page_bytes) in seen:
-        if baseline is None and key in records.baselines:
-            return PageStatus("unbaselined", ruled, region)  # conflicting baselines
-        return PageStatus("current" if baseline is not None else "baseline", ruled, region,
-                          baseline)
+    baseline = resolved_region(ruling, attempts, url=str(row.get("url")))
+    if text_sha256(page_bytes) in seen or (baseline is not None and region == baseline):
+        return PageStatus("current", ruled, region, baseline)
     if baseline is None:
         return PageStatus("unbaselined", ruled, region)
-    if region == baseline:
-        return PageStatus("current", ruled, region, baseline)
     epoch = reopen_epoch(ruled, region)
     if any(line.get("source_id") == source_id and line.get("ruled_epoch") == ruled
            and line.get("ruled_region_sha256") == baseline
