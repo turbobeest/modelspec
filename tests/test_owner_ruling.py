@@ -769,7 +769,8 @@ def _claim(ruling):
                          "cited_regions": ["page"], "retrieved_at": AT}]}
 
 
-def _build(row, rulings, attempts, log=(), claims=None, source_cache=None):
+def _build(row, rulings, attempts, log=(), claims=None, source_cache=None,
+           as_of=date(2026, 10, 19)):
     """By default the fact's latest claim is its own ruling block's, as after a filing."""
     from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
     from tests.snapshot_records import SOURCES, model
@@ -781,7 +782,7 @@ def _build(row, rulings, attempts, log=(), claims=None, source_cache=None):
                             sources={**SOURCES, "src-cite": CITE},
                             owner_rulings=list(rulings), cited_attempts=list(attempts),
                             verifications=list(log), owner_ruling_claims=claims)
-    return load_built_snapshot(build_snapshot(inputs, as_of=date(2026, 10, 19),
+    return load_built_snapshot(build_snapshot(inputs, as_of=as_of,
                                               source_cache=source_cache))
 
 
@@ -992,3 +993,17 @@ def test_a_configured_copy_store_decides_a_ruled_fact_alike_on_both_paths(tmp_pa
     model, result = _site_export(root)
     assert model.withheld_facets == (FACET,) and not model.cited_facts
     assert all(f["facet"] != FACET for f in result["card"]["facts"])
+
+
+def test_a_ruling_dated_after_the_build_as_of_still_stands():
+    """``as_of`` dates measurements and price schedules, not the data: a snapshot built as of
+    an earlier day still reads today's rulings. Only a ruling dated after the real clock is
+    refused (MODEL-551, a production test builds as of 2026-10-13)."""
+    attempt = _attempt()
+    ruling = _ruling(attempt)  # ruled 2026-10-12
+    early = date(2026, 10, 1)
+    assert _build(_ruled_fact(ruling), [ruling], [attempt], as_of=early).fact(
+        MID, FACET).value == 262144
+    future = (datetime.now(UTC).date() + timedelta(days=2)).isoformat()
+    ahead = _ruling(attempt, ruled_at=future)
+    assert _build(_ruled_fact(ahead), [ahead], [attempt]).fact(MID, FACET).state == "unknown"

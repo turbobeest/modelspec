@@ -1138,8 +1138,11 @@ class _Compiler:
 
         inputs = RulingInputs(self.owner_rulings, self.cited_attempts, self.owner_ruling_claims,
                               self.log)
+        # The real clock, not ``as_of``: ``as_of`` dates measurements and price schedules, and
+        # a snapshot built as of an earlier day still reads today's rulings and logs. Only a
+        # ruling dated after today is refused, as the filer refuses it.
         return ruling_refused(fact, sid, cited=citation is not None, inputs=inputs,
-                              sources=self.sources, today=self.as_of)
+                              sources=self.sources)
 
     def _resolve_prices(self, sid: str, facts: Iterable[Any]) -> list[dict[str, Any]]:
         facts = [_as_dict(raw) for raw in facts or ()]
