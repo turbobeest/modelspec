@@ -202,14 +202,18 @@ Learned expensively during 2026-09-09/10.
     and no disagreement is recorded in the clearing epoch or the subject's own epoch. The record
     then carries `clearings`: one line for the append-only
     `verification/quarantine-clearings.jsonl` naming the verdict (`target`, `verdict_sha256`,
-    `verdict_date`) and the agreement (`agreement`, its `attempt_id`, with `subject`, `facet`,
-    `epoch`). The writers append it. The build admits a gate-written fact (one that carries
-    `derivation.cited_change`) or a cited board reading held by any verdict only through a valid
-    line: it names the winning verdict exactly, its agreement is in the attempt log and still
-    meets every limit, and the fact or row is at its location and carries the block that
-    agreement made, with that value. An `unreachable` verdict, more than one held verdict and a
-    fact that carries an owner's ruling stay blocked. A cleared fact is served as any cited fact
-    and no contract field widens. Card facts have no engine writer; a data PR writes the fact,
+    `verdict_date`) and the agreement (`agreement`: the hash of its exact line in
+    `cited-attempts.jsonl`, with `subject`, `facet`, `epoch`). The block records
+    `previous_epoch` (a rule-15 epoch the build re-derives) and `clearing_epoch`. The writers
+    append the line. An agreement on the filed value clears too. The build holds every cited
+    fact (with or without a block) and every cited board reading by a verdict on any value of
+    its ids, unless its own value is independently `verified`; a sibling row claims an id only
+    when it is admitted under it. It admits a held record only through a valid line: it names
+    the winning verdict exactly, its agreement is a byte-identical log line that still meets
+    every limit, and the fact or row is at its location and carries the block that agreement
+    made, with that value, citing the agreement's registered source. An `unreachable` verdict,
+    more than one held verdict and a fact that carries an owner's ruling stay blocked. A cleared
+    fact is served exactly as a plain cited fact (no `derivation`) and no contract field widens. Card facts have no engine writer; a data PR writes the fact,
     its claim and the line (`quarantine_clearing.append`).
 
     **The owner's ruling past a disagreement (MODEL-551).** A complete `readers_disagree`

@@ -822,11 +822,21 @@ def _with_clearing(outcome: CitedChange, clearing: tuple[tuple[str, str, str], d
     key, verdict = clearing
     if base_epoch(epoch, verdict_sha256(verdict)) != base:
         return _refuse("epoch_not_current", "the read was not in the verdict's clearing epoch")
-    record = dict(outcome.record or {})
+    import copy
+
+    from decision.cited_reader import _attempts_path
+    from decision.owner_ruling import loads
+
+    record = copy.deepcopy(dict(outcome.record or {}))
     value = record.get("value")
     logged = attempts(subject, facet, epoch)
     entry = logged[-1] if logged else {}
-    if entry.get("prompt_sha256") != (answers[0].prompt_sha256 if answers else None) \
+    # The clearing names the agreement by its exact line: the attempt log's last line, which
+    # ``read_page`` has just appended.
+    raws = [raw for raw in _attempts_path(None).read_text(encoding="utf-8").split("\n")
+            if raw.strip()]
+    if not raws or loads(raws[-1]) != entry \
+            or entry.get("prompt_sha256") != (answers[0].prompt_sha256 if answers else None) \
             or agreement_problem(entry, value, facet) is not None:
         return _refuse("registry_lookup_failed",
                        "the agreement just logged is not the attempt log's last line")
@@ -837,8 +847,13 @@ def _with_clearing(outcome: CitedChange, clearing: tuple[tuple[str, str, str], d
     at = datetime.fromisoformat(str(entry["at"]))
     if not later_than(verdict, at):
         return _refuse("clearing_not_later", "the agreement is not on a later day than the verdict")
+    # The block names the epoch it was read in and the rule-15 epoch that one extends, so the
+    # build can derive the base and refuse a fabricated one (``quarantine_clearing.base_problem``).
+    block = record["derivation"]["cited_change"]
+    block["previous_epoch"], block["clearing_epoch"] = base, epoch
     record["clearings"] = [line(key=key, verdict=verdict, subject=subject, facet=facet,
-                                epoch=epoch, attempt=entry, value=value, at=max(now, at))]
+                                epoch=epoch, attempt_line=raws[-1], value=value,
+                                at=max(now, at))]
     return CitedChange(outcome.outcome, outcome.reason, outcome.detail, record)
 
 
@@ -992,7 +1007,8 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         refusal = _check_silence(found, facet_def, source_id, page_bytes, history)
         if refusal is not None:
             return refusal
-        if not allow_unchanged and found.fact.get("state") == "not_disclosed" and filed is None:
+        if not (allow_unchanged or clearing is not None) \
+                and found.fact.get("state") == "not_disclosed" and filed is None:
             return _refuse("value_unchanged", "the fact is filed not_disclosed already")
         record = _record(subject, facet, None, row, source_id, now, sha256(page_bytes),
                          text_sha256(page_bytes), answers, filed, found.registered_ids, resolved)
@@ -1011,7 +1027,8 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     problem = _value_fits(value, facet_def)
     if problem is not None:
         return _refuse("value_invalid", problem)
-    if not allow_unchanged and found.fact.get("state") == "known" \
+    # A clearing re-files the filed value too: it is the agreement, not a change, that clears.
+    if not (allow_unchanged or clearing is not None) and found.fact.get("state") == "known" \
             and _canonical(value, facet_def) == _canonical(filed, facet_def):
         return _refuse("value_unchanged", "the agreed value is the filed value")
     return cleared(CitedChange("cited_change", None, "", _record(
@@ -1451,7 +1468,7 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     filed = found.row.get("score")
     marked = found.row.get("not_published_since") not in (None, "")
     if canonical(value, facet.id) == canonical(filed, facet.id) and not marked \
-            and not allow_unchanged:
+            and not allow_unchanged and clearing is None:
         return _refuse("value_unchanged", "the agreed value is the filed value")
     record = _record(subject, facet_id, value, found.sources[source_id], source_id, now,
                      sha256(page_bytes), text_sha256(page_bytes), answers, filed, found.own, resolved)

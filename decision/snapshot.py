@@ -393,6 +393,9 @@ class SnapshotInputs:
     #: ``decision.quarantine_clearing``), checked against ``cited_attempts``. A cited fact or
     #: board reading held by a mismatch is admitted only through a valid line.
     quarantine_clearings: Sequence[Mapping[str, Any]] = ()
+    #: The rule-15 attempt log's raw lines: a clearing names its agreement by the hash of its
+    #: exact line (``decision.quarantine_clearing.line_hash``), so a re-spelled row is no match.
+    cited_attempt_lines: Sequence[str] = ()
     #: Lab id -> ``decision.labs.Lab``. Empty when the checkout has no lab registry.
     labs: Mapping[str, Any] = field(default_factory=dict)
     #: Sourced hardware YAML records. Metadata, never ranking candidates.
@@ -808,6 +811,7 @@ class _Compiler:
         self.owner_ruling_history = {str(k): tuple(v)
                                      for k, v in inputs.owner_ruling_history.items()}
         self.quarantine_clearings = tuple(dict(r) for r in inputs.quarantine_clearings)
+        self._attempt_log: Any = None
         #: (subject id, benchmark id) -> the ids of its current evidence rows (MODEL-552).
         self._reading_ids: dict[tuple[str, str], set[str]] | None = None
         #: record ID -> the mismatches a supersession retired, for provenance.
@@ -934,9 +938,11 @@ class _Compiler:
             # never enters a snapshot or its record_table.
             record = {k: v for k, v in record.items() if k != "derivation"}
         if kind == "fact" and isinstance(record.get("derivation"), Mapping) \
-                and "owner_ruling" in record["derivation"]:
+                and ("owner_ruling" in record["derivation"]
+                     or "clearing_epoch" in (record["derivation"].get("cited_change") or {})):
             # The owner's ruling (MODEL-551) is internal, and so is the cited-change block a
-            # ruled re-read fact keeps: one served form, shared with the site exports.
+            # ruled re-read fact keeps, or a clearing made (MODEL-552): one served form, shared
+            # with the site exports.
             from decision.owner_ruling import served_fact
 
             record = served_fact(record)
@@ -1018,6 +1024,16 @@ class _Compiler:
 
         return ruling_cutoff(self.as_of)
 
+    def _clearing_log(self):
+        if self._attempt_log is None:
+            from decision.quarantine_clearing import AttemptLog
+
+            try:
+                self._attempt_log = AttemptLog(self.inputs.cited_attempt_lines)
+            except ValueError as exc:
+                raise SnapshotBuildError(f"rule-15 attempt log: {type(exc).__name__}") from None
+        return self._attempt_log
+
     def _cleared_fact(self, subject: str | None, record: Mapping[str, Any] | None, rid: Any,
                       inline: Any, value: Any, facet: Any) -> bool:
         """Whether a cited fact's winning mismatch is cleared by a valid clearing line naming
@@ -1030,17 +1046,19 @@ class _Compiler:
         from decision.quarantine_clearing import fact_cleared
 
         return fact_cleared(record, subject, verdict=winner, clearings=self.quarantine_clearings,
-                            attempts=self.cited_attempts, cutoff=self._clearing_cutoff())
+                            log=self._clearing_log(), sources=self.sources,
+                            cutoff=self._clearing_cutoff())
 
     def _fact_hold(self, subject: str, record: Mapping[str, Any], rid: Any, inline: Any,
                    value: Any, facet: Any) -> str | None:
-        """Why a cited fact the rule-15 gate wrote (it carries ``derivation.cited_change``) stays
-        out: a verdict that is not ``verified`` on any value of its ids, as the gate's own
-        refusal reads them, that no clearing line clears for it. A superseded mismatch
-        (MODEL-415) is resolved. Other cited facts are admitted as before."""
-        derivation = record.get("derivation")
-        if not isinstance(derivation, Mapping) or "cited_change" not in derivation:
-            return None
+        """Why a cited fact stays out: a verdict that is not ``verified`` on any value its
+        location id (or stored id) has ever had a verdict on, as the gate's own refusal reads
+        them, that no clearing line clears for it. Every cited fact is held so, whether or not it
+        carries a ``derivation.cited_change`` block: removing the block is no way around it. A
+        superseded mismatch (MODEL-415) is resolved. A fact whose own value the log verifies
+        (its winning verdict, bound to this value, is an independent ``verified``) is the value
+        the verifier confirmed, not a replacement around another value's verdict: the verdicts
+        on that id's other values do not hold it."""
         from decision.cited_change import held_rows
 
         ids = tuple(dict.fromkeys(i for i in (rid, f"{subject}#{facet}")
@@ -1052,27 +1070,43 @@ class _Compiler:
         if str(rid) in self.superseded:
             winner = self._verification("fact", rid, inline, value, facet)
             held = [h for h in held if h[1] != winner]
+        if held and self._outcome("fact", rid, inline, value, facet) == "verified":
+            held = [h for h in held if h[0][1] != str(rid)]
         if not held:
             return None
         if len(held) == 1 and self.quarantine_clearings:
             from decision.quarantine_clearing import fact_cleared
 
             if fact_cleared(record, subject, verdict=held[0][1],
-                            clearings=self.quarantine_clearings, attempts=self.cited_attempts,
-                            cutoff=self._clearing_cutoff()):
+                            clearings=self.quarantine_clearings, log=self._clearing_log(),
+                            sources=self.sources, cutoff=self._clearing_cutoff()):
                 return None
         return f"quarantined ({held[0][1].get('outcome')})"
 
     def _sibling_ids(self, subject: str, benchmark: str) -> set[str]:
+        """The ids that other current rows of the benchmark on the card claim. A row claims its
+        id only when it would itself be admitted under it: not cited, its own value verified on
+        that id, and it says who measured it. A cited row with a held verdict on its id is held
+        by it, and a rejected or decoy row claims nothing, so it cannot divert a verdict."""
         if self._reading_ids is None:
             self._reading_ids = {}
             for raw in self.inputs.evidence:
                 e = _as_dict(raw)
                 sid = (e.get("subject") or {}).get("id")
-                if sid is not None and e.get("id"):
+                if sid is not None and e.get("id") and self._claims_its_id(e):
                     self._reading_ids.setdefault((str(sid), str(e.get("benchmark_id"))),
                                                  set()).add(str(e["id"]))
         return self._reading_ids.get((subject, benchmark), set())
+
+    def _claims_its_id(self, e: Mapping[str, Any]) -> bool:
+        try:
+            if fact_citation(e, self.sources, self.source_cache) is not None:
+                return False
+        except ValueError:
+            return False
+        return bool(e.get("measured_by")) and self._outcome(
+            "evidence", e.get("id"), e.get("verification"),
+            evidence_verification_value(e)) == "verified"
 
     def _reading_hold(self, subject: str, e: Mapping[str, Any]) -> str | None:
         """Why a cited board reading stays out: a verdict that is not ``verified`` on one of its
@@ -1101,8 +1135,8 @@ class _Compiler:
             from decision.quarantine_clearing import reading_cleared
 
             if reading_cleared(e, subject, verdict=held[0][1], owns=owns,
-                               clearings=self.quarantine_clearings,
-                               attempts=self.cited_attempts, cutoff=self._clearing_cutoff()):
+                               clearings=self.quarantine_clearings, log=self._clearing_log(),
+                               sources=self.sources, cutoff=self._clearing_cutoff()):
                 return None
         return f"quarantined ({held[0][1].get('outcome')})"
 
@@ -2250,14 +2284,16 @@ def collect_repo(root: Path) -> SnapshotInputs:
         cited_attempts = list(ruling_inputs.attempts)
         ruling_claims = dict(ruling_inputs.claims)
         ruling_history = dict(ruling_inputs.history)
-    if quarantine_clearings and not cited_attempts:
+    attempt_lines: list[str] = []
+    if quarantine_clearings:
         from decision.cited_reader import ATTEMPTS_FILE
-        from decision.owner_ruling import read_lines
+        from decision.quarantine_clearing import AttemptLog
 
         try:
-            cited_attempts = read_lines(root / ATTEMPTS_FILE)
+            log = AttemptLog.read(root / ATTEMPTS_FILE)
         except ValueError as exc:
             raise SnapshotBuildError(f"{ATTEMPTS_FILE}: {type(exc).__name__}") from exc
+        attempt_lines = list(log.lines)
     from decision.labs import load_labs
 
     fit_path = root / "hardware" / "fit" / "records.yaml"
@@ -2276,6 +2312,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
                           owner_ruling_claims=ruling_claims,
                           owner_ruling_history=ruling_history,
                           quarantine_clearings=quarantine_clearings,
+                          cited_attempt_lines=attempt_lines,
                           labs=load_labs(root), hardware_fit_records=fit_records,
                           hardware=[yaml.safe_load(path.read_text(encoding="utf-8"))
                                     for path in sorted((root / "hardware").glob("*.yaml"))

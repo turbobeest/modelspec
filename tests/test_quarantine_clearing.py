@@ -15,13 +15,14 @@ import pytest
 import yaml
 from decision.cited_change import REFUSALS, cited_change, cited_reading
 from decision.cited_reader import ATTEMPTS_FILE
-from decision.owner_ruling import attempt_id
 from decision.quarantine_clearing import (
     CLEARINGS_FILE,
     FIELDS,
+    AttemptLog,
     clearing_epoch,
     fact_cleared,
     line,
+    line_hash,
     line_problem,
     verdict_sha256,
 )
@@ -89,14 +90,18 @@ def test_a_fresh_agreement_clears_the_one_held_mismatch_and_names_both(data):
     logged = data.log()
     epoch = clearing_epoch("initial", verdict_sha256(verdict))
     assert [a["epoch"] for a in logged] == [epoch]  # read in the verdict's clearing epoch
-    assert entry["epoch"] == epoch and entry["agreement"] == attempt_id(logged[-1])
+    raw = (data.root / ATTEMPTS_FILE).read_text().splitlines()[-1]
+    assert entry["epoch"] == epoch and entry["agreement"] == line_hash(raw)
+    block = out.record["derivation"]["cited_change"]
+    assert block["previous_epoch"] == "initial" and block["clearing_epoch"] == epoch
     assert entry["target"] == verdict["target"]
     assert entry["verdict_sha256"] == verdict_sha256(verdict)
     assert entry["verdict_date"] == "2026-09-20" and entry["value"] == 262144
     assert "SECRET-PAGE-MARKER" not in json.dumps(out.record)
     ok, attempt = line_problem(entry, verdict=verdict, subject=fact_gate.SUBJECT,
                                facet=fact_gate.FACET, ids=lambda rid: rid == FACT_ID,
-                               attempts=logged, cutoff=datetime.now(UTC).date())
+                               log=AttemptLog.read(data.root / ATTEMPTS_FILE), first="initial",
+                               cutoff=datetime.now(UTC).date())
     assert ok == "" and attempt == logged[-1]
 
 
@@ -252,7 +257,12 @@ def agreement(epoch=EPOCH, *, at=AT, values=(VALUE, VALUE), families=("openai", 
                          "value": values[1]}]}
 
 
-def cleared_row(attempt, *, value=VALUE, subject=MID):
+def raw(attempt):
+    """The attempt's line as the gate's ``log_attempt`` writes it."""
+    return json.dumps(attempt, sort_keys=True, ensure_ascii=False)
+
+
+def cleared_row(attempt, *, value=VALUE, subject=MID, base="initial"):
     from tests.snapshot_records import fact
 
     row = fact("model", subject, FACET, value, source="src-cite", outcome=None)
@@ -261,7 +271,8 @@ def cleared_row(attempt, *, value=VALUE, subject=MID):
     row["derivation"] = {"cited_change": {
         "rule": "two-readers-cited-change@3", "sha256": attempt["page_sha256"],
         "text_sha256": attempt["text_sha256"], "url": attempt["url"],
-        "readers": [{**r, "prompt_sha256": attempt["prompt_sha256"]} for r in attempt["readers"]]}}
+        "readers": [{**r, "prompt_sha256": attempt["prompt_sha256"]} for r in attempt["readers"]],
+        "previous_epoch": base, "clearing_epoch": attempt["epoch"]}}
     return row
 
 
@@ -269,7 +280,7 @@ def clearing(attempt, verdict=VERDICT, **kw):
     target = verdict["target"]
     entry = line(key=(target["kind"], target["id"], target["value_hash"]), verdict=verdict,
                  subject=attempt["subject"], facet=attempt["facet"], epoch=attempt["epoch"],
-                 attempt=attempt, value=attempt["agreed_value"],
+                 attempt_line=raw(attempt), value=attempt["agreed_value"],
                  at=datetime(2026, 10, 10, 10, tzinfo=UTC))
     entry.update(kw)
     return entry
@@ -282,7 +293,9 @@ def build(row, clearings, attempts, log=(VERDICT,), *, as_of=TODAY, models=None)
 
     inputs = SnapshotInputs(models=models or [model(MID, facts=[row])],
                             sources={**SOURCES, "src-cite": CITE}, verifications=list(log),
-                            cited_attempts=list(attempts), quarantine_clearings=list(clearings))
+                            cited_attempt_lines=[a if isinstance(a, str) else raw(a)
+                                                 for a in attempts],
+                            quarantine_clearings=list(clearings))
     return load_built_snapshot(build_snapshot(inputs, as_of=as_of))
 
 
@@ -420,7 +433,8 @@ def test_a_ruled_fact_is_not_admitted_through_a_clearing_line():
     row = cleared_row(attempt)
     row["derivation"]["owner_ruling"] = {"subject": MID, "facet": FACET}
     assert not fact_cleared(row, MID, verdict=VERDICT, clearings=[clearing(attempt)],
-                            attempts=[attempt], cutoff=TODAY)
+                            log=AttemptLog([raw(attempt)]), sources={"src-cite": CITE},
+                            cutoff=TODAY)
     assert not admitted(build(row, [clearing(attempt)], [attempt]))
 
 
@@ -459,7 +473,7 @@ def reading_build(row, log, clearings=(), attempts=()):
 
     built = build_snapshot(SnapshotInputs(
         models=[model(MID)], evidence=[row], sources={**SOURCES, "src-cite": BOARD},
-        verifications=list(log), cited_attempts=list(attempts),
+        verifications=list(log), cited_attempt_lines=[raw(a) for a in attempts],
         quarantine_clearings=list(clearings),
         benchmark_metadata={"bench_x": {"min_score": 0, "max_score": 100, "unit": "percent"}}),
         as_of=TODAY)
@@ -479,7 +493,7 @@ def test_a_cleared_reading_enters_only_through_its_line():
     attempt["url"] = BOARD
     row = board_rows()
     row["sources"][0].update(snapshot_ref=f"sha256:{PAGE}", retrieved_at=AT)
-    row["derivation"] = cleared_row(attempt)["derivation"]
+    row["derivation"] = cleared_row(attempt, base=reading_epoch(settings))["derivation"]
     assert reading_build(row, [verdict]) == ()
     entry = clearing(attempt, verdict)
     assert reading_build(row, [verdict], [entry], [attempt])
@@ -498,10 +512,147 @@ def test_the_clearing_file_is_read_by_collect_repo(tmp_path):
     (root / "registry/sources.yaml").write_text(yaml.safe_dump({"schema_version": 1,
                                                                "sources": []}))
     attempt = agreement()
-    (root / ATTEMPTS_FILE).write_text(json.dumps(attempt) + "\n")
+    (root / ATTEMPTS_FILE).write_text(raw(attempt) + "\n")
     (root / CLEARINGS_FILE).write_text(json.dumps(clearing(attempt)) + "\n")
     inputs = collect_repo(root)
-    assert len(inputs.quarantine_clearings) == 1 and inputs.cited_attempts == [attempt]
+    assert len(inputs.quarantine_clearings) == 1 and inputs.cited_attempt_lines == [raw(attempt)]
     (root / CLEARINGS_FILE).write_text('{"rule": 1, "rule": 2}\n')
     with pytest.raises(SnapshotBuildError):
         collect_repo(root)
+
+
+# --- review round 1 (MODEL-552) -------------------------------------------------------------------
+
+
+def test_a_replay_with_recomputed_hashes_needs_the_exact_logged_line():
+    attempt = agreement()
+    row = cleared_row(attempt)
+    respelled = json.dumps(attempt)  # the same fields, another spelling
+    entry = clearing(attempt, agreement=line_hash(respelled))
+    assert not admitted(build(row, [entry], [attempt]))  # the log holds the gate's spelling
+    assert not admitted(build(row, [clearing(attempt)], [respelled]))  # and here the reverse
+    forged = agreement(at="2026-10-12T09:00:00+00:00")  # never logged, hashes recomputed
+    assert not admitted(build(cleared_row(forged), [clearing(forged)], [attempt]))
+    assert admitted(build(row, [clearing(attempt)], [attempt]))  # byte-identical: admitted
+
+
+def test_a_fabricated_base_epoch_is_refused():
+    def case(base, extra=()):
+        attempt = agreement(clearing_epoch(base, verdict_sha256(VERDICT)))
+        return build(cleared_row(attempt, base=base), [clearing(attempt)], [*extra, attempt])
+
+    assert not admitted(case("made-up"))
+    assert not admitted(case("initial:reread:" + "b" * 64))
+    assert not admitted(case("reread:" + "b" * 64))  # no cited change the gate made opened it
+    opened = {**agreement("initial", at="2026-09-01T09:00:00+00:00"), "text_sha256": "b" * 64}
+    assert admitted(case("reread:" + "b" * 64, [opened]))
+    later = {**opened, "at": "2026-10-11T09:00:00+00:00"}  # opened only after the agreement
+    assert not admitted(case("reread:" + "b" * 64, [later]))
+
+
+def test_a_reading_base_epoch_must_be_its_own_settings():
+    from decision.cited_change import reading_epoch
+    from decision.quarantine_clearing import base_problem
+
+    first = reading_epoch({"model_id_as_evaluated": "x", "effort": None, "harness": None})
+    log = AttemptLog()
+    at = datetime(2026, 10, 10, tzinfo=UTC)
+    kw = dict(first=first, subject=MID, facet="benchmark:b", log=log, before=at)
+    assert base_problem(first, **kw) is None
+    assert base_problem(first + ":anything", **kw)
+    assert base_problem("reading:0000000000000000", **kw)
+    assert base_problem(first + ":reread:" + "c" * 64, **kw)  # no opening change logged
+
+
+def test_stripping_the_cited_change_block_does_not_skip_the_hold():
+    verdict = mismatch(value=131072)
+    attempt = agreement(clearing_epoch("initial", verdict_sha256(verdict)))
+    stripped = cleared_row(attempt)
+    del stripped["derivation"]
+    assert not admitted(build(stripped, [clearing(attempt, verdict)], [attempt], log=(verdict,)))
+    assert not admitted(build(stripped, [], [], log=(verdict,)))
+    # A value the log itself verifies is the verifier's, not a replacement: it is admitted.
+    verified = verification("fact", FID, "verified", day="2026-10-02", value=VALUE)
+    assert admitted(build(stripped, [], [], log=(verdict, verified)))
+
+
+def test_a_ref_that_is_not_the_agreements_registered_source_clears_nothing():
+    from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+
+    from tests.snapshot_records import SOURCES, model
+
+    attempt = agreement()
+    row = cleared_row(attempt)
+    row["sources"][0]["source_id"] = "src-other"  # the same copy hash under another page
+    inputs = SnapshotInputs(models=[model(MID, facts=[row])],
+                            sources={**SOURCES, "src-cite": CITE,
+                                     "src-other": "https://www.perplexity.ai/enterprise"},
+                            verifications=[VERDICT], cited_attempt_lines=[raw(attempt)],
+                            quarantine_clearings=[clearing(attempt)])
+    assert not admitted(load_built_snapshot(build_snapshot(inputs, as_of=TODAY)))
+
+
+def test_a_cleared_fact_is_served_exactly_as_a_plain_cited_fact():
+    from decision.owner_ruling import served_fact
+
+    attempt = agreement()
+    row = cleared_row(attempt)
+    index = build(row, [clearing(attempt)], [attempt])
+    plain = {k: v for k, v in row.items() if k != "derivation"}
+    plain_index = build(plain, [], [], log=())
+    record = index.record(index.fact(MID, FACET).record_id)
+    assert record == plain_index.record(plain_index.fact(MID, FACET).record_id)
+    assert served_fact(row) == plain  # the site's served form too
+
+
+def test_a_decoy_sibling_does_not_divert_a_readings_verdict():
+    from decision.model import evidence_verification_value
+
+    from tests.snapshot_records import evidence
+
+    filed = board_rows(46.6, OLD_ID)
+    verdict = verification("evidence", OLD_ID, "mismatch", day="2026-10-01",
+                           value=evidence_verification_value(filed))
+    row = board_rows()
+
+    def built(*others, log=(verdict,)):
+        from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+
+        from tests.snapshot_records import SOURCES, model
+
+        return load_built_snapshot(build_snapshot(SnapshotInputs(
+            models=[model(MID)], evidence=[row, *others],
+            sources={**SOURCES, "src-cite": BOARD}, verifications=list(log),
+            benchmark_metadata={"bench_x": {"min_score": 0, "max_score": 100,
+                                            "unit": "percent"}}),
+            as_of=TODAY)).evidence(MID, "bench_x")
+
+    decoy = board_rows(10.0, OLD_ID)  # a cited row under the held id, other settings
+    decoy["effort"] = "low"
+    assert all(e.value != 51.2 for e in built(decoy))
+    unverified = evidence(MID, "bench_x", 12.0, eid=OLD_ID, outcome=None, effort="low")
+    assert all(e.value != 51.2 for e in built(unverified))
+    # A real sibling, admitted under its own verified id, keeps its own verdicts.
+    # (another measurer, so the verified row does not supersede the cited one as a duplicate)
+    real = evidence(MID, "bench_x", 12.0, eid=OLD_ID, effort="low", measured_by="lab")
+    assert any(e.value == 51.2 for e in built(real, log=(verdict, real["verification"])))
+
+
+def test_an_agreement_on_the_filed_value_clears_an_offering_quarantine(tmp_path, monkeypatch):
+    from tests import test_cited_offering as offering
+
+    d = offering.Data(tmp_path / "data", monkeypatch)
+    d.fact(value=30, state="known")
+    plant(d.root, verification("fact", offering.FACT_ID, "mismatch", day="2026-09-20", value=30))
+    assert offering.retention().reason == "quarantined"
+    out = offering.retention(clear_quarantine=True)
+    assert out.changed and out.record["value"] == 30 and len(out.record["clearings"]) == 1
+
+
+def test_an_agreement_on_the_filed_score_clears_a_board_row(board):
+    reading_gate.plant(board, reading_gate.ROW_ID)
+    out = cited_reading(subject=reading_gate.SUBJECT, benchmark_id=reading_gate.BENCH,
+                        reading=reading_gate.READING, source_id="board",
+                        readers=reading_gate.pair(46.6), request=reading_gate.serve(),
+                        clear_quarantine=True)
+    assert out.changed and out.record["value"] == 46.6 and len(out.record["clearings"]) == 1

@@ -233,8 +233,13 @@ def test_reordering_cannot_escape_a_mismatch_on_the_canonical_hash():
 
 
 def test_a_mismatch_on_other_members_does_not_bind_this_set():
-    index = loaded(_cited(ORDER_B, [_mismatch(["audio", "text"])]))
-    assert index.fact("lab/alpha", FACET).state == "known"
+    """It is not this set's verdict (no binding), but since MODEL-552 a held verdict on any
+    value of the fact keeps a cited replacement out, as the rule-15 gate does; a value the log
+    itself verifies is the verifier's, and enters."""
+    other = _mismatch(["audio", "text"])
+    assert loaded(_cited(ORDER_B, [other])).fact("lab/alpha", FACET).state == "unknown"
+    verified = verification("fact", FACT_ID, "verified", day="2026-10-11", value=ORDER_B)
+    assert loaded(_cited(ORDER_B, [other, verified])).fact("lab/alpha", FACET).state == "known"
 
 
 def _verified_card(filed, log):

@@ -458,11 +458,20 @@ def has_ruling(fact: Mapping[str, Any]) -> bool:
     return isinstance(derivation, Mapping) and "owner_ruling" in derivation
 
 
+def has_internal(fact: Mapping[str, Any]) -> bool:
+    """The fact claims an owner ruling, or carries a cited-change block a quarantine clearing
+    made (MODEL-552: the block names its ``clearing_epoch``). Either is served without it."""
+    derivation = fact.get("derivation") if isinstance(fact, Mapping) else None
+    block = derivation.get("cited_change") if isinstance(derivation, Mapping) else None
+    return has_ruling(fact) or (isinstance(block, Mapping) and "clearing_epoch" in block)
+
+
 def served_fact(fact: Mapping[str, Any]) -> dict[str, Any]:
-    """The fact as it is published. A ruled fact is published as a cited fact filed without a
-    derivation is: the ruling and the cited-change block it keeps for its epoch (previous
-    values, reader outputs, prompt hashes, manifests) are internal. Others are unchanged."""
-    if has_ruling(fact):
+    """The fact as it is published. A ruled fact, or one a quarantine clearing made, is
+    published as a cited fact filed without a derivation is: the ruling and the cited-change
+    block (previous values, reader outputs, prompt hashes, manifests, epochs) are internal.
+    Others are unchanged."""
+    if has_internal(fact):
         return {k: v for k, v in fact.items() if k != "derivation"}
     return dict(fact)
 
