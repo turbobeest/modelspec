@@ -317,7 +317,7 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
     """The epoch rule 15 derives for the quarantined record as it was filed when ``verdict`` was
     made, or ``None`` when that cannot be shown. ``history`` is the verdict target's queue events
     (``queue_history``). The check the verdict records is its ``checked`` event (same target,
-    outcome and UTC day; the latest such that day), and the record as filed is the claim it
+    outcome and UTC day; only the latest such that day), and the record as filed is the claim it
     checked, for the very value the verdict holds (``claim_binds``). The check must be shown to
     cover that claim: either the check itself names the verdict's value (``check_binds``: its
     target value hash, or its diff's ``expected`` value), and the claim is the latest for that
@@ -334,26 +334,25 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
     target = (verdict.get("target") or {}).get("id")
     day = _day(verdict.get("date"))
     pair = None
-    for index in reversed(range(len(history))):
-        event = history[index]
-        at = _event_at(event)
-        if not (event.get("event") == "checked" and _event_target(event) == target
+    # Only the newest matching check of the day may supply the epoch: if it cannot be bound to
+    # the verdict's value, nothing clears (an older same-day check is never a fallback).
+    matching = [i for i, event in enumerate(history)
+                if event.get("event") == "checked" and _event_target(event) == target
                 and event.get("outcome") == verdict.get("outcome") and day is not None
-                and at is not None and at.astimezone(UTC).date() == day):
-            continue
+                and (at := _event_at(event)) is not None and at.astimezone(UTC).date() == day]
+    if matching:
+        index = matching[-1]
+        event = history[index]
         filed = [e for e in history[:index]
                  if e.get("event") == "collected" and _event_target(e) == target]
-        if not filed:
-            continue
-        covers = check_binds(event, verdict, (filed[-1].get("claim") or {}).get("field"))
-        if covers is False:
-            continue
+        covers = check_binds(event, verdict, (filed[-1].get("claim") or {}).get("field")) \
+            if filed else False
         if covers is None:
             filed = filed[-1:]  # the claim it follows, nothing for another value in between
-        binding = [e for e in filed if claim_binds(e.get("claim") or {}, verdict)]
+        binding = [e for e in filed if claim_binds(e.get("claim") or {}, verdict)] \
+            if covers is not False else []
         if binding:
             pair = (binding[-1], event)
-            break
     if pair is None:
         return None
     filed_event, checked = pair

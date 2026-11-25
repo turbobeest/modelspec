@@ -843,3 +843,25 @@ def test_a_check_is_bound_to_a_value_by_its_hash_or_its_diff():
     assert check_binds(hashed, VERDICT, FACET) is False
     own = {**silent, "target": {**silent["target"], "value_hash": VERDICT["target"]["value_hash"]}}
     assert check_binds(own, VERDICT, FACET) is True
+
+
+# --- review round 5 (MODEL-552) -------------------------------------------------------------------
+
+
+def test_an_older_same_day_check_is_no_fallback_for_the_newest_one():
+    """Codex round 5: the newest matching check of the day follows a filing for another value
+    and cannot be bound to the verdict; an earlier same-day check of the same-value claim is not
+    used."""
+    from decision.quarantine_clearing import verdict_epoch
+
+    plain = events(VERDICT)  # claim 09-30 09:00, check 10-01 21:00
+    early = {**plain[1], "at": "2026-10-01T08:00:00+00:00"}  # checks the same-value claim
+    other = events(VERDICT, value=1, filed="2026-10-01T09:00:00+00:00")[0]
+    late = plain[1]  # the newest check, after the other-value filing, says nothing
+    kw = dict(log=AttemptLog(), subject=MID, facet=FACET, first="initial")
+    assert verdict_epoch(VERDICT, history=[plain[0], early], **kw) == "initial"
+    trail = [plain[0], early, other, late]
+    assert verdict_epoch(VERDICT, history=trail, **kw) is None
+    attempt = agreement()
+    assert not admitted(build(cleared_row(attempt), [clearing(attempt)], [attempt],
+                              history={FID: trail}))
