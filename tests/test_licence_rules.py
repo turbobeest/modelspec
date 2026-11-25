@@ -113,3 +113,27 @@ def test_the_licence_reader_hashes_the_rule_text() -> None:
     digest = hashlib.sha256(material.encode("utf-8")).hexdigest()[:16]
     changed = hashlib.sha256(f"{material}\nRULE-CHANGED".encode("utf-8")).hexdigest()[:16]
     assert digest != changed
+
+
+def test_operational_usage_limits_are_not_a_user_cap() -> None:
+    """Handoff rule 13 as amended (MODEL-491, Jamie 2026-11-25): quotas set per order or in
+    the documentation are not a licence user cap, so the reader, the reading-rule doc and the
+    handoff rule say the same thing."""
+    from pathlib import Path
+
+    sentence = (
+        "Operational usage limits that an order form or the documentation sets, such as "
+        "rate, token, throughput or messaging quotas, are not a cap either."
+    )
+    rule = LICENCE_READING_RULES["licence.user_cap"]
+    assert sentence in rule
+    assert sentence in licence_reading_rule("licence.user_cap")
+    assert rule.index(sentence) < rule.index("the value is unbounded")
+    root = Path(__file__).resolve().parents[1]
+    doc = " ".join((root / "docs/decision-verification.md").read_text().split())
+    assert ("Operational usage limits that an order form or the documentation sets, such as "
+            "rate, token, throughput or messaging quotas, are not a cap either") in doc
+    handoff = " ".join((root / "docs/handoff/README.md").read_text().split())
+    assert "**Operational usage limits are not a user cap**" in handoff
+    assert ("`unbounded` stands when the terms set no seat, user or monthly-active-user "
+            "threshold.") in handoff
