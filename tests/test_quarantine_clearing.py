@@ -765,10 +765,12 @@ def test_only_the_claim_for_the_verdicts_value_supplies_the_epoch():
     plain = events(VERDICT)  # the claim for the verdict's value, then its check
     other = events(VERDICT, method="two-readers-cited-change@3", sources=copy, value=1,
                    filed="2026-09-30T12:00:00+00:00")[0]  # another value, filed after it
-    trail = [plain[0], other, plain[1]]
+    # The check names the verdict's value in its diff, so it is shown to cover the plain claim.
+    check = {**plain[1], "diff": [{"field": "value", "expected": VALUE, "found": None}]}
+    trail = [plain[0], other, check]
     kw = dict(log=AttemptLog([raw(opened)]), subject=MID, facet=FACET, first="initial")
     assert verdict_epoch(VERDICT, history=trail, **kw) == "initial"
-    assert verdict_epoch(VERDICT, history=[other, plain[1]], **kw) is None  # only another value
+    assert verdict_epoch(VERDICT, history=[other, check], **kw) is None  # only another value
 
     def case(base):
         attempt = agreement(clearing_epoch(base, verdict_sha256(VERDICT)))
@@ -801,3 +803,43 @@ def test_an_opening_attempt_logged_after_the_claim_does_not_set_the_epoch():
     index = build(cleared_row(attempt, base="reread:" + "b" * 64), [clearing(attempt)],
                   [late, attempt], history={FID: trail})
     assert not admitted(index)
+
+
+# --- review round 4 (MODEL-552) -------------------------------------------------------------------
+
+
+def test_a_check_after_a_newer_other_value_filing_does_not_pair_with_an_older_claim():
+    """Codex round 4: a check that does not say which value it covered, after a newer filing for
+    another value, is not shown to cover the older same-value claim, so it supplies nothing."""
+    from decision.quarantine_clearing import verdict_epoch
+
+    plain = events(VERDICT)
+    other = events(VERDICT, value=1, filed="2026-09-30T12:00:00+00:00")[0]
+    silent = plain[1]  # no value hash, no diff
+    kw = dict(log=AttemptLog(), subject=MID, facet=FACET, first="initial")
+    assert verdict_epoch(VERDICT, history=[plain[0], other, silent], **kw) is None
+    attempt = agreement()
+    index = build(cleared_row(attempt), [clearing(attempt)], [attempt],
+                  history={FID: [plain[0], other, silent]})
+    assert not admitted(index)
+    assert verdict_epoch(VERDICT, history=[plain[0], silent], **kw) == "initial"  # adjacent
+
+
+def test_a_check_is_bound_to_a_value_by_its_hash_or_its_diff():
+    from decision.quarantine_clearing import check_binds, verdict_epoch
+
+    plain = events(VERDICT)
+    other = events(VERDICT, value=1, filed="2026-09-30T12:00:00+00:00")[0]
+    silent = plain[1]
+    kw = dict(log=AttemptLog(), subject=MID, facet=FACET, first="initial")
+    assert check_binds(silent, VERDICT, FACET) is None
+    names_other = {**silent, "diff": [{"field": "value", "expected": 1, "found": None}]}
+    assert check_binds(names_other, VERDICT, FACET) is False
+    assert verdict_epoch(VERDICT, history=[plain[0], other, names_other], **kw) is None
+    names_ours = {**silent, "diff": [{"field": "value", "expected": VALUE, "found": None}]}
+    assert check_binds(names_ours, VERDICT, FACET) is True
+    assert verdict_epoch(VERDICT, history=[plain[0], other, names_ours], **kw) == "initial"
+    hashed = {**silent, "target": {**silent["target"], "value_hash": "sha256:" + "0" * 64}}
+    assert check_binds(hashed, VERDICT, FACET) is False
+    own = {**silent, "target": {**silent["target"], "value_hash": VERDICT["target"]["value_hash"]}}
+    assert check_binds(own, VERDICT, FACET) is True

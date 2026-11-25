@@ -293,16 +293,37 @@ def claim_binds(claim: Mapping[str, Any], verdict: Mapping[str, Any]) -> bool:
         return False
 
 
+def check_binds(check: Mapping[str, Any], verdict: Mapping[str, Any],
+                field: Any) -> bool | None:
+    """Whether a check is shown to cover the verdict's value: ``True`` when its own target value
+    hash, or the ``expected`` value its diff records for ``value``, is the verdict's; ``False``
+    when either names another value; ``None`` when the check does not say."""
+    target = check.get("target") if isinstance(check.get("target"), Mapping) else {}
+    recorded = target.get("value_hash")
+    if recorded is not None:
+        return str(recorded) == str((verdict.get("target") or {}).get("value_hash") or "")
+    expected = [d["expected"] for d in check.get("diff") or ()
+                if isinstance(d, Mapping) and d.get("field") == "value" and "expected" in d]
+    if not expected:
+        return None
+    wanted = verdict.get("target") or {}
+    return all(claim_binds({"target": {"kind": wanted.get("kind"), "id": wanted.get("id")},
+                            "value": value, "field": field}, verdict) for value in expected)
+
+
 def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, Any]],
                   log: AttemptLog, subject: str, facet: str, first: str,
                   settings: Settings | None = None) -> str | None:
     """The epoch rule 15 derives for the quarantined record as it was filed when ``verdict`` was
     made, or ``None`` when that cannot be shown. ``history`` is the verdict target's queue events
     (``queue_history``). The check the verdict records is its ``checked`` event (same target,
-    outcome and UTC day; the latest that day), and the record as filed is the claim it checked:
-    the latest claim filed before it, in queue order, under that id and for the very value the
-    verdict holds (``claim_binds``). A claim for another value under the same id never supplies
-    the epoch: the verdict binds its own value, so the check that made it checked that value.
+    outcome and UTC day; the latest such that day), and the record as filed is the claim it
+    checked, for the very value the verdict holds (``claim_binds``). The check must be shown to
+    cover that claim: either the check itself names the verdict's value (``check_binds``: its
+    target value hash, or its diff's ``expected`` value), and the claim is the latest for that
+    value before it; or the check does not say, and the claim is the one it follows in queue
+    order, with no filing for another value in between. A check that names another value, or a
+    pairing that cannot be shown, supplies nothing.
     A claim the rule-15 gate filed (method ``two-readers-...``) put the record in the re-read
     epoch of the agreed harness attempt that read the copy it cites, logged at or before the
     claim was filed and before the check, in the queue's time order
@@ -321,10 +342,17 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
                 and at is not None and at.astimezone(UTC).date() == day):
             continue
         filed = [e for e in history[:index]
-                 if e.get("event") == "collected" and _event_target(e) == target
-                 and claim_binds(e.get("claim") or {}, verdict)]
-        if filed:
-            pair = (filed[-1], event)
+                 if e.get("event") == "collected" and _event_target(e) == target]
+        if not filed:
+            continue
+        covers = check_binds(event, verdict, (filed[-1].get("claim") or {}).get("field"))
+        if covers is False:
+            continue
+        if covers is None:
+            filed = filed[-1:]  # the claim it follows, nothing for another value in between
+        binding = [e for e in filed if claim_binds(e.get("claim") or {}, verdict)]
+        if binding:
+            pair = (binding[-1], event)
             break
     if pair is None:
         return None
