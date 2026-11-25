@@ -3775,41 +3775,67 @@ class HFConfigExtractor:
 _HF_GENERATIVE_ARCHITECTURE = re.compile(r"(?:ForCausalLM|ForConditionalGeneration)$")
 
 
+def _rope_window(scaling: Any, window: int) -> bool:
+    """Whether a RoPE scaling block leaves ``window`` the stated whole window (MODEL-558).
+
+    No scaling does. A YaRN scaling does when ``original_max_position_embeddings`` times
+    ``factor`` is the window. A ``rope_type`` and a ``type`` that name different kinds, any
+    other kind, or a malformed block do not."""
+    if scaling is None:
+        return True
+    if not isinstance(scaling, Mapping):
+        return False
+    kinds = {scaling[key] for key in ("rope_type", "type") if key in scaling}
+    original = scaling.get("original_max_position_embeddings")
+    factor = scaling.get("factor")
+    return kinds == {"yarn"} and not isinstance(original, bool) and isinstance(original, int) \
+        and not isinstance(factor, bool) and isinstance(factor, (int, float)) \
+        and original * factor == window
+
+
 def hf_config_context_window(config: Mapping[str, Any]) -> int | None:
-    """The text backbone's ``max_position_embeddings``, when it is the model's whole window.
+    """The text model's ``max_position_embeddings``, when it is the model's whole window.
 
     Read only for a generative architecture (``*ForCausalLM`` or ``*ForConditionalGeneration``;
-    an encoder's or embedder's positional range is not its documented input limit), from the
-    text maps only, when every text map that states it gives one positive integer, and when that
-    map has either no RoPE scaling or a YaRN scaling whose ``original_max_position_embeddings``
-    times ``factor`` is that integer (the config already states the extended window). Any other
-    scaling (linear, dynamic, or a YaRN factor the stated window does not reflect) is ambiguous.
+    an encoder's or embedder's positional range is not its documented input limit), and only
+    from the top-level text model: the config itself, or its one ``text_config``. It abstains
+    when any other nested map that is not a vision, audio or other non-text tower states a
+    window (an encoder or decoder subconfig), when both levels state one, when the text map's
+    RoPE scaling is not ``_rope_window``, and when the parent carries a RoPE scaling over a
+    ``text_config`` window. Any doubt is no reading.
     """
     architectures = config.get("architectures")
     if not isinstance(architectures, list) or not architectures or not all(
         isinstance(name, str) and _HF_GENERATIVE_ARCHITECTURE.search(name) for name in architectures
     ):
         return None
-    found: set[int] = set()
-    for part in _config_maps(config, text_only=True):
-        if "max_position_embeddings" not in part:
+    text = config.get("text_config")
+    if text is not None and not isinstance(text, Mapping):
+        return None
+    top_has = "max_position_embeddings" in config
+    text_has = isinstance(text, Mapping) and "max_position_embeddings" in text
+    if top_has == text_has:
+        return None  # none stated, or two levels that could disagree
+    holder = config if top_has else text
+    # Every other map with a window (an encoder or decoder subconfig) makes the limit unclear.
+    for key, value in config.items():
+        if key == "text_config" or _nontext_tower_key(key) \
+                or not isinstance(value, (Mapping, list)):
             continue
-        window = part["max_position_embeddings"]
-        if isinstance(window, bool) or not isinstance(window, int) or window <= 0:
+        if any("max_position_embeddings" in part for part in _config_maps(value)):
             return None
-        scaling = part.get("rope_scaling")
-        if scaling is not None:
-            if not isinstance(scaling, Mapping):
+    if text_has:
+        for part in _config_maps(text):
+            if part is not text and "max_position_embeddings" in part:
                 return None
-            kind = scaling.get("rope_type", scaling.get("type"))
-            original = scaling.get("original_max_position_embeddings")
-            factor = scaling.get("factor")
-            if kind != "yarn" or isinstance(original, bool) or not isinstance(original, int) \
-                    or isinstance(factor, bool) or not isinstance(factor, (int, float)) \
-                    or original * factor != window:
-                return None
-        found.add(window)
-    return next(iter(found)) if len(found) == 1 else None
+    window = holder["max_position_embeddings"]
+    if isinstance(window, bool) or not isinstance(window, int) or window <= 0:
+        return None
+    if text_has and any(key in config for key in ("rope_scaling", "rope_parameters")):
+        return None  # scaling at the parent level: which window it extends is not stated
+    if "rope_parameters" in holder or not _rope_window(holder.get("rope_scaling"), window):
+        return None
+    return window
 
 
 def _hf_config_url(url: str | None) -> bool:
@@ -3857,7 +3883,7 @@ _HF_TEXT_INPUT_TASKS = frozenset({
 #: A tag, architecture or model type that names another modality: a text-only reading abstains.
 _HF_NONTEXT_HINT = re.compile(
     r"(?i)image|vision|visual|video|audio|speech|multimodal|multi-modal|omni|clip|siglip"
-    r"|(?:^|[-_ ])vl(?:$|[-_ ])|conditionalgeneration|any-to-any")
+    r"|(?:^|[-_ ])vl(?:$|[-_ ])|(?-i:VL)(?=[A-Z]|$)|conditionalgeneration|any-to-any")
 #: File suffixes that hold trained weights. Any one of them in a repository is no closed reading.
 _HF_WEIGHT_SUFFIX = re.compile(
     r"(?i)\.(?:safetensors|gguf|bin|pt|pth|ckpt|onnx|h5|msgpack|tflite|mlmodel|nemo|keras|npz"
@@ -3914,25 +3940,41 @@ def _hf_declared(text: str, page_url: str | None) -> tuple[str, list[str], list[
 
 def hf_task_modalities(field: str, task: str, tags: Sequence[str],
                        model: Sequence[str] = ()) -> str | None:
-    """A modality set (as the comma list ``compare`` reads) a declared task leaves in no doubt.
+    """The one modality a declared task proves, as the comma list ``compare`` reads.
 
-    Output: one modality per task in ``_HF_TASK_OUTPUT``. Input: ``text`` for a text-only task,
-    and only when no tag, architecture or model type names another modality. Otherwise ``None``.
+    A task proves at most one modality: ``text`` input for a text-only task, and one output per
+    task in ``_HF_TASK_OUTPUT``. Either way it is read only when no tag, architecture or model
+    type (the task itself included) names another modality. ``HFRepoMetadataExtractor`` then
+    reads it only when the filed set is exactly that one modality: a task tag never establishes
+    a complete set. Otherwise ``None``.
     """
+    if any(_HF_NONTEXT_HINT.search(item) for item in [task, *tags, *model]):
+        return None
     if field == "model.output_modalities":
         return _HF_TASK_OUTPUT.get(task)
-    if field == "model.input_modalities" and task in _HF_TEXT_INPUT_TASKS \
-            and not any(_HF_NONTEXT_HINT.search(item) for item in [*tags, *model]):
+    if field == "model.input_modalities" and task in _HF_TEXT_INPUT_TASKS:
         return "text"
     return None
+
+
+#: Files that describe a repository and hold no weights.
+_HF_METADATA_FILE = re.compile(
+    r"(?i)(?:^|/)(?:\.gitattributes|\.gitignore|readme(?:\.md)?|license(?:\.\w+)?|licence(?:\.\w+)?"
+    r"|notice(?:\.\w+)?|[\w.-]*config[\w.-]*\.json|tokenizer[\w.-]*|vocab[\w.-]*|merges\.txt"
+    r"|special_tokens_map\.json|added_tokens\.json|[\w.-]*\.(?:md|txt|png|jpe?g|gif|svg|yaml|yml))$")
+#: Files or tags of an adapter (LoRA, PEFT): weights for a base model, not the model's own.
+_HF_ADAPTER = re.compile(r"(?i)(?:^|/)adapter_(?:config|model)[\w.-]*$|^(?:peft|lora|adapter)")
 
 
 def hf_weights_openness(data: Mapping[str, Any]) -> str | None:
     """``open_weights`` or ``closed_weights`` from a Hub API JSON's file list, else ``None``.
 
-    Open: a ``.safetensors`` or ``.gguf`` file, a checkpoint named as weights, or a populated
-    ``safetensors`` census. Closed: a non-empty file list with no file of any weight suffix and no
-    census, in a repository that is not private. Anything between is no reading.
+    Read only for a public repository that is not gated (``private`` and ``gated`` both
+    ``False``), is not an adapter (no ``adapter_config``/``adapter_model`` file, no ``peft``,
+    ``lora`` or ``adapter`` tag) and is not metadata only (some file is neither metadata nor
+    docs). Open: a ``.safetensors`` or ``.gguf`` file, a checkpoint named as weights, or a
+    populated ``safetensors`` census. Closed: no file of any weight suffix and no census.
+    Anything between, and every repository above, is no reading.
     """
     siblings = data.get("siblings")
     if not isinstance(siblings, list) or not siblings:
@@ -3940,11 +3982,17 @@ def hf_weights_openness(data: Mapping[str, Any]) -> str | None:
     names = [item.get("rfilename") for item in siblings if isinstance(item, Mapping)]
     if len(names) != len(siblings) or not all(isinstance(name, str) and name for name in names):
         return None
+    tags = data.get("tags") or []
+    if data.get("private") is not False or data.get("gated") is not False \
+            or not isinstance(tags, list) \
+            or any(_HF_ADAPTER.search(str(item)) for item in [*names, *tags]) \
+            or all(_HF_METADATA_FILE.search(name) for name in names):
+        return None
     census = data.get("safetensors")
     if any(_HF_STRONG_WEIGHT_SUFFIX.search(name) or _HF_WEIGHT_NAME.search(name)
            for name in names) or (isinstance(census, Mapping) and census.get("parameters")):
         return "open_weights"
-    if census is None and data.get("private") is False and data.get("gguf") is None \
+    if census is None and data.get("gguf") is None \
             and not any(_HF_WEIGHT_SUFFIX.search(name) for name in names):
         return "closed_weights"
     return None
@@ -4002,17 +4050,23 @@ class HFRepoMetadataExtractor:
         else:
             declared = _hf_declared(text, page_url)
             value = hf_task_modalities(claim.field, *declared) if declared else None
+            # A task proves one modality, never a complete set: a filed set that is not exactly
+            # that modality is no reading (not a mismatch).
+            filed = claim.value if isinstance(claim.value, list) else None
+            if value is not None and (filed is None or [str(v) for v in filed] != [value]):
+                value = None
         return [Reading(subject, value)] if value is not None else []
 
 
 #: README labels that name the context window, in a two-column table, a bullet or a row header.
+#: Only labels that mean the context length itself. "Max tokens", "max input tokens" and
+#: "max sequence length" name an input or generation limit and are not read (MODEL-558 review).
 _HF_CONTEXT_LABELS = frozenset({
     "context length", "context window", "context size", "max context length",
-    "maximum context length", "max sequence length", "maximum sequence length",
-    "max input tokens", "maximum input tokens",
+    "maximum context length",
 })
-#: A column header of a per-model table that names the window, beside the labels above.
-_HF_CONTEXT_COLUMNS = _HF_CONTEXT_LABELS | {"max tokens"}
+#: A column header of a per-model table that names the window: the same labels.
+_HF_CONTEXT_COLUMNS = _HF_CONTEXT_LABELS
 #: An exact token count: digits, thousands separators, an optional ``tokens``. No K or M:
 #: "256K" is 256,000 or 262,144, and a reader does not choose.
 _HF_EXACT_TOKENS = re.compile(r"^(\d{1,3}(?:,\d{3})+|\d+)(?:\s*tokens?)?$", re.I)

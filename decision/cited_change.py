@@ -138,7 +138,11 @@ REFUSALS = (
     "redirect_to_unclassed_host",
     "engine_reader_reads",
     "value_differs",
+    "attempts_exhausted",
 )
+#: The most attempts, complete or not, at one subject, facet and epoch (MODEL-558 review): a
+#: re-run cannot reset the retry budget to read again until two readers happen to agree.
+MAX_ATTEMPTS = 3
 #: The verification log, under the data directory, as ``decision.snapshot.collect_repo`` reads it.
 VERIFICATION_LOG = "verification/log.jsonl"
 #: A page the readers find silent must show at least this much visible text: a script shell
@@ -548,7 +552,18 @@ def _fetch(url: str, request: Request, *,
            retaining: bool = False) -> tuple[bytes, tuple[str, ...]] | CitedChange:
     """The page bytes, read in memory with redirects off. Every hop is checked by hand and
     must be on a cite-only host (with ``retaining``, on a classed host that retains copies);
-    nothing is persisted."""
+    nothing is persisted. The origin's current class is checked before it is requested."""
+    origin = cite_only_status(url)
+    if origin is None:
+        return _refuse("host_unreadable", "the source URL does not parse")
+    if retaining and origin:
+        return _refuse("host_cite_only", "the host is cite-only; not read on the retaining path")
+    if retaining and not _classed_retaining(url):
+        return _refuse("host_unclassed",
+                       "the host has no class in the terms register; it is not requested")
+    if not retaining and not origin:
+        return _refuse("host_not_cite_only",
+                       "the host retains copies, so the verified path applies; not requested")
     resolved: list[str] = []
     current = url
     for _ in range(MAX_HOPS + 1):
@@ -659,93 +674,81 @@ def _check_silence(found: Lookup, facet: Any, source_id: str, page_bytes: bytes,
     return None
 
 
-class _PageRegions:
-    """The one page the gate fetched, in memory, as ``decision.verify`` reads regions."""
+def _engine_reads(found: Lookup, subject: str, facet: Any, pages: Mapping[str, bytes]
+                  ) -> str | None:
+    """The method of a deterministic engine reader that reads the fact from a cited page, if any.
 
-    def __init__(self, source_id: str, row: Mapping[str, Any], page_bytes: bytes) -> None:
-        self.source_id, self.row, self.page_bytes = source_id, row, page_bytes
-
-    def text(self, source_id: str, copy_ref: str, region_id: str) -> str | None:
-        from dataclasses import replace as _replace
-
-        from decision.normalise import (
-            NORMALISERS,
-            Locator,
-            UnsupportedContentError,
-            normalise_document,
-            select_region,
-        )
-
-        if source_id != self.source_id:
-            return None
-        region = next((r for r in self.row.get("cited_regions") or []
-                       if r.get("id") == region_id), None)
-        locator = (region or {}).get("locator") or {"kind": "page", "value": ""}
-        rules = NORMALISERS.get(self.row.get("normaliser") or "html-default")
-        if rules is None:
-            return None
-        try:
-            doc = normalise_document(self.page_bytes, _replace(rules, strip_volatile=False))
-            kind = "heading" if locator.get("kind") == "heading_anchor" else locator.get("kind")
-            return select_region(doc, Locator(kind, locator.get("value") or ""))
-        except (UnsupportedContentError, ValueError):
-            return None
-
-    def source_url(self, source_id: str) -> str | None:
-        return self.row.get("url") if source_id == self.source_id else None
-
-    def source_kind(self, source_id: str) -> str | None:
-        return self.row.get("kind") if source_id == self.source_id else None
-
-    def source_publisher(self, source_id: str) -> str | None:
-        return self.row.get("publisher") if source_id == self.source_id else None
-
-    def cite_only_status(self, source_id: str, copy_ref: str) -> bool:
-        return False
-
-
-def _engine_reads(found: Lookup, subject: str, facet: Any, source_id: str,
-                  row: Mapping[str, Any], page_bytes: bytes) -> str | None:
-    """The method of a deterministic engine reader that reads the fact from this page, if any.
-
-    On a host that retains copies the verified path wins (MODEL-558): the page is read by every
-    deterministic extractor ``decision.verify`` would route it to, in memory, nothing logged.
-    A reader that confirms the value or finds another one reads the fact, and the two-reader
-    path does not apply; only a page on which every engine reader finds no value (no reading,
-    or a reading of ``None``) is left to the two readers.
+    On a host that retains copies the verified path wins (MODEL-558). ``pages`` holds the bytes
+    of every retaining source the fact cites. Each page is put in a temporary copy store, read
+    through ``StoredRegions`` (so a PDF takes ``decision.pdf_templates`` as in ``verify``), and
+    read by the deterministic extractors together and then each alone, nothing logged. A reader
+    that confirms the value, or finds another one, on any page reads the fact, and the two-reader
+    path does not apply. Only when every engine reader finds no value on every page (no reading,
+    or a reading of ``None``) are the pages left to the two readers. A check that cannot run
+    refuses.
     """
-    from decision.model import SourceRef, TargetRef, VerificationActor
-    from decision.verify import Claim, deterministic_extractors, verify
+    import os
+    import tempfile
 
-    regions = [r.get("id") for r in row.get("cited_regions") or [] if r.get("id")] or ["page"]
+    from decision.model import SourceRef, TargetRef, VerificationActor
+    from decision.sources import CopyStore, load_sources
+    from decision.verify import Claim, StoredRegions, deterministic_extractors, verify
+
+    root = Path(os.environ.get(DATA_DIR_ENV, "").strip() or ".")
     names = tuple(dict.fromkeys([*found.names, subject.split("/")[-1]]))
-    claim = Claim(
-        target=TargetRef(kind="fact", id=(found.fact_ids or (f"{subject}#{facet.id}",))[0]),
-        subject=subject, names=names, field=facet.id, value=found.fact.get("value"),
-        collector=VerificationActor(agent="cited-change-gate", model_family="unrecorded",
-                                    method=RETAINED_RULE),
-        sources=(SourceRef(source_id=source_id, snapshot_ref=f"sha256:{sha256(page_bytes)}",
-                           cited_regions=regions),),
-        unit=facet.unit, label=facet.label, state=found.fact.get("state"))
-    regions_ = _PageRegions(source_id, row, page_bytes)
+    target = (found.fact_ids or (f"{subject}#{facet.id}",))[0]
     today = datetime.now(UTC).date()
-    # One reader at a time: ``verify`` reports only its first mismatch, and a reader that finds
-    # no value (a ``None`` reading) must not hide a later reader that finds one.
-    for extractor in deterministic_extractors():
-        try:
-            result = verify(claim, regions_, [extractor], today=today)
-        except Exception as error:  # noqa: BLE001  fail closed: an unrun check is no abstention
-            return f"unrun ({type(error).__name__})"
-        if result.verification is None:
-            continue
-        if result.outcome == "verified" or (result.outcome == "mismatch" and any(
-                d.field in {"value", "unit"} and d.found is not None for d in result.diffs)):
-            return result.verification.verifier.method
+    try:
+        registry = load_sources(root / "registry" / "sources.yaml")
+    except Exception as error:  # noqa: BLE001  fail closed
+        return f"unrun ({type(error).__name__})"
+    with tempfile.TemporaryDirectory() as scratch:
+        store = CopyStore(scratch)
+        regions = StoredRegions(store, registry)
+        for source_id, page_bytes in pages.items():
+            source = registry.get(source_id)
+            if source is None:
+                return f"unrun ({source_id} is not registered)"
+            try:
+                ref = store.put(page_bytes, source_url=str(source.url))
+            except Exception as error:  # noqa: BLE001
+                return f"unrun ({type(error).__name__})"
+            cited = next((s.get("cited_regions") for s in found.fact.get("sources") or []
+                          if s.get("source_id") == source_id), None)
+            region_ids = list(cited or [r.id for r in source.cited_regions] or ["page"])
+            claim = Claim(
+                target=TargetRef(kind="fact", id=target), subject=subject, names=names,
+                field=facet.id, value=found.fact.get("value"),
+                collector=VerificationActor(agent="cited-change-gate", model_family="unrecorded",
+                                            method=RETAINED_RULE),
+                sources=(SourceRef(source_id=source_id, snapshot_ref=ref,
+                                   cited_regions=region_ids),),
+                unit=facet.unit, label=facet.label, state=found.fact.get("state"))
+            # All readers together (the PDF route), then one at a time: ``verify`` reports only
+            # its first mismatch, and a ``None`` reading must not hide a later reader's value.
+            extractors = deterministic_extractors()
+            for chosen in [extractors, *([e] for e in extractors)]:
+                try:
+                    result = verify(claim, regions, chosen, today=today)
+                except Exception as error:  # noqa: BLE001  an unrun check is no abstention
+                    return f"unrun ({type(error).__name__})"
+                if result.verification is None:
+                    continue
+                if result.outcome == "verified" or (result.outcome == "mismatch" and any(
+                        d.field in {"value", "unit"} and d.found is not None
+                        for d in result.diffs)):
+                    return f"{result.verification.verifier.method} on {source_id}"
     return None
 
 
+def _incomplete_values(entries: Sequence[Mapping[str, Any]]) -> list[JsonValue]:
+    """Every answer recorded inside an incomplete attempt (MODEL-558 review): it counts too."""
+    return [r.get("value") for a in entries if not a.get("complete")
+            for r in a.get("readers") or [] if "value" in r]
+
+
 def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader],
-          request: Request | None, allow_unchanged: bool, epoch: str = "initial",
+          request: Request | None, allow_unchanged: bool,
           page: tuple[bytes, tuple[str, ...]] | None = None,
           now: datetime | None = None, accept_not_disclosed: bool = False,
           retaining: bool = False) -> CitedChange:
@@ -782,11 +785,23 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     # is counted: any disagreement blocks. An agreement authorises only if it was made through
     # this harness (``harness`` true); an agreement from reads whose blindness was never proven
     # (``harness`` false, seeded) authorises nothing, but a disagreement from them still blocks.
-    history = [a for a in attempts(subject, facet, epoch) if a.get("complete")]
+    # The epoch is the filed fact's own (``fact_epoch``), never the caller's.
+    epoch = fact_epoch(found.fact)
+    logged = attempts(subject, facet, epoch)
+    history = [a for a in logged if a.get("complete")]
     if any(not a.get("agreed") for a in history):
         return _refuse("prior_attempt_disagreed",
                        "an earlier complete attempt at this fact did not agree")
-    prior = [a for a in history if a.get("harness") is True]
+    # An answer inside an incomplete attempt counts: two that differ, or one that differs from
+    # an agreed value, is a disagreement (MODEL-558 review).
+    seen = {_canonical(v, facet_def) for v in _incomplete_values(logged)} | {
+        _canonical(a.get("agreed_value"), facet_def) for a in history if a.get("agreed")}
+    if len(seen) > 1:
+        return _refuse("prior_attempt_disagreed",
+                       "answers recorded in earlier attempts at this fact do not agree")
+    if len(logged) >= MAX_ATTEMPTS:
+        return _refuse("attempts_exhausted",
+                       f"{len(logged)} attempts at this fact are logged in this epoch")
     if page is None:
         fetched = _fetch(row["url"], request or _http_once, retaining=retaining)
         if isinstance(fetched, CitedChange):
@@ -794,13 +809,27 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         page = fetched
     page_bytes, resolved = page
     if retaining:
-        # Before any reader is asked: a page an engine reader reads takes the verified path.
-        method = _engine_reads(found, subject, facet_def, source_id, row, page_bytes)
+        # Before any reader is asked: if an engine reader reads the fact from any retaining page
+        # the fact cites, the verified path applies.
+        pages = {source_id: page_bytes}
+        for entry in found.fact.get("sources") or []:
+            other = entry.get("source_id")
+            other_row = found.sources.get(other) or {}
+            if other in pages or cite_only_status(other_row.get("url")) is not False:
+                continue  # a cite-only page is not read by the engine and is not fetched here
+            got = _fetch(other_row["url"], request or _http_once, retaining=True)
+            if isinstance(got, CitedChange):
+                return _refuse("engine_reader_reads",
+                               f"{other} could not be read for the engine check ({got.reason})")
+            pages[other] = got[0]
+        method = _engine_reads(found, subject, facet_def, pages)
         if method is not None:
             return _refuse("engine_reader_reads",
-                           f"{method} reads this fact from the page; the verified path applies")
+                           f"{method} reads this fact; the verified path applies")
     answers: list[ReaderAnswer] = []
     for _ in range(2):  # an incomplete attempt (a reader failed) may be tried once more
+        if len(attempts(subject, facet, epoch)) >= MAX_ATTEMPTS:
+            return _refuse("attempts_exhausted", "the attempt budget for this fact is spent")
         try:
             answers = read_page(subject=subject, url=row["url"], facet_id=facet,
                                 subject_name=found.subject_name, page_bytes=page_bytes,
@@ -809,6 +838,10 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         except ReaderError:
             continue
     if not answers:
+        values = _incomplete_values(attempts(subject, facet, epoch))
+        if len({_canonical(v, facet_def) for v in values}) > 1:
+            return _refuse("prior_attempt_disagreed",
+                           "answers recorded in the incomplete attempts do not agree")
         return _refuse("reader_failed", "a reader returned no usable answer")
     refusal = _check_readers(answers, facet_def, url=row["url"], subject_name=found.subject_name,
                              page_bytes=page_bytes, definition=found.definition)
@@ -816,6 +849,10 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         return refusal
     value = answers[0].value
     filed = found.fact.get("value")
+    if any(_canonical(v, facet_def) != _canonical(value, facet_def)
+           for v in _incomplete_values(attempts(subject, facet, epoch))):
+        return _refuse("prior_attempt_disagreed",
+                       "an answer recorded in an incomplete attempt differs from this agreement")
     if retaining:
         return _retained_outcome(subject, facet_def, value, filed, found, row, source_id, now,
                                  page_bytes, answers, resolved, history)
@@ -1404,10 +1441,8 @@ class Reread:
 def reread(fact: Mapping[str, Any], *, source_id: str, readers: Sequence[Reader],
            request: Request | None = None) -> Reread:
     """Re-read a cited-change fact. The gate fetches the page; a changed sha256 needs two
-    readers; fewer flags the fact. Each recorded sha256 is its own attempt-log epoch."""
-    block = cited_change_block(fact)
-    if block is None:
-        return Reread("flagged", "not_a_cited_change", None, "the fact carries no cited_change block")
+    readers; fewer flags the fact. Each recorded sha256 is its own attempt-log epoch. Only the
+    subject and facet are taken from ``fact``; the block and the epoch are the filed fact's."""
     subject, facet = str(fact.get("subject")), str(fact.get("facet"))
     try:
         found = lookup(subject, facet)
@@ -1416,22 +1451,25 @@ def reread(fact: Mapping[str, Any], *, source_id: str, readers: Sequence[Reader]
     row = found.sources.get(source_id)
     if row is None or not row.get("url"):
         return Reread("flagged", "registry_lookup_failed", None, "the cited source is not registered")
+    # The block, and with it the epoch, are the filed fact's own, never the caller's.
+    block = cited_change_block(found.fact)
+    if block is None:
+        return Reread("flagged", "not_a_cited_change", None, "the filed fact carries no block")
     retaining = block.get("rule") == RETAINED_RULE
     fetched = _fetch(row["url"], request or _http_once, retaining=retaining)
     if isinstance(fetched, CitedChange):
         return Reread("flagged", fetched.reason, None, fetched.detail)
-    if not reread_required(fact, fetched[0]):
+    if not reread_required(found.fact, fetched[0]):
         return Reread("current")
     outcome = _gate(subject=subject, facet=facet, source_id=source_id, readers=readers,
-                    request=request, allow_unchanged=True, page=fetched,
-                    epoch=fact_epoch(fact), retaining=retaining,
+                    request=request, allow_unchanged=True, page=fetched, retaining=retaining,
                     accept_not_disclosed=not retaining
                     and found.fact.get("state") == "not_disclosed")
     if not outcome.changed:
         return Reread("flagged", outcome.reason, None, outcome.detail)
     facet_def = _facet(facet)
     agreed = outcome.record["value"] if outcome.record else None
-    same = _canonical(agreed, facet_def) == _canonical(fact.get("value"), facet_def)
+    same = _canonical(agreed, facet_def) == _canonical(found.fact.get("value"), facet_def)
     return Reread("confirmed" if same else "changed", None, outcome.record)
 
 

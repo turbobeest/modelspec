@@ -84,6 +84,20 @@ def test_config_yarn_window_is_read_only_when_the_scaling_reaches_it():
     {"max_position_embeddings": "131072"},
     {"text_config": {"max_position_embeddings": 8192, "model_type": "a"},
      "decoder": {"max_position_embeddings": 4096, "model_type": "b"}},
+    # A nested encoder or decoder subconfig states a window beside the top-level one.
+    {"max_position_embeddings": 8192, "encoder": {"max_position_embeddings": 512}},
+    {"max_position_embeddings": 8192, "decoder": {"max_position_embeddings": 8192}},
+    # Both levels state one.
+    {"max_position_embeddings": 8192, "text_config": {"max_position_embeddings": 8192}},
+    # RoPE scaling at the parent level over a text_config window.
+    {"rope_scaling": {"type": "linear", "factor": 4.0},
+     "text_config": {"max_position_embeddings": 8192}},
+    {"rope_scaling": None, "text_config": {"max_position_embeddings": 8192}},
+    # A rope_type and a type that name different kinds.
+    {"max_position_embeddings": 131072, "rope_scaling": {
+        "rope_type": "yarn", "type": "linear", "factor": 32,
+        "original_max_position_embeddings": 4096}},
+    {"max_position_embeddings": 131072, "rope_parameters": {"rope_type": "default"}},
 ])
 def test_config_window_abstains_when_in_doubt(cfg):
     assert hf_config_context_window(json.loads(config(**cfg))) is None
@@ -121,9 +135,9 @@ TWO_COLUMN = """# Widget 7B
 | | |
 |---|---|
 | **Embedding dimension** | 4096 |
-| **Max sequence length** | 32,768 tokens |
+| **Context length** | 32,768 tokens |
 """
-PER_MODEL = """| Model | Parameters | Max Tokens |
+PER_MODEL = """| Model | Parameters | Context Length |
 |---|---|---|
 | [widget-1b](https://huggingface.co/acme/widget-1b) | 1B | 8,192 |
 | [widget-7b](https://huggingface.co/acme/widget-7b) | 7B | 32,768 |
@@ -151,6 +165,11 @@ def test_readme_window_layouts_are_read(text, value):
     TWO_COLUMN + "\n- Context length: 8192\n",           # two different numbers
     "Long context: up to 8k context length.\n",           # prose is not a table
     "max_length = 32768\n",                               # code is not a table
+    # Input or generation limits are not the context window (MODEL-558 review).
+    "| **Max sequence length** | 32,768 tokens |\n|---|---|\n",
+    "- Max Input Tokens: 32768\n",
+    "| Model | Max Tokens |\n|---|---|\n| widget-7b | 32,768 |\n",
+    "| **Max tokens** | 32768 |\n|---|---|\n",
 ])
 def test_readme_window_abstains_on_abbreviations_conflicts_and_prose(text):
     readings, _ = read(HFReadmeSpecExtractor(), "model.context_window", 32768, text, README)
@@ -184,7 +203,6 @@ def api(**data):
     ("feature-extraction", "model.output_modalities", "embedding"),
     ("text-generation", "model.input_modalities", "text"),
     ("text-generation", "model.output_modalities", "text"),
-    ("image-text-to-text", "model.output_modalities", "text"),
 ])
 def test_declared_task_gives_the_modalities_it_leaves_in_no_doubt(task, field, value):
     assert hf_task_modalities(field, task, []) == value
@@ -202,6 +220,17 @@ def test_text_input_abstains_when_anything_names_another_modality(task, tags, mo
     assert hf_task_modalities("model.input_modalities", task, tags, model) is None
 
 
+@pytest.mark.parametrize("task,tags,model", [
+    ("image-text-to-text", [], []),                  # the task itself is multimodal
+    ("text-generation", ["vision"], []),
+    ("text-generation", [], ["WidgetForConditionalGeneration"]),
+    ("feature-extraction", ["multimodal"], []),
+    ("sentence-similarity", [], ["WidgetVLModel"]),
+])
+def test_output_abstains_on_any_multimodal_hint(task, tags, model):
+    assert hf_task_modalities("model.output_modalities", task, tags, model) is None
+
+
 def test_modalities_from_the_api_json_and_the_readme_front_matter():
     readings, diffs = read(HFRepoMetadataExtractor(), "model.output_modalities", ["embedding"],
                            api(pipeline_tag="sentence-similarity"), API)
@@ -212,10 +241,12 @@ def test_modalities_from_the_api_json_and_the_readme_front_matter():
     assert [r.value for r in readings] == ["text"] and diffs == []
 
 
-def test_a_wider_filed_set_is_a_mismatch():
-    _, diffs = read(HFRepoMetadataExtractor(), "model.input_modalities", ["text", "image"],
-                    api(pipeline_tag="text-generation"), API)
-    assert diffs and diffs[0].field == "value"
+@pytest.mark.parametrize("filed", [["text", "image"], ["image"], [], ["text", "text"]])
+def test_a_task_never_establishes_a_complete_set(filed):
+    # A task tag proves one modality: a filed set that is not exactly it is no reading.
+    readings, _ = read(HFRepoMetadataExtractor(), "model.input_modalities", filed,
+                       api(pipeline_tag="text-generation"), API)
+    assert readings == []
 
 
 def test_metadata_of_another_repository_or_no_task_is_no_reading():
@@ -230,7 +261,7 @@ def test_metadata_of_another_repository_or_no_task_is_no_reading():
 
 
 def files(*names, **data):
-    return {"id": REPO, "private": False,
+    return {"id": REPO, "private": False, "gated": False, "tags": [],
             "siblings": [{"rfilename": n} for n in names], **data}
 
 
@@ -240,22 +271,33 @@ def test_weight_files_read_open_and_no_weight_file_reads_closed():
     assert hf_weights_openness(files("README.md", "widget.Q4_K_M.gguf")) == "open_weights"
     assert hf_weights_openness(files("pytorch_model.bin", "config.json")) == "open_weights"
     assert hf_weights_openness(files(".gitattributes", "README.md", "config.json",
-                                     "tokenizer_config.json")) == "closed_weights"
+                                     "handler.py")) == "closed_weights"
 
 
 @pytest.mark.parametrize("data", [
     files(),                                                  # no file list
     files("README.md", "training_args.bin"),                  # a .bin that is not a checkpoint
     files("README.md", private=True),
-    files("README.md", safetensors={"total": 0}),
-    {"id": REPO, "private": False},
+    files("README.md", "handler.py", safetensors={"total": 0}),
+    {"id": REPO, "private": False, "gated": False},
+    # Gated, private, adapter-only and metadata-only repositories (MODEL-558 review).
+    files("model.safetensors", gated="auto"),
+    files("model.safetensors", gated="manual"),
+    files("handler.py", gated=True),
+    {k: v for k, v in files("model.safetensors").items() if k != "gated"},
+    files("model.safetensors", private=True),
+    files("adapter_config.json", "adapter_model.safetensors"),
+    files("model.safetensors", tags=["peft"]),
+    files("model.safetensors", tags=["lora"]),
+    files(".gitattributes", "README.md", "config.json", "tokenizer_config.json"),
+    files("README.md", "LICENSE", "assets/diagram.png"),
 ])
 def test_weights_openness_abstains_when_in_doubt(data):
     assert hf_weights_openness(data) is None
 
 
 def test_weights_openness_reads_only_the_api_json_of_the_subjects_repository():
-    text = json.dumps(files("README.md", "config.json"))
+    text = json.dumps(files("README.md", "config.json", "handler.py"))
     readings, diffs = read(HFRepoMetadataExtractor(), "model.weights_openness", "closed_weights",
                            text, API)
     assert [r.value for r in readings] == ["closed_weights"] and diffs == []
@@ -313,8 +355,8 @@ class Regions:
 
 
 def test_verify_end_to_end_records_the_new_method():
-    c = claim("model.weights_openness", "closed_weights")
-    result = verify(c, Regions(json.dumps(files("README.md", "config.json")), API),
+    c = claim("model.weights_openness", "open_weights")
+    result = verify(c, Regions(json.dumps(files("README.md", "model.safetensors")), API),
                     deterministic_extractors(), today=date(2026, 11, 25))
     assert result.outcome == "verified"
     assert result.verification.verifier.method == "hf-repo-metadata@1"

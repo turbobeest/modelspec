@@ -274,7 +274,7 @@ def test_a_page_an_engine_reader_reads_takes_the_verified_path(data):
     data.fact.update(facet="model.context_window", value=32768,
                      id=f"{SUBJECT}#model.context_window")
     data.write()
-    table = b"| | |\n|---|---|\n| **Max sequence length** | 32,768 tokens |\n"
+    table = b"| | |\n|---|---|\n| **Context length** | 32,768 tokens |\n"
     out = refused("engine_reader_reads", facet="model.context_window",
                   readers=pair(32768), request=serve({URL: table}))
     assert "hf-readme-spec@1" in out.detail and data.attempts() == []
@@ -297,19 +297,32 @@ def test_a_page_every_engine_reader_abstains_on_is_left_to_the_readers(data):
 # --- the rolling re-read --------------------------------------------------------------------------
 
 
+def file_record(data, record):
+    """Write a record into the card, as the data writer does."""
+    data.fact.update(sources=[record["source"]], derivation=record["derivation"])
+    data.write()
+
+
 def test_reread_of_a_retained_agreement_uses_the_retaining_gate(data):
-    record = run().record
-    fact = {"subject": SUBJECT, "facet": FACET, "value": FILED,
-            "derivation": record["derivation"]}
+    file_record(data, run().record)
+    fact = {"subject": SUBJECT, "facet": FACET}
     assert reread(fact, source_id="readme", readers=pair(), request=serve()).outcome == "current"
     changed = PAGE + b"More text.\n"
     out = reread(fact, source_id="readme", readers=pair(), request=serve({URL: changed}))
     assert out.outcome == "confirmed" and out.record["derivation"]["cited_change"]["rule"] \
         == RETAINED_RULE
-    fact["derivation"] = out.record["derivation"]  # the confirmed read starts a new epoch
+    file_record(data, out.record)  # the confirmed read starts a new epoch
     out = reread(fact, source_id="readme", readers=pair(["text"]),
                  request=serve({URL: changed + b"x"}))
     assert out.outcome == "flagged" and out.reason == "value_differs"
+
+
+def test_reread_takes_the_block_and_epoch_from_the_filed_fact_not_the_caller(data):
+    record = run().record
+    # The caller hands in a block the card does not carry: the filed fact has none.
+    fact = {"subject": SUBJECT, "facet": FACET, "derivation": record["derivation"]}
+    out = reread(fact, source_id="readme", readers=pair(), request=serve())
+    assert out.outcome == "flagged" and out.reason == "not_a_cited_change"
 
 
 def test_the_rolling_reread_requests_a_retained_agreement_whose_page_text_changed(data):
@@ -340,3 +353,122 @@ def test_the_rolling_reread_requests_a_retained_agreement_whose_page_text_change
 def test_a_set_agreed_in_another_order_keeps_the_filed_order(data):
     out = run(readers=pair(["video", "text", "image"]))
     assert out.changed and out.record["value"] == FILED
+
+
+# --- review fixes: incomplete answers, the attempt budget, epochs, the veto, origin class --------
+
+
+def seed(data, **entry):
+    path = data.root / ATTEMPTS_FILE
+    path.parent.mkdir(exist_ok=True)
+    base = {"subject": SUBJECT, "facet": FACET, "epoch": "initial", "url": URL,
+            "complete": False, "harness": True, "agreed": None, "readers": []}
+    with path.open("a") as fh:
+        fh.write(json.dumps({**base, **entry}) + "\n")
+
+
+def failing(rid, family, value=None):
+    calls = []
+
+    def ask(prompt):
+        calls.append(1)
+        raise TimeoutError("slow")
+    return Reader(rid, family, "1.0", ask)
+
+
+def test_a_contradictory_answer_in_an_incomplete_attempt_blocks_a_later_agreement(data):
+    seed(data, readers=[{"reader_id": "codex", "family": "gpt-5", "version": "1",
+                         "value": ["text"]}])
+    refused("prior_attempt_disagreed")
+
+
+def test_two_incomplete_attempts_that_differ_block_before_any_read(data):
+    for value in (["text"], ["text", "image"]):
+        seed(data, readers=[{"reader_id": "codex", "family": "gpt-5", "version": "1",
+                             "value": value}])
+    request = serve()
+    refused("prior_attempt_disagreed", request=request)
+    assert request.calls == []
+
+
+def test_an_incomplete_answer_that_matches_does_not_block(data):
+    seed(data, readers=[{"reader_id": "codex", "family": "gpt-5", "version": "1",
+                         "value": ["video", "text", "image"]}])
+    assert run().changed
+
+
+def test_the_attempt_budget_survives_a_rerun(data):
+    readers = [reader("codex", "gpt-5"), failing("claude", "claude-sonnet-5")]
+    refused("reader_failed", readers=readers)       # two incomplete attempts in one call
+    assert len(data.attempts()) == 2
+    refused("attempts_exhausted", readers=readers)  # a re-run gets one more, then stops
+    assert len(data.attempts()) == 3
+    request = serve()
+    refused("attempts_exhausted", request=request)  # even with working readers
+    assert request.calls == [] and len(data.attempts()) == 3
+
+
+def test_a_direct_agreement_reads_in_the_filed_facts_epoch(data):
+    record = run().record
+    file_record(data, record)
+    epoch = "reread:" + record["derivation"]["cited_change"]["text_sha256"]
+    seed(data, epoch=epoch, complete=True, agreed=False)
+    refused("prior_attempt_disagreed")              # the seeded disagreement is in its epoch
+    assert all(e["epoch"] in {"initial", epoch} for e in data.attempts())
+
+
+def test_the_engine_veto_reads_every_retaining_source_the_fact_cites(data):
+    spec = "https://huggingface.co/acme/Widget-7B/raw/main/README.md"
+    data.sources.append(source("spec", spec))
+    data.fact.update(facet="model.context_window", value=32768,
+                     id=f"{SUBJECT}#model.context_window")
+    data.fact["sources"].append(dict(source_id="spec", snapshot_ref="sha256:" + "1" * 64,
+                                     cited_regions=["model-spec"]))
+    data.write()
+    prose = b"# Widget 7B\n\nA long context model.\n"
+    table = b"| | |\n|---|---|\n| **Context length** | 16,384 tokens |\n"
+    out = refused("engine_reader_reads", facet="model.context_window", readers=pair(32768),
+                  request=serve({URL: prose, spec: table}))
+    assert "spec" in out.detail and data.attempts() == []
+    # A cited retaining source that cannot be read fails closed.
+    out = refused("engine_reader_reads", facet="model.context_window", readers=pair(32768),
+                  request=serve({URL: prose, spec: (404, None, b"")}))
+    assert "could not be read" in out.detail
+
+
+def test_the_engine_veto_reads_through_stored_regions_so_a_pdf_takes_its_route(data, monkeypatch):
+    import decision.verify as verify_module
+
+    seen = []
+    real = verify_module.verify
+
+    def spy(claim, regions, extractors, *, today):
+        seen.append(type(regions).__name__)
+        return real(claim, regions, extractors, today=today)
+    monkeypatch.setattr(verify_module, "verify", spy)
+    assert run().changed
+    assert seen and set(seen) == {"StoredRegions"}
+
+
+def test_a_cited_page_on_a_cite_only_host_is_not_fetched_for_the_veto(data):
+    data.fact["sources"].append(dict(source_id="docs", snapshot_ref="sha256:" + "1" * 64,
+                                     cited_regions=["model-spec"]))
+    data.write()
+    request = serve()
+    assert run(request=request).changed
+    assert request.calls == [URL]
+
+
+def test_the_origin_class_is_checked_before_any_reread_fetch(data):
+    file_record(data, run().record)
+    data.terms["huggingface.co"] = "forbids"          # the host is now cite-only
+    data.write()
+    request = serve()
+    out = reread({"subject": SUBJECT, "facet": FACET}, source_id="readme", readers=pair(),
+                 request=request)
+    assert out.outcome == "flagged" and out.reason == "host_cite_only" and request.calls == []
+    del data.terms["huggingface.co"]                   # the host now has no class
+    data.write()
+    out = reread({"subject": SUBJECT, "facet": FACET}, source_id="readme", readers=pair(),
+                 request=request)
+    assert out.reason == "host_unclassed" and request.calls == []
