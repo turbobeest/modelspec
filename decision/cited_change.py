@@ -1159,6 +1159,16 @@ def cited_change(*, subject: str, facet: str, source_id: str, readers: Sequence[
 # One such read is only logged (``absence_pending``). A second, at least ``ABSENCE_GAP`` after a
 # pending one, returns ``not_published`` with the day the absence was first seen, for the
 # ``not_published_since`` field of the row. A later read that finds a value ends the pending run.
+#
+# A row's epoch includes the board page (MODEL-555, Jamie 2026-11-25). A row with no cited
+# change used to be read in its settings epoch alone, so one split of its readers blocked it for
+# good, whatever the board later said. Its epoch now names the hash of the board's cited region
+# (``board_region_sha256``), from a page the gate fetched itself (``board_epoch``): re-reading the
+# same board, or one that changed outside the cited region, stays in the epoch where the split
+# blocks; a changed cited region opens a new epoch, where two agreeing readers may settle it.
+# Attempts logged before region hashes are compared by the visible-text hash rule 15 records
+# (``text_sha256``, or the one recorded for the same page bytes); one whose page cannot be named
+# keeps the row in its settings epoch.
 
 BENCHMARK_PREFIX = "benchmark:"
 BENCHMARK_AUTHOR = "benchmark_author"
@@ -1227,13 +1237,174 @@ def _block_of(row: Mapping[str, Any]) -> Mapping[str, Any] | None:
     return block if isinstance(block, Mapping) else None
 
 
-def reading_epoch(reading: Mapping[str, Any], row: Mapping[str, Any] | None = None) -> str:
+#: Marks a board epoch: ``<settings epoch>:board:<cited-region hash>`` (MODEL-555).
+BOARD_MARK = ":board:"
+
+
+def reading_epoch(reading: Mapping[str, Any], row: Mapping[str, Any] | None = None, *,
+                  board: str | None = None) -> str:
     """The attempt-log epoch of a reading: its settings, and once the row carries a cited
     change, the text hash that change recorded (as the fact gate's re-read epoch). A later
-    reading of a board that moved starts a new epoch; a disagreement within one still blocks."""
+    reading of a board that moved starts a new epoch; a disagreement within one still blocks.
+
+    ``board`` (MODEL-555, Jamie 2026-11-25): for a row with no cited change, the hash of the
+    board page's cited region (``board_region_sha256``) as the gate resolved it from a page it
+    fetched itself (``board_epoch``). The epoch is then ``<settings epoch>:board:<hash>``, so a
+    board whose cited region changed opens a new epoch for an unchanged row. A row that carries
+    a cited change keeps its re-read epoch."""
     base = "reading:" + sha256(canonical({k: reading.get(k) for k in READING_KEYS}, "_"))[:16]
     block = _block_of(row) if row is not None else None
-    return f"{base}:reread:{block.get('text_sha256') or block.get('sha256')}" if block else base
+    if block:
+        return f"{base}:reread:{block.get('text_sha256') or block.get('sha256')}"
+    return f"{base}{BOARD_MARK}{board}" if board else base
+
+
+def _fold(text: str) -> str:
+    """Rule 15's fold of visible text (``decision.cited_reader.normalised_text``)."""
+    import html
+
+    return re.sub(r"\s+", " ", html.unescape(text)).strip()
+
+
+def board_region_sha256(row: Mapping[str, Any], source_id: str, source: Mapping[str, Any],
+                        page_bytes: bytes) -> str | None:
+    """The hash of the regions of ``source_id`` the board row cites, or ``None`` when they
+    cannot be selected (no registered region, an unknown normaliser or locator, content the
+    normaliser refuses). The hash is built as the cited-region hash of engine#1171 (MODEL-562,
+    ``decision.ruling_reread.region_sha256``): each region the row's source reference names (or
+    every registered one), selected by the source's own normaliser and locator
+    (``decision.normalise``: volatile text such as update times, tracking, page furniture
+    stripped) and folded as rule 15 folds visible text. A text recipe reads rule 15's visible
+    text of the page (``normalised_text``), never its markup, so script and markup churn never
+    reach the hash. A region that matches nothing hashes as absent, which is a change."""
+    from decision.normalise import (
+        NORMALISERS, Locator, UnsupportedContentError, normalise_document, select_region,
+    )
+
+    ref = next((r for r in row.get("sources") or () if isinstance(r, Mapping)
+                and r.get("source_id") == source_id), None)
+    registered = {str(r.get("id")): r for r in source.get("cited_regions") or ()
+                  if isinstance(r, Mapping)}
+    wanted = [str(i) for i in (ref or {}).get("cited_regions") or ()] or sorted(registered)
+    rules = NORMALISERS.get(str(source.get("normaliser") or "html-default"))
+    if not wanted or rules is None or any(i not in registered for i in wanted):
+        return None
+    body = normalised_text(page_bytes).encode("utf-8") if rules.content == "text" else page_bytes
+    try:
+        doc = normalise_document(body, rules)
+        parts = []
+        for region_id in wanted:
+            locator = registered[region_id].get("locator") or {}
+            kind = str(locator.get("kind") or "page")
+            kind = "heading" if kind == "heading_anchor" else kind
+            text = select_region(doc, Locator(kind, str(locator.get("value") or "")))
+            parts.append([region_id, None if text is None else _fold(text)])
+    except (UnsupportedContentError, ValueError, TypeError):
+        return None
+    return sha256(json.dumps(parts, ensure_ascii=False, separators=(",", ":")))
+
+
+def _reading_lines(subject: str, facet_id: str) -> list[dict[str, Any]]:
+    """Every logged attempt at the subject and facet, in every epoch, in file order. Raises
+    ``ValueError`` on a line that does not parse and ``OSError`` when the log cannot be read."""
+    import os
+
+    from decision.cited_reader import ATTEMPTS_FILE
+
+    root = os.environ.get(DATA_DIR_ENV, "").strip()
+    path = Path(root) / ATTEMPTS_FILE if root else None
+    if path is None or not path.is_file():
+        return []
+    out = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            entry = json.loads(line)
+            if not isinstance(entry, dict):
+                raise ValueError("an attempt line is not an object")
+            if (entry.get("subject"), entry.get("facet")) == (subject, facet_id):
+                out.append(entry)
+    return out
+
+
+def _board_epochs(lines: Sequence[Mapping[str, Any]], base: str) -> list[dict[str, Any]]:
+    """The attempts logged in any board epoch of the settings epoch ``base``."""
+    return [dict(e) for e in lines if isinstance(e.get("epoch"), str)
+            and e["epoch"].startswith(base + BOARD_MARK)
+            and len(e["epoch"]) > len(base + BOARD_MARK)]
+
+
+def _page_texts(url: str) -> dict[str, set[str]]:
+    """The visible-text hashes the gate recorded for each page hash of ``url``: from attempt
+    lines that logged both, and from the cited-change blocks of every board reading in the data
+    directory (a block records the ``sha256`` and ``text_sha256`` of the page its readers read).
+    It names the page an older attempt read when that attempt logged no text hash."""
+    import os
+
+    from decision.cited_reader import ATTEMPTS_FILE
+
+    root = os.environ.get(DATA_DIR_ENV, "").strip()
+    out: dict[str, set[str]] = {}
+    if not root:
+        return out
+    path = Path(root) / ATTEMPTS_FILE
+    lines = path.read_text(encoding="utf-8").splitlines() if path.is_file() else []
+    for raw in lines:
+        entry = json.loads(raw) if raw.strip() else {}
+        if isinstance(entry, dict) and entry.get("url") == url \
+                and _HEX64.fullmatch(str(entry.get("page_sha256") or "")) \
+                and _HEX64.fullmatch(str(entry.get("text_sha256") or "")):
+            out.setdefault(entry["page_sha256"], set()).add(entry["text_sha256"])
+    for reading in cited_change_readings(root):
+        block = (reading.get("derivation") or {}).get("cited_change") or {}
+        if block.get("url") == url and _HEX64.fullmatch(str(block.get("sha256") or "")) \
+                and _HEX64.fullmatch(str(block.get("text_sha256") or "")):
+            out.setdefault(block["sha256"], set()).add(block["text_sha256"])
+    return out
+
+
+_HEX64 = re.compile(r"[0-9a-f]{64}")
+
+
+def board_epoch(*, base: str, lines: Sequence[Mapping[str, Any]], url: str, page_bytes: bytes,
+                region: str | None) -> str:
+    """The epoch an unchanged board row is read in, from the page the gate just fetched itself
+    (MODEL-555). ``base`` is the row's settings epoch, ``lines`` every logged attempt at the
+    subject and facet, ``region`` the page's cited-region hash (``board_region_sha256``).
+
+    * No region can be selected: ``base``; no page can open an epoch.
+    * The page is one the settings epoch read: ``base``, where its disagreements still block.
+      A complete attempt there read this page when it logged this region hash, or (an attempt
+      older than region hashes) this visible-text hash or these page bytes.
+    * A complete attempt in the settings epoch whose page cannot be named (no region hash, no
+      text hash, and no recorded text for its page bytes, or more than one): ``base``. No change
+      can be shown against it, so nothing opens.
+    * Otherwise ``<base>:board:<region>``. Re-reading the same board, or a board that changed
+      only outside its cited region (a banner, an update time, script churn), lands in the same
+      board epoch, so a disagreement there blocks it; a changed cited region opens a new one.
+    """
+    if region is None:
+        return base
+    legacy = [e for e in lines if e.get("epoch") == base and e.get("complete") is True]
+    text, page = text_sha256(page_bytes), sha256(page_bytes)
+    links: dict[str, set[str]] | None = None
+    for entry in legacy:
+        logged = entry.get("region_sha256")
+        if isinstance(logged, str) and _HEX64.fullmatch(logged):
+            if logged == region:
+                return base
+            continue
+        if entry.get("page_sha256") == page or entry.get("text_sha256") == text:
+            return base
+        known = entry.get("text_sha256")
+        if not (isinstance(known, str) and _HEX64.fullmatch(known)):
+            if links is None:
+                links = _page_texts(url)
+            texts = links.get(str(entry.get("page_sha256") or "")) or set()
+            if len(texts) != 1:
+                return base
+            if text in texts:
+                return base
+    return f"{base}{BOARD_MARK}{region}"
 
 
 def _front(path: Path) -> dict[str, Any]:
@@ -1407,7 +1578,14 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     ``allow_unchanged`` returns a record for an agreed score equal to the filed one, to give a
     row written before the record existed its ``derivation``. ``clear_quarantine`` (MODEL-552)
     lets a fresh agreement on a score clear the reading's one held mismatch, read in that
-    verdict's clearing epoch; the record then carries ``clearings`` (``cited_change``)."""
+    verdict's clearing epoch; the record then carries ``clearings`` (``cited_change``).
+
+    A row with no cited change is read in the board epoch its page names (MODEL-555,
+    ``board_epoch``): the gate fetches the board itself first, and the epoch is the settings
+    epoch, or ``<settings epoch>:board:<cited-region hash>`` once the board's cited region is
+    shown to differ from every page the settings epoch read. Only bytes the gate fetched with
+    its own transport name a board epoch; with a caller's ``request`` the row is read in its
+    settings epoch and a disagreement in any of its board epochs blocks too."""
     now = datetime.now(UTC)
     if now.tzinfo is None or now > datetime.now(UTC):
         return _refuse("bad_read_date", "the read time is missing, naive or in the future")
@@ -1434,6 +1612,17 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     if refusal is not None:
         return refusal
     epoch = base = reading_epoch(reading, found.row)
+    url = found.sources[source_id]["url"]
+    unchanged = _block_of(found.row) is None
+    fetched: tuple[bytes, tuple[str, ...]] | CitedChange | None = None
+    try:
+        lines = _reading_lines(subject, facet_id) if unchanged else []
+    except (OSError, ValueError) as error:
+        return _refuse("registry_lookup_failed", f"the attempt log: {type(error).__name__}")
+    # Every attempt in a board epoch of this row (MODEL-555). Counted for disagreement wherever
+    # the row is not read in a board epoch the gate named itself: a clearing, or a caller's
+    # transport, which reads in the settings epoch.
+    boards = [a for a in _board_epochs(lines, base) if a.get("complete")]
     if clearing is not None:
         from decision.quarantine_clearing import clearing_epoch, verdict_sha256
 
@@ -1445,26 +1634,46 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
                                     settings=reading_settings({**found.row, **reading}))
         if refusal is not None:
             return refusal
+    elif unchanged and request is None:
+        # MODEL-555: an unchanged row's epoch names the board's cited region, so the gate
+        # fetches the page first, itself, with its own transport. Only these bytes can open a
+        # board epoch; a caller's transport reads in the settings epoch, where every board
+        # epoch's disagreements count too.
+        fetched = _fetch(url, _http_once)
+        if isinstance(fetched, CitedChange):
+            return fetched
+        region = board_region_sha256(found.row, source_id, found.sources[source_id], fetched[0])
+        try:
+            epoch = board_epoch(base=base, lines=lines, url=url, page_bytes=fetched[0],
+                                region=region)
+        except (OSError, ValueError) as error:
+            return _refuse("registry_lookup_failed", f"the attempt log: {type(error).__name__}")
+        if epoch != base:
+            boards = []
     history = [a for a in attempts(subject, facet_id, epoch) if a.get("complete")]
     if clearing is not None:
         history += [a for a in attempts(subject, facet_id, base) if a.get("complete")]
-    if any(_entry_time(a) is None for a in history):
+    # What blocks: this epoch's attempts and, outside a board epoch, every board epoch's.
+    blocking = history + boards
+    if any(_entry_time(a) is None for a in blocking):
         return _refuse("bad_read_date", "a logged attempt has a missing, naive or unreadable time")
-    if any(not a.get("agreed") for a in history):
+    if any(not a.get("agreed") for a in blocking):
         return _refuse("prior_attempt_disagreed",
                        "an earlier complete attempt at this reading did not agree")
-    url = found.sources[source_id]["url"]
-    fetched = _fetch(url, request or _http_once)
+    if fetched is None:
+        fetched = _fetch(url, request or _http_once)
     if isinstance(fetched, CitedChange):
         return fetched
     page_bytes, resolved = fetched
+    region = board_region_sha256(found.row, source_id, found.sources[source_id], page_bytes)
     definition = reading_definition(found.benchmark, reading)
     answers: list[ReaderAnswer] = []
     for _ in range(2):
         try:
             answers = read_page(subject=subject, url=url, facet_id=facet_id,
                                 subject_name=found.subject_name, page_bytes=page_bytes,
-                                readers=readers, epoch=epoch, definition=definition)
+                                readers=readers, epoch=epoch, definition=definition,
+                                region_sha256=region)
             break
         except ReaderError:
             continue
@@ -1505,7 +1714,7 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     # A prior agreed attempt on another value is a conflict signal, as in the fact gate.
     if any(a.get("agreed") and a.get("agreed_value") is not None
            and canonical(a.get("agreed_value"), facet.id) != canonical(value, facet.id)
-           for a in history):
+           for a in blocking):
         return _refuse("prior_attempt_disagreed", "an earlier agreed attempt returned another value")
     filed = found.row.get("score")
     marked = found.row.get("not_published_since") not in (None, "")
