@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from pipeline import agent_ready, brand, brand_page, entity, landing, method, structured_data
+from pipeline import agent_copy, agent_ready, brand, brand_page, entity, landing, method, structured_data
 from pipeline.build import llms_txt
 from pipeline.export import Build
 from pipeline.load import load_benchmarks, load_models
@@ -126,8 +126,11 @@ def test_the_organization_json_ld_describes_and_links_the_entity() -> None:
 
 def test_the_readme_opens_with_the_sentence() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    prose = next(line for line in readme.splitlines() if line.startswith("ModelSpec "))
-    assert prose.startswith(entity.ONE_SENTENCE)
+    # The writer keeps the sentence in a generated region (pipeline.agent_copy).
+    prose = next(line for line in readme.splitlines() if line.startswith("<!-- entity:"))
+    assert prose.startswith(
+        agent_copy.ONE_SENTENCE_START + entity.ONE_SENTENCE + agent_copy.ONE_SENTENCE_END
+    )
 
 
 def test_the_retired_cost_tail_is_superseded_and_misses_the_revised_sentence() -> None:

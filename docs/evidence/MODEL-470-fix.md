@@ -149,3 +149,13 @@ Tests, run on jjt5090 with Python 3.12 and Node v22.23.2:
 
 - `tests/test_surface_lint.py`, `tests/test_landing.py`, `tests/test_holding.py`, `tests/test_social_cards.py`, `tests/test_about.py`, `tests/test_agent_ready.py`, `tests/test_entity.py`, `tests/test_decision_link.py`, `tests/test_agent_copy.py` with `-n 4`: 450 passed. The 12 landing browser checks errored there because `web/dist` had not been built yet.
 - After `npm ci`, `npm run build` and `npm test` in `web/` (exit 0; Vitest 949 passed, 66 files, 1 file skipped), `tests/test_landing.py` alone: 33 passed, including the 12 browser checks. Exit 0.
+
+## Round 2, review fixes (2026-11-25)
+
+An independent review of #1054 asked for three changes.
+
+1. Landing order. `pipeline/surface_lint.py` reads the landing's `h1` and `p` elements together, in document order. The first must be the page's only `h1`, the tagline; the next two must be the router line and a lead that starts with the one sentence. A paragraph before the `h1` fails. Test: `test_a_paragraph_before_the_landing_h1_fails` (three layouts).
+2. Whole statements. The typed-copy scan matches each registry line as a complete statement: any case, any whitespace, with or without the trailing full stop, opening at a line start, markup or a sentence end, with no word or clause running on. `SUPERSEDED` phrases match exactly, word-bounded, with no further word running on. Tests: 8 false-positive cases that pass (for example "Which model, and why does it matter?" and "sourced benchmarks and real cost savings") and 6 tagline, 1 router-line and 2 retired-tail cases that fail.
+3. The one sentence. The scan now includes `ONE_SENTENCE`. It found typed copies in 4 files: `README.md`, `AGENTS.md`, `docs/cli-contract.md` and `docs/aeo/README.md`. Each now carries the sentence in a generated region between `<!-- entity:one-sentence -->` markers, which `python -m pipeline.agent_copy write` fills from `pipeline/entity.py` and `check` keeps fresh. The scan skips a region only when its text equals the registry. Tests: `test_a_typed_one_sentence_is_a_copy`, `test_the_generated_one_sentence_region_is_not_a_typed_copy`, `test_the_marked_markdown_files_carry_the_generated_sentence`. The visible text of the 4 files is unchanged; `docs/cli-contract.md` gains only the HTML comments, with no contract version, field or enum change.
+
+`python -m pipeline.agent_copy write` also refreshed the `pipeline/agent_copy.py` digest in `cli/modelspec/agent-bundle.json`. `python -m pipeline.agent_copy check` exits 0. `python -m pipeline.surface_lint --tree` on the built tree: 0 findings.

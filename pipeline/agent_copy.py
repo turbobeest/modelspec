@@ -44,6 +44,17 @@ GUIDE_CONSTANTS = ROOT / "api" / "worker" / "src" / "agent_guide.py"
 CLI_OUT = ROOT / "cli" / "modelspec" / "agent-bundle.json"
 CLI_SCHEMA = ROOT / "cli" / "modelspec" / "spec.schema.json"
 CLI_FEEDBACK_SCHEMA = ROOT / "cli" / "modelspec" / "feedback.schema.json"
+#: Markdown files that open with the one sentence. `write` keeps
+#: entity.ONE_SENTENCE between these markers; pipeline/surface_lint.py treats a
+#: copy outside them as typed (MODEL-470).
+ONE_SENTENCE_START = "<!-- entity:one-sentence -->"
+ONE_SENTENCE_END = "<!-- /entity:one-sentence -->"
+ONE_SENTENCE_FILES = (
+    ROOT / "README.md",
+    ROOT / "AGENTS.md",
+    ROOT / "docs" / "cli-contract.md",
+    ROOT / "docs" / "aeo" / "README.md",
+)
 INSTALL_PATHS = (
     "uvx --from modelspec-dev modelspec",
     "pipx install modelspec-dev",
@@ -845,6 +856,15 @@ def render(data: dict[str, Any]) -> str:
     return "{\n" + ",\n".join(fields) + "\n}\n" if fields else "{}\n"
 
 
+def with_one_sentence(path: Path) -> str:
+    """``path`` with entity.ONE_SENTENCE between its generated markers."""
+    text = path.read_text(encoding="utf-8")
+    pattern = re.compile(re.escape(ONE_SENTENCE_START) + r".*?" + re.escape(ONE_SENTENCE_END), re.S)
+    if not pattern.search(text):
+        raise ValueError(f"{path.relative_to(ROOT)} lacks the one-sentence markers")
+    return pattern.sub(lambda _: ONE_SENTENCE_START + entity.ONE_SENTENCE + ONE_SENTENCE_END, text)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m pipeline.agent_copy")
     parser.add_argument("command", choices=("write", "check"))
@@ -864,6 +884,7 @@ def main(argv: list[str] | None = None) -> int:
             f'GUIDE_URL = {GUIDE_URL!r}\nGUIDE_VERSION = {version!r}\n'
             f'MINIMAL_SPEC = {MINIMAL_SPEC!r}\nVOCAB_NEXT = {VOCAB_NEXT!r}\n'
         ),
+        **{path: with_one_sentence(path) for path in ONE_SENTENCE_FILES},
     }
     stale = False
     for path, text in artifacts.items():

@@ -145,6 +145,8 @@ class Page(HTMLParser):
         self.paragraph: int | None = None
         self.headings: list[str] = []
         self.heading: int | None = None
+        #: ("h1" or "p", index into headings or paragraphs), in document order.
+        self.blocks: list[tuple[str, int]] = []
         self.feed(text)
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -176,9 +178,11 @@ class Page(HTMLParser):
             self.parts.append(" ")
             if tag == "p":
                 self.paragraph = len(self.paragraphs)
+                self.blocks.append(("p", self.paragraph))
                 self.paragraphs.append("")
             if tag == "h1":
                 self.heading = len(self.headings)
+                self.blocks.append(("h1", self.heading))
                 self.headings.append("")
 
     @property
@@ -220,6 +224,14 @@ class Page(HTMLParser):
     @property
     def title(self) -> str:
         return normalize("".join(self.title_parts))
+
+    @property
+    def ordered_blocks(self) -> list[tuple[str, str]]:
+        """Visible h1 and p text in document order, normalized."""
+        return [
+            (tag, normalize((self.headings if tag == "h1" else self.paragraphs)[index]))
+            for tag, index in self.blocks
+        ]
 
     @property
     def first_paragraph(self) -> str:
@@ -474,41 +486,112 @@ def _read_text(path: Path) -> str | None:
         return None
 
 
+#: Characters that continue a sentence rather than end or open one.
+_CONTINUES = frozenset(",;:-")
+#: Generated regions: `python -m pipeline.agent_copy write` keeps the one
+#: sentence between these markers in Markdown files (agent_copy.ONE_SENTENCE_FILES).
+_GENERATED_SENTENCE = re.compile(
+    re.escape(agent_copy.ONE_SENTENCE_START) + r"(.*?)" + re.escape(agent_copy.ONE_SENTENCE_END),
+    re.S,
+)
+
+
+def _words(phrase: str) -> str:
+    return r"\s+".join(re.escape(word) for word in phrase.split())
+
+
+def _statement_pattern(line: str) -> re.Pattern[str]:
+    """The registry line as a whole statement: any case, any whitespace, optional stop."""
+    bare = line[:-1] if line.endswith(".") else line
+    return re.compile(r"(?<!\w)" + _words(bare) + r"(\.)?", re.I)
+
+
+def _opens_statement(text: str, start: int) -> bool:
+    """Nothing but a line break, markup or sentence end precedes ``start``."""
+    at = start - 1
+    while at >= 0 and text[at] in " \t":
+        at -= 1
+    if at < 0 or text[at] in "\r\n":
+        return True
+    previous = text[at]
+    # A hyphen opens a statement as a list bullet but continues one inside prose.
+    return not (previous.isalnum() or previous == "_" or previous in ",;:")
+
+
+def _ends_statement(text: str, end: int, stopped: bool) -> bool:
+    """The statement ends at ``end``: no word follows, and no clause if unstopped."""
+    if end < len(text) and (text[end].isalnum() or text[end] == "_"):
+        return False
+    if stopped:
+        return True
+    at = end
+    while at < len(text) and text[at] in " \t":
+        at += 1
+    if at >= len(text) or text[at] in "\r\n":
+        return True
+    following = text[at]
+    return not (following.isalnum() or following == "_" or following in _CONTINUES)
+
+
+def _has_statement(pattern: re.Pattern[str], text: str) -> bool:
+    for match in pattern.finditer(text):
+        stopped = match.group(1) is not None
+        if _opens_statement(text, match.start()) and _ends_statement(text, match.end(), stopped):
+            return True
+    return False
+
+
+def _phrase_pattern(phrase: str) -> re.Pattern[str]:
+    """A retired phrase exactly: word-bounded, and no further word runs on from it."""
+    return re.compile(r"(?<!\w)" + _words(phrase) + r"(?!\w)(?![ \t]+\w)", re.I)
+
+
+def _without_generated_sentence(text: str) -> str:
+    return _GENERATED_SENTENCE.sub(
+        lambda match: "" if " ".join(match.group(1).split()) == entity.ONE_SENTENCE else match.group(0),
+        text,
+    )
+
+
 def copied_identity(root: Path | None = None) -> list[Finding]:
-    """A typed copy of the tagline or router line outside the registry fails.
+    """A typed copy of the tagline, the router line or the one sentence fails.
 
     Scans git-tracked text files. Outside a git checkout, walks the tree and
-    skips ``node_modules``, ``dist``, ``.git`` and build output. The tagline
-    and the router line match in any case, with or without a trailing full
-    stop. ``entity.SUPERSEDED`` matches the same way the owned-copy lexicon
-    does, by case fold. History, evidence, tests and recorded fixtures may
-    quote either. Generated files listed in ``_IDENTITY_EXEMPT_FILES`` are
-    copies the generators write from ``pipeline/entity.py``.
+    skips ``node_modules``, ``dist``, ``.git`` and build output. Each registry
+    line matches as a whole statement: any case, any run of whitespace, with or
+    without the trailing full stop, opening at a line start, markup or a
+    sentence end, and closing where no word or clause runs on ("Which model,
+    and why does it matter?" is not the tagline). ``entity.SUPERSEDED``
+    phrases match exactly, word-bounded, with no further word running on
+    ("real cost savings" is not the retired "real cost"). History, evidence,
+    tests and recorded fixtures may quote any of them. Generated files listed
+    in ``_IDENTITY_EXEMPT_FILES`` and the generated one-sentence regions that
+    ``pipeline.agent_copy`` writes are copies made from ``pipeline/entity.py``.
     """
     root = ROOT if root is None else root
     findings = []
     rows = _git_text_files(root)
     if rows is None:
         rows = _walk_text_files(root)
-    needles = []
-    for line in (entity.TAGLINE, entity.ROUTER_LINE):
-        bare = line[:-1] if line.endswith(".") else line
-        needles.append((bare.casefold(), line))
+    statements = [
+        (_statement_pattern(line), line)
+        for line in (entity.TAGLINE, entity.ROUTER_LINE, entity.ONE_SENTENCE)
+    ]
+    retired = [(_phrase_pattern(old), old) for old in entity.SUPERSEDED]
     for rel, path in rows:
         if _identity_exempt(rel) or not path.is_file():
             continue
         text = _read_text(path)
         if text is None:
             continue
-        folded = text.casefold()
-        for bare, line in needles:
-            if bare in folded:
+        text = _without_generated_sentence(text)
+        for pattern, line in statements:
+            if _has_statement(pattern, text):
                 findings.append(
                     Finding(rel, "presence.copied_identity", line, "pipeline/entity.py")
                 )
-                break
-        for old in entity.SUPERSEDED:
-            if old.casefold() in folded:
+        for pattern, old in retired:
+            if pattern.search(text):
                 findings.append(Finding(rel, "presence.superseded", old, entity.ONE_SENTENCE))
     return findings
 
@@ -524,24 +607,28 @@ def presence(
         actual = normalize(page.meta.get(key, ""))
         if entity.ONE_SENTENCE not in actual:
             findings.append(Finding("index.html", "presence." + key, actual, entity.ONE_SENTENCE))
-    # The landing's one h1 is the tagline (MODEL-470). The router line and the
-    # one sentence are the first two paragraphs after it.
-    headings = [normalize(heading) for heading in page.headings]
-    if headings != [entity.TAGLINE]:
-        findings.append(
-            Finding("index.html", "presence.tagline", " | ".join(headings)[:200], entity.TAGLINE)
-        )
-    landing_paragraphs = _paragraphs(page)
-    if not landing_paragraphs or landing_paragraphs[0] != entity.ROUTER_LINE:
+    # The landing's one h1 is the tagline (MODEL-470), and it is the first h1
+    # or p on the page. The router line and the one sentence are the two
+    # paragraphs right after it. Headings and paragraphs are read together, in
+    # document order, so a paragraph placed before the h1 fails.
+    blocks = page.ordered_blocks
+    headings = [text for tag, text in blocks if tag == "h1"]
+    if headings != [entity.TAGLINE] or not blocks or blocks[0] != ("h1", entity.TAGLINE):
         findings.append(
             Finding(
                 "index.html",
-                "presence.router_line",
-                (landing_paragraphs or [""])[0][:200],
-                entity.ROUTER_LINE,
+                "presence.tagline",
+                " | ".join(f"{tag}: {text}" for tag, text in blocks[:2])[:200],
+                entity.TAGLINE,
             )
         )
-    lead = landing_paragraphs[1] if len(landing_paragraphs) > 1 else ""
+    after = blocks[1:] if blocks and blocks[0][0] == "h1" else blocks
+    router = after[0] if after else ("", "")
+    if router != ("p", entity.ROUTER_LINE):
+        findings.append(
+            Finding("index.html", "presence.router_line", router[1][:200], entity.ROUTER_LINE)
+        )
+    lead = after[1][1] if len(after) > 1 and after[1][0] == "p" else ""
     if not lead.startswith(entity.ONE_SENTENCE):
         findings.append(Finding("index.html", "presence.lead", lead[:200], entity.ONE_SENTENCE))
     for path in SENTENCE_FILES:

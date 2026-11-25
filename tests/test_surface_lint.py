@@ -209,6 +209,22 @@ def test_the_landing_router_line_and_sentence_follow_the_headline(
     assert "presence.tagline" not in checks
 
 
+@pytest.mark.parametrize(
+    "body",
+    [
+        # A paragraph before the h1 (MODEL-470 review), even with the rest in order.
+        f"<p>{entity.ROUTER_LINE}</p><h1>{entity.TAGLINE}</h1><p>{entity.ONE_SENTENCE}</p>",
+        f"<p>Intro.</p><h1>{entity.TAGLINE}</h1><p>{entity.ROUTER_LINE}</p>"
+        f"<p>{entity.ONE_SENTENCE}</p>",
+        f"<p>{entity.ROUTER_LINE}</p><p>{entity.ONE_SENTENCE}</p><h1>{entity.TAGLINE}</h1>",
+    ],
+)
+def test_a_paragraph_before_the_landing_h1_fails(texts: dict[str, str], body: str) -> None:
+    texts["index.html"] = page(body)
+    checks = {f.check for f in sl.presence(texts) if f.surface == "index.html"}
+    assert "presence.tagline" in checks
+
+
 def test_identity_lines_are_not_copied_outside_the_registry() -> None:
     assert sl.copied_identity(ROOT) == []
 
@@ -258,6 +274,93 @@ def test_copied_identity_reports_readme_typescript_and_html(tmp_path: Path) -> N
     findings = sl.copied_identity(tmp_path)
     assert {item.surface for item in findings} == set(planted)
     assert all(item.check == "presence.copied_identity" for item in findings)
+
+
+def _plant(root: Path, files: dict[str, str]) -> list[sl.Finding]:
+    for rel, text in files.items():
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    return sl.copied_identity(root)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Which model, and why does it matter?\n",
+        "We ask which model, and why it fits.\n",
+        "which model, and why, and when\n",
+        "Evidence-backed logic that powers complex model routing decisions.\n",
+        "Our evidence-backed logic that powers complex model routing is new.\n",
+        "Guides cover sourced benchmarks and real cost savings.\n",
+        "From sourced benchmarks and real costs, and more.\n",
+        "Prose that says ModelSpec is an analysis of alternatives for AI models, loosely.\n",
+    ],
+)
+def test_a_longer_sentence_that_contains_a_registry_phrase_is_not_a_copy(
+    tmp_path: Path, text: str,
+) -> None:
+    """Whole statements only (MODEL-470 review): a phrase inside other prose passes."""
+    assert _plant(tmp_path, {"README.md": text}) == []
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Which model, and why.\n",
+        "# which model, and why\n",
+        "> WHICH MODEL, AND WHY?\n",
+        "Intro. Which model, and why. More text.\n",
+        '<p class="x">Which model, and why.</p>\n',
+        '"Which model,\n  and why."\n',
+    ],
+)
+def test_the_tagline_as_a_whole_statement_is_a_copy(tmp_path: Path, text: str) -> None:
+    findings = _plant(tmp_path, {"README.md": text})
+    assert [(f.surface, f.check, f.excerpt) for f in findings] == [
+        ("README.md", "presence.copied_identity", entity.TAGLINE)
+    ]
+
+
+def test_the_router_line_as_a_whole_statement_is_a_copy(tmp_path: Path) -> None:
+    findings = _plant(tmp_path, {"docs/x.md": "- Evidence-backed logic that powers\n  complex model routing\n"})
+    assert [f.excerpt for f in findings] == [entity.ROUTER_LINE]
+
+
+def test_a_typed_one_sentence_is_a_copy(tmp_path: Path) -> None:
+    """MODEL-470 review: the one sentence joins the tagline and the router line."""
+    wrapped = entity.ONE_SENTENCE.replace(" it decides ", "\nit decides ")
+    findings = _plant(tmp_path, {"README.md": f"# ModelSpec\n\n{wrapped} More prose.\n"})
+    assert [(f.surface, f.check, f.excerpt) for f in findings] == [
+        ("README.md", "presence.copied_identity", entity.ONE_SENTENCE)
+    ]
+
+
+def test_the_generated_one_sentence_region_is_not_a_typed_copy(tmp_path: Path) -> None:
+    region = agent_copy.ONE_SENTENCE_START + entity.ONE_SENTENCE + agent_copy.ONE_SENTENCE_END
+    assert _plant(tmp_path, {"README.md": f"# ModelSpec\n\n{region} More prose.\n"}) == []
+    # A region whose text drifted from the registry is not exempt.
+    drifted = region.replace(entity.ONE_SENTENCE, entity.ONE_SENTENCE + " Extra.")
+    findings = _plant(tmp_path, {"README.md": f"{drifted}\n"})
+    assert [f.excerpt for f in findings] == [entity.ONE_SENTENCE]
+
+
+def test_the_retired_tail_matches_only_the_exact_phrase(tmp_path: Path) -> None:
+    retired = "sourced benchmarks and real cost"
+    for text in (f"{retired}.\n", f"From your requirements, {retired}, and shows its work.\n"):
+        findings = _plant(tmp_path, {"README.md": text})
+        assert [(f.check, f.excerpt) for f in findings] == [("presence.superseded", retired)]
+    for text in (f"{retired} savings\n", f"{retired}s\n", f"un{retired}\n"):
+        assert _plant(tmp_path, {"README.md": text}) == []
+
+
+def test_the_marked_markdown_files_carry_the_generated_sentence() -> None:
+    """README.md and friends read the sentence from the registry through the writer."""
+    for path in agent_copy.ONE_SENTENCE_FILES:
+        text = path.read_text(encoding="utf-8")
+        region = agent_copy.ONE_SENTENCE_START + entity.ONE_SENTENCE + agent_copy.ONE_SENTENCE_END
+        assert text.count(region) == 1, path
+        assert agent_copy.with_one_sentence(path) == text, path
 
 
 @pytest.mark.parametrize("path", ["index.html", "method/index.html"])
