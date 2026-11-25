@@ -779,11 +779,15 @@ def _build(row, rulings, attempts, log=(), claims=None, source_cache=None,
     block = (row.get("derivation") or {}).get("owner_ruling")
     if claims is None:
         claims = {f"{MID}#{FACET}": _claim(block)} if block else {}
+    if history is None:  # as after a filing: the claim line filed and checked on the ruling day
+        history = {fid: [_event("collected", f"{block['ruled_at']}T09:00:00+00:00", claim),
+                         _event("checked", f"{block['ruled_at']}T09:00:00+00:00")]
+                   for fid, claim in claims.items()} if block else {}
     inputs = SnapshotInputs(models=[model(MID, facts=[row])],
                             sources={**SOURCES, "src-cite": CITE},
                             owner_rulings=list(rulings), cited_attempts=list(attempts),
                             verifications=list(log), owner_ruling_claims=claims,
-                            owner_ruling_history=history or {})
+                            owner_ruling_history=history)
     return load_built_snapshot(build_snapshot(inputs, as_of=as_of,
                                               source_cache=source_cache))
 
@@ -926,7 +930,9 @@ def _site_tree(root, *, claim=True, ruling_kw=None):
     (root / ATTEMPTS_FILE).write_text(json.dumps(attempt, sort_keys=True) + "\n"
                                       + json.dumps(_change_attempt()) + "\n")
     events = [{"event": "collected", "at": "2026-10-12T00:00:00+00:00",
-               "claim": _claim(ruling)}] if claim else []
+               "claim": _claim(ruling)},
+              {"event": "checked", "at": "2026-10-12T00:00:00+00:00", "outcome": "cited",
+               "diff": [], "target": {"kind": "fact", "id": f"{MID}#{FACET}"}}] if claim else []
     (root / "verification/queue/events.jsonl").write_text(
         "".join(json.dumps(e) + "\n" for e in events))
     return front
@@ -1013,31 +1019,20 @@ def _plain_claim(value, at_ref="0" * 64):
                          "cited_regions": ["page"]}]}
 
 
-def test_a_build_as_of_a_day_before_the_ruling_does_not_know_it():
-    """Later knowledge never enters an earlier snapshot: a build as of a day before the ruling
-    serves the fact as the claim log shows it stood then, or withholds it."""
+def test_a_build_dated_before_the_ruling_withholds_the_fact():
+    """Later knowledge never enters an earlier snapshot, and nothing is restored."""
     attempt = _attempt()
-    ruling = _ruling(attempt)  # ruled 2026-10-12
-    early = date(2026, 10, 1)
-    assert _build(_ruled_fact(ruling), [ruling], [attempt], as_of=early).fact(
-        MID, FACET).state == "unknown"  # no claim stood then: withheld
-    history = {f"{MID}#{FACET}": [
-        _event("collected", "2026-09-01T00:00:00+00:00", _plain_claim(128000)),
-        _event("checked", "2026-09-01T00:00:00+00:00"),
-        _event("collected", "2026-10-12T09:00:00+00:00", _claim(ruling)),
-        _event("checked", "2026-10-12T09:00:00+00:00")]}
-    before = _build(_ruled_fact(ruling), [ruling], [attempt], as_of=early, history=history)
-    shown = before.fact(MID, FACET)
-    assert (shown.state, shown.value) == ("known", 128000)  # the claim that stood then
-    assert "owner_ruling" not in json.dumps(dict(before.record(shown.record_id)))
-    # on and after the ruling day the ruling is known
-    assert _build(_ruled_fact(ruling), [ruling], [attempt], as_of=date(2026, 10, 12),
-                  history=history).fact(MID, FACET).value == 262144
-    # a claim never checked did not stand
-    unchecked = {f"{MID}#{FACET}": [
-        _event("collected", "2026-09-01T00:00:00+00:00", _plain_claim(128000))]}
-    assert _build(_ruled_fact(ruling), [ruling], [attempt], as_of=early,
-                  history=unchecked).fact(MID, FACET).state == "unknown"
+    ruling = _ruling(attempt)  # ruled, filed and checked 2026-10-12
+    assert _build(_ruled_fact(ruling), [ruling], [attempt], as_of=date(2026, 10, 1)).fact(
+        MID, FACET).state == "unknown"
+    assert _build(_ruled_fact(ruling), [ruling], [attempt], as_of=date(2026, 10, 12)).fact(
+        MID, FACET).value == 262144  # on the day, the live checks admit it
+    # a forged earlier value in the ruling record is never served
+    row = _ruled_fact(ruling)
+    row["derivation"]["owner_ruling_previous"] = {"value": 999999, "state": "known",
+                                                  "sources": row["sources"]}
+    assert _build(row, [ruling], [attempt], as_of=date(2026, 10, 1)).fact(
+        MID, FACET).state == "unknown"
     # a ruling dated after the UTC day is refused whatever the as_of
     future = (datetime.now(UTC).date() + timedelta(days=2)).isoformat()
     ahead = _ruling(attempt, ruled_at=future)
@@ -1046,54 +1041,46 @@ def test_a_build_as_of_a_day_before_the_ruling_does_not_know_it():
                   as_of=date(2030, 1, 1)).fact(MID, FACET).state == "unknown"
 
 
-def test_a_forged_earlier_value_in_the_ruling_record_is_ignored():
+def test_a_backdated_ruling_is_withheld_until_its_claim_is_filed_and_checked():
+    attempt = _attempt()  # read 2026-10-10
+    ruling = _ruling(attempt, ruled_at="2026-10-11")
+    fid = f"{MID}#{FACET}"
+    history = {fid: [_event("collected", "2026-10-14T09:00:00+00:00", _claim(ruling)),
+                     _event("checked", "2026-10-15T09:00:00+00:00")]}
+
+    def on(day, events=history):
+        return _build(_ruled_fact(ruling), [ruling], [attempt], as_of=day,
+                      history=events).fact(MID, FACET)
+
+    assert on(date(2026, 10, 12)).state == "unknown"  # dated before its claim existed
+    assert on(date(2026, 10, 14)).state == "unknown"  # filed, not yet checked
+    assert on(date(2026, 10, 15)).value == 262144
+    unchecked = {fid: history[fid][:1]}
+    assert on(date(2026, 10, 19), unchecked).state == "unknown"  # never checked
+    later = {fid: [*history[fid], _event("collected", "2026-10-16T09:00:00+00:00",
+                                         _plain_claim(1))]}
+    assert on(date(2026, 10, 19), later).state == "unknown"  # a newer claim, ruling's is not
+
+
+def test_a_withheld_ruled_fact_names_no_source_in_its_gap():
+    from decision import registry
+    from decision.snapshot import SnapshotInputs, _compile
+    from tests.snapshot_records import SOURCES, model
+
     attempt = _attempt()
     ruling = _ruling(attempt)
-    row = _ruled_fact(ruling)
-    row["derivation"]["owner_ruling_previous"] = {
-        "value": 999999, "state": "known",
-        "sources": [{"source_id": "src-cite", "snapshot_ref": "sha256:" + "0" * 64,
-                     "cited_regions": ["page"]}]}
-    early = date(2026, 10, 1)
-    assert _build(row, [ruling], [attempt], as_of=early).fact(MID, FACET).state == "unknown"
-    history = {f"{MID}#{FACET}": [
-        _event("collected", "2026-09-01T00:00:00+00:00", _plain_claim(128000)),
-        _event("checked", "2026-09-01T00:00:00+00:00")]}
-    assert _build(row, [ruling], [attempt], as_of=early, history=history).fact(
-        MID, FACET).value == 128000  # the claim log's, never the record's
-
-
-def test_a_chain_of_rulings_serves_the_one_that_stood_on_each_day():
-    first_attempt = _attempt()
-    first = _ruling(first_attempt)  # 262144, ruled 2026-10-12
-    second_attempt = {**_attempt(epoch="reread:" + "c" * 64), "at": "2026-10-16T08:00:00+00:00"}
-    second = _ruling(second_attempt, epoch="reread:" + "c" * 64, value=300000,
-                     ruled_at="2026-10-17")
-    second_claim = {**_claim(second), "value": 300000}
-    history = {f"{MID}#{FACET}": [
-        _event("collected", "2026-09-01T00:00:00+00:00", _plain_claim(128000)),
-        _event("checked", "2026-09-01T00:00:00+00:00"),
-        _event("collected", "2026-10-12T09:00:00+00:00", _claim(first)),
-        _event("checked", "2026-10-12T09:00:00+00:00"),
-        _event("collected", "2026-10-17T09:00:00+00:00", second_claim),
-        _event("checked", "2026-10-17T09:00:00+00:00")]}
-    row = _ruled_fact(second)  # the card now carries the second ruling
-    keep = dict(history=history, claims={f"{MID}#{FACET}": second_claim})
-    attempts_ = [first_attempt, second_attempt]
-    rulings_ = [first, second]
-
-    def on(day):
-        return _build(row, rulings_, attempts_, as_of=day, **keep).fact(MID, FACET)
-
-    assert on(date(2026, 8, 1)).state == "unknown"  # before any claim
-    assert on(date(2026, 10, 5)).value == 128000  # before both rulings
-    assert on(date(2026, 10, 14)).value == 262144  # between them: the first ruling's claim
-    # a first ruling whose line does not stand is not served between them
-    assert _build(row, [{**first, "ruled_by": "alice"}, second], attempts_,
-                  as_of=date(2026, 10, 14), **keep).fact(MID, FACET).state == "unknown"
+    inputs = SnapshotInputs(models=[model(MID, facts=[_ruled_fact(ruling)])],
+                            sources={**SOURCES, "src-cite": CITE}, owner_rulings=[ruling],
+                            cited_attempts=[attempt])
+    compiled = _compile(inputs, registry.default(), None, date(2026, 10, 1), False, None)
+    reason, urls = compiled.rejected[(MID, FACET)]
+    assert reason == "invalid_citation" and urls == ()
+    assert CITE not in json.dumps([str(g) for g in compiled.gaps([MID])])
 
 
 def test_a_historical_site_export_does_not_know_a_later_ruling(tmp_path):
+    """The site path withholds a ruled fact from a build dated before the ruling, as the
+    snapshot does, and admits it on the day."""
     _site_tree(tmp_path)
     from pipeline import export
     from pipeline.load import Catalogue, load_models
@@ -1103,18 +1090,6 @@ def test_a_historical_site_export_does_not_know_a_later_ruling(tmp_path):
     out = tmp_path / "export"
     export.write(out, models, [], Catalogue(build.as_of), build)
     result = json.loads((out / f"models/{MID}.json").read_text())
-    assert models[0].withheld_facets == (FACET,)  # no claim stood then
+    assert models[0].withheld_facets == (FACET,) and not models[0].cited_facts
     assert all(f["facet"] != FACET for f in result["card"]["facts"])
-    assert "262144" not in json.dumps(result["card"]["facts"])
-    # with an earlier checked claim in the log the site serves it, as the snapshot does
-    events = tmp_path / "verification/queue/events.jsonl"
-    earlier = [_event("collected", "2026-09-01T00:00:00+00:00", _plain_claim(128000)),
-               _event("checked", "2026-09-01T00:00:00+00:00")]
-    events.write_text("".join(json.dumps(e) + "\n" for e in earlier) + events.read_text())
-    models = load_models(tmp_path, as_of=date(2026, 10, 1))
-    shutil.rmtree(out)
-    export.write(out, models, [], Catalogue(build.as_of), build)
-    result = json.loads((out / f"models/{MID}.json").read_text())
-    [shown] = [f for f in result["card"]["facts"] if f["facet"] == FACET]
-    assert shown["value"] == 128000 and "derivation" not in shown
-    assert models[0].withheld_facets == ()
+    assert load_models(tmp_path, as_of=date(2026, 10, 12))[0].withheld_facets == ()

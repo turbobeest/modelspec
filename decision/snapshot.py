@@ -386,8 +386,8 @@ class SnapshotInputs:
     #: Fact id -> its latest filed claim, for facts whose latest claim is a ruling's
     #: (``decision.owner_ruling.latest_ruling_claims``): a ruling stands only while it is.
     owner_ruling_claims: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
-    #: Fact id -> its queue events, for the same facts: a build as of a day before a ruling
-    #: takes the claim that stood then (``decision.owner_ruling.as_of_fact``).
+    #: Fact id -> its queue events, for the same facts: a ruling stands at a build's cutoff
+    #: only once its claim line is filed and checked by then (``owner_ruling.stands_at``).
     owner_ruling_history: Mapping[str, Sequence[Mapping[str, Any]]] = field(default_factory=dict)
     #: Lab id -> ``decision.labs.Lab``. Empty when the checkout has no lab registry.
     labs: Mapping[str, Any] = field(default_factory=dict)
@@ -1071,14 +1071,6 @@ class _Compiler:
     def _add_facts(self, sid: str, kind: str, facts: Iterable[Any]) -> None:
         row = self.facts.setdefault(sid, {})
         for f in self._resolve_prices(sid, facts):
-            ruled = self._as_of_ruling(sid, f)
-            if ruled is None:
-                # Its ruling is dated after this build's day and no claim shows the fact as it
-                # stood then: withheld, as if the ruling line did not exist yet.
-                self._reject((sid, str(f["facet"])), "invalid_citation",
-                             self._source_ids(f.get("sources")))
-                continue
-            f = ruled
             facet_id, state = str(f["facet"]), str(f["state"])
             if f.get("effective_from") is not None or f.get("effective_until") is not None:
                 subject = f.get("subject") or {}
@@ -1110,8 +1102,9 @@ class _Compiler:
                 continue
             if self._ruling_refused(sid, f, citation):
                 # A ruling is the owner's, past a rule-15 disagreement on a cite-only page
-                # (MODEL-551): one that does not stand keeps the fact out, as a bad citation.
-                self._reject((sid, facet_id), "invalid_citation", source_ids)
+                # (MODEL-551): one that does not stand at this build's cutoff keeps the fact
+                # out, as a bad citation. Its gap names the facet and a count, never a source.
+                self._reject((sid, facet_id), "invalid_citation", [])
                 continue
             if citation is not None and facet_id in {"offering.api_model_id", "offering.router_slug"}:
                 self._reject((sid, facet_id), "quarantined (cited identifier)", source_ids)
@@ -1146,19 +1139,6 @@ class _Compiler:
         return RulingInputs(self.owner_rulings, self.cited_attempts, self.owner_ruling_claims,
                             self.log, self.owner_ruling_history)
 
-    def _as_of_ruling(self, sid: str, fact: dict[str, Any]) -> dict[str, Any] | None:
-        """``decision.owner_ruling.as_of_fact`` at this build's cutoff (``as_of``, never later
-        than the UTC day): a ruling dated later is not known yet, and the fact is what the
-        claim log shows it was then."""
-        derivation = fact.get("derivation")
-        if not isinstance(derivation, Mapping) or "owner_ruling" not in derivation:
-            return fact
-        from decision.owner_ruling import as_of_fact, ruling_cutoff
-
-        held = as_of_fact(fact, sid, ruling_cutoff(self.as_of), self._ruling_inputs(),
-                          self.sources)
-        return None if held is None else dict(held)
-
     def _ruling_refused(self, sid: str, fact: Mapping[str, Any], citation: dict | None) -> bool:
         """A fact that carries ``derivation.owner_ruling`` and is not cited, or whose ruling
         does not stand (``decision.owner_ruling.admits``, with the filer's quarantine test on
@@ -1168,11 +1148,10 @@ class _Compiler:
             return False
         from decision.owner_ruling import ruling_refused
 
-        inputs = self._ruling_inputs()
-        # A ruling dated after ``as_of`` never gets here (``_as_of_ruling``); its validity is
-        # checked against the UTC day, as the filer checks it.
-        return ruling_refused(fact, sid, cited=citation is not None, inputs=inputs,
-                              sources=self.sources)
+        # Withheld unless the ruling and its checked claim line are dated on or before this
+        # build's cutoff, min(as_of, the UTC day): later knowledge never enters a past build.
+        return ruling_refused(fact, sid, cited=citation is not None, inputs=self._ruling_inputs(),
+                              sources=self.sources, as_of=self.as_of)
 
     def _resolve_prices(self, sid: str, facts: Iterable[Any]) -> list[dict[str, Any]]:
         facts = [_as_dict(raw) for raw in facts or ()]

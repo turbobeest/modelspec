@@ -424,56 +424,32 @@ def ruling_cutoff(as_of: date | None = None) -> date:
     return min(as_of, today) if as_of is not None else today
 
 
-def as_of_fact(fact: Mapping[str, Any], subject: str, cutoff: date, inputs: RulingInputs,
-               sources: Mapping[str, str]) -> Mapping[str, Any] | None:
-    """The fact as a build that knows rulings up to ``cutoff`` may see it, for the snapshot and
-    the site alike. A fact that claims no ruling, or a ruling dated on or before ``cutoff``
-    (or not dated: admission refuses that), is returned as it is. A fact whose ruling is dated
-    later stands as the record shows it stood then, never as the fact or its ruling block says:
-    the latest claim for the fact filed on or before ``cutoff`` and checked (``verified`` or
-    ``cited``) before it, from the queue (``RulingInputs.history``); a ruling's own claim counts
-    only for a valid ruling line dated on or before ``cutoff``. The fact takes that claim's
-    value, state and sources, with no derivation, and is then admitted as any fact is. With no
-    such claim it is withheld (``None``). Later knowledge never enters an earlier snapshot, and
-    a chain of rulings resolves to the one that stood on the day."""
+def stands_at(fact: Mapping[str, Any], subject: str, cutoff: date,
+              inputs: RulingInputs) -> bool:
+    """Whether a build that knows the record up to ``cutoff`` knows the fact's ruling: the
+    ruling is dated on or before ``cutoff``, and so is its own claim line, both filed (the
+    latest ``collected`` event for the fact) and checked (a ``verified`` or ``cited`` event
+    after it). A backdated ruling is not known before its claim was filed. Nothing is
+    restored: a ruled fact a build does not know yet is withheld."""
     from datetime import time
 
-    if not has_ruling(fact):
-        return fact
     block = ruling_block(fact)
     day = _day(block.get("ruled_at")) if block is not None else None
-    if day is None or day <= cutoff:
-        return fact
-    facet = str(fact.get("facet"))
+    if day is None or day > cutoff:
+        return False
+    fid = f"{subject}#{fact.get('facet')}"
+    claim = inputs.claims.get(fid)
     end = datetime.combine(cutoff, time.max, tzinfo=UTC)
-    picked: Mapping[str, Any] | None = None
-    checked = False
-    for event in inputs.history.get(f"{subject}#{facet}", ()):
-        if _event_time(event) > end:
-            break
+    filed = checked = None
+    for event in inputs.history.get(fid, ()):
         if event.get("event") == "collected":
-            picked, checked = event["claim"], False
-        elif picked is not None and event.get("outcome") in ("verified", "cited"):
-            checked = True
-    if picked is None or not checked:
-        return None
-    if (picked.get("collector") or {}).get("agent") == AGENT:
-        stood = [r for r in inputs.rulings
-                 if (r.get("subject"), r.get("facet")) == (subject, facet)
-                 and (_day(r.get("ruled_at")) or date.max) <= cutoff
-                 and ruling_problem(r, attempts=inputs.attempts, sources=sources) is None
-                 and is_latest_change(r, picked, source_copies(r, inputs.attempts, sources))]
-        if not stood:
-            return None
-    state = picked.get("state") or ("known" if picked.get("value") is not None else None)
-    refs = picked.get("sources")
-    if state is None or not isinstance(refs, list) or not refs:
-        return None
-    before = {k: v for k, v in fact.items()
-              if k not in ("derivation", "value", "state", "sources", "checked_sources")}
-    before.update(value=picked.get("value") if state == "known" else None, state=state,
-                  sources=[dict(r) for r in refs])
-    return before
+            filed = _event_time(event) if claim is not None \
+                and _exact(event.get("claim")) == _exact(claim) else None
+            checked = None
+        elif filed is not None and checked is None \
+                and event.get("outcome") in ("verified", "cited"):
+            checked = _event_time(event)
+    return filed is not None and checked is not None and filed <= end and checked <= end
 
 
 def has_ruling(fact: Mapping[str, Any]) -> bool:
@@ -528,15 +504,18 @@ def read_ruling_inputs(root: Path, *, verdicts: bool = True) -> RulingInputs:
 
 
 def ruling_refused(fact: Mapping[str, Any], subject: str, *, cited: bool, inputs: RulingInputs,
-                   sources: Mapping[str, str], today: date | None = None) -> bool:
-    """The one admission test for a fact that claims a ruling, for the snapshot and the site:
-    refused when it is not cited or its ruling does not stand (``admits``). A fact that
-    claims no ruling is never refused here."""
+                   sources: Mapping[str, str], as_of: date | None = None) -> bool:
+    """The one "ruling stands at cutoff" test for a fact that claims a ruling, for the snapshot
+    and the site: refused (the fact is withheld) when it is not cited, its ruling does not
+    stand as a live build checks it (``admits``: uniqueness, retrieval copies, quarantine,
+    latest claim), or the build's cutoff (``ruling_cutoff(as_of)``) is before the ruling or its
+    claim line (``stands_at``). A ruling dated after the UTC day is refused whatever the
+    ``as_of``. A fact that claims no ruling is never refused here."""
     if not has_ruling(fact):
         return False
-    return not cited or not admits(fact, subject, rulings=inputs.rulings,
-                                   attempts=inputs.attempts, sources=sources,
-                                   verdicts=inputs.verdicts, claims=inputs.claims, today=today)
+    return not cited or not stands_at(fact, subject, ruling_cutoff(as_of), inputs) \
+        or not admits(fact, subject, rulings=inputs.rulings, attempts=inputs.attempts,
+                      sources=sources, verdicts=inputs.verdicts, claims=inputs.claims)
 
 
 def _same_instant(left: Any, right: Any) -> bool:

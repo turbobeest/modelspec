@@ -242,12 +242,11 @@ def write(out_dir: Path, models: list[Model], benchmarks: list[Benchmark],
             cited_by_identity = {_fact_identity(fact): fact for fact in model.cited_facts}
             card = {**card, "facts": [cited_by_identity.get(_fact_identity(fact), fact)
                                      for fact in card.get("facts") or []]}
-        if model.withheld_facets or model.as_of_facts \
-                or any(has_ruling(f) for f in card.get("facts") or []):
+        if model.withheld_facets or any(has_ruling(f) for f in card.get("facts") or []):
             # MODEL-551: a fact whose owner ruling does not stand is kept out, and a ruled
             # fact is published in the snapshot's served form (``served_fact``).
             cited_by_identity = {_fact_identity(fact): fact for fact in model.cited_facts}
-            facts = [model.as_of_facts.get(f.get("facet"), f) for f in card.get("facts") or []
+            facts = [f for f in card.get("facts") or []
                      if f.get("facet") not in model.withheld_facets]
             card = {**card, "facts": [cited_by_identity.get(_fact_identity(f), served_fact(f))
                                       for f in facts]}
