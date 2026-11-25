@@ -366,10 +366,16 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
         raise Refused("duplicate_ruling", "this ruling is filed and applied already")
     # After the write the fact's latest claim is the planned one (or, on a rerun, the one filed).
     filed_claim = claim.to_dict() if result.queue_lines else latest
+    from decision.ruling_reread import Records
+
+    try:
+        recorded = frozenset(Records.read(root).reopened)
+    except (OSError, ValueError):
+        raise Refused("malformed", "the ruled-reopenings record does not parse") from None
     if not admits(_plain(fact), subject,
                   rulings=[*filed, ruling] if not resuming else filed, attempts=attempts,
                   sources=urls, verdicts=verdicts, claims={location: filed_claim},
-                  today=now.date()):
+                  today=now.date(), reopened=recorded):
         raise Refused("malformed", "the fact as planned would not stand on its ruling")
     return result
 

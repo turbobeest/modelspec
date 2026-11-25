@@ -389,6 +389,9 @@ class SnapshotInputs:
     #: Fact id -> its queue events, for the same facts: a ruling stands at a build's cutoff
     #: only once its claim line is filed and checked by then (``owner_ruling.stands_at``).
     owner_ruling_history: Mapping[str, Sequence[Mapping[str, Any]]] = field(default_factory=dict)
+    #: ``(fact id, epoch)`` of the reopened epochs the rolling re-read recorded (MODEL-562): a
+    #: ruling in a reopened epoch is admitted only on one (``owner_ruling.admits``).
+    owner_ruling_reopened: frozenset[tuple[str, str]] = frozenset()
     #: Lab id -> ``decision.labs.Lab``. Empty when the checkout has no lab registry.
     labs: Mapping[str, Any] = field(default_factory=dict)
     #: Sourced hardware YAML records. Metadata, never ranking candidates.
@@ -803,6 +806,7 @@ class _Compiler:
         self.owner_ruling_claims = {str(k): dict(v) for k, v in inputs.owner_ruling_claims.items()}
         self.owner_ruling_history = {str(k): tuple(v)
                                      for k, v in inputs.owner_ruling_history.items()}
+        self.owner_ruling_reopened = frozenset(inputs.owner_ruling_reopened)
         #: record ID -> the mismatches a supersession retired, for provenance.
         self.superseded: dict[str, list[dict[str, Any]]] = {}
         #: subject id -> {"kind", "model", "lifecycle"}
@@ -1142,7 +1146,7 @@ class _Compiler:
         from decision.owner_ruling import RulingInputs
 
         return RulingInputs(self.owner_rulings, self.cited_attempts, self.owner_ruling_claims,
-                            self.log, self.owner_ruling_history)
+                            self.log, self.owner_ruling_history, self.owner_ruling_reopened)
 
     def _ruling_known(self, sid: str, fact: Mapping[str, Any]) -> bool:
         """False for a fact that carries ``derivation.owner_ruling`` whose ruling or claim line
@@ -2132,6 +2136,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
 
         supersessions = read_store(supersession_store)
     owner_rulings, cited_attempts, ruling_claims, ruling_history = [], [], {}, {}
+    ruling_reopened: frozenset[tuple[str, str]] = frozenset()
     rulings_store = root / "verification" / "owner-rulings.jsonl"
     if rulings_store.is_file():
         from decision.owner_ruling import read_ruling_inputs
@@ -2145,6 +2150,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
         cited_attempts = list(ruling_inputs.attempts)
         ruling_claims = dict(ruling_inputs.claims)
         ruling_history = dict(ruling_inputs.history)
+        ruling_reopened = ruling_inputs.reopened
     from decision.labs import load_labs
 
     fit_path = root / "hardware" / "fit" / "records.yaml"
@@ -2162,6 +2168,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
                           owner_rulings=owner_rulings, cited_attempts=cited_attempts,
                           owner_ruling_claims=ruling_claims,
                           owner_ruling_history=ruling_history,
+                          owner_ruling_reopened=ruling_reopened,
                           labs=load_labs(root), hardware_fit_records=fit_records,
                           hardware=[yaml.safe_load(path.read_text(encoding="utf-8"))
                                     for path in sorted((root / "hardware").glob("*.yaml"))

@@ -263,7 +263,8 @@ def test_a_disagreement_in_a_reopened_epoch_blocks_it_and_the_owner_may_rule_the
     lines = [json.loads(x) for x in (ruled.root / RULINGS_FILE).read_text().splitlines()]
     assert admits(fact, SUBJECT, rulings=lines, attempts=attempts(ruled),
                   sources={s["id"]: s["url"] for s in ruled.sources},
-                  claims=latest_ruling_claims(ruled.root / "verification/queue/events.jsonl"))
+                  claims=latest_ruling_claims(ruled.root / "verification/queue/events.jsonl"),
+                  reopened=frozenset(Records.read(ruled.root).reopened))
     # the second ruling's epoch now holds the disagreement: no supersession inside it
     refused(own(pair(60)), "prior_attempt_disagreed")
     # and its ruled page is the changed one: a baseline is recorded for the new epoch
@@ -417,3 +418,60 @@ def test_a_cleared_fact_is_re_read_in_the_epoch_its_own_block_names(data, web):
 def test_the_offering_file_keeps_its_header(ruled, web):
     sweep(ruled, CHANGED, web)
     assert ruled.offering_path.read_text().startswith(HEADER)
+
+
+# --- the build admits a ruling in a reopened epoch only on the record ---------------------------
+
+
+def test_the_build_admits_a_reopened_epoch_only_when_it_is_recorded():
+    """A well-shaped reopened epoch that the rolling re-read never recorded admits nothing,
+    the same rule the gate applies; the recorded one admits the ruling."""
+    from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+    from tests.snapshot_records import SOURCES, model
+    from tests.test_owner_ruling import (
+        CITE, FACET, MID, _attempt, _claim, _event, _ruled_fact, _ruling,
+    )
+
+    epoch = reopen_epoch("initial", "a" * 64)
+    attempt = _attempt(epoch=epoch)
+    ruling = _ruling(attempt, epoch=epoch)
+    row = _ruled_fact(ruling)
+    assert ruled_epoch(row) == epoch
+    fid = f"{MID}#{FACET}"
+    claim = _claim(ruling)
+    at = f"{ruling['ruled_at']}T09:00:00+00:00"
+
+    def built(reopened):
+        inputs = SnapshotInputs(models=[model(MID, facts=[row])],
+                                sources={**SOURCES, "src-cite": CITE},
+                                owner_rulings=[ruling], cited_attempts=[attempt],
+                                owner_ruling_claims={fid: claim},
+                                owner_ruling_history={fid: [_event("collected", at, claim),
+                                                            _event("checked", at)]},
+                                owner_ruling_reopened=frozenset(reopened))
+        return load_built_snapshot(build_snapshot(inputs, as_of=date(2026, 10, 19))).fact(
+            MID, FACET)
+
+    assert built([]).state == "unknown"
+    assert built([(fid, reopen_epoch("initial", "b" * 64))]).state == "unknown"
+    assert built([(f"{MID}/other#{FACET}", epoch)]).state == "unknown"
+    shown = built([(fid, epoch)])
+    assert shown.state == "known" and shown.value == 262144
+
+
+def test_a_ruling_in_a_reopened_epoch_stops_standing_when_its_record_line_is_gone(ruled, web):
+    from decision.owner_ruling import read_ruling_inputs, ruling_refused
+
+    sweep(ruled, RULED, web)
+    sweep(ruled, CHANGED, web)
+    reopened = reopen_epoch("initial", region(ruled, CHANGED))
+    refused(own(pair(45, 60)), "readers_disagree")
+    rule(ruled, value=45, epoch=reopened)
+    fact, urls = offering_fact(ruled), {s["id"]: s["url"] for s in ruled.sources}
+    assert not ruling_refused(fact, SUBJECT, cited=True, inputs=read_ruling_inputs(ruled.root),
+                              sources=urls)
+    path = ruled.root / RECORD_FILE
+    path.write_text("".join(x + "\n" for x in path.read_text().splitlines()
+                            if json.loads(x)["kind"] != "reopen"))
+    assert ruling_refused(fact, SUBJECT, cited=True, inputs=read_ruling_inputs(ruled.root),
+                          sources=urls)

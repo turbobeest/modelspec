@@ -37,7 +37,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -395,14 +395,17 @@ def admits(fact: Mapping[str, Any], subject: str, *, rulings: Sequence[Mapping[s
            attempts: Sequence[Mapping[str, Any]], sources: Mapping[str, str],
            verdicts: Mapping[tuple[str, str, str], Any] | None = None,
            claims: Mapping[str, Mapping[str, Any]] | None = None,
-           today: date | None = None) -> bool:
+           today: date | None = None,
+           reopened: Collection[tuple[str, str]] = frozenset()) -> bool:
     """Whether a fact carrying ``derivation.owner_ruling`` stands on a valid ruling.
 
     ``subject`` is the fact's owner as the build places it (the card's model id, or the
     offering row's own id), never the fact's stored subject. Exactly one ruling line is
     for this subject, facet and the fact's epoch (rule 15's, never the block's, from a
     cited-change block the attempt log shows the gate made: ``cited_change_logged``; or a
-    reopened epoch that extends it, ``ruled_epoch``, MODEL-562); the
+    reopened epoch that extends it, ``ruled_epoch``, MODEL-562, only when the rolling re-read
+    recorded exactly that epoch for this fact: ``(fact id, epoch)`` is in ``reopened``,
+    ``decision.ruling_reread.Records``, the same rule the gate applies); the
     block is that line; the ruling is valid and the latest admitted change (its claim is the
     fact's latest, ``is_latest_change``; ``claims`` is ``latest_ruling_claims``); the fact's
     stored id (when any) is its location id; its value and state are exactly the ruling's;
@@ -425,7 +428,10 @@ def admits(fact: Mapping[str, Any], subject: str, *, rulings: Sequence[Mapping[s
         return False
     if not cited_change_logged(fact, subject, attempts):
         return False
-    key = (subject, facet, ruled_epoch(fact))
+    epoch = ruled_epoch(fact)
+    if epoch != fact_epoch(fact) and (f"{subject}#{facet}", epoch) not in reopened:
+        return False
+    key = (subject, facet, epoch)
     lines = [r for r in rulings if (r.get("subject"), r.get("facet"), r.get("epoch")) == key]
     if len(lines) != 1:
         return False
@@ -519,6 +525,9 @@ class RulingInputs:
     verdicts: Mapping[tuple[str, str, str], Any] = field(default_factory=dict)
     #: Fact id -> its queue events, for the facts in ``claims`` (``ruling_claim_events``).
     history: Mapping[str, Sequence[Mapping[str, Any]]] = field(default_factory=dict)
+    #: ``(fact id, epoch)`` of every reopened epoch the rolling re-read recorded (MODEL-562,
+    #: ``decision.ruling_reread.Records``): a ruling in a reopened epoch stands only on one.
+    reopened: frozenset[tuple[str, str]] = frozenset()
 
 
 def read_ruling_inputs(root: Path, *, verdicts: bool = True) -> RulingInputs:
@@ -536,9 +545,11 @@ def read_ruling_inputs(root: Path, *, verdicts: bool = True) -> RulingInputs:
         from decision.snapshot import _Compiler
 
         ranked = _Compiler._verification_log(read_json_lines(root / VERIFICATION_LOG))
+    from decision.ruling_reread import Records
+
     claims, history = ruling_claim_events(root / "verification/queue/events.jsonl")
     return RulingInputs(tuple(rulings), tuple(read_lines(root / ATTEMPTS_FILE)), claims, ranked,
-                        history)
+                        history, frozenset(Records.read(root).reopened))
 
 
 def ruling_refused(fact: Mapping[str, Any], subject: str, *, cited: bool, inputs: RulingInputs,
@@ -553,7 +564,8 @@ def ruling_refused(fact: Mapping[str, Any], subject: str, *, cited: bool, inputs
         return False
     return not cited or not stands_at(fact, subject, ruling_cutoff(as_of), inputs) \
         or not admits(fact, subject, rulings=inputs.rulings, attempts=inputs.attempts,
-                      sources=sources, verdicts=inputs.verdicts, claims=inputs.claims)
+                      sources=sources, verdicts=inputs.verdicts, claims=inputs.claims,
+                      reopened=inputs.reopened)
 
 
 def _same_instant(left: Any, right: Any) -> bool:
