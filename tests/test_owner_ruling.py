@@ -487,15 +487,15 @@ def test_the_filer_refuses_a_repeated_key_in_the_rulings_attempts_or_fact_file(d
 REREAD = "reread:" + "a" * 64
 
 
-def _change_attempt(page="3" * 64, prompt="4" * 64):
+def _change_attempt(page="3" * 64, prompt="4" * 64, text="a" * 64):
     """The agreed harness attempt that made a cited change, as the gate logs it."""
     return {**_attempt(), "agreed": True, "agreed_value": 128000, "page_sha256": page,
-            "prompt_sha256": prompt, "at": "2026-10-01T08:00:00+00:00",
+            "text_sha256": text, "prompt_sha256": prompt, "at": "2026-10-01T08:00:00+00:00",
             "readers": _readers(128000, 128000)}
 
 
-def _change_block(page="3" * 64, prompt="4" * 64):
-    return {"rule": "two-readers-cited-change@3", "sha256": page, "text_sha256": "a" * 64,
+def _change_block(page="3" * 64, prompt="4" * 64, text="a" * 64):
+    return {"rule": "two-readers-cited-change@3", "sha256": page, "text_sha256": text,
             "read_date": "2026-10-01", "previous_value": 1, "url": CITE,
             "readers": [{"reader_id": "a", "family": "openai", "version": "1", "value": 128000,
                          "prompt_sha256": prompt, "manifest": {"fields": ["url"]}},
@@ -524,6 +524,31 @@ def test_a_fabricated_cited_change_block_does_not_choose_the_epoch(fake):
     # the block the gate made, with its agreed attempt logged, puts the fact in that epoch
     row["derivation"]["cited_change"] = _change_block()
     assert _build(row, [ruling], [attempt, _change_attempt()]).fact(MID, FACET).value == 262144
+
+
+def test_a_block_with_the_right_raw_hashes_but_a_forged_text_hash_is_refused():
+    """The epoch is named by ``text_sha256``, so the log must bind it too."""
+    forged = "f" * 64
+    attempt = _attempt(epoch=f"reread:{forged}")
+    ruling = _ruling(attempt, epoch=f"reread:{forged}")
+    row = _ruled_fact(ruling)
+    row["derivation"]["cited_change"] = _change_block(text=forged)  # page and prompt are real
+    assert _build(row, [ruling], [attempt, _change_attempt()]).fact(MID, FACET).state == "unknown"
+    # an attempt logged before the log kept the text hash binds nothing named by one
+    legacy = {k: v for k, v in _change_attempt(text=forged).items() if k != "text_sha256"}
+    assert _build(row, [ruling], [attempt, legacy]).fact(MID, FACET).state == "unknown"
+    # the gate's own attempt, text hash and all, does
+    assert _build(row, [ruling], [attempt, _change_attempt(text=forged)]).fact(
+        MID, FACET).value == 262144
+
+
+def test_the_gate_logs_the_text_hash_the_epoch_is_named_by(data):
+    from decision.cited_reader import text_sha256
+    from tests.test_cited_offering import PAGE
+
+    refused(cited_change(subject=SUBJECT, facet=RETENTION, source_id="data",
+                         readers=pair(30, "unbounded"), request=serve()), "readers_disagree")
+    assert attempts(data)[-1]["text_sha256"] == text_sha256(PAGE)
 
 
 def test_the_filer_refuses_a_fabricated_cited_change_block(data):
@@ -870,3 +895,66 @@ def test_a_card_fact_is_ruled_with_its_front_matter_and_body_kept(data):
     [collected, _] = data.events()
     assert collected["claim"]["target"]["id"] == f"{CARD_SUBJECT}#model.context_window"
     assert {s["source_id"] for s in collected["claim"]["sources"]} == {"data"}
+
+
+# --- the site path: the same admission and served form -------------------------------------------
+
+
+def _site_tree(root, *, claim=True, ruling_kw=None):
+    """A card with a ruled cite-only fact, its logs and its claim, for ``load_models``."""
+    attempt = _attempt(epoch=REREAD)
+    ruling = _ruling(attempt, epoch=REREAD, **(ruling_kw or {}))
+    row = _ruled_fact(ruling)
+    row["derivation"]["cited_change"] = _change_block()  # a ruled re-read fact keeps it
+    row.pop("id"), row.pop("subject")
+    front = {"model_id": MID, "display_name": "Alpha", "provider": "lab",
+             "model_type": "llm-chat", "facts": [row],
+             "modalities": {"text": {"context_window": 128000}}}
+    path = root / f"models/{MID}.md"
+    path.parent.mkdir(parents=True)
+    path.write_text("---\n" + yaml.safe_dump(front) + "---\nSynthetic fixture.\n")
+    (root / "registry").mkdir()
+    (root / "registry/sources.yaml").write_text(yaml.safe_dump(
+        {"schema_version": 1, "sources": [{"id": "src-cite", "url": CITE}]}))
+    (root / "verification/queue").mkdir(parents=True)
+    (root / RULINGS_FILE).write_text(json.dumps(ruling, sort_keys=True) + "\n")
+    (root / ATTEMPTS_FILE).write_text(json.dumps(attempt, sort_keys=True) + "\n"
+                                      + json.dumps(_change_attempt()) + "\n")
+    events = [{"event": "collected", "at": "2026-10-12T00:00:00+00:00",
+               "claim": _claim(ruling)}] if claim else []
+    (root / "verification/queue/events.jsonl").write_text(
+        "".join(json.dumps(e) + "\n" for e in events))
+    return front
+
+
+def _site_export(root):
+    from pipeline import export
+    from pipeline.load import Catalogue, load_models
+
+    build = export.Build("b" * 40, "2026-10-19T12:00:00+00:00", date(2026, 10, 19))
+    models = load_models(root)
+    out = root / "export"
+    export.write(out, models, [], Catalogue(build.as_of), build)
+    return models[0], json.loads((out / f"models/{MID}.json").read_text())
+
+
+def test_the_site_export_publishes_a_ruled_fact_without_its_internals(tmp_path):
+    _site_tree(tmp_path)
+    model, result = _site_export(tmp_path)
+    [published] = [f for f in result["card"]["facts"] if f["facet"] == FACET]
+    assert published["value"] == 262144 and published["citation"]["status"] == "cited"
+    assert published["verification"] is None and "derivation" not in published
+    text = json.dumps(result)
+    assert "owner_ruling" not in text and "cited_change" not in text \
+        and "prompt_sha256" not in text
+    assert result["cited_facts"] == [published] and model.cited_facts == [published]
+
+
+@pytest.mark.parametrize("case", ["no_claim", "non_owner"])
+def test_a_ruling_that_does_not_stand_is_withheld_on_the_site_path(tmp_path, case):
+    kw = {"no_claim": dict(claim=False), "non_owner": dict(ruling_kw={"ruled_by": "alice"})}
+    _site_tree(tmp_path, **kw[case])
+    model, result = _site_export(tmp_path)
+    assert model.withheld_facets == (FACET,) and not model.cited_facts
+    assert all(f["facet"] != FACET for f in result["card"]["facts"])
+    assert "owner_ruling" not in json.dumps(result) and "cited_facts" not in result

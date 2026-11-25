@@ -924,10 +924,10 @@ class _Compiler:
         if kind == "fact" and isinstance(record.get("derivation"), Mapping) \
                 and "owner_ruling" in record["derivation"]:
             # The owner's ruling (MODEL-551) is internal, and so is the cited-change block a
-            # ruled re-read fact keeps for its epoch (previous values, reader outputs, prompt
-            # hashes, manifests): a ruled fact is served exactly as a cited fact filed without
-            # a derivation is.
-            record = {k: v for k, v in record.items() if k != "derivation"}
+            # ruled re-read fact keeps: one served form, shared with the site exports.
+            from decision.owner_ruling import served_fact
+
+            record = served_fact(record)
         rid = str(record.get("id") or content_hash(record))
         value = (
             fact_verification_value(record)
@@ -1134,12 +1134,12 @@ class _Compiler:
         derivation = fact.get("derivation")
         if not isinstance(derivation, Mapping) or "owner_ruling" not in derivation:
             return False
-        from decision.owner_ruling import admits
+        from decision.owner_ruling import RulingInputs, ruling_refused
 
-        return citation is None or not admits(
-            fact, sid, rulings=self.owner_rulings, attempts=self.cited_attempts,
-            sources=self.sources, verdicts=self.log, claims=self.owner_ruling_claims,
-            today=self.as_of)
+        inputs = RulingInputs(self.owner_rulings, self.cited_attempts, self.owner_ruling_claims,
+                              self.log)
+        return ruling_refused(fact, sid, cited=citation is not None, inputs=inputs,
+                              sources=self.sources, today=self.as_of)
 
     def _resolve_prices(self, sid: str, facts: Iterable[Any]) -> list[dict[str, Any]]:
         facts = [_as_dict(raw) for raw in facts or ()]
@@ -2089,16 +2089,16 @@ def collect_repo(root: Path) -> SnapshotInputs:
     owner_rulings, cited_attempts, ruling_claims = [], [], {}
     rulings_store = root / "verification" / "owner-rulings.jsonl"
     if rulings_store.is_file():
-        from decision.cited_reader import ATTEMPTS_FILE
-        from decision.owner_ruling import latest_ruling_claims, read_lines
+        from decision.owner_ruling import read_ruling_inputs
 
         try:
-            owner_rulings = read_lines(rulings_store)
-            if owner_rulings:
-                cited_attempts = read_lines(root / ATTEMPTS_FILE)
-                ruling_claims = latest_ruling_claims(root / "verification/queue/events.jsonl")
+            # The verification log is ranked by the compiler itself.
+            ruling_inputs = read_ruling_inputs(root, verdicts=False)
         except (ValueError, KeyError, TypeError) as exc:
             raise SnapshotBuildError(f"{rulings_store}: {exc}") from exc
+        owner_rulings = list(ruling_inputs.rulings)
+        cited_attempts = list(ruling_inputs.attempts)
+        ruling_claims = dict(ruling_inputs.claims)
     from decision.labs import load_labs
 
     fit_path = root / "hardware" / "fit" / "records.yaml"

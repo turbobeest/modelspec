@@ -38,6 +38,7 @@ import hashlib
 import json
 import re
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
@@ -153,9 +154,12 @@ def cited_change_logged(fact: Mapping[str, Any], subject: str,
                         attempts: Sequence[Mapping[str, Any]]) -> bool:
     """Whether the fact's cited-change block (which names its re-read epoch) is one the gate
     made: a complete agreed harness attempt for this subject and facet read the page the block
-    records (``page_sha256`` equals its ``sha256``) with the prompt each recorded reader was
-    sent. A fact with no such block is in ``initial`` and passes. A fabricated block cannot
-    choose the epoch a ruling is checked in."""
+    records (``page_sha256`` equals its ``sha256``, and the logged ``text_sha256``, the hash
+    the epoch is named by, equals its ``text_sha256``) with the prompt each recorded reader
+    was sent. Every field the epoch is made of is bound to the attempt log; an attempt logged
+    before the log kept the text hash binds a block only when the block names its epoch by the
+    page hash. A fact with no such block is in ``initial`` and passes. A fabricated block
+    cannot choose the epoch a ruling is checked in."""
     from decision.cited_change import cited_change_block
 
     block = cited_change_block(fact)
@@ -171,6 +175,7 @@ def cited_change_logged(fact: Mapping[str, Any], subject: str,
         and a.get("complete") is True and a.get("agreed") is True and a.get("harness") is True
         and _HEX.fullmatch(str(a.get("page_sha256") or ""))
         and a.get("page_sha256") == block.get("sha256") and prompts == {a.get("prompt_sha256")}
+        and a.get("text_sha256") == block.get("text_sha256")
         for a in attempts)
 
 
@@ -396,6 +401,69 @@ def admits(fact: Mapping[str, Any], subject: str, *, rulings: Sequence[Mapping[s
         if ref.get("snapshot_ref") != snapshot or not _same_instant(ref.get("retrieved_at"), at):
             return False
     return True
+
+
+# --- one admission and one served form, for the snapshot and the site ----------------------------
+
+
+def has_ruling(fact: Mapping[str, Any]) -> bool:
+    """The fact claims an owner ruling (``derivation.owner_ruling`` present, well formed or not)."""
+    derivation = fact.get("derivation") if isinstance(fact, Mapping) else None
+    return isinstance(derivation, Mapping) and "owner_ruling" in derivation
+
+
+def served_fact(fact: Mapping[str, Any]) -> dict[str, Any]:
+    """The fact as it is published. A ruled fact is published as a cited fact filed without a
+    derivation is: the ruling and the cited-change block it keeps for its epoch (previous
+    values, reader outputs, prompt hashes, manifests) are internal. Others are unchanged."""
+    if has_ruling(fact):
+        return {k: v for k, v in fact.items() if k != "derivation"}
+    return dict(fact)
+
+
+@dataclass(frozen=True)
+class RulingInputs:
+    """What admission reads besides the fact: the ruling lines, the rule-15 attempt log, the
+    facts whose latest claim is a ruling's, and the ranked verification log."""
+
+    rulings: tuple[Mapping[str, Any], ...] = ()
+    attempts: tuple[Mapping[str, Any], ...] = ()
+    claims: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    verdicts: Mapping[tuple[str, str, str], Any] = field(default_factory=dict)
+
+
+def read_ruling_inputs(root: Path, *, verdicts: bool = True) -> RulingInputs:
+    """``RulingInputs`` from a data checkout. With no ruling line, nothing else is read.
+    Raises ``ValueError``, ``KeyError`` or ``TypeError`` on a malformed log."""
+    from decision.cited_reader import ATTEMPTS_FILE
+
+    root = Path(root)
+    rulings = read_lines(root / RULINGS_FILE)
+    if not rulings:
+        return RulingInputs()
+    ranked: Mapping[tuple[str, str, str], Any] = {}
+    if verdicts:
+        from decision.cited_change import VERIFICATION_LOG
+        from decision.snapshot import _Compiler
+
+        path = root / VERIFICATION_LOG
+        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()
+                if line.strip()] if path.is_file() else []
+        ranked = _Compiler._verification_log(rows)
+    return RulingInputs(tuple(rulings), tuple(read_lines(root / ATTEMPTS_FILE)),
+                        latest_ruling_claims(root / "verification/queue/events.jsonl"), ranked)
+
+
+def ruling_refused(fact: Mapping[str, Any], subject: str, *, cited: bool, inputs: RulingInputs,
+                   sources: Mapping[str, str], today: date | None = None) -> bool:
+    """The one admission test for a fact that claims a ruling, for the snapshot and the site:
+    refused when it is not cited or its ruling does not stand (``admits``). A fact that
+    claims no ruling is never refused here."""
+    if not has_ruling(fact):
+        return False
+    return not cited or not admits(fact, subject, rulings=inputs.rulings,
+                                   attempts=inputs.attempts, sources=sources,
+                                   verdicts=inputs.verdicts, claims=inputs.claims, today=today)
 
 
 def _same_instant(left: Any, right: Any) -> bool:
