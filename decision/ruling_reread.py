@@ -8,17 +8,17 @@ value can still go stale when the lab changes its page, so the rolling re-read
 fetch (``decision.cited_change._fetch``: in memory, redirects off, every hop cite-only), and
 compares two hashes, never page text:
 
-* the page's visible-text hash (``decision.cited_reader.text_sha256``), against every text read
-  in the ruled epoch (the attempt log records it);
+* the page's visible-text hash (``decision.cited_reader.text_sha256``), against the texts the
+  disagreeing attempts the ruling resolves read (the attempt log records them), and no other;
 * the cited-region hash (``region_sha256``): the text of each region the fact cites, selected
   by the source's own normaliser and locators (``decision.normalise``, volatile text such as
   dates and tracking stripped) and folded as rule 15 folds visible text.
 
-A page whose visible text is one read in the ruled epoch is the ruled page: its region hash is
-recorded once as the ruled baseline (``RECORD_FILE``), and nothing else happens. A page whose
-visible text is new but whose region hash is the baseline changed outside what the fact cites
-(a banner, a date): nothing happens. Only a region hash that differs from the baseline is a
-change: the sweep appends one ``reopen`` line, and from then on rule 15 reads the fact in
+A page whose visible text is one the resolved disagreement read is the ruled page: its region
+hash is recorded once as the ruled baseline (``RECORD_FILE``), and nothing else happens. A page
+whose visible text is new but whose region hash is the baseline changed outside what the fact
+cites (a banner, a date): nothing happens. Only a region hash that differs from the baseline is
+a change: the sweep appends one ``reopen`` line, and from then on rule 15 reads the fact in
 ``<ruled epoch>:reopen:<region hash>``, where two agreeing readers may supersede the ruling.
 With no baseline (the page moved before the first sweep saw it), no change can be shown and
 nothing reopens: the fact is counted ``unbaselined`` for a person.
@@ -26,12 +26,12 @@ nothing reopens: the fact is counted ``unbaselined`` for a person.
 The gate (``decision.cited_change._gate``) reads a ruled fact in a reopened epoch only when all
 of these hold: the ruling stands as the build admits it (``owner_ruling.ruling_refused``); the
 source is one of the ruling's; the gate fetched the page itself, with its own transport; the
-page's visible text is none read in the ruled epoch; its region hash is not the baseline; and
-the sweep has recorded exactly that reopened epoch for this fact and source. Otherwise the fact
-stays in its ruled epoch, where the disagreement still blocks. A page back at the ruled region
-is the ruled epoch again, and a disagreement inside a reopened epoch blocks that epoch. The
-owner may rule again on such a disagreement (``scripts/file_owner_ruling.py`` accepts a
-recorded reopened epoch); the ruling then names it (``owner_ruling.ruled_epoch``).
+page's visible text is none the resolved disagreement read; its region hash is not the
+baseline; and the sweep has recorded exactly that reopened epoch for this fact and source.
+Otherwise the fact stays in its ruled epoch, where the disagreement still blocks. A page back
+at the ruled region is the ruled epoch again, and a disagreement inside a reopened epoch blocks
+that epoch. The owner may rule again on such a disagreement (``scripts/file_owner_ruling.py``
+accepts a recorded reopened epoch); the ruling then names it (``owner_ruling.ruled_epoch``).
 
 A ruling never lifts a quarantine and none is lifted here. Facts that a quarantine clearing
 (MODEL-552) released carry a cited-change block of their own, so they are re-read with the
@@ -107,14 +107,17 @@ def region_sha256(fact: Mapping[str, Any], source_id: str, row: Mapping[str, Any
     return sha256(json.dumps(parts, ensure_ascii=False, separators=(",", ":")))
 
 
-def ruled_texts(attempts: Sequence[Mapping[str, Any]], *, subject: str, facet: str, epoch: str,
-                url: str) -> frozenset[str] | None:
-    """The visible-text hashes read in ``epoch`` on ``url``, from every attempt logged there,
-    complete or not. ``None`` when an attempt there recorded no text hash."""
+def resolved_texts(ruling: Mapping[str, Any], attempts: Sequence[Mapping[str, Any]], *,
+                   url: str) -> frozenset[str] | None:
+    """The visible-text hashes of the page the ruling settled: those the disagreeing attempts it
+    resolves read on ``url``. No other read counts, not even an earlier one in the ruled epoch:
+    a page seen before that disagreement is not the ruled page. ``None`` when a resolved attempt
+    on ``url`` recorded no text hash."""
+    from decision.owner_ruling import resolved_attempts
+
     out = set()
-    for entry in attempts:
-        if (entry.get("subject"), entry.get("facet"), entry.get("epoch"), entry.get("url")) \
-                != (subject, facet, epoch, url):
+    for entry in resolved_attempts(ruling, attempts).values():
+        if entry.get("url") != url:
             continue
         text = entry.get("text_sha256")
         if not isinstance(text, str) or not _HEX.fullmatch(text):
@@ -128,11 +131,24 @@ def ruled_texts(attempts: Sequence[Mapping[str, Any]], *, subject: str, facet: s
 
 @dataclass
 class Records:
-    """What ``RECORD_FILE`` holds: the first baseline per fact, ruled epoch and source, and every
-    reopened epoch per fact."""
+    """What ``RECORD_FILE`` holds: the baseline per fact, ruled epoch and source (two lines that
+    differ there are no baseline at all: nothing is shown), and every reopen line per fact and
+    epoch (a line that does not match leaves the others standing)."""
 
-    baselines: dict[tuple[str, str, str], str] = field(default_factory=dict)
-    reopened: dict[tuple[str, str], Mapping[str, Any]] = field(default_factory=dict)
+    baselines: dict[tuple[str, str, str], str | None] = field(default_factory=dict)
+    reopened: dict[tuple[str, str], list[Mapping[str, Any]]] = field(default_factory=dict)
+
+    def baseline(self, key: tuple[str, str, str]) -> str | None:
+        return self.baselines.get(key)
+
+    def add_baseline(self, key: tuple[str, str, str], region: str) -> None:
+        if key not in self.baselines:
+            self.baselines[key] = region
+        elif self.baselines[key] != region:
+            self.baselines[key] = None  # conflicting baselines show nothing
+
+    def add_reopen(self, line: Mapping[str, Any]) -> None:
+        self.reopened.setdefault((str(line["target"]), str(line["epoch"])), []).append(line)
 
     @classmethod
     def read(cls, data_dir: str | Path) -> Records:
@@ -147,13 +163,13 @@ class Records:
             if not all(isinstance(h, str) and _HEX.fullmatch(h) for h in hashes):
                 continue
             if line.get("kind") == "baseline" and set(line) == set(BASELINE_FIELDS):
-                out.baselines.setdefault(
+                out.add_baseline(
                     (str(line["target"]), str(line["ruled_epoch"]), str(line["source_id"])),
                     line["region_sha256"])
             elif line.get("kind") == "reopen" and set(line) == set(REOPEN_FIELDS) \
                     and line["epoch"] == reopen_epoch(str(line["ruled_epoch"]),
                                                       line["region_sha256"]):
-                out.reopened.setdefault((str(line["target"]), str(line["epoch"])), line)
+                out.add_reopen(line)
         return out
 
 
@@ -205,25 +221,29 @@ class PageStatus:
     epoch: str | None = None
 
 
-def page_status(fact: Mapping[str, Any], subject: str, *, source_id: str,
-                row: Mapping[str, Any], page_bytes: bytes,
+def page_status(fact: Mapping[str, Any], subject: str, *, ruling: Mapping[str, Any],
+                source_id: str, row: Mapping[str, Any], page_bytes: bytes,
                 attempts: Sequence[Mapping[str, Any]], records: Records) -> PageStatus:
-    """The one comparison the sweep, the gate and ``reread`` make for a ruled fact's page."""
+    """The one comparison the sweep, the gate and ``reread`` make for a ruled fact's page.
+    ``ruling`` is the fact's standing ruling (``standing_ruling``): the baseline, and what counts
+    as ``current``, is only the page its resolved disagreement read (``resolved_texts``)."""
     from decision.cited_reader import text_sha256
     from decision.owner_ruling import ruled_epoch
 
     facet = str(fact.get("facet"))
     ruled = ruled_epoch(fact)
     target = f"{subject}#{facet}"
-    seen = ruled_texts(attempts, subject=subject, facet=facet, epoch=ruled,
-                       url=str(row.get("url")))
+    seen = resolved_texts(ruling, attempts, url=str(row.get("url")))
     if not seen:
         return PageStatus("no_text_hash", ruled)
     region = region_sha256(fact, source_id, row, page_bytes)
     if region is None:
         return PageStatus("unreadable_region", ruled)
-    baseline = records.baselines.get((target, ruled, source_id))
+    key = (target, ruled, source_id)
+    baseline = records.baseline(key)
     if text_sha256(page_bytes) in seen:
+        if baseline is None and key in records.baselines:
+            return PageStatus("unbaselined", ruled, region)  # conflicting baselines
         return PageStatus("current" if baseline is not None else "baseline", ruled, region,
                           baseline)
     if baseline is None:
@@ -231,9 +251,9 @@ def page_status(fact: Mapping[str, Any], subject: str, *, source_id: str,
     if region == baseline:
         return PageStatus("current", ruled, region, baseline)
     epoch = reopen_epoch(ruled, region)
-    line = records.reopened.get((target, epoch))
-    if line is not None and line.get("source_id") == source_id \
-            and line.get("ruled_epoch") == ruled and line.get("ruled_region_sha256") == baseline:
+    if any(line.get("source_id") == source_id and line.get("ruled_epoch") == ruled
+           and line.get("ruled_region_sha256") == baseline
+           for line in records.reopened.get((target, epoch), ())):
         return PageStatus("open", ruled, region, baseline, epoch)
     return PageStatus("changed", ruled, region, baseline, epoch)
 
@@ -266,7 +286,8 @@ def gate_epoch(fact: Mapping[str, Any], subject: str, *, source_id: str,
         ruled = ruled_epoch(fact)
         if not own_fetch or source_id not in ruling["source_ids"]:
             return ruled
-        status = page_status(fact, subject, source_id=source_id, row=rows[source_id],
+        status = page_status(fact, subject, ruling=ruling, source_id=source_id,
+                             row=rows[source_id],
                              page_bytes=page_bytes, attempts=inputs.attempts,
                              records=Records.read(root))
     except (OSError, ValueError, KeyError, TypeError):

@@ -235,8 +235,8 @@ def reopened(root: Path, found: Any, subject: str, facet: str, epoch: str,
         return False
     if standing_ruling(found.fact, subject, inputs=inputs, sources=urls, today=today) is None:
         return False
-    line = records.reopened.get((f"{subject}#{facet}", epoch))
-    return line is not None and line.get("ruled_epoch") == ruled_epoch(found.fact)
+    return any(line.get("ruled_epoch") == ruled_epoch(found.fact)
+               for line in records.reopened.get((f"{subject}#{facet}", epoch), ()))
 
 
 def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ruled_by: str,

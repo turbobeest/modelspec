@@ -685,12 +685,12 @@ def ruled_fact_rereads(root: Path, terms: dict[str, str], report: Report, *, sou
                 blocked = page.reason.startswith("redirect_to")
                 report.ruled["blocked" if blocked else "deferred"] += 1
                 continue
-            status = rr.page_status(found.fact, subject, source_id=source_id,
+            status = rr.page_status(found.fact, subject, ruling=ruling, source_id=source_id,
                                     row=rows[source_id], page_bytes=page[0],
                                     attempts=inputs.attempts, records=records)
             if status.kind == "baseline":
                 report.ruled["baselined"] += 1
-                records.baselines[(target, status.ruled_epoch, source_id)] = status.region_sha
+                records.add_baseline((target, status.ruled_epoch, source_id), status.region_sha)
                 lines.append(rr.baseline_line(target=target, ruled_epoch=status.ruled_epoch,
                                               source_id=source_id, region_sha=status.region_sha,
                                               day=day))
@@ -699,7 +699,7 @@ def ruled_fact_rereads(root: Path, terms: dict[str, str], report: Report, *, sou
                 line = rr.reopen_line(target=target, ruled_epoch=status.ruled_epoch,
                                       source_id=source_id, region_sha=status.region_sha,
                                       baseline=status.baseline, day=day)
-                records.reopened[(target, line["epoch"])] = line
+                records.add_reopen(line)
                 lines.append(line)
             else:
                 report.ruled[status.kind] += 1

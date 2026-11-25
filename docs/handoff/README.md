@@ -244,8 +244,9 @@ Learned expensively during 2026-09-09/10.
     (redirects off, every hop cite-only), so the sweep and the gate hash the same bytes. A
     source whose host now retains copies is counted, not read; an unclassed one is never
     requested. Two hashes are compared, never page text: the visible-text hash against the
-    texts read in the ruled epoch, and the hash of the regions the fact cites (its source's
-    normaliser and locators, volatile text stripped, folded as rule 15 folds text). The ruled
+    texts the disagreement the ruling resolves read (no earlier read counts), and the hash of
+    the regions the fact cites (its source's normaliser and locators, volatile text
+    stripped, folded as rule 15 folds text). The ruled
     page records its region baseline once; a change outside the cited region (a banner, a
     date) changes nothing; a changed region appends one `reopen` line to
     `reports/evidence-reread/ruled-reopenings.jsonl` (ids and hashes only). With no baseline

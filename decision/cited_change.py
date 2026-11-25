@@ -1719,8 +1719,8 @@ def reread(fact: Mapping[str, Any], *, source_id: str, readers: Sequence[Reader]
 
 def _reread_ruled(found: Lookup, subject: str, facet: str, source_id: str,
                   readers: Sequence[Reader], request: Request | None) -> Reread:
-    """``reread`` of an owner-ruled fact (MODEL-562). The page is compared with what was read in
-    the ruled epoch (``decision.ruling_reread.page_status``), never with the cited-change block
+    """``reread`` of an owner-ruled fact (MODEL-562). The page is compared with what the ruling's
+    resolved disagreement read (``decision.ruling_reread.page_status``), never with the cited-change block
     the fact kept: a page back at the text before the ruling is not ``current``. ``current``
     only for the ruled page or a change outside the cited region; otherwise the gate decides,
     reading the page itself, in the epoch that page names."""
@@ -1728,26 +1728,31 @@ def _reread_ruled(found: Lookup, subject: str, facet: str, source_id: str,
 
     from decision.cited_reader import ATTEMPTS_FILE
     from decision.owner_ruling import read_lines
-    from decision.ruling_reread import Records, page_status
+    from decision.ruling_reread import Records, _inputs, page_status, standing_ruling
 
     row = found.sources[source_id]
     fetched = _fetch(row["url"], request or _http_once)
     if isinstance(fetched, CitedChange):
         return Reread("flagged", fetched.reason, None, fetched.detail)
     root = Path(os.environ.get(DATA_DIR_ENV, "").strip() or ".")
+    urls = {str(k): str(v.get("url")) for k, v in found.sources.items()
+            if isinstance(v, Mapping) and v.get("url")}
     try:
-        status = page_status(found.fact, subject, source_id=source_id, row=row,
-                             page_bytes=fetched[0], attempts=read_lines(root / ATTEMPTS_FILE),
-                             records=Records.read(root))
-    except (OSError, ValueError) as error:
+        ruling = standing_ruling(found.fact, subject, inputs=_inputs(root), sources=urls)
+        status = None if ruling is None else page_status(
+            found.fact, subject, ruling=ruling, source_id=source_id, row=row,
+            page_bytes=fetched[0], attempts=read_lines(root / ATTEMPTS_FILE),
+            records=Records.read(root))
+    except (OSError, ValueError, KeyError, TypeError) as error:
         return Reread("flagged", "registry_lookup_failed", None, type(error).__name__)
-    if status.kind in {"current", "baseline"}:
+    if status is not None and status.kind in {"current", "baseline"}:
         return Reread("current")
     outcome = _gate(subject=subject, facet=facet, source_id=source_id, readers=readers,
                     request=request, allow_unchanged=True,
                     accept_not_disclosed=found.fact.get("state") == "not_disclosed")
     if not outcome.changed:
-        return Reread("flagged", outcome.reason, None, outcome.detail or status.kind)
+        return Reread("flagged", outcome.reason, None,
+                      outcome.detail or (status.kind if status else "no standing ruling"))
     agreed = outcome.record["value"] if outcome.record else None
     same = _canonical(agreed, _facet(facet)) == _canonical(found.fact.get("value"), _facet(facet))
     return Reread("confirmed" if same else "changed", None, outcome.record)

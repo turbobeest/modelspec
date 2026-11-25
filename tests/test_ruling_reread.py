@@ -215,19 +215,75 @@ def test_caller_bytes_never_mint_a_reopened_epoch(ruled, web):
     assert set(epochs(ruled)) == {"initial"}
 
 
-def test_a_forged_record_line_reopens_nothing(ruled, web):
+@pytest.mark.parametrize("forge", ["baseline", "source", "ruled_epoch", "epoch", "kind"])
+def test_a_forged_record_line_on_a_changed_region_reopens_nothing(ruled, web, forge):
+    """The page's cited region really changed, but no sweep recorded it: a hand-made line that
+    does not name this fact's baseline, source, ruled epoch and that region's epoch opens
+    nothing. The line the sweep writes for the same page does."""
     sweep(ruled, RULED, web)
     path = ruled.root / RECORD_FILE
-    baseline = records(ruled)[0]
-    forged = {"kind": "reopen", "target": TARGET, "ruled_epoch": "initial", "source_id": "data",
-              "region_sha256": baseline["region_sha256"],
-              "ruled_region_sha256": baseline["region_sha256"],
-              "epoch": reopen_epoch("initial", baseline["region_sha256"]),
-              "recorded_on": DAY.isoformat()}
+    baseline = records(ruled)[0]["region_sha256"]
+    changed = region(ruled, CHANGED)
+    line = {"kind": "reopen", "target": TARGET, "ruled_epoch": "initial", "source_id": "data",
+            "region_sha256": changed, "ruled_region_sha256": baseline,
+            "epoch": reopen_epoch("initial", changed), "recorded_on": DAY.isoformat()}
+    forged = {**line, **{
+        "baseline": {"ruled_region_sha256": "d" * 64},
+        "source": {"source_id": "other"},
+        "ruled_epoch": {"ruled_epoch": "reread:" + "d" * 64},
+        "epoch": {"epoch": reopen_epoch("initial", "d" * 64)},
+        "kind": {"kind": "baseline"},
+    }[forge]}
     path.write_text(path.read_text() + json.dumps(forged) + "\n")
-    for body in (RULED, BANNER):  # the ruled region, whatever a line says
-        served(web, body)
-        refused(own(pair(45)), "prior_attempt_disagreed")
+    served(web, CHANGED)
+    refused(own(pair(45)), "prior_attempt_disagreed")
+    assert set(epochs(ruled)) == {"initial"}
+    assert outcome(sweep(ruled, CHANGED, web)) == {"reopened": 1}  # the sweep's own line
+    assert own(pair(45)).changed
+
+
+def test_a_second_baseline_that_differs_shows_no_change(ruled, web):
+    """A hand-made baseline beside the sweep's makes the baseline unknown: on the unchanged
+    region nothing reopens, even with a reopen line naming the forged baseline."""
+    sweep(ruled, RULED, web)
+    path = ruled.root / RECORD_FILE
+    fake = "d" * 64
+    real = region(ruled, BANNER)
+    lines = [{"kind": "baseline", "target": TARGET, "ruled_epoch": "initial", "source_id": "data",
+              "region_sha256": fake, "recorded_on": DAY.isoformat()},
+             {"kind": "reopen", "target": TARGET, "ruled_epoch": "initial", "source_id": "data",
+              "region_sha256": real, "ruled_region_sha256": fake,
+              "epoch": reopen_epoch("initial", real), "recorded_on": DAY.isoformat()}]
+    path.write_text(path.read_text() + "".join(json.dumps(x) + "\n" for x in lines))
+    assert outcome(sweep(ruled, BANNER, web)) == {"unbaselined": 1}
+    assert outcome(sweep(ruled, RULED, web)) == {"unbaselined": 1}
+    served(web, BANNER)
+    refused(own(pair(45)), "prior_attempt_disagreed")
+
+
+def test_a_page_read_before_the_resolved_disagreement_is_not_the_ruled_page(data, web):
+    """Two disagreements in the ruled epoch, on an earlier page and on the ruled one; the ruling
+    resolves only the later. The earlier page is neither the baseline nor ``current``."""
+    from decision.cited_change import lookup
+    from decision.cited_reader import read_page
+    from decision.owner_ruling import attempt_id
+
+    early = page(20)
+    found = lookup(SUBJECT, RETENTION)
+    for body, readers in ((early, pair(20, "unbounded")), (RULED, pair(30, "unbounded"))):
+        read_page(subject=SUBJECT, url=URL, facet_id=RETENTION, subject_name=found.subject_name,
+                  page_bytes=body, readers=readers, definition=found.definition)
+    first, last = attempts(data)
+    rule(data, resolves=[attempt_id(last)])
+    assert outcome(sweep(data, early, web)) == {"unbaselined": 1} and records(data) == []
+    served(web, early)
+    out = reread(offering_fact(data) | {"subject": SUBJECT}, source_id="data", readers=pair(20))
+    assert out.outcome == "flagged" and out.reason == "prior_attempt_disagreed"
+    assert outcome(sweep(data, RULED, web)) == {"baselined": 1}
+    assert records(data)[0]["region_sha256"] == region(data, RULED)
+    assert outcome(sweep(data, early, web)) == {"reopened": 1}
+    assert attempt_id(first) not in json.loads(
+        (data.root / RULINGS_FILE).read_text().splitlines()[0])["resolves"]
 
 
 @pytest.mark.parametrize("tamper", ["ruling_value", "fact_value", "no_ruling_line"])
