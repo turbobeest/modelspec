@@ -998,6 +998,24 @@ def _site_export(root):
     return models[0], json.loads((out / f"models/{MID}.json").read_text())
 
 
+def test_both_paths_refuse_a_verification_row_that_repeats_outcome(tmp_path):
+    """MODEL-554: a ruled card makes the site read the verification log too; a row that says
+    ``mismatch`` and then ``verified`` (escaped) is refused there and by the snapshot."""
+    from decision.snapshot import collect_repo
+    from pipeline.load import LoadError, load_models
+
+    _site_tree(tmp_path)
+    row = json.dumps({"target": {"kind": "fact", "id": f"{MID}#{FACET}", "value_hash": "x"},
+                      "outcome": "mismatch", "date": "2026-10-12"})
+    (tmp_path / "verification/log.jsonl").write_text(
+        row[:-1] + ', "outc\\u006fme": "verified"}\n')
+    for path in (load_models, collect_repo):  # the snapshot reads cards through load_models
+        # The counts-only message every path gives: the file, the line and the count.
+        with pytest.raises(LoadError, match=r"log\.jsonl: line 1: a JSON object repeats a key "
+                                            r"\(1 line\(s\) repeat a key\)$"):
+            path(tmp_path)
+
+
 def test_the_site_export_publishes_a_ruled_fact_without_its_internals(tmp_path):
     _site_tree(tmp_path)
     model, result = _site_export(tmp_path)

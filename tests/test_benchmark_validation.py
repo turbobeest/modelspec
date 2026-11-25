@@ -141,7 +141,7 @@ def test_trust_duplicate_diagnostic_survives_calibration(tmp_path, monkeypatch, 
     assert "first" not in str(findings)
 
 
-def test_calibration_keeps_the_duplicate_diagnostic_when_the_page_loads(tmp_path):
+def test_calibration_keeps_the_duplicate_diagnostic_and_the_build_refuses_the_page(tmp_path):
     (tmp_path / "models").mkdir()
     (tmp_path / "models/example.md").write_text("---\nmodel_id: test/model\n---\n")
     (tmp_path / "benchmarks").mkdir()
@@ -152,7 +152,8 @@ def test_calibration_keeps_the_duplicate_diagnostic_when_the_page_loads(tmp_path
     calibrate(c, tmp_path, registry, date(2026, 11, 9))
     rules = {f["rule"] for f in run(c, registry, date(2026, 11, 9))["findings"]}
     assert "duplicate_yaml_key" in rules
-    assert "snapshot_build" not in rules
+    # The build refuses a page that repeats a key (MODEL-554); the audit says so too.
+    assert "snapshot_build" in rules
 
 
 def test_slug_aliases_is_a_known_key_beside_display_aliases(page):

@@ -15,6 +15,7 @@ worth surfacing.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import re
@@ -26,7 +27,7 @@ from typing import Any
 import yaml
 
 from schema import private_data, redacted_error
-from schema.yaml_loader import load_yaml
+from schema.yaml_loader import DuplicateKeyError, load_yaml, load_yaml_unique
 
 logger = logging.getLogger(__name__)
 
@@ -41,11 +42,56 @@ class LoadError(RuntimeError):
     """A file that should have parsed did not."""
 
 
-def split_front_matter(text: str, *, path: Path | None = None) -> tuple[dict[str, Any], str]:
+#: The frozen public image's ten benchmark pages that repeat ``aliases`` from before MODEL-554,
+#: by file name and the SHA-256 of the whole file. The data repository has fixed them; the
+#: image, which this repository may not change, has not. A page warns (as a count, keeping the
+#: last value) only when it is read at ``benchmarks/<that name>``, the text parsed hashes to these,
+#: and ``aliases`` is its only repeated key; tests stand copies of the image in for private
+#: data, so the root may differ. Anything else that repeats a key is refused: an edited page,
+#: a copy under another name, the same text as a card. Drop an entry once the image is fixed.
+FROZEN_DUPLICATE_PAGES = {
+    "aime_2024.md": "d0b612a0e51afe1bef63a67f2a8d47453d02bdc1e5c614afb1e48ed90c8bd250",
+    "aime_2026.md": "803907c48d2ac4e660a738ad48c04b4400a94cbf8cfd2a5cc65eef73b61c8839",
+    "arc_challenge.md": "688473a466cac5d595805f8e70c995b4e168ddc6118da5c0f1c65744b5a1b235",
+    "bbh.md": "cc037545ec97340ff06ccdb3cf56e0eb87870c8b8fb1b1e2ee7e0c0532b261ca",
+    "big_bench.md": "b0bae3290e9ec40b9dc49b3bc83d7a8cd757e18e5f9bbe515fcadf4303c85662",
+    "gpqa.md": "93020240ac7ad9cde162e316324eac2e0e5946c25c4deeb97ffe966909e5db14",
+    "humaneval.md": "cb3e3260777e062c57d1b5979954a613a18048408eb084f1d41246a57721974e",
+    "mbpp.md": "43182a51a1c169c6492779f0a48a586b8eb93fc6fa43316e165bad234972b7d0",
+    "model_written_evals.md": "297623b58c9fc308594d74a7fca3c2f545525090f8356e64cce4ef1d1d59cba7",
+    "siqa.md": "02a315b5ca35ac46e75497d2f2e46c30f918d8ad52f8bf9df4ca97b40ff654ae",
+}
+_FROZEN_REPEATED_KEYS = frozenset({"aliases"})
+
+
+def _frozen_duplicate(text: str, path: Path | None, exc: DuplicateKeyError) -> bool:
+    """Whether a refused page is one of ``FROZEN_DUPLICATE_PAGES``, exactly. The hash is of the
+    text that was parsed (UTF-8), never of a second read of the file."""
+    if path is None or path.parent.name != "benchmarks" or set(exc.keys) != _FROZEN_REPEATED_KEYS:
+        return False
+    expected = FROZEN_DUPLICATE_PAGES.get(path.name)
+    return expected is not None and hashlib.sha256(text.encode("utf-8")).hexdigest() == expected
+
+
+def split_front_matter(text: str, *, path: Path | None = None,
+                       duplicates: str | None = None) -> tuple[dict[str, Any], str]:
+    """The front matter and the body. A repeated key is refused (``LoadError``), unless
+    ``duplicates`` is ``"warn"`` (by default, only for a page in ``FROZEN_DUPLICATE_PAGES``):
+    then it is logged as a count and the last value is kept."""
     match = FRONT_MATTER.match(text)
     if not match:
         raise LoadError("no YAML front matter")
     try:
+        # One loader for fact YAML on every path (MODEL-554): a repeated key is refused.
+        front = load_yaml_unique(match.group(1))
+    except DuplicateKeyError as exc:
+        # Counts and a location only, so the message is safe for private data too.
+        message = f"{path or 'front matter'}: {exc.diagnostic(line_offset=1)}"
+        if duplicates is None and _frozen_duplicate(text, path, exc):
+            duplicates = "warn"
+        if duplicates != "warn":
+            raise LoadError(message) from None
+        logger.warning("%s; the last value is kept", message)
         front = load_yaml(match.group(1))
     except yaml.YAMLError as exc:
         if private_data(path):
@@ -213,7 +259,13 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
     """Every card. ``as_of`` is the build's day, as the snapshot build is given it: a ruled
     fact is withheld unless its ruling stands at min(as_of, the UTC day)."""
     from decision.citation import fact_citation
-    from decision.owner_ruling import has_ruling, read_ruling_inputs, ruling_refused, served_fact
+    from decision.owner_ruling import (
+        RepeatedKeyError,
+        has_ruling,
+        read_ruling_inputs,
+        ruling_refused,
+        served_fact,
+    )
     from decision.sources import configured_copy_store, load_sources
 
     root = root or REPO_ROOT
@@ -249,6 +301,9 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
                 if rulings is None:
                     try:
                         rulings = read_ruling_inputs(root)
+                    except RepeatedKeyError as error:
+                        # The counts-only message every path gives (MODEL-554).
+                        raise LoadError(str(error)) from None
                     except (OSError, ValueError, KeyError, TypeError) as error:
                         raise LoadError(f"owner rulings: {type(error).__name__}") from None
                 if ruling_refused(fact, str(model_id), cited=bool(citation) and valid,

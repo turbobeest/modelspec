@@ -2010,6 +2010,17 @@ def _card_identifier_candidates(offering: dict, availability: Mapping[str, Any])
             })
 
 
+def _fact_yaml(path: Path) -> Any:
+    """An offering file, read by the build's one fact-YAML loader (``pipeline.load`` reads
+    cards and benchmark pages with it): a repeated key is refused, never last-key-wins."""
+    from schema.yaml_loader import DuplicateKeyError, load_yaml_unique
+
+    try:
+        return load_yaml_unique(path.read_text(encoding="utf-8"))
+    except DuplicateKeyError as exc:
+        raise SnapshotBuildError(f"{path}: {exc}") from None
+
+
 def collect_repo(root: Path) -> SnapshotInputs:
     """Read the snapshot's inputs from a repository checkout.
 
@@ -2021,6 +2032,9 @@ def collect_repo(root: Path) -> SnapshotInputs:
     * Sources: canonical ``registry/sources.yaml``; see ``verification/README.md``.
     * Domains: each benchmark page's ``domains`` tags.
     * The verification log: ``verification/log.jsonl``.
+    * A log row, card, benchmark page or offering file that repeats a key, in any
+      spelling, is refused with ``SnapshotBuildError`` or ``LoadError`` (MODEL-554; the
+      frozen public image's ten known pages warn, ``pipeline.load.FROZEN_DUPLICATE_PAGES``).
     * Mismatch supersessions: ``verification/supersessions.jsonl`` (MODEL-415).
     * Owner rulings: ``verification/owner-rulings.jsonl`` and, when it holds any, the
       rule-15 attempt log ``verification/cited-attempts.jsonl`` and the facts whose latest
@@ -2047,7 +2061,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
             evidence.append({"subject": {"kind": "model", "id": mid}, **row})
     offerings = []
     for path in sorted((root / "offerings").glob("*/*/*.yaml")):
-        rows = yaml.safe_load(path.read_text(encoding="utf-8")) or []
+        rows = _fact_yaml(path) or []
         if not isinstance(rows, list):
             raise SnapshotBuildError(f"{path}: an offering file is a list")
         for o in rows:
@@ -2059,7 +2073,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
             offerings.append(o)
     subscriptions = []
     for path in sorted((root / "offerings" / "subscriptions").glob("*.yaml")):
-        rows = yaml.safe_load(path.read_text(encoding="utf-8")) or []
+        rows = _fact_yaml(path) or []
         if not isinstance(rows, list):
             raise SnapshotBuildError(f"{path}: a subscription offering file is a list")
         for subscription in rows:
@@ -2102,12 +2116,15 @@ def collect_repo(root: Path) -> SnapshotInputs:
             "sample_size": dataset.get("size"),
             "direction": metric.get("direction", "higher_is_better"),
         }
-    verifications = []
+    from decision.owner_ruling import RepeatedKeyError, read_json_lines
+
     verification_log = root / "verification" / "log.jsonl"
-    if verification_log.is_file():
-        for line in verification_log.read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                verifications.append(json.loads(line))
+    try:
+        # A row that repeats a key, in any spelling, is refused (MODEL-554): a repeated
+        # ``outcome`` would read as its last value and could hide a mismatch.
+        verifications = read_json_lines(verification_log)
+    except RepeatedKeyError as exc:
+        raise SnapshotBuildError(str(exc)) from None
     supersessions = []
     supersession_store = root / "verification" / "supersessions.jsonl"
     if supersession_store.is_file():

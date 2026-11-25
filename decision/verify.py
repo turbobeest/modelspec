@@ -8556,12 +8556,21 @@ class VerificationLog:
             fh.write(verification.model_dump_json() + "\n")
 
     def records(self) -> list[Verification]:
+        """Every record. A line that repeats a key, in any spelling, is refused as the build
+        refuses it (MODEL-554), never read as its last value."""
+        from decision.owner_ruling import RepeatedKeyError, loads
+
         records = []
         if not self.path.is_file():
             return records
         for number, line in enumerate(self.path.read_text(encoding="utf-8").splitlines(), 1):
             if line.strip():
                 with private_errors(self.path, line=number):
+                    try:
+                        loads(line)
+                    except RepeatedKeyError:
+                        raise RepeatedKeyError(f"{self.path}: line {number}: a JSON object repeats "
+                                          "a key") from None
                     records.append(Verification.model_validate_json(line))
         return records
 
