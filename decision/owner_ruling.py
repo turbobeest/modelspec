@@ -49,10 +49,6 @@ RULINGS_FILE = "verification/owner-rulings.jsonl"
 RULE = "owner-ruling@1"
 #: The collector that files a ruling's claim (``scripts/file_owner_ruling.py``).
 AGENT = "owner-ruling"
-#: ``derivation`` key beside ``owner_ruling``: the fact as it stood before the ruling (value,
-#: state, sources, checked sources), so a build as of an earlier day serves what was true then.
-PREVIOUS = "owner_ruling_previous"
-_PREVIOUS_KEYS = ("value", "state", "sources", "checked_sources")
 #: Exactly the fields of a ruling line.
 FIELDS = ("subject", "facet", "epoch", "value", "state", "ruled_by", "ruled_at", "ticket",
           "source_ids", "resolves", "basis")
@@ -183,28 +179,40 @@ def cited_change_logged(fact: Mapping[str, Any], subject: str,
         for a in attempts)
 
 
-def latest_ruling_claims(events_path: Path) -> dict[str, dict[str, Any]]:
-    """``fact id -> claim`` for each fact whose latest filed claim (the latest ``collected``
+def ruling_claim_events(events_path: Path) -> tuple[dict[str, dict[str, Any]],
+                                                     dict[str, tuple[dict[str, Any], ...]]]:
+    """``(claims, history)`` for each fact whose latest filed claim (the latest ``collected``
     event in the queue, ordered as ``decision.verify.Queue``: by time, no zone means UTC, a
-    later line on a tie) was filed by the owner-ruling filer. Any later admitted change files
-    a later claim, so a fact absent here has no standing ruling."""
+    later line on a tie) was filed by the owner-ruling filer. ``claims`` maps the fact id to
+    that claim; ``history`` to every ``collected`` and ``checked`` event for the fact, in queue
+    order, so a build as of an earlier day can find the claim that stood then. Any later
+    admitted change files a later claim, so a fact absent here has no standing ruling."""
     if not events_path.is_file():
-        return {}
-    collected = []
+        return {}, {}
+    events: dict[str, list[tuple[datetime, int, dict[str, Any]]]] = {}
     with events_path.open(encoding="utf-8") as handle:
-        for line in handle:
-            if '"collected"' not in line:
+        for index, line in enumerate(handle):
+            if '"collected"' not in line and '"checked"' not in line:
                 continue
             event = json.loads(line)
-            claim = event.get("claim") if event.get("event") == "collected" else None
-            target = claim.get("target") if isinstance(claim, dict) else None
+            kind = event.get("event")
+            target = ((event.get("claim") or {}).get("target") if kind == "collected"
+                      else event.get("target") if kind == "checked" else None)
             if isinstance(target, dict) and target.get("kind") == "fact" and target.get("id"):
-                collected.append((_event_time(event), event))
-    latest: dict[str, dict[str, Any]] = {}
-    for _, event in sorted(collected, key=lambda item: item[0]):  # stable on ties
-        latest[event["claim"]["target"]["id"]] = event["claim"]
-    return {fid: claim for fid, claim in latest.items()
-            if (claim.get("collector") or {}).get("agent") == AGENT}
+                events.setdefault(target["id"], []).append((_event_time(event), index, event))
+    claims, history = {}, {}
+    for fid, rows in events.items():
+        ordered = [event for _, _, event in sorted(rows, key=lambda r: (r[0], r[1]))]
+        collected = [e for e in ordered if e.get("event") == "collected"]
+        if collected and (collected[-1]["claim"].get("collector") or {}).get("agent") == AGENT:
+            claims[fid] = collected[-1]["claim"]
+            history[fid] = tuple(ordered)
+    return claims, history
+
+
+def latest_ruling_claims(events_path: Path) -> dict[str, dict[str, Any]]:
+    """The ``claims`` half of ``ruling_claim_events``."""
+    return ruling_claim_events(events_path)[0]
 
 
 def _event_time(event: Mapping[str, Any]) -> datetime:
@@ -416,31 +424,55 @@ def ruling_cutoff(as_of: date | None = None) -> date:
     return min(as_of, today) if as_of is not None else today
 
 
-def as_of_fact(fact: Mapping[str, Any], cutoff: date) -> Mapping[str, Any] | None:
+def as_of_fact(fact: Mapping[str, Any], subject: str, cutoff: date, inputs: RulingInputs,
+               sources: Mapping[str, str]) -> Mapping[str, Any] | None:
     """The fact as a build that knows rulings up to ``cutoff`` may see it, for the snapshot and
-    the site alike. A fact that claims no ruling, or a ruling dated on or before ``cutoff`` (or
-    not dated at all: admission refuses that), is returned as it is. A fact whose ruling is
-    dated later stands as it did before the ruling, as if the line did not exist yet: its
-    recorded earlier value, state and sources (``derivation.owner_ruling_previous``), with no
-    ruling block; with no such record it is withheld (``None``). Later knowledge never enters
-    an earlier snapshot."""
+    the site alike. A fact that claims no ruling, or a ruling dated on or before ``cutoff``
+    (or not dated: admission refuses that), is returned as it is. A fact whose ruling is dated
+    later stands as the record shows it stood then, never as the fact or its ruling block says:
+    the latest claim for the fact filed on or before ``cutoff`` and checked (``verified`` or
+    ``cited``) before it, from the queue (``RulingInputs.history``); a ruling's own claim counts
+    only for a valid ruling line dated on or before ``cutoff``. The fact takes that claim's
+    value, state and sources, with no derivation, and is then admitted as any fact is. With no
+    such claim it is withheld (``None``). Later knowledge never enters an earlier snapshot, and
+    a chain of rulings resolves to the one that stood on the day."""
+    from datetime import time
+
     if not has_ruling(fact):
         return fact
     block = ruling_block(fact)
     day = _day(block.get("ruled_at")) if block is not None else None
     if day is None or day <= cutoff:
         return fact
-    derivation = fact["derivation"]
-    previous = derivation.get(PREVIOUS)
-    if not isinstance(previous, Mapping) or not {"value", "state", "sources"} <= set(previous) \
-            or set(previous) - set(_PREVIOUS_KEYS):
+    facet = str(fact.get("facet"))
+    end = datetime.combine(cutoff, time.max, tzinfo=UTC)
+    picked: Mapping[str, Any] | None = None
+    checked = False
+    for event in inputs.history.get(f"{subject}#{facet}", ()):
+        if _event_time(event) > end:
+            break
+        if event.get("event") == "collected":
+            picked, checked = event["claim"], False
+        elif picked is not None and event.get("outcome") in ("verified", "cited"):
+            checked = True
+    if picked is None or not checked:
+        return None
+    if (picked.get("collector") or {}).get("agent") == AGENT:
+        stood = [r for r in inputs.rulings
+                 if (r.get("subject"), r.get("facet")) == (subject, facet)
+                 and (_day(r.get("ruled_at")) or date.max) <= cutoff
+                 and ruling_problem(r, attempts=inputs.attempts, sources=sources) is None
+                 and is_latest_change(r, picked, source_copies(r, inputs.attempts, sources))]
+        if not stood:
+            return None
+    state = picked.get("state") or ("known" if picked.get("value") is not None else None)
+    refs = picked.get("sources")
+    if state is None or not isinstance(refs, list) or not refs:
         return None
     before = {k: v for k, v in fact.items()
-              if k not in ("derivation", *_PREVIOUS_KEYS)}
-    before.update({k: previous[k] for k in _PREVIOUS_KEYS if k in previous})
-    rest = {k: v for k, v in derivation.items() if k not in ("owner_ruling", PREVIOUS)}
-    if rest:
-        before["derivation"] = rest
+              if k not in ("derivation", "value", "state", "sources", "checked_sources")}
+    before.update(value=picked.get("value") if state == "known" else None, state=state,
+                  sources=[dict(r) for r in refs])
     return before
 
 
@@ -468,6 +500,8 @@ class RulingInputs:
     attempts: tuple[Mapping[str, Any], ...] = ()
     claims: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
     verdicts: Mapping[tuple[str, str, str], Any] = field(default_factory=dict)
+    #: Fact id -> its queue events, for the facts in ``claims`` (``ruling_claim_events``).
+    history: Mapping[str, Sequence[Mapping[str, Any]]] = field(default_factory=dict)
 
 
 def read_ruling_inputs(root: Path, *, verdicts: bool = True) -> RulingInputs:
@@ -488,8 +522,9 @@ def read_ruling_inputs(root: Path, *, verdicts: bool = True) -> RulingInputs:
         rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()
                 if line.strip()] if path.is_file() else []
         ranked = _Compiler._verification_log(rows)
-    return RulingInputs(tuple(rulings), tuple(read_lines(root / ATTEMPTS_FILE)),
-                        latest_ruling_claims(root / "verification/queue/events.jsonl"), ranked)
+    claims, history = ruling_claim_events(root / "verification/queue/events.jsonl")
+    return RulingInputs(tuple(rulings), tuple(read_lines(root / ATTEMPTS_FILE)), claims, ranked,
+                        history)
 
 
 def ruling_refused(fact: Mapping[str, Any], subject: str, *, cited: bool, inputs: RulingInputs,

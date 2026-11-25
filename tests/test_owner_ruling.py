@@ -134,7 +134,7 @@ def test_a_ruling_files_the_line_the_claim_and_the_fact_from_one_reference(data)
     fact = offering_fact(data)
     assert (fact["value"], fact["state"]) == (30, "known")
     assert fact["derivation"]["owner_ruling"] == line
-    assert set(fact["derivation"]) == {"owner_ruling", "owner_ruling_previous"}
+    assert set(fact["derivation"]) == {"owner_ruling"}  # no earlier state is stored
     [ref] = fact["sources"]
     assert ref["snapshot_ref"] == f"sha256:{attempt['page_sha256']}"
     collected, checked = data.events()
@@ -771,7 +771,7 @@ def _claim(ruling):
 
 
 def _build(row, rulings, attempts, log=(), claims=None, source_cache=None,
-           as_of=date(2026, 10, 19)):
+           as_of=date(2026, 10, 19), history=None):
     """By default the fact's latest claim is its own ruling block's, as after a filing."""
     from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
     from tests.snapshot_records import SOURCES, model
@@ -782,7 +782,8 @@ def _build(row, rulings, attempts, log=(), claims=None, source_cache=None,
     inputs = SnapshotInputs(models=[model(MID, facts=[row])],
                             sources={**SOURCES, "src-cite": CITE},
                             owner_rulings=list(rulings), cited_attempts=list(attempts),
-                            verifications=list(log), owner_ruling_claims=claims)
+                            verifications=list(log), owner_ruling_claims=claims,
+                            owner_ruling_history=history or {})
     return load_built_snapshot(build_snapshot(inputs, as_of=as_of,
                                               source_cache=source_cache))
 
@@ -996,26 +997,47 @@ def test_a_configured_copy_store_decides_a_ruled_fact_alike_on_both_paths(tmp_pa
     assert all(f["facet"] != FACET for f in result["card"]["facts"])
 
 
+def _event(kind, at, claim=None, outcome="cited"):
+    if kind == "collected":
+        return {"event": "collected", "at": at, "claim": claim}
+    return {"event": "checked", "at": at, "target": {"kind": "fact", "id": f"{MID}#{FACET}"},
+            "outcome": outcome, "diff": []}
+
+
+def _plain_claim(value, at_ref="0" * 64):
+    return {"target": {"kind": "fact", "id": f"{MID}#{FACET}"}, "subject": MID, "field": FACET,
+            "value": value, "state": "known",
+            "collector": {"agent": "cited-change-gate", "model_family": "deterministic",
+                          "method": "two-readers-cited-change@3"},
+            "sources": [{"source_id": "src-cite", "snapshot_ref": f"sha256:{at_ref}",
+                         "cited_regions": ["page"]}]}
+
+
 def test_a_build_as_of_a_day_before_the_ruling_does_not_know_it():
     """Later knowledge never enters an earlier snapshot: a build as of a day before the ruling
-    serves the fact as it stood then, or withholds it when nothing records that."""
+    serves the fact as the claim log shows it stood then, or withholds it."""
     attempt = _attempt()
     ruling = _ruling(attempt)  # ruled 2026-10-12
     early = date(2026, 10, 1)
     assert _build(_ruled_fact(ruling), [ruling], [attempt], as_of=early).fact(
-        MID, FACET).state == "unknown"  # no earlier record: withheld
-    row = _ruled_fact(ruling)
-    row["derivation"]["owner_ruling_previous"] = {
-        "value": 128000, "state": "known",
-        "sources": [{"source_id": "src-cite", "snapshot_ref": "sha256:" + "0" * 64,
-                     "cited_regions": ["page"]}]}
-    before = _build(row, [ruling], [attempt], as_of=early)
+        MID, FACET).state == "unknown"  # no claim stood then: withheld
+    history = {f"{MID}#{FACET}": [
+        _event("collected", "2026-09-01T00:00:00+00:00", _plain_claim(128000)),
+        _event("checked", "2026-09-01T00:00:00+00:00"),
+        _event("collected", "2026-10-12T09:00:00+00:00", _claim(ruling)),
+        _event("checked", "2026-10-12T09:00:00+00:00")]}
+    before = _build(_ruled_fact(ruling), [ruling], [attempt], as_of=early, history=history)
     shown = before.fact(MID, FACET)
-    assert (shown.state, shown.value) == ("known", 128000)  # the value as it stood then
+    assert (shown.state, shown.value) == ("known", 128000)  # the claim that stood then
     assert "owner_ruling" not in json.dumps(dict(before.record(shown.record_id)))
     # on and after the ruling day the ruling is known
-    assert _build(row, [ruling], [attempt], as_of=date(2026, 10, 12)).fact(
-        MID, FACET).value == 262144
+    assert _build(_ruled_fact(ruling), [ruling], [attempt], as_of=date(2026, 10, 12),
+                  history=history).fact(MID, FACET).value == 262144
+    # a claim never checked did not stand
+    unchecked = {f"{MID}#{FACET}": [
+        _event("collected", "2026-09-01T00:00:00+00:00", _plain_claim(128000))]}
+    assert _build(_ruled_fact(ruling), [ruling], [attempt], as_of=early,
+                  history=unchecked).fact(MID, FACET).state == "unknown"
     # a ruling dated after the UTC day is refused whatever the as_of
     future = (datetime.now(UTC).date() + timedelta(days=2)).isoformat()
     ahead = _ruling(attempt, ruled_at=future)
@@ -1024,22 +1046,75 @@ def test_a_build_as_of_a_day_before_the_ruling_does_not_know_it():
                   as_of=date(2030, 1, 1)).fact(MID, FACET).state == "unknown"
 
 
-def test_the_filer_records_the_fact_as_it_stood_before_the_ruling(data):
-    from decision.owner_ruling import as_of_fact
+def test_a_forged_earlier_value_in_the_ruling_record_is_ignored():
+    attempt = _attempt()
+    ruling = _ruling(attempt)
+    row = _ruled_fact(ruling)
+    row["derivation"]["owner_ruling_previous"] = {
+        "value": 999999, "state": "known",
+        "sources": [{"source_id": "src-cite", "snapshot_ref": "sha256:" + "0" * 64,
+                     "cited_regions": ["page"]}]}
+    early = date(2026, 10, 1)
+    assert _build(row, [ruling], [attempt], as_of=early).fact(MID, FACET).state == "unknown"
+    history = {f"{MID}#{FACET}": [
+        _event("collected", "2026-09-01T00:00:00+00:00", _plain_claim(128000)),
+        _event("checked", "2026-09-01T00:00:00+00:00")]}
+    assert _build(row, [ruling], [attempt], as_of=early, history=history).fact(
+        MID, FACET).value == 128000  # the claim log's, never the record's
 
-    disagree()
-    before = offering_fact(data)
-    file(data)
-    ruled = offering_fact(data)
-    previous = ruled["derivation"]["owner_ruling_previous"]
-    assert (previous["value"], previous["state"]) == (None, "not_disclosed")
-    assert previous["sources"] == before["sources"]
-    # a stopped write's rerun keeps that record, not the ruled fact
-    keep = dict(rulings=rulings(data), attempts=attempts(data), sources=urls(data),
-                claims=claims(data))
-    assert admits(ruled, SUBJECT, **keep)
-    # as of a day before the ruling the fact is what it was
-    then = as_of_fact(ruled, date(2026, 1, 1))
-    assert {k: v for k, v in then.items() if k != "checked_sources"} == \
-        {k: v for k, v in before.items() if k != "checked_sources"}
-    assert as_of_fact(ruled, datetime.now(UTC).date()) is ruled
+
+def test_a_chain_of_rulings_serves_the_one_that_stood_on_each_day():
+    first_attempt = _attempt()
+    first = _ruling(first_attempt)  # 262144, ruled 2026-10-12
+    second_attempt = {**_attempt(epoch="reread:" + "c" * 64), "at": "2026-10-16T08:00:00+00:00"}
+    second = _ruling(second_attempt, epoch="reread:" + "c" * 64, value=300000,
+                     ruled_at="2026-10-17")
+    second_claim = {**_claim(second), "value": 300000}
+    history = {f"{MID}#{FACET}": [
+        _event("collected", "2026-09-01T00:00:00+00:00", _plain_claim(128000)),
+        _event("checked", "2026-09-01T00:00:00+00:00"),
+        _event("collected", "2026-10-12T09:00:00+00:00", _claim(first)),
+        _event("checked", "2026-10-12T09:00:00+00:00"),
+        _event("collected", "2026-10-17T09:00:00+00:00", second_claim),
+        _event("checked", "2026-10-17T09:00:00+00:00")]}
+    row = _ruled_fact(second)  # the card now carries the second ruling
+    keep = dict(history=history, claims={f"{MID}#{FACET}": second_claim})
+    attempts_ = [first_attempt, second_attempt]
+    rulings_ = [first, second]
+
+    def on(day):
+        return _build(row, rulings_, attempts_, as_of=day, **keep).fact(MID, FACET)
+
+    assert on(date(2026, 8, 1)).state == "unknown"  # before any claim
+    assert on(date(2026, 10, 5)).value == 128000  # before both rulings
+    assert on(date(2026, 10, 14)).value == 262144  # between them: the first ruling's claim
+    # a first ruling whose line does not stand is not served between them
+    assert _build(row, [{**first, "ruled_by": "alice"}, second], attempts_,
+                  as_of=date(2026, 10, 14), **keep).fact(MID, FACET).state == "unknown"
+
+
+def test_a_historical_site_export_does_not_know_a_later_ruling(tmp_path):
+    _site_tree(tmp_path)
+    from pipeline import export
+    from pipeline.load import Catalogue, load_models
+
+    build = export.Build("b" * 40, "2026-10-01T12:00:00+00:00", date(2026, 10, 1))
+    models = load_models(tmp_path, as_of=date(2026, 10, 1))
+    out = tmp_path / "export"
+    export.write(out, models, [], Catalogue(build.as_of), build)
+    result = json.loads((out / f"models/{MID}.json").read_text())
+    assert models[0].withheld_facets == (FACET,)  # no claim stood then
+    assert all(f["facet"] != FACET for f in result["card"]["facts"])
+    assert "262144" not in json.dumps(result["card"]["facts"])
+    # with an earlier checked claim in the log the site serves it, as the snapshot does
+    events = tmp_path / "verification/queue/events.jsonl"
+    earlier = [_event("collected", "2026-09-01T00:00:00+00:00", _plain_claim(128000)),
+               _event("checked", "2026-09-01T00:00:00+00:00")]
+    events.write_text("".join(json.dumps(e) + "\n" for e in earlier) + events.read_text())
+    models = load_models(tmp_path, as_of=date(2026, 10, 1))
+    shutil.rmtree(out)
+    export.write(out, models, [], Catalogue(build.as_of), build)
+    result = json.loads((out / f"models/{MID}.json").read_text())
+    [shown] = [f for f in result["card"]["facts"] if f["facet"] == FACET]
+    assert shown["value"] == 128000 and "derivation" not in shown
+    assert models[0].withheld_facets == ()

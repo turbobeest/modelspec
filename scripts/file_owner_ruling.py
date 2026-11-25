@@ -51,7 +51,6 @@ from decision.model import DETERMINISTIC, SourceRef, TargetRef, VerificationActo
 from decision.owner_ruling import (
     AGENT,
     FIELDS,
-    PREVIOUS,
     RULE,
     RULINGS_FILE,
     admits,
@@ -366,14 +365,8 @@ def new_fact(old: dict[str, Any], ruling: dict[str, Any], refs: list[SourceRef])
     if checked:
         fact["checked_sources"] = checked
     # A plain copy: shared objects would dump as YAML anchors and aliases.
-    derivation = dict(old.get("derivation") or {})
-    rerun = canonical(derivation.get("owner_ruling")) == canonical(ruling)
-    kept = {k: v for k, v in derivation.items() if k != "owner_ruling"}
-    if not rerun or PREVIOUS not in kept:
-        # The fact as it stood before this ruling, so a build as of an earlier day serves it
-        # (``decision.owner_ruling.as_of_fact``). A rerun of a stopped write keeps the record.
-        kept[PREVIOUS] = {k: old[k] for k in ("value", "state", "sources", "checked_sources")
-                          if k in old}
+    # No earlier state is stored: a build as of an earlier day reads it from the claim log.
+    kept = {k: v for k, v in (old.get("derivation") or {}).items() if k != "owner_ruling"}
     fact["derivation"] = json.loads(json.dumps({**kept, "owner_ruling": ruling}, default=str))
     return fact
 

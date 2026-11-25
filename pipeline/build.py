@@ -920,12 +920,13 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     if out.exists():
         shutil.rmtree(out)
 
-    models = load_models(root)
     benchmarks = load_benchmarks(root)
     catalogue = load_catalogue(root)
     build = exporter.make_build(catalogue, root)
 
     today = build_day(build)
+    # The site sees owner rulings as of the day the decision snapshot is built for (MODEL-551).
+    models = load_models(root, as_of=today)
     if catalogue.as_of > today:
         print(f"error: eligibility report is dated {catalogue.as_of}, which is in the future; "
               "refusing to publish", file=sys.stderr)

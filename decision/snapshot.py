@@ -386,6 +386,9 @@ class SnapshotInputs:
     #: Fact id -> its latest filed claim, for facts whose latest claim is a ruling's
     #: (``decision.owner_ruling.latest_ruling_claims``): a ruling stands only while it is.
     owner_ruling_claims: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    #: Fact id -> its queue events, for the same facts: a build as of a day before a ruling
+    #: takes the claim that stood then (``decision.owner_ruling.as_of_fact``).
+    owner_ruling_history: Mapping[str, Sequence[Mapping[str, Any]]] = field(default_factory=dict)
     #: Lab id -> ``decision.labs.Lab``. Empty when the checkout has no lab registry.
     labs: Mapping[str, Any] = field(default_factory=dict)
     #: Sourced hardware YAML records. Metadata, never ranking candidates.
@@ -798,6 +801,8 @@ class _Compiler:
         self.owner_rulings = tuple(dict(r) for r in inputs.owner_rulings)
         self.cited_attempts = tuple(dict(a) for a in inputs.cited_attempts)
         self.owner_ruling_claims = {str(k): dict(v) for k, v in inputs.owner_ruling_claims.items()}
+        self.owner_ruling_history = {str(k): tuple(v)
+                                     for k, v in inputs.owner_ruling_history.items()}
         #: record ID -> the mismatches a supersession retired, for provenance.
         self.superseded: dict[str, list[dict[str, Any]]] = {}
         #: subject id -> {"kind", "model", "lifecycle"}
@@ -1066,10 +1071,10 @@ class _Compiler:
     def _add_facts(self, sid: str, kind: str, facts: Iterable[Any]) -> None:
         row = self.facts.setdefault(sid, {})
         for f in self._resolve_prices(sid, facts):
-            ruled = self._as_of_ruling(f)
+            ruled = self._as_of_ruling(sid, f)
             if ruled is None:
-                # Its ruling is dated after this build's day and nothing records the fact as
-                # it stood before: withheld, as if the ruling line did not exist yet.
+                # Its ruling is dated after this build's day and no claim shows the fact as it
+                # stood then: withheld, as if the ruling line did not exist yet.
                 self._reject((sid, str(f["facet"])), "invalid_citation",
                              self._source_ids(f.get("sources")))
                 continue
@@ -1135,15 +1140,23 @@ class _Compiler:
                     _date(f.get("effective_from")), _date(f.get("effective_until")),
                 ))
 
-    def _as_of_ruling(self, fact: dict[str, Any]) -> dict[str, Any] | None:
+    def _ruling_inputs(self):
+        from decision.owner_ruling import RulingInputs
+
+        return RulingInputs(self.owner_rulings, self.cited_attempts, self.owner_ruling_claims,
+                            self.log, self.owner_ruling_history)
+
+    def _as_of_ruling(self, sid: str, fact: dict[str, Any]) -> dict[str, Any] | None:
         """``decision.owner_ruling.as_of_fact`` at this build's cutoff (``as_of``, never later
-        than the UTC day): a ruling dated later is not known yet."""
+        than the UTC day): a ruling dated later is not known yet, and the fact is what the
+        claim log shows it was then."""
         derivation = fact.get("derivation")
         if not isinstance(derivation, Mapping) or "owner_ruling" not in derivation:
             return fact
         from decision.owner_ruling import as_of_fact, ruling_cutoff
 
-        held = as_of_fact(fact, ruling_cutoff(self.as_of))
+        held = as_of_fact(fact, sid, ruling_cutoff(self.as_of), self._ruling_inputs(),
+                          self.sources)
         return None if held is None else dict(held)
 
     def _ruling_refused(self, sid: str, fact: Mapping[str, Any], citation: dict | None) -> bool:
@@ -1153,10 +1166,9 @@ class _Compiler:
         derivation = fact.get("derivation")
         if not isinstance(derivation, Mapping) or "owner_ruling" not in derivation:
             return False
-        from decision.owner_ruling import RulingInputs, ruling_refused
+        from decision.owner_ruling import ruling_refused
 
-        inputs = RulingInputs(self.owner_rulings, self.cited_attempts, self.owner_ruling_claims,
-                              self.log)
+        inputs = self._ruling_inputs()
         # A ruling dated after ``as_of`` never gets here (``_as_of_ruling``); its validity is
         # checked against the UTC day, as the filer checks it.
         return ruling_refused(fact, sid, cited=citation is not None, inputs=inputs,
@@ -2107,7 +2119,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
         from decision.supersession import read_store
 
         supersessions = read_store(supersession_store)
-    owner_rulings, cited_attempts, ruling_claims = [], [], {}
+    owner_rulings, cited_attempts, ruling_claims, ruling_history = [], [], {}, {}
     rulings_store = root / "verification" / "owner-rulings.jsonl"
     if rulings_store.is_file():
         from decision.owner_ruling import read_ruling_inputs
@@ -2120,6 +2132,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
         owner_rulings = list(ruling_inputs.rulings)
         cited_attempts = list(ruling_inputs.attempts)
         ruling_claims = dict(ruling_inputs.claims)
+        ruling_history = dict(ruling_inputs.history)
     from decision.labs import load_labs
 
     fit_path = root / "hardware" / "fit" / "records.yaml"
@@ -2136,6 +2149,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
                           supersessions=supersessions,
                           owner_rulings=owner_rulings, cited_attempts=cited_attempts,
                           owner_ruling_claims=ruling_claims,
+                          owner_ruling_history=ruling_history,
                           labs=load_labs(root), hardware_fit_records=fit_records,
                           hardware=[yaml.safe_load(path.read_text(encoding="utf-8"))
                                     for path in sorted((root / "hardware").glob("*.yaml"))
