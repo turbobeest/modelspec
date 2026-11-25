@@ -295,6 +295,11 @@ def _plant(root: Path, files: dict[str, str]) -> list[sl.Finding]:
         "Guides cover sourced benchmarks and real cost savings.\n",
         "From sourced benchmarks and real costs, and more.\n",
         "Prose that says ModelSpec is an analysis of alternatives for AI models, loosely.\n",
+        # Wrapped lines continue their sentence (MODEL-470 review, round 2).
+        "Which model, and why\ndoes it matter?\n",
+        "Which model, and why\r\n   does it matter?\r\n",
+        "Guides cover sourced benchmarks and real cost\nsavings.\n",
+        "Evidence-backed logic that powers complex model routing\n  decisions.\n",
     ],
 )
 def test_a_longer_sentence_that_contains_a_registry_phrase_is_not_a_copy(
@@ -336,13 +341,39 @@ def test_a_typed_one_sentence_is_a_copy(tmp_path: Path) -> None:
     ]
 
 
+def _region(sentence: str = entity.ONE_SENTENCE, indent: str = "", quote: str = "") -> str:
+    return (f"{indent}{agent_copy.ONE_SENTENCE_START}\n\n{indent}{quote}{sentence}\n\n"
+            f"{indent}{agent_copy.ONE_SENTENCE_END}")
+
+
+def test_a_paragraph_break_ends_a_statement(tmp_path: Path) -> None:
+    findings = _plant(tmp_path, {"README.md": "Intro text\n\nWhich model, and why\n\nMore text.\n"})
+    assert [f.excerpt for f in findings] == [entity.TAGLINE]
+
+
 def test_the_generated_one_sentence_region_is_not_a_typed_copy(tmp_path: Path) -> None:
-    region = agent_copy.ONE_SENTENCE_START + entity.ONE_SENTENCE + agent_copy.ONE_SENTENCE_END
-    assert _plant(tmp_path, {"README.md": f"# ModelSpec\n\n{region} More prose.\n"}) == []
+    for region in (_region(), _region(indent="   ", quote="> ")):
+        assert _plant(tmp_path, {"README.md": f"# ModelSpec\n\n{region}\n\nMore prose.\n"}) == []
     # A region whose text drifted from the registry is not exempt.
-    drifted = region.replace(entity.ONE_SENTENCE, entity.ONE_SENTENCE + " Extra.")
+    drifted = _region(entity.ONE_SENTENCE + " Extra.")
     findings = _plant(tmp_path, {"README.md": f"{drifted}\n"})
     assert [f.excerpt for f in findings] == [entity.ONE_SENTENCE]
+    # Inline markers are not a generated region: they would make an HTML block.
+    inline = agent_copy.ONE_SENTENCE_START + entity.ONE_SENTENCE + agent_copy.ONE_SENTENCE_END
+    findings = _plant(tmp_path, {"README.md": f"{inline}\n"})
+    assert [f.excerpt for f in findings] == [entity.ONE_SENTENCE]
+
+
+def test_the_writer_fills_regions_and_refuses_inline_markers(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(agent_copy, "ROOT", tmp_path)
+    doc = tmp_path / "doc.md"
+    doc.write_text(f"1. Item:\n\n{_region('old text', indent='   ', quote='> ')}\n\nAfter.\n")
+    assert agent_copy.with_one_sentence(doc) == (
+        f"1. Item:\n\n{_region(indent='   ', quote='> ')}\n\nAfter.\n"
+    )
+    doc.write_text(agent_copy.ONE_SENTENCE_START + "old" + agent_copy.ONE_SENTENCE_END + " More.\n")
+    with pytest.raises(ValueError, match="own line"):
+        agent_copy.with_one_sentence(doc)
 
 
 def test_the_retired_tail_matches_only_the_exact_phrase(tmp_path: Path) -> None:
@@ -358,8 +389,11 @@ def test_the_marked_markdown_files_carry_the_generated_sentence() -> None:
     """README.md and friends read the sentence from the registry through the writer."""
     for path in agent_copy.ONE_SENTENCE_FILES:
         text = path.read_text(encoding="utf-8")
-        region = agent_copy.ONE_SENTENCE_START + entity.ONE_SENTENCE + agent_copy.ONE_SENTENCE_END
-        assert text.count(region) == 1, path
+        regions = list(agent_copy.ONE_SENTENCE_REGION.finditer(text))
+        assert [match["sentence"] for match in regions] == [entity.ONE_SENTENCE], path
+        # Each marker is alone on its line, so the sentence stays Markdown.
+        for marker in (agent_copy.ONE_SENTENCE_START, agent_copy.ONE_SENTENCE_END):
+            assert [line.strip() for line in text.splitlines() if marker in line] == [marker], path
         assert agent_copy.with_one_sentence(path) == text, path
 
 

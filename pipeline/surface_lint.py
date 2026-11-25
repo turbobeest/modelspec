@@ -488,12 +488,8 @@ def _read_text(path: Path) -> str | None:
 
 #: Characters that continue a sentence rather than end or open one.
 _CONTINUES = frozenset(",;:-")
-#: Generated regions: `python -m pipeline.agent_copy write` keeps the one
-#: sentence between these markers in Markdown files (agent_copy.ONE_SENTENCE_FILES).
-_GENERATED_SENTENCE = re.compile(
-    re.escape(agent_copy.ONE_SENTENCE_START) + r"(.*?)" + re.escape(agent_copy.ONE_SENTENCE_END),
-    re.S,
-)
+#: A blank line ends a paragraph; any other run of whitespace is one space.
+_PARAGRAPH_BREAK = re.compile(r"\n[ \t]*(?:\r?\n[ \t]*)+")
 
 
 def _words(phrase: str) -> str:
@@ -506,8 +502,17 @@ def _statement_pattern(line: str) -> re.Pattern[str]:
     return re.compile(r"(?<!\w)" + _words(bare) + r"(\.)?", re.I)
 
 
+def _paragraph_texts(text: str) -> list[str]:
+    """Paragraphs with whitespace and line breaks normalized to single spaces.
+
+    A wrapped line is part of its sentence: a registry line that runs on into
+    the next line ("... does it matter?") reads as one longer sentence.
+    """
+    return [" ".join(part.split()) for part in _PARAGRAPH_BREAK.split(text) if part.strip()]
+
+
 def _opens_statement(text: str, start: int) -> bool:
-    """Nothing but a line break, markup or sentence end precedes ``start``."""
+    """Nothing but a paragraph start, markup or sentence end precedes ``start``."""
     at = start - 1
     while at >= 0 and text[at] in " \t":
         at -= 1
@@ -547,8 +552,9 @@ def _phrase_pattern(phrase: str) -> re.Pattern[str]:
 
 
 def _without_generated_sentence(text: str) -> str:
-    return _GENERATED_SENTENCE.sub(
-        lambda match: "" if " ".join(match.group(1).split()) == entity.ONE_SENTENCE else match.group(0),
+    """Drop the regions ``pipeline.agent_copy`` writes, when they hold the registry text."""
+    return agent_copy.ONE_SENTENCE_REGION.sub(
+        lambda match: "" if " ".join(match["sentence"].split()) == entity.ONE_SENTENCE else match.group(0),
         text,
     )
 
@@ -557,7 +563,9 @@ def copied_identity(root: Path | None = None) -> list[Finding]:
     """A typed copy of the tagline, the router line or the one sentence fails.
 
     Scans git-tracked text files. Outside a git checkout, walks the tree and
-    skips ``node_modules``, ``dist``, ``.git`` and build output. Each registry
+    skips ``node_modules``, ``dist``, ``.git`` and build output. Each file is
+    read as paragraphs split at blank lines, with whitespace and line breaks
+    normalized, so a wrapped line continues its sentence. Each registry
     line matches as a whole statement: any case, any run of whitespace, with or
     without the trailing full stop, opening at a line start, markup or a
     sentence end, and closing where no word or clause runs on ("Which model,
@@ -584,14 +592,14 @@ def copied_identity(root: Path | None = None) -> list[Finding]:
         text = _read_text(path)
         if text is None:
             continue
-        text = _without_generated_sentence(text)
+        paragraphs = _paragraph_texts(_without_generated_sentence(text))
         for pattern, line in statements:
-            if _has_statement(pattern, text):
+            if any(_has_statement(pattern, paragraph) for paragraph in paragraphs):
                 findings.append(
                     Finding(rel, "presence.copied_identity", line, "pipeline/entity.py")
                 )
         for pattern, old in retired:
-            if pattern.search(text):
+            if any(pattern.search(paragraph) for paragraph in paragraphs):
                 findings.append(Finding(rel, "presence.superseded", old, entity.ONE_SENTENCE))
     return findings
 
