@@ -42,11 +42,10 @@ if TYPE_CHECKING:
 
 from decision.azure_pricing import wait_for_selected_prices
 from decision.excluded import excluded_sources
-from decision.final_hosts import ending_at_final
 from decision.model import CitedRegion as CitedRegion
 from decision.model import RenderedInteraction, Source, SourceSnapshot
 from decision.retention import (
-    TermsRegisterUnreadable, canonical_host, citation_metadata, classified_hosts,
+    TermsRegisterUnreadable, canonical_host, citation_metadata, classified_hosts, ending_at_final,
     cite_only_origin_restrictive, is_classified, registered_source_hosts, cite_only_origin_status,
     record_origin_status, require_source_url,
 )

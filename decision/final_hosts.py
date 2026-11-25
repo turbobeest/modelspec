@@ -16,6 +16,9 @@ from datetime import date
 from pathlib import Path
 from urllib.parse import urlsplit
 
+# Re-exported: the helper lives with the retention rules, which the Worker bundles.
+from decision.retention import ending_at_final as ending_at_final
+
 #: The name a changed final host carries in a job's report.
 FINAL_HOST_CHANGED = "final_host_changed"
 #: Where the price re-read keeps the record, inside the data tree it already commits.
@@ -25,20 +28,6 @@ STATE_FILE = Path("verification") / "final-hosts.json"
 def final_host(url: str) -> str:
     """The lower-case host of ``url``, without a port or trailing dot."""
     return (urlsplit(url).hostname or "").rstrip(".").lower()
-
-
-def ending_at_final(urls: Iterable[str]) -> tuple[str, ...]:
-    """Each URL once, in first-seen order, with the last URL kept last (MODEL-525).
-
-    A fetch can come back to a URL it passed earlier (a page script that returns to
-    the start). De-duplicating by first sighting would then end the chain on a URL
-    the fetch left, and ``observe`` takes the last URL as where the fetch ended.
-    """
-    chain = tuple(str(url) for url in urls)
-    if not chain:
-        return ()
-    final = chain[-1]
-    return (*dict.fromkeys(url for url in chain[:-1] if url != final), final)
 
 
 def load(path: Path) -> dict[str, dict[str, str]]:

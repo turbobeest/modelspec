@@ -3,15 +3,13 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 import logging
 import os
 from contextlib import contextmanager
 from functools import cache
 from pathlib import Path
 from urllib.parse import urlsplit
-
-from decision.final_hosts import ending_at_final
 
 
 logger = logging.getLogger(__name__)
@@ -291,6 +289,20 @@ def cite_only_origin_restrictive(url: object, resolved_urls=()) -> bool:
     For RESTRICTIVE call sites only (retention, storage, display).
     """
     return any(is_cite_only_restrictive(origin) for origin in (url, *resolved_urls))
+
+
+def ending_at_final(urls: Iterable[str]) -> tuple[str, ...]:
+    """Each URL once, in first-seen order, with the last URL kept last (MODEL-525).
+
+    A fetch can come back to a URL it passed earlier (a page script that returns to
+    the start). De-duplicating by first sighting would then end the chain on a URL
+    the fetch left, and ``observe`` takes the last URL as where the fetch ended.
+    """
+    chain = tuple(str(url) for url in urls)
+    if not chain:
+        return ()
+    final = chain[-1]
+    return (*dict.fromkeys(url for url in chain[:-1] if url != final), final)
 
 
 def metadata_origins(metadata: dict) -> tuple[str, ...]:
