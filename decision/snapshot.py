@@ -2150,12 +2150,10 @@ def build_from_repo(root: Path, *, premier: str | Path | None, as_of: date | Non
     The fetcher's copy store joins only when ``MODELSPEC_SOURCE_CACHE`` names
     it, so a build never depends on an unconfigured home-directory cache.
     """
-    root = Path(root)
-    store = None
-    if os.environ.get("MODELSPEC_SOURCE_CACHE"):
-        from decision.sources import CopyStore
+    from decision.sources import configured_copy_store
 
-        store = CopyStore()
+    root = Path(root)
+    store = configured_copy_store()
     return build_snapshot(
         collect_repo(root),
         registry=registry if registry is not None else default_registry(),

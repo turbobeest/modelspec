@@ -5,6 +5,7 @@ real gate with stub readers, and a snapshot built from synthetic records.
 """
 
 import json
+import shutil
 import socket
 from datetime import UTC, date, datetime, timedelta
 
@@ -768,7 +769,7 @@ def _claim(ruling):
                          "cited_regions": ["page"], "retrieved_at": AT}]}
 
 
-def _build(row, rulings, attempts, log=(), claims=None):
+def _build(row, rulings, attempts, log=(), claims=None, source_cache=None):
     """By default the fact's latest claim is its own ruling block's, as after a filing."""
     from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
     from tests.snapshot_records import SOURCES, model
@@ -780,7 +781,8 @@ def _build(row, rulings, attempts, log=(), claims=None):
                             sources={**SOURCES, "src-cite": CITE},
                             owner_rulings=list(rulings), cited_attempts=list(attempts),
                             verifications=list(log), owner_ruling_claims=claims)
-    return load_built_snapshot(build_snapshot(inputs, as_of=date(2026, 10, 19)))
+    return load_built_snapshot(build_snapshot(inputs, as_of=date(2026, 10, 19),
+                                              source_cache=source_cache))
 
 
 def test_the_build_admits_a_ruled_fact_as_an_ordinary_cited_fact():
@@ -958,3 +960,35 @@ def test_a_ruling_that_does_not_stand_is_withheld_on_the_site_path(tmp_path, cas
     assert model.withheld_facets == (FACET,) and not model.cited_facts
     assert all(f["facet"] != FACET for f in result["card"]["facts"])
     assert "owner_ruling" not in json.dumps(result) and "cited_facts" not in result
+
+
+def test_a_configured_copy_store_decides_a_ruled_fact_alike_on_both_paths(tmp_path, monkeypatch):
+    """A store whose citation record for the fact's copy is unreadable makes the snapshot
+    refuse the fact (``invalid_citation``); the site, configured the same way, withholds it."""
+    from decision.sources import CopyStore, configured_copy_store
+
+    root = tmp_path / "data"
+    front = _site_tree(root)
+    attempt = _attempt(epoch=REREAD)
+    ruling = _ruling(attempt, epoch=REREAD)
+    row = {**front["facts"][0], "id": f"{MID}#{FACET}", "subject": {"kind": "model", "id": MID}}
+    attempts_ = [attempt, _change_attempt()]
+    cache = tmp_path / "cache"
+    monkeypatch.delenv("MODELSPEC_SOURCE_CACHE", raising=False)
+    assert configured_copy_store() is None
+    assert _build(row, [ruling], attempts_).fact(MID, FACET).value == 262144
+    model, _ = _site_export(root)
+    assert model.withheld_facets == () and model.cited_facts
+    # the same store, configured once for both paths
+    record = CopyStore(cache).path(f"sha256:{PAGE_SHA}").with_suffix(".citation.json")
+    record.parent.mkdir(parents=True)
+    record.write_text("{not json")
+    monkeypatch.setenv("MODELSPEC_SOURCE_CACHE", str(cache))
+    store = configured_copy_store()
+    assert store is not None and store.root == cache
+    assert _build(row, [ruling], attempts_, source_cache=store).fact(MID, FACET).state \
+        == "unknown"
+    shutil.rmtree(root / "export")
+    model, result = _site_export(root)
+    assert model.withheld_facets == (FACET,) and not model.cited_facts
+    assert all(f["facet"] != FACET for f in result["card"]["facts"])

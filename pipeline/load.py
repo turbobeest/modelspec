@@ -212,13 +212,16 @@ class Catalogue:
 def load_models(root: Path | None = None) -> list[Model]:
     from decision.citation import fact_citation
     from decision.owner_ruling import has_ruling, read_ruling_inputs, ruling_refused, served_fact
-    from decision.sources import load_sources
+    from decision.sources import configured_copy_store, load_sources
 
     root = root or REPO_ROOT
     directory = root / "models"
     sources = {sid: str(source.url) for sid, source in
                load_sources(root / "registry" / "sources.yaml").items()}
     rulings = None  # read once, and only when a card claims a ruling
+    #: The snapshot build's copy store (``build_from_repo``), so a ruled fact's citation is
+    #: decided here exactly as there; other facts keep the registry-only citation.
+    store = configured_copy_store()
     today = datetime.now(timezone.utc).date()
     out: list[Model] = []
     for path in sorted(directory.rglob("*.md")):
@@ -234,7 +237,7 @@ def load_models(root: Path | None = None) -> list[Model]:
         for fact in front.get("facts") or []:
             valid = True
             try:
-                citation = fact_citation(fact, sources)
+                citation = fact_citation(fact, sources, store if has_ruling(fact) else None)
             except ValueError:
                 # Fail closed for this fact only (MODEL-420): never shown as
                 # verified, and one bad citation does not stop the build.
