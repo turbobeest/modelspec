@@ -45,7 +45,7 @@ from typing import Any
 
 import yaml
 
-from decision.cited_change import LookupFailed, _facet, lookup, quarantine_verdicts
+from decision.cited_change import VERIFICATION_LOG, LookupFailed, _facet, held_verdicts, lookup
 from decision.cited_reader import ATTEMPTS_FILE
 from decision.model import DETERMINISTIC, SourceRef, TargetRef, VerificationActor
 from decision.owner_ruling import (
@@ -56,6 +56,7 @@ from decision.owner_ruling import (
     attempt_id,
     disagreed,
     fact_epoch,
+    loads,
     ruling_problem,
     source_copies,
 )
@@ -91,8 +92,9 @@ class Snapshot:
         return cls(path, path.read_bytes() if path.is_file() else None)
 
     def lines(self) -> list[dict[str, Any]]:
+        """Each line as JSON; a repeated key, in any spelling, is a ``ValueError``."""
         text = (self.data or b"").decode("utf-8")
-        return [json.loads(line) for line in text.splitlines() if line.strip()]
+        return [loads(line) for line in text.splitlines() if line.strip()]
 
 
 @dataclass
@@ -102,6 +104,10 @@ class Plan:
     rulings: Snapshot
     queue: Snapshot
     fact_file: Snapshot
+    #: Read, never written: the plan's disagreement and quarantine came from these bytes,
+    #: and the write goes ahead only while they are unchanged.
+    attempts: Snapshot | None = None
+    verifications: Snapshot | None = None
     ruling_line: bytes = b""
     queue_lines: bytes = b""
     new_text: bytes | None = None
@@ -118,6 +124,28 @@ class Plan:
 class _NoAliases(yaml.SafeDumper):
     def ignore_aliases(self, data):
         return True
+
+
+class _UniqueKeys(yaml.SafeLoader):
+    """``yaml.safe_load`` keeps the last of two equal keys; this loader refuses them."""
+
+    def construct_mapping(self, node, deep=False):
+        seen = set()
+        for key_node, _ in node.value:
+            key = self.construct_object(key_node, deep=True)
+            if key in seen:
+                raise yaml.constructor.ConstructorError(
+                    None, None, "a YAML mapping repeats a key", key_node.start_mark)
+            seen.add(key)
+        return super().construct_mapping(node, deep)
+
+
+def load_yaml(text: str) -> Any:
+    """YAML as ``yaml.safe_load`` reads it, refusing a mapping that repeats a key."""
+    try:
+        return yaml.load(text, Loader=_UniqueKeys)  # noqa: S506  (a SafeLoader subclass)
+    except TypeError as error:  # an unhashable key
+        raise yaml.YAMLError(str(error)) from None
 
 
 def _front(text: str) -> tuple[str, int]:
@@ -150,7 +178,7 @@ def replace_fact(text: str, *, card: bool, row_id: str | None, facet: str,
     body, offset = _front(text) if card else (text, 0)
     if any(isinstance(token, yaml.AliasToken) for token in yaml.scan(body)):
         raise Refused("registry_lookup_failed", "the file uses YAML aliases")
-    data, node = yaml.safe_load(body), yaml.compose(body)
+    data, node = load_yaml(body), yaml.compose(body)
     parents = [(data, node)] if card else [
         (row, n) for row, n in zip(data or [], node.value if node is not None else [])
         if _row_id(row) == row_id]
@@ -175,7 +203,7 @@ def replace_fact(text: str, *, card: bool, row_id: str | None, facet: str,
     block = "\n".join([dumped[0], *(" " * column + line for line in dumped[1:])]) + "\n"
     new = text[:start] + block + text[end:]
     parent["facts"][index] = _plain(fact)
-    after = yaml.safe_load(_front(new)[0] if card else new)
+    after = load_yaml(_front(new)[0] if card else new)
     if _plain(after) != _plain(data):
         raise Refused("registry_lookup_failed", "the edit changed more than the one fact")
     return new
@@ -185,7 +213,7 @@ def replace_fact(text: str, *, card: bool, row_id: str | None, facet: str,
 
 
 def _source_rows(root: Path) -> dict[str, dict[str, Any]]:
-    rows = yaml.safe_load((root / "registry" / "sources.yaml").read_text("utf-8"))["sources"]
+    rows = load_yaml((root / "registry" / "sources.yaml").read_text("utf-8"))["sources"]
     return {row["id"]: row for row in rows}
 
 
@@ -207,22 +235,33 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
     location = f"{subject}#{facet}"
     if set(found.fact_ids) != {location}:
         raise Refused("fact_id_mismatch", "the fact's stored id or subject is not its location's")
-    try:
-        held = quarantine_verdicts(found.fact_ids, found.fact, root)
-    except LookupFailed as error:
-        raise Refused("registry_lookup_failed", str(error)) from None
-    if held:
-        raise Refused("quarantined", f"{len(held)} value(s) of this fact hold an unresolved "
-                      "mismatch or unreachable verdict; lifting a quarantine is the owner's "
-                      "open question, not a ruling")
+    # One snapshot of every file the plan rests on; the write checks each is unchanged.
     attempts_snapshot = Snapshot.read(root / ATTEMPTS_FILE)
+    verifications = Snapshot.read(root / VERIFICATION_LOG)
     rulings = Snapshot.read(root / RULINGS_FILE)
     queue = Snapshot.read(root / QUEUE)
     fact_file = Snapshot.read(found.path)
     try:
         attempts, filed, events = (attempts_snapshot.lines(), rulings.lines(), queue.lines())
+        logged = verifications.lines()
     except ValueError:
-        raise Refused("registry_lookup_failed", "an append-only log does not parse") from None
+        raise Refused("malformed", "an append-only log does not parse or repeats a key") from None
+    try:
+        text = (fact_file.data or b"").decode("utf-8")
+        load_yaml(_front(text)[0] if found.kind == "model" else text)
+    except yaml.YAMLError:
+        raise Refused("malformed", "the fact file does not parse or repeats a key") from None
+    from decision.snapshot import _Compiler
+
+    try:
+        verdicts = _Compiler._verification_log(logged)
+        held = held_verdicts(verdicts, found.fact_ids, found.fact)
+    except (KeyError, TypeError, AttributeError):
+        raise Refused("registry_lookup_failed", "the verification log does not parse") from None
+    if held:
+        raise Refused("quarantined", f"{len(held)} value(s) of this fact hold an unresolved "
+                      "mismatch or unreachable verdict; lifting a quarantine is the owner's "
+                      "open question, not a ruling")
     key = (subject, facet, epoch)
     disagreeing = [attempt_id(a) for a in attempts
                    if (a.get("subject"), a.get("facet"), a.get("epoch")) == key
@@ -263,7 +302,7 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
                   field=facet, value=value,
                   collector=VerificationActor(agent=AGENT, model_family=DETERMINISTIC, method=RULE),
                   sources=tuple(refs), unit=facet_def.unit, label=facet_def.label, state=state)
-    result = Plan(ruling, location, rulings, queue, fact_file,
+    result = Plan(ruling, location, rulings, queue, fact_file, attempts_snapshot, verifications,
                   counts={"resolves": len(ruling["resolves"]), "sources": len(refs)})
     if not resuming:
         line = json.dumps(ruling, sort_keys=True, ensure_ascii=False)
@@ -297,15 +336,17 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
         raise Refused("duplicate_ruling", "this ruling is filed and applied already")
     if not admits(_plain(fact), subject,
                   rulings=[*filed, ruling] if not resuming else filed, attempts=attempts,
-                  sources=urls, today=now.date()):
+                  sources=urls, verdicts=verdicts, today=now.date()):
         raise Refused("malformed", "the fact as planned would not stand on its ruling")
     return result
 
 
 def new_fact(old: dict[str, Any], ruling: dict[str, Any], refs: list[SourceRef]) -> dict[str, Any]:
-    """The fact as the ruling calls for: value, state, sources and ``derivation`` replaced in
-    place, every other key kept in its order. A source it cited before and no longer cites
-    moves to ``checked_sources``, so the rule-15 gate still counts it as registered."""
+    """The fact as the ruling calls for: value, state and sources replaced in place, every
+    other key kept in its order. A source it cited before and no longer cites moves to
+    ``checked_sources``, so the rule-15 gate still counts it as registered. ``derivation``
+    keeps what it held (a cited-change block names the re-read epoch the ruling is in) and
+    gains ``owner_ruling``."""
     new = {"value": ruling["value"], "state": ruling["state"],
            "sources": [r.model_dump(mode="json") for r in refs]}
     dropped = [r.get("source_id") for r in old.get("sources") or []
@@ -317,7 +358,8 @@ def new_fact(old: dict[str, Any], ruling: dict[str, Any], refs: list[SourceRef])
     if checked:
         fact["checked_sources"] = checked
     # A plain copy: shared objects would dump as YAML anchors and aliases.
-    fact["derivation"] = {"owner_ruling": json.loads(json.dumps(ruling))}
+    kept = {k: v for k, v in (old.get("derivation") or {}).items() if k != "owner_ruling"}
+    fact["derivation"] = json.loads(json.dumps({**kept, "owner_ruling": ruling}, default=str))
     return fact
 
 
@@ -356,7 +398,10 @@ def append_exact(snapshot: Snapshot, data: bytes) -> None:
 def apply(result: Plan) -> None:
     """Check every file still holds what planning read, then append the ruling, append the
     claim and replace the fact file."""
-    for snapshot in (result.rulings, result.queue, result.fact_file):
+    for snapshot in (result.rulings, result.queue, result.fact_file, result.attempts,
+                     result.verifications):
+        if snapshot is None:
+            continue
         if not _same(snapshot.path, snapshot.data):
             raise Refused("changed_since_planning", f"{snapshot.path.name} changed since planning")
     append_exact(result.rulings, result.ruling_line)

@@ -29,6 +29,11 @@ BUILD_TIME = {
     # Lab jurisdiction is applied while the snapshot is built. The Worker
     # loads the published snapshot and never reads registry/labs.yaml.
     ("decision/snapshot.py", "decision.labs"),
+    # Owner rulings (MODEL-551) are checked while the snapshot is compiled from the data
+    # repository; the Worker loads the published snapshot and never reads the rulings or
+    # the rule-15 attempt log.
+    ("decision/snapshot.py", "decision.owner_ruling"),
+    ("decision/snapshot.py", "decision.cited_reader"),
     # The v1 graph export and a type annotation; see the comment at the import.
     ("pipeline/ranking.py", "schema.graph"),
     ("pipeline/ranking.py", "schema.card"),

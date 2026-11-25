@@ -1126,7 +1126,8 @@ class _Compiler:
 
     def _ruling_refused(self, sid: str, fact: Mapping[str, Any], citation: dict | None) -> bool:
         """A fact that carries ``derivation.owner_ruling`` and is not cited, or whose ruling
-        does not stand (``decision.owner_ruling.admits``). Others are not affected."""
+        does not stand (``decision.owner_ruling.admits``, with the filer's quarantine test on
+        every value of the fact over this build's verification log). Others are not affected."""
         derivation = fact.get("derivation")
         if not isinstance(derivation, Mapping) or "owner_ruling" not in derivation:
             return False
@@ -1134,7 +1135,7 @@ class _Compiler:
 
         return citation is None or not admits(
             fact, sid, rulings=self.owner_rulings, attempts=self.cited_attempts,
-            sources=self.sources, today=self.as_of)
+            sources=self.sources, verdicts=self.log, today=self.as_of)
 
     def _resolve_prices(self, sid: str, facts: Iterable[Any]) -> list[dict[str, Any]]:
         facts = [_as_dict(raw) for raw in facts or ()]

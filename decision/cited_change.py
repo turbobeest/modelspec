@@ -556,27 +556,39 @@ def quarantine_verdicts(fact_ids: Sequence[str], fact: Mapping[str, Any],
     """
     import os
 
-    from decision.snapshot import _Compiler, _counts
+    from decision.snapshot import _Compiler
 
     root = data_dir or os.environ.get(DATA_DIR_ENV, "").strip()
     if not root:
         raise LookupFailed("no data directory is named")
-    ids = set(fact_ids)
     path = Path(root) / VERIFICATION_LOG
     try:
         rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()
                 if line.strip()] if path.is_file() else []
-        latest = _Compiler._verification_log(rows)
-        inline = fact.get("verification")
-        if isinstance(inline, Mapping) and isinstance(inline.get("target"), Mapping) \
-                and _counts(inline):
-            target = inline["target"]
-            key = (target["kind"], target["id"], str(target.get("value_hash") or ""))
-            entry = (str(inline["date"]), 0, dict(inline))
-            if key not in latest or entry[:2] >= latest[key][:2]:
-                latest[key] = entry
+        return held_verdicts(_Compiler._verification_log(rows), fact_ids, fact, kind=kind,
+                             owns=owns)
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
         raise LookupFailed(f"verification log: {type(error).__name__}") from None
+
+
+def held_verdicts(latest: Mapping[tuple[str, str, str], Any], fact_ids: Sequence[str],
+                  fact: Mapping[str, Any], *, kind: str = "fact",
+                  owns: Callable[[str], bool] | None = None) -> list[tuple[str, str]]:
+    """``quarantine_verdicts`` over a log already ranked by ``_Compiler._verification_log``
+    (the build's own index): the fact's inline verification is ranked in, and every value of
+    every identity counts. Raises ``KeyError``/``TypeError`` on a malformed inline record."""
+    from decision.snapshot import _counts
+
+    ids = set(fact_ids)
+    latest = dict(latest)
+    inline = fact.get("verification")
+    if isinstance(inline, Mapping) and isinstance(inline.get("target"), Mapping) \
+            and _counts(inline):
+        target = inline["target"]
+        key = (target["kind"], target["id"], str(target.get("value_hash") or ""))
+        entry = (str(inline["date"]), 0, dict(inline))
+        if key not in latest or entry[:2] >= latest[key][:2]:
+            latest[key] = entry
     return sorted((rid, value) for (target_kind, rid, value), (_, _, row) in latest.items()
                   if target_kind == kind and (rid in ids or (owns is not None and owns(rid)))
                   and row.get("outcome") != "verified")
@@ -1088,6 +1100,15 @@ def cited_change_block(fact: Mapping[str, Any]) -> Mapping[str, Any] | None:
     return block if isinstance(block, Mapping) else None
 
 
+def fact_epoch(fact: Mapping[str, Any]) -> str:
+    """The attempt-log epoch a fact is in: after a cited change, the re-read epoch its recorded
+    text hash names; otherwise ``initial``. ``reread`` reads in this epoch."""
+    block = cited_change_block(fact)
+    if block is None:
+        return "initial"
+    return f"reread:{block.get('text_sha256') or block.get('sha256')}"
+
+
 REREAD_INTERVAL = timedelta(days=7)
 
 
@@ -1216,7 +1237,7 @@ def reread(fact: Mapping[str, Any], *, source_id: str, readers: Sequence[Reader]
         return Reread("current")
     outcome = _gate(subject=subject, facet=facet, source_id=source_id, readers=readers,
                     request=request, allow_unchanged=True, page=fetched,
-                    epoch=f"reread:{block.get('text_sha256') or block.get('sha256')}",
+                    epoch=fact_epoch(fact),
                     accept_not_disclosed=found.fact.get("state") == "not_disclosed")
     if not outcome.changed:
         return Reread("flagged", outcome.reason, None, outcome.detail)

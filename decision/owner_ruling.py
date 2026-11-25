@@ -69,26 +69,62 @@ def _canonical(value: Any, facet_id: str) -> str:
     return canonical(value, facet_id)
 
 
+def _exact(value: Any) -> str:
+    """A value in one exact spelling: keys sorted, types kept (``30`` is not ``30.0``, ``1``
+    is not ``true``), no rounding and no reordering."""
+    return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+
+
 def disagreed(entry: Mapping[str, Any], facet_id: str) -> bool:
-    """A complete attempt whose two readers returned different values (``readers_disagree``)."""
+    """A real rule-15 ``readers_disagree``: a complete attempt made through the harness (a
+    prompt hash and a page hash recorded), whose two readers pass the gate's own identity
+    check (``decision.cited_change._check_identities``: id, family and version, two distinct
+    known lineages) and returned values the gate's comparison tells apart. A seeded attempt,
+    a reader with no identity or two readers of one family is not one."""
+    from types import SimpleNamespace
+
+    from decision.cited_change import _check_identities
+
     readers = entry.get("readers")
-    return (entry.get("complete") is True and entry.get("agreed") is False
+    if not (entry.get("complete") is True and entry.get("agreed") is False
+            and entry.get("harness") is True
+            and _HEX.fullmatch(str(entry.get("prompt_sha256") or ""))
+            and _HEX.fullmatch(str(entry.get("page_sha256") or ""))
             and isinstance(readers, list) and len(readers) == 2
-            and all(isinstance(r, Mapping) and "value" in r for r in readers)
-            and _canonical(readers[0]["value"], facet_id)
-            != _canonical(readers[1]["value"], facet_id))
+            and all(isinstance(r, Mapping) and "value" in r for r in readers)):
+        return False
+    pair = [SimpleNamespace(**{k: r.get(k) for k in ("reader_id", "family", "version")})
+            for r in readers]
+    return _check_identities(pair) is None and _canonical(readers[0]["value"], facet_id) \
+        != _canonical(readers[1]["value"], facet_id)
+
+
+def _unique_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """A JSON object whose keys are unique once decoded: ``"a"`` and its escaped spelling
+    are one key."""
+    out: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in out:
+            raise ValueError("a JSON object repeats a key")
+        out[key] = value
+    return out
+
+
+def loads(line: str) -> Any:
+    """``json.loads`` that refuses a repeated key at any depth, in any spelling."""
+    return json.loads(line, object_pairs_hook=_unique_keys)
 
 
 def read_lines(path: Path) -> list[dict[str, Any]]:
     """Every line of a JSON-lines file as an object; an absent file is empty. Raises
-    ``ValueError`` on a line that is not a JSON object."""
+    ``ValueError`` on a line that is not a JSON object or repeats a key."""
     if not path.is_file():
         return []
     out = []
     for line in path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
-        obj = json.loads(line)
+        obj = loads(line)
         if not isinstance(obj, dict):
             raise ValueError("a line is not a JSON object")
         out.append(obj)
@@ -103,18 +139,43 @@ def ruling_block(fact: Mapping[str, Any]) -> Mapping[str, Any] | None:
 
 
 def fact_epoch(fact: Mapping[str, Any]) -> str:
-    """The attempt-log epoch a fact is in now: a ruling's own; after a cited change, the
-    re-read epoch its recorded text hash names (as ``decision.cited_change.reread``);
-    otherwise ``initial``."""
-    from decision.cited_change import cited_change_block
+    """The fact's epoch by rule 15's own function (``decision.cited_change.fact_epoch``),
+    never by its ruling block: a block cannot choose the epoch it is checked in. A ruled fact
+    keeps the cited-change block it had, so a ruling in a re-read epoch stays in it."""
+    from decision.cited_change import fact_epoch as rule_15_epoch
 
-    block = ruling_block(fact)
-    if block is not None:
-        return str(block.get("epoch"))
-    changed = cited_change_block(fact)
-    if changed is not None:
-        return f"reread:{changed.get('text_sha256') or changed.get('sha256')}"
-    return "initial"
+    return rule_15_epoch(fact)
+
+
+def _latest(entries: Sequence[Mapping[str, Any]]) -> datetime | None:
+    times = [t for t in (_at(e) for e in entries) if t is not None]
+    return max(times) if times else None
+
+
+def superseded(ruling: Mapping[str, Any], *, attempts: Sequence[Mapping[str, Any]],
+               rulings: Sequence[Mapping[str, Any]]) -> bool:
+    """Whether a later change for the same subject and facet replaced the ruling: a complete
+    agreed harness attempt in another epoch, or another ruling, made after the attempts this
+    ruling resolves. A ruling stands only while it is the latest change, so a ruling copied
+    back over a later change does not."""
+    mine = _latest(list(resolved_attempts(ruling, attempts).values()))
+    if mine is None:
+        return True
+    pair = (ruling.get("subject"), ruling.get("facet"))
+    for entry in attempts:
+        at = _at(entry)
+        if (entry.get("subject"), entry.get("facet")) == pair and at is not None and at > mine \
+                and entry.get("epoch") != ruling.get("epoch") and entry.get("complete") is True \
+                and entry.get("agreed") is True and entry.get("harness") is True:
+            return True
+    for other in rulings:
+        if _exact(dict(other)) == _exact(dict(ruling)) \
+                or (other.get("subject"), other.get("facet")) != pair:
+            continue
+        theirs = _latest(list(resolved_attempts(other, attempts).values()))
+        if theirs is not None and theirs > mine:
+            return True
+    return False
 
 
 def resolved_attempts(ruling: Mapping[str, Any],
@@ -232,15 +293,22 @@ def ruling_problem(ruling: Any, *, attempts: Sequence[Mapping[str, Any]],
 
 def admits(fact: Mapping[str, Any], subject: str, *, rulings: Sequence[Mapping[str, Any]],
            attempts: Sequence[Mapping[str, Any]], sources: Mapping[str, str],
+           verdicts: Mapping[tuple[str, str, str], Any] | None = None,
            today: date | None = None) -> bool:
     """Whether a fact carrying ``derivation.owner_ruling`` stands on a valid ruling.
 
     ``subject`` is the fact's owner as the build places it (the card's model id, or the
     offering row's own id), never the fact's stored subject. Exactly one ruling line is
-    for this subject, facet and the block's epoch; the block is that line; the ruling is
-    valid; the fact's stored id (when any) is its location id; its value and state are the
-    ruling's; and it cites exactly the ruling's sources, each at the copy its resolved
-    attempt read. A ruling for another subject, facet or epoch admits nothing."""
+    for this subject, facet and the fact's epoch (rule 15's, never the block's); the block
+    is that line; the ruling is valid and the latest change (``superseded``); the fact's
+    stored id (when any) is its location id; its value and state are exactly the ruling's;
+    it cites exactly the ruling's sources, each at the copy its resolved attempt read; and,
+    as the filer refuses, no value of the fact holds an unresolved mismatch or unreachable
+    verdict. ``verdicts`` is the ranked verification log
+    (``decision.snapshot._Compiler._verification_log``, the build's own index). A ruling
+    for another subject, facet or epoch admits nothing."""
+    from decision.cited_change import held_verdicts
+
     block = ruling_block(fact)
     if block is None:
         return False
@@ -251,17 +319,24 @@ def admits(fact: Mapping[str, Any], subject: str, *, rulings: Sequence[Mapping[s
     if (stored is not None and stored != f"{subject}#{facet}") \
             or (stored_subject is not None and stored_subject != subject):
         return False
-    key = (subject, facet, block.get("epoch"))
+    key = (subject, facet, fact_epoch(fact))
     lines = [r for r in rulings if (r.get("subject"), r.get("facet"), r.get("epoch")) == key]
     if len(lines) != 1:
         return False
     ruling = lines[0]
-    if json.dumps(dict(block), sort_keys=True) != json.dumps(dict(ruling), sort_keys=True):
+    if _exact(dict(block)) != _exact(dict(ruling)):
         return False
     if ruling_problem(ruling, attempts=attempts, sources=sources, today=today) is not None:
         return False
-    if fact.get("state") != ruling["state"] \
-            or _canonical(fact.get("value"), facet) != _canonical(ruling["value"], facet):
+    if superseded(ruling, attempts=attempts, rulings=rulings):
+        return False
+    if fact.get("state") != ruling["state"] or _exact(fact.get("value")) != _exact(ruling["value"]):
+        return False
+    ids = [f"{subject}#{facet}", *([stored] if isinstance(stored, str) else [])]
+    try:
+        if held_verdicts(verdicts or {}, ids, fact):
+            return False
+    except (KeyError, TypeError, AttributeError):
         return False
     copies = source_copies(ruling, attempts, sources)
     refs = [r for r in fact.get("sources") or () if isinstance(r, Mapping)]

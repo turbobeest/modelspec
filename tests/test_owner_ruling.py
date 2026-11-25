@@ -394,14 +394,187 @@ def test_the_sources_must_be_the_pages_the_readers_read(data):
     refuses(data, "source_mismatch", source_ids=["hf"])  # a retaining host
 
 
-def test_disagreed_reads_only_a_complete_split():
-    base = {"complete": True, "agreed": False,
-            "readers": [{"value": 30}, {"value": "unbounded"}]}
+def _readers(*values, families=("openai", "anthropic"), ids=("a", "b")):
+    return [{"reader_id": i, "family": f, "version": "1", "value": v}
+            for i, f, v in zip(ids, families, values)]
+
+
+def test_disagreed_reads_only_a_real_rule_15_split():
+    base = {"complete": True, "agreed": False, "harness": True, "page_sha256": "1" * 64,
+            "prompt_sha256": "2" * 64, "readers": _readers(30, "unbounded")}
     assert disagreed(base, RETENTION)
     assert not disagreed({**base, "agreed": True}, RETENTION)
     assert not disagreed({**base, "complete": False}, RETENTION)
-    assert not disagreed({**base, "readers": [{"value": 30}, {"value": 30.0}]}, RETENTION)
-    assert not disagreed({**base, "readers": [{"value": 30}]}, RETENTION)
+    assert not disagreed({**base, "readers": _readers(30, 30.0)}, RETENTION)
+    assert not disagreed({**base, "readers": _readers(30)}, RETENTION)
+
+
+@pytest.mark.parametrize("change", [
+    {"harness": False}, {"seeded": True, "harness": False}, {"prompt_sha256": None},
+    {"page_sha256": "short"},
+    {"readers": _readers(30, "unbounded", families=("openai", "openai"))},
+    {"readers": _readers(30, "unbounded", families=("openai", "codex"))},  # one lineage
+    {"readers": _readers(30, "unbounded", families=("unknown", "anthropic"))},
+    {"readers": _readers(30, "unbounded", ids=("a", "a"))},
+    {"readers": [{"value": 30}, {"value": "unbounded"}]},  # no identities
+    {"readers": [*_readers(30, "unbounded"), {"reader_id": "c", "family": "google",
+                                             "version": "1", "value": 1}]},
+])
+def test_only_a_real_rule_15_attempt_is_a_disagreement(change):
+    """The gate's own identity check (``_check_identities``) decides, not a look-alike."""
+    base = {"complete": True, "agreed": False, "harness": True, "page_sha256": "1" * 64,
+            "prompt_sha256": "2" * 64, "readers": _readers(30, "unbounded")}
+    assert not disagreed({**base, **change}, RETENTION)
+    attempt = {**_attempt(), **change}
+    ruling = _ruling(attempt)
+    assert _build(_ruled_fact(ruling), [ruling], [attempt]).fact(MID, FACET).state == "unknown"
+
+
+def test_a_seeded_disagreement_cannot_be_ruled_on(data):
+    log_attempt({"subject": SUBJECT, "facet": RETENTION, "epoch": "initial", "url": URL,
+                 "complete": True, "agreed": False, "harness": False, "seeded": True,
+                 "page_sha256": "a" * 64, "prompt_sha256": None,
+                 "at": "2026-11-01T00:00:00+00:00", "readers": _readers(30, "unbounded")})
+    refuses(data, "no_disagreement")
+
+
+# --- duplicate keys, in any spelling -------------------------------------------------------------
+
+
+def test_a_repeated_json_key_in_any_spelling_is_refused(tmp_path):
+    from decision.owner_ruling import read_lines
+
+    path = tmp_path / "x.jsonl"
+    for line in ('{"ruled_by": "alice", "ruled_by": "jamie"}',
+                 '{"ruled_by": "alice", "ruled\\u005fby": "jamie"}',
+                 '{"a": {"b": 1, "\\u0062": 2}}'):
+        path.write_text(line + "\n")
+        with pytest.raises(ValueError):
+            read_lines(path)
+
+
+def test_the_filer_refuses_a_repeated_key_in_the_rulings_attempts_or_fact_file(data):
+    disagree()
+    rulings_path = data.root / RULINGS_FILE
+    rulings_path.write_text('{"subject": "x", "subj\\u0065ct": "y"}\n')
+    refuses(data, "malformed")
+    rulings_path.unlink()
+    attempts_path = data.root / ATTEMPTS_FILE
+    good = attempts_path.read_text()
+    attempts_path.write_text(good + '{"agreed": true, "agr\\u0065ed": false}\n')
+    refuses(data, "malformed")
+    attempts_path.write_text(good)
+    text = data.offering_path.read_text()
+    assert "    state: not_disclosed\n" in text
+    data.offering_path.write_text(text.replace("    state: not_disclosed\n",
+                                               "    state: not_disclosed\n    state: known\n"))
+    refuses(data, "malformed")
+
+
+# --- the epoch is rule 15's, and a ruling stands only while it is the latest change -------------
+
+
+def test_a_ruling_block_cannot_choose_its_epoch():
+    attempt = _attempt(epoch="reread:" + "a" * 64)
+    ruling = _ruling(attempt, epoch="reread:" + "a" * 64)
+    # the block names the re-read epoch, but the fact is in ``initial`` by rule 15
+    assert _build(_ruled_fact(ruling), [ruling], [attempt]).fact(MID, FACET).state == "unknown"
+    # with the cited-change block that puts the fact in that epoch, the ruling stands
+    row = _ruled_fact(ruling)
+    row["derivation"]["cited_change"] = {"text_sha256": "a" * 64, "read_date": "2026-10-01"}
+    assert _build(row, [ruling], [attempt]).fact(MID, FACET).value == 262144
+
+
+def test_a_ruling_copied_back_after_a_later_change_does_not_stand():
+    attempt = _attempt()
+    ruling = _ruling(attempt)
+    later = {**_attempt(epoch="reread:" + "b" * 64), "agreed": True, "agreed_value": 300000,
+             "at": "2026-10-15T08:00:00+00:00",
+             "readers": _readers(300000, 300000)}
+    assert _build(_ruled_fact(ruling), [ruling], [attempt]).fact(MID, FACET).state == "known"
+    assert _build(_ruled_fact(ruling), [ruling], [attempt, later]).fact(MID, FACET).state \
+        == "unknown"
+    # a later ruling, in a later epoch, supersedes it too
+    second = {**_attempt(epoch="reread:" + "c" * 64), "at": "2026-10-16T08:00:00+00:00"}
+    newer = _ruling(second, epoch="reread:" + "c" * 64, value=300000, ruled_at="2026-10-17")
+    assert _build(_ruled_fact(ruling), [ruling, newer], [attempt, second]).fact(
+        MID, FACET).state == "unknown"
+
+
+# --- the build applies the filer's quarantine test to every value -------------------------------
+
+
+@pytest.mark.parametrize("value", [128000, 262144, 1])
+def test_the_build_keeps_out_a_ruled_fact_with_an_unresolved_verdict_on_any_value(value):
+    from tests.snapshot_records import verification
+
+    attempt = _attempt()
+    ruling = _ruling(attempt)
+    log = [verification("fact", f"{MID}#{FACET}", "mismatch", day="2026-10-14", value=value)]
+    assert _build(_ruled_fact(ruling), [ruling], [attempt], log).fact(MID, FACET).state \
+        == "unknown"
+    resolved = [*log, verification("fact", f"{MID}#{FACET}", "verified", day="2026-10-15",
+                                   value=value)]
+    assert _build(_ruled_fact(ruling), [ruling], [attempt], resolved).fact(MID, FACET).state \
+        == "known"
+
+
+# --- values compare exactly ----------------------------------------------------------------------
+
+
+def test_values_compare_exactly_with_their_types():
+    attempt = _attempt()
+    ruling = _ruling(attempt)
+    assert _build(_ruled_fact(ruling, value=262144.0), [ruling], [attempt]).fact(
+        MID, FACET).state == "unknown"
+    near = _ruling(attempt, value=262144.0000001)
+    assert _build(_ruled_fact(ruling, value=262144.0000001), [ruling | {"value": 262144}],
+                  [attempt]).fact(MID, FACET).state == "unknown"
+    assert ruling_problem(near, attempts=[attempt], sources={"src-cite": CITE}) is None
+
+
+# --- a ruling in a re-read epoch keeps the fact there; apply re-checks the logs -----------------
+
+
+def test_a_ruling_in_a_reread_epoch_keeps_the_reread_metadata(data):
+    from decision.cited_change import cited_change_block
+    from scripts import cited_offering as writer
+
+    writer.apply(cited_change(subject=SUBJECT, facet=RETENTION, source_id="data",
+                              readers=pair(30), request=serve()), data_dir=data.root)
+    epoch = fact_epoch(offering_fact(data))
+    assert epoch.startswith("reread:")
+    refused(_gate(subject=SUBJECT, facet=RETENTION, source_id="data",
+                  readers=[reader("codex", "openai", 45), reader("claude", "anthropic", 46)],
+                  request=serve(), allow_unchanged=False, epoch=epoch), "readers_disagree")
+    refuses(data, "no_disagreement")  # the initial epoch agreed: nothing to rule on there
+    file(data, epoch=epoch, value=45)
+    fact = offering_fact(data)
+    assert cited_change_block(fact) is not None and fact["derivation"]["owner_ruling"]["epoch"] \
+        == epoch
+    assert fact_epoch(fact) == epoch  # readers are not sent back to ``initial``
+    assert admits(fact, SUBJECT, rulings=rulings(data), attempts=attempts(data),
+                  sources=urls(data))
+    # and the epoch still blocks readers after the ruling
+    refused(_gate(subject=SUBJECT, facet=RETENTION, source_id="data", readers=pair(47),
+                  request=serve(), allow_unchanged=False, epoch=epoch), "prior_attempt_disagreed")
+
+
+def test_apply_rechecks_the_attempt_and_verification_logs(data):
+    disagree()
+    result = filer.plan(data_dir=data.root, **args())
+    with (data.root / ATTEMPTS_FILE).open("a") as handle:
+        handle.write(json.dumps({"subject": "other/x", "facet": RETENTION}) + "\n")
+    before = state(data)
+    with pytest.raises(filer.Refused) as caught:
+        filer.apply(result)
+    assert caught.value.reason == "changed_since_planning" and state(data) == before
+    result = filer.plan(data_dir=data.root, **args())
+    plant(data, FACT_ID, "mismatch", None)  # a verdict lands after planning
+    before = state(data)
+    with pytest.raises(filer.Refused) as caught:
+        filer.apply(result)
+    assert caught.value.reason == "changed_since_planning" and state(data) == before
 
 
 # --- gate integration ----------------------------------------------------------------------------
@@ -463,13 +636,14 @@ def _ruled_fact(ruling, **kw):
     return row
 
 
-def _build(row, rulings, attempts):
+def _build(row, rulings, attempts, log=()):
     from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
     from tests.snapshot_records import SOURCES, model
 
     inputs = SnapshotInputs(models=[model(MID, facts=[row])],
                             sources={**SOURCES, "src-cite": CITE},
-                            owner_rulings=list(rulings), cited_attempts=list(attempts))
+                            owner_rulings=list(rulings), cited_attempts=list(attempts),
+                            verifications=list(log))
     return load_built_snapshot(build_snapshot(inputs, as_of=date(2026, 10, 19)))
 
 
@@ -570,7 +744,8 @@ def test_a_card_fact_is_ruled_with_its_front_matter_and_body_kept(data):
     (data.root / CARD).write_text("---\n" + yaml.safe_dump(front, sort_keys=False) + "---\n" + body)
     log_attempt({"subject": CARD_SUBJECT, "facet": "model.context_window", "epoch": "initial",
                  "url": URL, "complete": True, "agreed": False, "agreed_value": None,
-                 "harness": True, "page_sha256": "7" * 64, "at": "2026-11-01T00:00:00+00:00",
+                 "harness": True, "page_sha256": "7" * 64, "prompt_sha256": "6" * 64,
+                 "at": "2026-11-01T00:00:00+00:00",
                  "readers": [{"reader_id": "a", "family": "openai", "version": "1", "value": 1},
                              {"reader_id": "b", "family": "anthropic", "version": "1",
                               "value": 2}]})
