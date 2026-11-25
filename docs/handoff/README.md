@@ -216,7 +216,11 @@ Learned expensively during 2026-09-09/10.
       one `text_config`). It abstains on any nested encoder or decoder subconfig that states a
       window, on a window at both levels, on RoPE scaling at the parent level, on a `rope_type`
       and a `type` that differ, and on any scaling other than a YaRN one that the stated window
-      already reflects.
+      already reflects. The convention (Jamie, 2026-11-25): `model.context_window` stores the
+      value the lab states, in prose or a spec table. A config field never overrides a stated
+      value and sets the value only when the lab states none. So the reader reads only when the
+      fact also cites that repository's README, the README was read, and no cited page states a
+      window in any form (`lab_states_context`).
     - `hf-readme-spec@1` reads it from README spec tables, bullets and HTML rows, under labels
       that mean context length only. "Max tokens", "max input tokens" and "max sequence length"
       are not read, and only exact token counts are: "256K" and "1M" are not, because decimal

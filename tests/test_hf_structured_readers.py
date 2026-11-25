@@ -41,9 +41,16 @@ def claim(field, value, url=README):
         unit=UNITS.get(field), label=field, state="known")
 
 
-def read(extractor, field, value, text, url):
+#: A README of the same repository that states no context window.
+SILENT_README = ("# Widget 7B\n\nA text model.\n", README)
+
+
+def read(extractor, field, value, text, url, bindings=(SILENT_README,)):
     c = claim(field, value, url)
-    readings = extractor.extract(c, text, page_url=url)
+    if isinstance(extractor, HFConfigContextExtractor):
+        readings = extractor.extract(c, text, page_url=url, bindings=list(bindings))
+    else:
+        readings = extractor.extract(c, text, page_url=url)
     return readings, (compare(c, readings) if readings else None)
 
 
@@ -116,6 +123,34 @@ def test_config_window_reads_the_text_tower_only():
         "text_config": {"max_position_embeddings": 262144, "num_attention_heads": 8},
         "vision_config": {"max_position_embeddings": 1024}}))
     assert hf_config_context_window(text) == 262144
+
+
+@pytest.mark.parametrize("page", [
+    "| **Context Length** | 256K |\n|---|---|\n",          # stated, even abbreviated
+    "| **Context Length** | 131072 |\n|---|---|\n",
+    "- Context window: 128k\n",
+    "Trained with a context length of 131,072 tokens.\n",
+    "It supports a 1M-token context window.\n",
+])
+def test_config_window_never_overrides_a_window_the_lab_states(page):
+    # Jamie, MODEL-558: the facet stores the lab's stated value; a config sets it only when the
+    # lab states none.
+    readings, _ = read(HFConfigContextExtractor(), "model.context_window", 131072,
+                       config(max_position_embeddings=131072), CONFIG, bindings=[(page, README)])
+    assert readings == []
+
+
+def test_config_window_needs_the_repositorys_readme_read_and_silent():
+    text = config(max_position_embeddings=131072)
+    assert read(HFConfigContextExtractor(), "model.context_window", 131072, text, CONFIG,
+                bindings=[])[0] == []
+    other = ("# Widget 7B\n", "https://huggingface.co/acme/Other-7B/resolve/main/README.md")
+    assert read(HFConfigContextExtractor(), "model.context_window", 131072, text, CONFIG,
+                bindings=[other])[0] == []
+    # A silent README of the repository, with a lab page elsewhere that states a window.
+    guide = ("The context window is 128k tokens.", "https://docs.acme.test/widget")
+    assert read(HFConfigContextExtractor(), "model.context_window", 131072, text, CONFIG,
+                bindings=[SILENT_README, guide])[0] == []
 
 
 def test_config_reader_is_bound_to_the_subjects_own_config():

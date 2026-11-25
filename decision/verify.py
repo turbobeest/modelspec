@@ -3844,8 +3844,30 @@ def _hf_config_url(url: str | None) -> bool:
         and parts[3] in {"raw", "resolve", "blob"} and parts[5] == "config.json"
 
 
+#: Prose that states a context window: "a context length of 262,144 tokens", "1M-token context".
+_CONTEXT_PROSE = re.compile(
+    r"(?i)\bcontext(?:[ -](?:length|window|size))?\b[^.\n|]{0,60}?\b\d[\d,.]*\s*"
+    r"(?:k\b|m\b|million\b|tokens?\b)"
+    r"|\b\d[\d,.]*\s*(?:k|m|million)?[- ]?tokens?\b[^.\n|]{0,30}?\bcontext\b"
+    r"|\b(?:one|two|four)[- ]million[- ]token\b[^.\n|]{0,30}?\bcontext\b")
+
+
+def lab_states_context(text: str, names: Sequence[str]) -> bool:
+    """Whether a lab page states a context window in any form: a spec cell under a context
+    label (abbreviated or not) or a prose statement. Broad on purpose: a stated value, however
+    written, is the value the facet stores (Jamie, MODEL-558)."""
+    return bool(hf_readme_context_cells(text, names)) or bool(_CONTEXT_PROSE.search(text))
+
+
 class HFConfigContextExtractor:
-    """``model.context_window`` from a retained ``config.json`` (``hf_config_context_window``)."""
+    """``model.context_window`` from a retained ``config.json`` (``hf_config_context_window``).
+
+    The convention (Jamie, 2026-11-25, MODEL-558): the facet stores the value the lab states,
+    in prose or a spec table. A config field never overrides a stated value; it may set the
+    value only when the lab states none. So this reader reads only when the claim also cites
+    the same repository's README, that README was read, and it states no context window
+    (``lab_states_context``). Otherwise it abstains.
+    """
 
     actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
                               method="hf-config-context@1")
@@ -3857,13 +3879,22 @@ class HFConfigContextExtractor:
     def accepts(self, text: str) -> bool:
         return _hf_config(text) is not None
 
-    def extract(self, claim: Claim, text: str, *, page_url: str | None = None) -> list[Reading]:
+    def extract(self, claim: Claim, text: str, *, page_url: str | None = None,
+                bindings: Sequence[tuple[str, str | None]] = ()) -> list[Reading]:
+        """``bindings`` are the claim's other cited pages as ``(text, url)``."""
         if not self.bound_to(claim, page_url):
             return []
         config = _hf_config(text)
         subject = _hf_bound_subject(claim, text, page_url)
         if config is None or subject is None:
             return []
+        repo = (_url_parts(page_url or "") or [])[1:3]
+        readmes = [page for page, url in bindings if _hf_readme_url(url)
+                   and [part.casefold() for part in (_url_parts(url or "") or [])[1:3]]
+                   == [part.casefold() for part in repo]]
+        if not readmes or any(lab_states_context(page, claim.names)
+                              for page, _ in bindings):
+            return []  # the lab's own statement, if any, is the value; none read, no reading
         window = hf_config_context_window(config)
         return [Reading(subject, str(window), claim.unit)] if window is not None else []
 
@@ -8393,6 +8424,12 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                         if not html:
                             raise ExtractorError("template drifted")
                         readings = extractor.extract(read_claim, html)
+                    elif isinstance(extractor, HFConfigContextExtractor):
+                        pages, page_urls = _binding_pages(
+                            claim, regions, source.source_id, region_id,
+                        )
+                        readings = extractor.extract(read_claim, read, page_url=source_url,
+                                                     bindings=list(zip(pages, page_urls)))
                     elif isinstance(extractor, (KeyValueExtractor, ModelPageExtractor,
                                                 *HF_STRUCTURED_READERS)):
                         readings = extractor.extract(read_claim, read, page_url=source_url)
