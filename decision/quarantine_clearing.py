@@ -303,8 +303,9 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
     the latest claim filed before it, in queue order, under that id and for the very value the
     verdict holds (``claim_binds``). A claim for another value under the same id never supplies
     the epoch: the verdict binds its own value, so the check that made it checked that value.
-    A claim the rule-15 gate filed (method ``two-readers-...``) put the record in the re-read epoch of the agreed harness attempt that read the copy it cites, logged
-    at or before the claim was filed and before the check, in the queue's time order
+    A claim the rule-15 gate filed (method ``two-readers-...``) put the record in the re-read
+    epoch of the agreed harness attempt that read the copy it cites, logged at or before the
+    claim was filed and before the check, in the queue's time order
     (``<first>:reread:<text hash>``; a fact's is ``reread:<text hash>``, as ``fact_epoch``); any
     other claim left it in its first epoch (``initial``, or a reading's settings epoch). A claim
     under an owner's ruling, a claim ``settings`` rejects (a reading's settings are not shown to
