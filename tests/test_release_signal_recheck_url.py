@@ -59,12 +59,15 @@ def service():
 class KV:
     def __init__(self) -> None:
         self.rows: dict[str, str] = {}
+        self.ttl: dict[str, int] = {}
 
     async def get(self, key: str) -> str | None:
         return self.rows.get(key)
 
-    async def put(self, key: str, value: str) -> None:
+    async def put(self, key: str, value: str, *, expiration_ttl: int | None = None) -> None:
         self.rows[key] = value
+        if expiration_ttl is not None:
+            self.ttl[key] = expiration_ttl
 
     async def delete(self, key: str) -> None:
         self.rows.pop(key, None)
@@ -208,9 +211,9 @@ class YieldingKV(KV):
         await asyncio.sleep(0)
         return value
 
-    async def put(self, key: str, value: str) -> None:
+    async def put(self, key: str, value: str, *, expiration_ttl: int | None = None) -> None:
         await self._write()
-        self.rows[key] = value
+        await super().put(key, value, expiration_ttl=expiration_ttl)
         await asyncio.sleep(0)
 
     async def delete(self, key: str) -> None:
@@ -299,6 +302,80 @@ def test_parallel_acknowledgements_never_resurrect_a_completed_recheck(
         assert await _due(service, kv, date(2026, 10, 26)) == {30: PR_URL}
         row = json.loads(kv.rows[f"{service.RECHECK_PREFIX}2026-10-26/{SIGNAL_ID}"])
         assert (row["day"], row["due"], row["pr_url"]) == (30, "2026-10-26", PR_URL)
+
+    asyncio.run(scenario())
+
+
+class InterleavingKV(KV):
+    """Completes one re-check row right after another acknowledgement first reads it.
+
+    Every put to a re-check row whose done marker already exists is recorded:
+    that put brought a completed row back, however briefly.
+    """
+
+    def __init__(self, service, watched: str, complete) -> None:
+        super().__init__()
+        self.service, self.watched, self.complete = service, watched, complete
+        self.armed = False
+        self.resurrected: list[str] = []
+
+    async def get(self, key: str) -> str | None:
+        value = self.rows.get(key)
+        if self.armed and key == self.watched:
+            self.armed = False
+            await self.complete(self)
+        return value
+
+    async def put(self, key: str, value: str, *, expiration_ttl: int | None = None) -> None:
+        prefix = self.service.RECHECK_PREFIX
+        if key.startswith(prefix) and (
+            self.service.RECHECK_DONE_PREFIX + key.removeprefix(prefix)
+        ) in self.rows:
+            self.resurrected.append(key)
+        await super().put(key, value, expiration_ttl=expiration_ttl)
+
+
+def test_a_parallel_ack_that_completes_a_row_after_the_first_read_never_rewrites_it(
+    service,
+) -> None:
+    async def complete_day_seven(kv: KV) -> None:
+        done = await _ack(service, kv, date(2026, 10, 3), **_day(7, "2026-10-03", ISSUE_URL))
+        assert done.status == 200
+
+    async def scenario() -> None:
+        kv = InterleavingKV(
+            service, f"{service.RECHECK_PREFIX}2026-10-03/{SIGNAL_ID}", complete_day_seven,
+        )
+        await _seeded(service, kv)
+        kv.armed = True
+        relinked = await _ack(service, kv, date(2026, 10, 3), **_day(1, "2026-09-27"))
+        assert relinked.status == 200
+        assert not kv.armed
+        assert kv.resurrected == []
+        assert await _due(service, kv, date(2026, 10, 26)) == {30: PR_URL}
+
+    asyncio.run(scenario())
+
+
+def test_done_markers_expire_45_days_after_the_last_recheck(service) -> None:
+    async def scenario() -> None:
+        kv = await _seeded(service, KV())
+        day = 24 * 60 * 60
+        for recheck_day, due, today in (
+            (1, "2026-09-27", date(2026, 9, 27)),
+            (7, "2026-10-03", date(2026, 10, 5)),
+            (30, "2026-10-26", date(2026, 10, 26)),
+        ):
+            await _ack(service, kv, today, **_day(recheck_day, due))
+            marker = f"{service.RECHECK_DONE_PREFIX}{due}/{SIGNAL_ID}"
+            # First acknowledgement 2026-09-26; day 30 is 2026-10-26; keep to 2026-12-10.
+            assert kv.ttl[marker] == (date(2026, 12, 10) - today).days * day
+        assert kv.ttl[f"{service.RECHECK_DONE_PREFIX}2026-09-27/{SIGNAL_ID}"] == 74 * day
+        # A very late acknowledgement still keeps its marker for 45 days.
+        late = await _seeded(service, KV())
+        await _ack(service, late, date(2027, 3, 1), **_day(1, "2026-09-27"))
+        assert late.ttl[f"{service.RECHECK_DONE_PREFIX}2026-09-27/{SIGNAL_ID}"] == 45 * day
+        assert not [key for key in kv.ttl if key.startswith(service.RECHECK_PREFIX)]
 
     asyncio.run(scenario())
 

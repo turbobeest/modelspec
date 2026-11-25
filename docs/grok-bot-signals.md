@@ -159,7 +159,8 @@ The hourly workflow uses two endpoints that require
   re-check updates that pull request instead of drafting the model again
   (MODEL-475). A re-check that reports no pull request keeps the stored URL.
   The rows move before the acknowledged one is removed, and a retried
-  acknowledgement of a completed re-check is a no-op success.
+  acknowledgement of a completed re-check is a no-op success. Its done
+  marker expires 45 days after the signal's day-30 re-check.
 
 These endpoints are for the repository workflow. Grok Bot cannot read or
 acknowledge the queue.

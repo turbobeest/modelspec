@@ -36,6 +36,9 @@ RECHECK_PREFIX = "release-signals/v1/recheck/"
 #: Written before the row is deleted. It makes a retried acknowledgement a no-op
 #: success, and it lets a concurrent relink undo a put that landed on a deleted row.
 RECHECK_DONE_PREFIX = "release-signals/v1/recheck-done/"
+#: A done marker outlives the signal's last re-check by 45 days: 75 days from the
+#: first acknowledgement, so KV does not grow without limit (MODEL-475).
+RECHECK_DONE_KEEP_AFTER_LAST = timedelta(days=45)
 MAX_AGE = timedelta(hours=24)
 MAX_FUTURE_SKEW = timedelta(minutes=5)
 MAX_BODY_BYTES = 4096
@@ -289,6 +292,19 @@ async def pending(
     })
 
 
+def _done_marker_ttl(row: dict[str, Any], recheck_due: str, today: date) -> int:
+    """Seconds until 45 days after the signal's day-30 re-check, never less than 45 days."""
+    day, due = row.get("day"), row.get("due") or recheck_due
+    try:
+        first = date.fromisoformat(str(due)) - timedelta(
+            days=day if not isinstance(day, bool) and day in RECHECK_DAYS else 0
+        )
+    except ValueError:
+        first = today
+    expires = first + timedelta(days=RECHECK_DAYS[-1]) + RECHECK_DONE_KEEP_AFTER_LAST
+    return int(max(expires - today, RECHECK_DONE_KEEP_AFTER_LAST).total_seconds())
+
+
 async def _relink_rechecks(
     kv: Any, signal_id: str, pr_url: object, *, acknowledged_key: str,
 ) -> None:
@@ -406,6 +422,7 @@ async def acknowledge(
         await _relink_rechecks(kv, signal_id, payload.get("pr_url"), acknowledged_key=recheck_key)
         await kv.put(
             RECHECK_DONE_PREFIX + recheck_key.removeprefix(RECHECK_PREFIX), today.isoformat(),
+            expiration_ttl=_done_marker_ttl(json.loads(str(recheck)), recheck_due, today),
         )
         await kv.delete(recheck_key)
     return Outcome(200, {
