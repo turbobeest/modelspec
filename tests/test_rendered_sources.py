@@ -235,3 +235,29 @@ def test_a_named_preparation_wins_and_page_regions_need_no_wait():
         is RENDERED_PREPARATIONS["aws-pricing"]
     assert rendered_preparation(["plain"], sources) is None
     assert rendered_preparation(["unregistered"], sources) is None
+
+
+# --- MODEL-565: the start host is checked before a page is opened -----------------------------
+
+
+@pytest.mark.parametrize(("terms", "expected"), [
+    ('{"other.example": "permits"}', "redirect_unclassified:aws.amazon.com"),
+    ("not json", "terms_register_unreadable"),
+])
+def test_rendered_fetch_refuses_the_start_host_before_opening_a_page(tmp_path, monkeypatch,
+                                                                      terms, expected):
+    from decision.retention import cite_only_hosts
+
+    (tmp_path / "registry").mkdir()
+    (tmp_path / "registry" / "source-terms.json").write_text(terms)
+    (tmp_path / "registry" / "sources.yaml").write_text(
+        '{"schema_version": 1, "sources": [{"url": "https://aws.amazon.com/bedrock/pricing/"}]}')
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))
+    cite_only_hosts.cache_clear()
+    renderer = RenderedFetcher()
+    renderer._context = SimpleNamespace(new_page=lambda: pytest.fail("a page was opened"))
+    try:
+        result = renderer.fetch("https://aws.amazon.com/bedrock/pricing/")
+    finally:
+        cite_only_hosts.cache_clear()
+    assert (result.outcome, result.error) == ("unreachable", expected)
