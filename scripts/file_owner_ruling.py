@@ -49,11 +49,13 @@ from decision.cited_change import VERIFICATION_LOG, LookupFailed, _facet, held_v
 from decision.cited_reader import ATTEMPTS_FILE
 from decision.model import DETERMINISTIC, SourceRef, TargetRef, VerificationActor
 from decision.owner_ruling import (
+    AGENT,
     FIELDS,
     RULE,
     RULINGS_FILE,
     admits,
     attempt_id,
+    cited_change_logged,
     disagreed,
     fact_epoch,
     loads,
@@ -63,7 +65,6 @@ from decision.owner_ruling import (
 from decision.verify import Claim
 from scripts.refile_mixed_citations import QUEUE, canonical, event_target, event_time, write_atomic
 
-AGENT = "owner-ruling"
 #: Every named refusal.
 REFUSALS = (
     "registry_lookup_failed", "unknown_facet", "malformed", "not_owner", "no_ticket",
@@ -285,6 +286,9 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
     if same_key and (len(same_key) > 1 or canonical(same_key[0]) != canonical(ruling)):
         raise Refused("duplicate_ruling", f"{len(same_key)} ruling(s) are filed for this "
                       "subject, facet and epoch already")
+    if not cited_change_logged(found.fact, subject, attempts):
+        raise Refused("epoch_not_current", "the fact's cited-change block is not one the "
+                      "attempt log shows the gate made, so it names no epoch")
     if fact_epoch(found.fact) != epoch:
         raise Refused("epoch_not_current", "the fact is in another epoch than the ruling's")
     from decision.retention import cite_only_status
@@ -334,9 +338,12 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
             facet=facet, fact=fact, expect=found.fact).encode("utf-8")
     if result.done:
         raise Refused("duplicate_ruling", "this ruling is filed and applied already")
+    # After the write the fact's latest claim is the planned one (or, on a rerun, the one filed).
+    filed_claim = claim.to_dict() if result.queue_lines else latest
     if not admits(_plain(fact), subject,
                   rulings=[*filed, ruling] if not resuming else filed, attempts=attempts,
-                  sources=urls, verdicts=verdicts, today=now.date()):
+                  sources=urls, verdicts=verdicts, claims={location: filed_claim},
+                  today=now.date()):
         raise Refused("malformed", "the fact as planned would not stand on its ruling")
     return result
 

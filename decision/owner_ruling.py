@@ -46,6 +46,8 @@ from typing import Any
 OWNERS = frozenset({"jamie"})
 RULINGS_FILE = "verification/owner-rulings.jsonl"
 RULE = "owner-ruling@1"
+#: The collector that files a ruling's claim (``scripts/file_owner_ruling.py``).
+AGENT = "owner-ruling"
 #: Exactly the fields of a ruling line.
 FIELDS = ("subject", "facet", "epoch", "value", "state", "ruled_by", "ruled_at", "ticket",
           "source_ids", "resolves", "basis")
@@ -147,35 +149,76 @@ def fact_epoch(fact: Mapping[str, Any]) -> str:
     return rule_15_epoch(fact)
 
 
-def _latest(entries: Sequence[Mapping[str, Any]]) -> datetime | None:
-    times = [t for t in (_at(e) for e in entries) if t is not None]
-    return max(times) if times else None
+def cited_change_logged(fact: Mapping[str, Any], subject: str,
+                        attempts: Sequence[Mapping[str, Any]]) -> bool:
+    """Whether the fact's cited-change block (which names its re-read epoch) is one the gate
+    made: a complete agreed harness attempt for this subject and facet read the page the block
+    records (``page_sha256`` equals its ``sha256``) with the prompt each recorded reader was
+    sent. A fact with no such block is in ``initial`` and passes. A fabricated block cannot
+    choose the epoch a ruling is checked in."""
+    from decision.cited_change import cited_change_block
 
-
-def superseded(ruling: Mapping[str, Any], *, attempts: Sequence[Mapping[str, Any]],
-               rulings: Sequence[Mapping[str, Any]]) -> bool:
-    """Whether a later change for the same subject and facet replaced the ruling: a complete
-    agreed harness attempt in another epoch, or another ruling, made after the attempts this
-    ruling resolves. A ruling stands only while it is the latest change, so a ruling copied
-    back over a later change does not."""
-    mine = _latest(list(resolved_attempts(ruling, attempts).values()))
-    if mine is None:
+    block = cited_change_block(fact)
+    if block is None:
         return True
-    pair = (ruling.get("subject"), ruling.get("facet"))
-    for entry in attempts:
-        at = _at(entry)
-        if (entry.get("subject"), entry.get("facet")) == pair and at is not None and at > mine \
-                and entry.get("epoch") != ruling.get("epoch") and entry.get("complete") is True \
-                and entry.get("agreed") is True and entry.get("harness") is True:
-            return True
-    for other in rulings:
-        if _exact(dict(other)) == _exact(dict(ruling)) \
-                or (other.get("subject"), other.get("facet")) != pair:
-            continue
-        theirs = _latest(list(resolved_attempts(other, attempts).values()))
-        if theirs is not None and theirs > mine:
-            return True
-    return False
+    readers = block.get("readers")
+    if not isinstance(readers, list) or not readers \
+            or not all(isinstance(r, Mapping) for r in readers):
+        return False
+    prompts = {r.get("prompt_sha256") for r in readers}
+    return any(
+        (a.get("subject"), a.get("facet")) == (subject, fact.get("facet"))
+        and a.get("complete") is True and a.get("agreed") is True and a.get("harness") is True
+        and _HEX.fullmatch(str(a.get("page_sha256") or ""))
+        and a.get("page_sha256") == block.get("sha256") and prompts == {a.get("prompt_sha256")}
+        for a in attempts)
+
+
+def latest_ruling_claims(events_path: Path) -> dict[str, dict[str, Any]]:
+    """``fact id -> claim`` for each fact whose latest filed claim (the latest ``collected``
+    event in the queue, ordered as ``decision.verify.Queue``: by time, no zone means UTC, a
+    later line on a tie) was filed by the owner-ruling filer. Any later admitted change files
+    a later claim, so a fact absent here has no standing ruling."""
+    if not events_path.is_file():
+        return {}
+    collected = []
+    with events_path.open(encoding="utf-8") as handle:
+        for line in handle:
+            if '"collected"' not in line:
+                continue
+            event = json.loads(line)
+            claim = event.get("claim") if event.get("event") == "collected" else None
+            target = claim.get("target") if isinstance(claim, dict) else None
+            if isinstance(target, dict) and target.get("kind") == "fact" and target.get("id"):
+                collected.append((_event_time(event), event))
+    latest: dict[str, dict[str, Any]] = {}
+    for _, event in sorted(collected, key=lambda item: item[0]):  # stable on ties
+        latest[event["claim"]["target"]["id"]] = event["claim"]
+    return {fid: claim for fid, claim in latest.items()
+            if (claim.get("collector") or {}).get("agent") == AGENT}
+
+
+def _event_time(event: Mapping[str, Any]) -> datetime:
+    at = datetime.fromisoformat(str(event["at"]).replace("Z", "+00:00"))
+    return at if at.tzinfo is not None else at.replace(tzinfo=UTC)
+
+
+def is_latest_change(ruling: Mapping[str, Any], claim: Mapping[str, Any] | None,
+                     copies: Mapping[str, tuple[str, str]]) -> bool:
+    """Whether the fact's latest filed claim is this ruling's own: filed by the owner-ruling
+    filer under its rule, with the ruling's value and state and the copies its resolved
+    attempts read. Only an admitted change files a claim, so an agreed read that the gate
+    then refused supersedes nothing, while an applied change, or a later ruling, does; a
+    ruling copied back over it does not stand."""
+    if not isinstance(claim, Mapping):
+        return False
+    collector = claim.get("collector") or {}
+    refs = {(str(r.get("source_id")), str(r.get("snapshot_ref")))
+            for r in claim.get("sources") or () if isinstance(r, Mapping)}
+    return (collector.get("agent") == AGENT and collector.get("method") == RULE
+            and _exact(claim.get("value")) == _exact(ruling["value"])
+            and claim.get("state") == ruling["state"]
+            and refs == {(sid, copy[0]) for sid, copy in copies.items()})
 
 
 def resolved_attempts(ruling: Mapping[str, Any],
@@ -294,13 +337,16 @@ def ruling_problem(ruling: Any, *, attempts: Sequence[Mapping[str, Any]],
 def admits(fact: Mapping[str, Any], subject: str, *, rulings: Sequence[Mapping[str, Any]],
            attempts: Sequence[Mapping[str, Any]], sources: Mapping[str, str],
            verdicts: Mapping[tuple[str, str, str], Any] | None = None,
+           claims: Mapping[str, Mapping[str, Any]] | None = None,
            today: date | None = None) -> bool:
     """Whether a fact carrying ``derivation.owner_ruling`` stands on a valid ruling.
 
     ``subject`` is the fact's owner as the build places it (the card's model id, or the
     offering row's own id), never the fact's stored subject. Exactly one ruling line is
-    for this subject, facet and the fact's epoch (rule 15's, never the block's); the block
-    is that line; the ruling is valid and the latest change (``superseded``); the fact's
+    for this subject, facet and the fact's epoch (rule 15's, never the block's, from a
+    cited-change block the attempt log shows the gate made: ``cited_change_logged``); the
+    block is that line; the ruling is valid and the latest admitted change (its claim is the
+    fact's latest, ``is_latest_change``; ``claims`` is ``latest_ruling_claims``); the fact's
     stored id (when any) is its location id; its value and state are exactly the ruling's;
     it cites exactly the ruling's sources, each at the copy its resolved attempt read; and,
     as the filer refuses, no value of the fact holds an unresolved mismatch or unreachable
@@ -319,6 +365,8 @@ def admits(fact: Mapping[str, Any], subject: str, *, rulings: Sequence[Mapping[s
     if (stored is not None and stored != f"{subject}#{facet}") \
             or (stored_subject is not None and stored_subject != subject):
         return False
+    if not cited_change_logged(fact, subject, attempts):
+        return False
     key = (subject, facet, fact_epoch(fact))
     lines = [r for r in rulings if (r.get("subject"), r.get("facet"), r.get("epoch")) == key]
     if len(lines) != 1:
@@ -327,8 +375,6 @@ def admits(fact: Mapping[str, Any], subject: str, *, rulings: Sequence[Mapping[s
     if _exact(dict(block)) != _exact(dict(ruling)):
         return False
     if ruling_problem(ruling, attempts=attempts, sources=sources, today=today) is not None:
-        return False
-    if superseded(ruling, attempts=attempts, rulings=rulings):
         return False
     if fact.get("state") != ruling["state"] or _exact(fact.get("value")) != _exact(ruling["value"]):
         return False
@@ -339,6 +385,8 @@ def admits(fact: Mapping[str, Any], subject: str, *, rulings: Sequence[Mapping[s
     except (KeyError, TypeError, AttributeError):
         return False
     copies = source_copies(ruling, attempts, sources)
+    if not is_latest_change(ruling, (claims or {}).get(f"{subject}#{facet}"), copies):
+        return False
     refs = [r for r in fact.get("sources") or () if isinstance(r, Mapping)]
     if sorted(str(r.get("source_id")) for r in refs) != sorted(ruling["source_ids"]) \
             or set(copies) != set(ruling["source_ids"]):

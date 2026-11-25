@@ -114,6 +114,12 @@ def attempts(data):
     return data.log()
 
 
+def claims(data):
+    from decision.owner_ruling import latest_ruling_claims
+
+    return latest_ruling_claims(data.root / "verification/queue/events.jsonl")
+
+
 # --- the filer, when every condition holds -------------------------------------------------------
 
 
@@ -144,7 +150,8 @@ def test_a_ruling_files_the_line_the_claim_and_the_fact_from_one_reference(data)
     assert fact_epoch(fact) == "initial"
     # no verification record and no attempt are written
     assert not (data.root / "verification/log.jsonl").exists() and len(attempts(data)) == 1
-    assert admits(fact, SUBJECT, rulings=rulings(data), attempts=attempts(data), sources=urls(data))
+    assert admits(fact, SUBJECT, rulings=rulings(data), attempts=attempts(data),
+                  sources=urls(data), claims=claims(data))
 
 
 def test_a_not_disclosed_ruling_and_the_soc2_kind(data):
@@ -243,7 +250,8 @@ def test_a_ruling_for_subject_a_is_not_a_ruling_for_subject_b(data):
     # the build: A's ruled fact copied onto B, or moved there with A's stored id, admits nothing
     file(data)
     ruled = offering_fact(data)
-    keep = dict(rulings=rulings(data), attempts=attempts(data), sources=urls(data))
+    keep = dict(rulings=rulings(data), attempts=attempts(data), sources=urls(data),
+                claims=claims(data))
     assert admits(ruled, SUBJECT, **keep)
     copied = {**ruled, "id": f"{OTHER_SUBJECT}#{RETENTION}",
               "subject": {"kind": "offering", "id": OTHER_SUBJECT}}
@@ -264,7 +272,8 @@ def test_a_ruled_fact_under_a_renamed_id_is_not_admitted(data):
     disagree()
     file(data)
     ruled = offering_fact(data)
-    keep = dict(rulings=rulings(data), attempts=attempts(data), sources=urls(data))
+    keep = dict(rulings=rulings(data), attempts=attempts(data), sources=urls(data),
+                claims=claims(data))
     assert not admits({**ruled, "id": f"{SUBJECT}#renamed"}, SUBJECT, **keep)
     assert not admits({**ruled, "facet": SOC2}, SUBJECT, **keep)
 
@@ -273,7 +282,7 @@ def test_a_hand_added_value_with_no_ruling_line_is_not_admitted(data):
     disagree()
     file(data)
     ruled = offering_fact(data)
-    keep = dict(attempts=attempts(data), sources=urls(data))
+    keep = dict(attempts=attempts(data), sources=urls(data), claims=claims(data))
     assert not admits(ruled, SUBJECT, rulings=[], **keep)  # block, no line
     assert not admits({**ruled, "value": 31}, SUBJECT, rulings=rulings(data), **keep)
     assert not admits({**ruled, "state": "not_disclosed", "value": None}, SUBJECT,
@@ -285,7 +294,8 @@ def test_a_hand_added_value_with_no_ruling_line_is_not_admitted(data):
     assert not admits(edited, SUBJECT, rulings=rulings(data), **keep)
     # a ruling line added by hand that resolves no logged attempt is no ruling
     forged = {**rulings(data)[0], "resolves": ["sha256:" + "c" * 64]}
-    assert ruling_problem(forged, **keep)[0] == "no_disagreement"
+    assert ruling_problem(forged, attempts=keep["attempts"], sources=keep["sources"])[0] \
+        == "no_disagreement"
     # a hand-edited source copy is not the copy the readers read
     moved = json.loads(json.dumps(ruled))
     moved["sources"][0]["snapshot_ref"] = "sha256:" + "d" * 64
@@ -299,7 +309,7 @@ def test_a_duplicate_ruling_is_refused(data):
     refuses(data, "duplicate_ruling", value=31)  # another ruling on the same key
     # two lines for one key admit neither
     line = rulings(data)[0]
-    keep = dict(attempts=attempts(data), sources=urls(data))
+    keep = dict(attempts=attempts(data), sources=urls(data), claims=claims(data))
     assert not admits(offering_fact(data), SUBJECT, rulings=[line, line], **keep)
 
 
@@ -474,31 +484,118 @@ def test_the_filer_refuses_a_repeated_key_in_the_rulings_attempts_or_fact_file(d
 # --- the epoch is rule 15's, and a ruling stands only while it is the latest change -------------
 
 
+REREAD = "reread:" + "a" * 64
+
+
+def _change_attempt(page="3" * 64, prompt="4" * 64):
+    """The agreed harness attempt that made a cited change, as the gate logs it."""
+    return {**_attempt(), "agreed": True, "agreed_value": 128000, "page_sha256": page,
+            "prompt_sha256": prompt, "at": "2026-10-01T08:00:00+00:00",
+            "readers": _readers(128000, 128000)}
+
+
+def _change_block(page="3" * 64, prompt="4" * 64):
+    return {"rule": "two-readers-cited-change@3", "sha256": page, "text_sha256": "a" * 64,
+            "read_date": "2026-10-01", "previous_value": 1, "url": CITE,
+            "readers": [{"reader_id": "a", "family": "openai", "version": "1", "value": 128000,
+                         "prompt_sha256": prompt, "manifest": {"fields": ["url"]}},
+                        {"reader_id": "b", "family": "anthropic", "version": "1",
+                         "value": 128000, "prompt_sha256": prompt, "manifest": {}}]}
+
+
 def test_a_ruling_block_cannot_choose_its_epoch():
-    attempt = _attempt(epoch="reread:" + "a" * 64)
-    ruling = _ruling(attempt, epoch="reread:" + "a" * 64)
+    attempt = _attempt(epoch=REREAD)
+    ruling = _ruling(attempt, epoch=REREAD)
     # the block names the re-read epoch, but the fact is in ``initial`` by rule 15
     assert _build(_ruled_fact(ruling), [ruling], [attempt]).fact(MID, FACET).state == "unknown"
-    # with the cited-change block that puts the fact in that epoch, the ruling stands
+
+
+@pytest.mark.parametrize("fake", [
+    {}, {"page": "9" * 64}, {"prompt": "5" * 64},
+])
+def test_a_fabricated_cited_change_block_does_not_choose_the_epoch(fake):
+    """``text_sha256`` names the epoch only on a block the attempt log shows the gate made."""
+    attempt = _attempt(epoch=REREAD)
+    ruling = _ruling(attempt, epoch=REREAD)
     row = _ruled_fact(ruling)
-    row["derivation"]["cited_change"] = {"text_sha256": "a" * 64, "read_date": "2026-10-01"}
-    assert _build(row, [ruling], [attempt]).fact(MID, FACET).value == 262144
+    row["derivation"]["cited_change"] = _change_block(**fake)
+    logged = [] if not fake else [_change_attempt()]
+    assert _build(row, [ruling], [attempt, *logged]).fact(MID, FACET).state == "unknown"
+    # the block the gate made, with its agreed attempt logged, puts the fact in that epoch
+    row["derivation"]["cited_change"] = _change_block()
+    assert _build(row, [ruling], [attempt, _change_attempt()]).fact(MID, FACET).value == 262144
 
 
-def test_a_ruling_copied_back_after_a_later_change_does_not_stand():
+def test_the_filer_refuses_a_fabricated_cited_change_block(data):
+    data.fact(derivation={"cited_change": {"sha256": "9" * 64, "text_sha256": "a" * 64,
+                                           "readers": [{"prompt_sha256": "1" * 64}]}})
+    refused(_gate(subject=SUBJECT, facet=RETENTION, source_id="data",
+                  readers=pair(30, "unbounded"), request=serve(), allow_unchanged=False,
+                  epoch="reread:" + "a" * 64), "readers_disagree")
+    refuses(data, "epoch_not_current", epoch="reread:" + "a" * 64)
+
+
+def test_a_record_of_a_ruled_reread_fact_is_that_of_a_plain_cited_fact():
+    """Nothing the ruling or the kept cited-change block holds is served."""
+    attempt = _attempt(epoch=REREAD)
+    ruling = _ruling(attempt, epoch=REREAD)
+    row = _ruled_fact(ruling)
+    row["derivation"]["cited_change"] = _change_block()
+    ruled = _build(row, [ruling], [attempt, _change_attempt()])
+    plain_row = {k: v for k, v in row.items() if k != "derivation"}
+    plain = _build(plain_row, [], [])
+    a, b = ruled.fact(MID, FACET), plain.fact(MID, FACET)
+    assert (a.state, a.value) == (b.state, b.value) == ("known", 262144)
+    assert dict(ruled.record(a.record_id)) == dict(plain.record(b.record_id))
+    served = json.dumps(dict(ruled.record(a.record_id)))
+    assert "derivation" not in served and "prompt_sha256" not in served
+
+
+def test_an_agreed_attempt_the_gate_refused_does_not_supersede_a_ruling(data):
+    disagree()
+    file(data)
+    # a later agreed read in a new epoch that the gate refuses (the value is the ruled one)
+    refused(_gate(subject=SUBJECT, facet=RETENTION, source_id="data", readers=pair(30),
+                  request=serve(), allow_unchanged=False, epoch="reread:" + "d" * 64),
+            "value_unchanged")
+    assert attempts(data)[-1]["agreed"] is True
+    assert admits(offering_fact(data), SUBJECT, rulings=rulings(data), attempts=attempts(data),
+                  sources=urls(data), claims=claims(data))
+
+
+def test_a_ruling_copied_back_after_an_admitted_change_does_not_stand(data):
+    from scripts import cited_offering as writer
+
+    disagree()
+    file(data)
+    ruled_text = data.offering_path.read_text()
+    ruled = offering_fact(data)
+    # an admitted change in a new epoch: it passed the gate and was applied, with its claim
+    out = _gate(subject=SUBJECT, facet=RETENTION, source_id="data", readers=pair(45),
+                request=serve(), allow_unchanged=False, epoch="reread:" + "e" * 64)
+    writer.apply(out, data_dir=data.root)
+    assert offering_fact(data)["value"] == 45
+    data.offering_path.write_text(ruled_text)  # the ruled fact copied back by hand
+    keep = dict(rulings=rulings(data), attempts=attempts(data), sources=urls(data))
+    assert not admits(offering_fact(data), SUBJECT, claims=claims(data), **keep)
+    assert admits(ruled, SUBJECT, claims={FACT_ID: _filed_ruling_claim(data)}, **keep)
+
+
+def _filed_ruling_claim(data):
+    return next(e["claim"] for e in data.events() if e["event"] == "collected"
+                and e["claim"]["collector"]["agent"] == "owner-ruling")
+
+
+def test_a_later_ruling_supersedes_an_earlier_one():
     attempt = _attempt()
     ruling = _ruling(attempt)
-    later = {**_attempt(epoch="reread:" + "b" * 64), "agreed": True, "agreed_value": 300000,
-             "at": "2026-10-15T08:00:00+00:00",
-             "readers": _readers(300000, 300000)}
-    assert _build(_ruled_fact(ruling), [ruling], [attempt]).fact(MID, FACET).state == "known"
-    assert _build(_ruled_fact(ruling), [ruling], [attempt, later]).fact(MID, FACET).state \
-        == "unknown"
-    # a later ruling, in a later epoch, supersedes it too
     second = {**_attempt(epoch="reread:" + "c" * 64), "at": "2026-10-16T08:00:00+00:00"}
     newer = _ruling(second, epoch="reread:" + "c" * 64, value=300000, ruled_at="2026-10-17")
+    # the fact's latest claim is the newer ruling's, so the earlier one copied back fails
+    assert _build(_ruled_fact(ruling), [ruling, newer], [attempt, second],
+                  claims={f"{MID}#{FACET}": _claim(newer)}).fact(MID, FACET).state == "unknown"
     assert _build(_ruled_fact(ruling), [ruling, newer], [attempt, second]).fact(
-        MID, FACET).state == "unknown"
+        MID, FACET).value == 262144  # while its own claim is the latest, it stands
 
 
 # --- the build applies the filer's quarantine test to every value -------------------------------
@@ -554,7 +651,7 @@ def test_a_ruling_in_a_reread_epoch_keeps_the_reread_metadata(data):
         == epoch
     assert fact_epoch(fact) == epoch  # readers are not sent back to ``initial``
     assert admits(fact, SUBJECT, rulings=rulings(data), attempts=attempts(data),
-                  sources=urls(data))
+                  sources=urls(data), claims=claims(data))
     # and the epoch still blocks readers after the ruling
     refused(_gate(subject=SUBJECT, facet=RETENTION, source_id="data", readers=pair(47),
                   request=serve(), allow_unchanged=False, epoch=epoch), "prior_attempt_disagreed")
@@ -636,14 +733,28 @@ def _ruled_fact(ruling, **kw):
     return row
 
 
-def _build(row, rulings, attempts, log=()):
+def _claim(ruling):
+    """The claim the filer files for a ruling, as the queue holds it."""
+    return {"target": {"kind": "fact", "id": f"{MID}#{FACET}"}, "subject": MID,
+            "field": FACET, "value": ruling["value"], "state": ruling["state"],
+            "collector": {"agent": "owner-ruling", "model_family": "deterministic",
+                          "method": "owner-ruling@1"},
+            "sources": [{"source_id": "src-cite", "snapshot_ref": f"sha256:{PAGE_SHA}",
+                         "cited_regions": ["page"], "retrieved_at": AT}]}
+
+
+def _build(row, rulings, attempts, log=(), claims=None):
+    """By default the fact's latest claim is its own ruling block's, as after a filing."""
     from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
     from tests.snapshot_records import SOURCES, model
 
+    block = (row.get("derivation") or {}).get("owner_ruling")
+    if claims is None:
+        claims = {f"{MID}#{FACET}": _claim(block)} if block else {}
     inputs = SnapshotInputs(models=[model(MID, facts=[row])],
                             sources={**SOURCES, "src-cite": CITE},
                             owner_rulings=list(rulings), cited_attempts=list(attempts),
-                            verifications=list(log))
+                            verifications=list(log), owner_ruling_claims=claims)
     return load_built_snapshot(build_snapshot(inputs, as_of=date(2026, 10, 19)))
 
 
