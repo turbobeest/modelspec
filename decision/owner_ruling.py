@@ -49,6 +49,10 @@ RULINGS_FILE = "verification/owner-rulings.jsonl"
 RULE = "owner-ruling@1"
 #: The collector that files a ruling's claim (``scripts/file_owner_ruling.py``).
 AGENT = "owner-ruling"
+#: ``derivation`` key beside ``owner_ruling``: the fact as it stood before the ruling (value,
+#: state, sources, checked sources), so a build as of an earlier day serves what was true then.
+PREVIOUS = "owner_ruling_previous"
+_PREVIOUS_KEYS = ("value", "state", "sources", "checked_sources")
 #: Exactly the fields of a ruling line.
 FIELDS = ("subject", "facet", "epoch", "value", "state", "ruled_by", "ruled_at", "ticket",
           "source_ids", "resolves", "basis")
@@ -404,6 +408,40 @@ def admits(fact: Mapping[str, Any], subject: str, *, rulings: Sequence[Mapping[s
 
 
 # --- one admission and one served form, for the snapshot and the site ----------------------------
+
+
+def ruling_cutoff(as_of: date | None = None) -> date:
+    """The last day whose rulings a build may know: ``as_of``, never later than the UTC day."""
+    today = datetime.now(UTC).date()
+    return min(as_of, today) if as_of is not None else today
+
+
+def as_of_fact(fact: Mapping[str, Any], cutoff: date) -> Mapping[str, Any] | None:
+    """The fact as a build that knows rulings up to ``cutoff`` may see it, for the snapshot and
+    the site alike. A fact that claims no ruling, or a ruling dated on or before ``cutoff`` (or
+    not dated at all: admission refuses that), is returned as it is. A fact whose ruling is
+    dated later stands as it did before the ruling, as if the line did not exist yet: its
+    recorded earlier value, state and sources (``derivation.owner_ruling_previous``), with no
+    ruling block; with no such record it is withheld (``None``). Later knowledge never enters
+    an earlier snapshot."""
+    if not has_ruling(fact):
+        return fact
+    block = ruling_block(fact)
+    day = _day(block.get("ruled_at")) if block is not None else None
+    if day is None or day <= cutoff:
+        return fact
+    derivation = fact["derivation"]
+    previous = derivation.get(PREVIOUS)
+    if not isinstance(previous, Mapping) or not {"value", "state", "sources"} <= set(previous) \
+            or set(previous) - set(_PREVIOUS_KEYS):
+        return None
+    before = {k: v for k, v in fact.items()
+              if k not in ("derivation", *_PREVIOUS_KEYS)}
+    before.update({k: previous[k] for k in _PREVIOUS_KEYS if k in previous})
+    rest = {k: v for k, v in derivation.items() if k not in ("owner_ruling", PREVIOUS)}
+    if rest:
+        before["derivation"] = rest
+    return before
 
 
 def has_ruling(fact: Mapping[str, Any]) -> bool:

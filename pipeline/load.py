@@ -211,7 +211,9 @@ class Catalogue:
 
 def load_models(root: Path | None = None) -> list[Model]:
     from decision.citation import fact_citation
-    from decision.owner_ruling import has_ruling, read_ruling_inputs, ruling_refused, served_fact
+    from decision.owner_ruling import (
+        as_of_fact, has_ruling, read_ruling_inputs, ruling_cutoff, ruling_refused, served_fact,
+    )
     from decision.sources import configured_copy_store, load_sources
 
     root = root or REPO_ROOT
@@ -250,8 +252,10 @@ def load_models(root: Path | None = None) -> list[Model]:
                         rulings = read_ruling_inputs(root)
                     except (OSError, ValueError, KeyError, TypeError) as error:
                         raise LoadError(f"owner rulings: {type(error).__name__}") from None
-                if ruling_refused(fact, str(model_id), cited=bool(citation) and valid,
-                                  inputs=rulings, sources=sources, today=today):
+                # The site knows rulings up to the UTC day, as a snapshot knows them up to as_of.
+                if as_of_fact(fact, ruling_cutoff()) is not fact or ruling_refused(
+                        fact, str(model_id), cited=bool(citation) and valid, inputs=rulings,
+                        sources=sources, today=today):
                     logger.warning("%s: a fact's owner ruling does not stand; withheld", model_id)
                     withheld.append(str(fact.get("facet")))
                     continue

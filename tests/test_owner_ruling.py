@@ -133,7 +133,8 @@ def test_a_ruling_files_the_line_the_claim_and_the_fact_from_one_reference(data)
     assert line["resolves"] == [attempt_id(attempt)] and line["source_ids"] == ["data"]
     fact = offering_fact(data)
     assert (fact["value"], fact["state"]) == (30, "known")
-    assert fact["derivation"] == {"owner_ruling": line}
+    assert fact["derivation"]["owner_ruling"] == line
+    assert set(fact["derivation"]) == {"owner_ruling", "owner_ruling_previous"}
     [ref] = fact["sources"]
     assert ref["snapshot_ref"] == f"sha256:{attempt['page_sha256']}"
     collected, checked = data.events()
@@ -995,15 +996,50 @@ def test_a_configured_copy_store_decides_a_ruled_fact_alike_on_both_paths(tmp_pa
     assert all(f["facet"] != FACET for f in result["card"]["facts"])
 
 
-def test_a_ruling_dated_after_the_build_as_of_still_stands():
-    """``as_of`` dates measurements and price schedules, not the data: a snapshot built as of
-    an earlier day still reads today's rulings. Only a ruling dated after the real clock is
-    refused (MODEL-551, a production test builds as of 2026-10-13)."""
+def test_a_build_as_of_a_day_before_the_ruling_does_not_know_it():
+    """Later knowledge never enters an earlier snapshot: a build as of a day before the ruling
+    serves the fact as it stood then, or withholds it when nothing records that."""
     attempt = _attempt()
     ruling = _ruling(attempt)  # ruled 2026-10-12
     early = date(2026, 10, 1)
     assert _build(_ruled_fact(ruling), [ruling], [attempt], as_of=early).fact(
+        MID, FACET).state == "unknown"  # no earlier record: withheld
+    row = _ruled_fact(ruling)
+    row["derivation"]["owner_ruling_previous"] = {
+        "value": 128000, "state": "known",
+        "sources": [{"source_id": "src-cite", "snapshot_ref": "sha256:" + "0" * 64,
+                     "cited_regions": ["page"]}]}
+    before = _build(row, [ruling], [attempt], as_of=early)
+    shown = before.fact(MID, FACET)
+    assert (shown.state, shown.value) == ("known", 128000)  # the value as it stood then
+    assert "owner_ruling" not in json.dumps(dict(before.record(shown.record_id)))
+    # on and after the ruling day the ruling is known
+    assert _build(row, [ruling], [attempt], as_of=date(2026, 10, 12)).fact(
         MID, FACET).value == 262144
+    # a ruling dated after the UTC day is refused whatever the as_of
     future = (datetime.now(UTC).date() + timedelta(days=2)).isoformat()
     ahead = _ruling(attempt, ruled_at=future)
     assert _build(_ruled_fact(ahead), [ahead], [attempt]).fact(MID, FACET).state == "unknown"
+    assert _build(_ruled_fact(ahead), [ahead], [attempt],
+                  as_of=date(2030, 1, 1)).fact(MID, FACET).state == "unknown"
+
+
+def test_the_filer_records_the_fact_as_it_stood_before_the_ruling(data):
+    from decision.owner_ruling import as_of_fact
+
+    disagree()
+    before = offering_fact(data)
+    file(data)
+    ruled = offering_fact(data)
+    previous = ruled["derivation"]["owner_ruling_previous"]
+    assert (previous["value"], previous["state"]) == (None, "not_disclosed")
+    assert previous["sources"] == before["sources"]
+    # a stopped write's rerun keeps that record, not the ruled fact
+    keep = dict(rulings=rulings(data), attempts=attempts(data), sources=urls(data),
+                claims=claims(data))
+    assert admits(ruled, SUBJECT, **keep)
+    # as of a day before the ruling the fact is what it was
+    then = as_of_fact(ruled, date(2026, 1, 1))
+    assert {k: v for k, v in then.items() if k != "checked_sources"} == \
+        {k: v for k, v in before.items() if k != "checked_sources"}
+    assert as_of_fact(ruled, datetime.now(UTC).date()) is ruled

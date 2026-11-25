@@ -1066,6 +1066,14 @@ class _Compiler:
     def _add_facts(self, sid: str, kind: str, facts: Iterable[Any]) -> None:
         row = self.facts.setdefault(sid, {})
         for f in self._resolve_prices(sid, facts):
+            ruled = self._as_of_ruling(f)
+            if ruled is None:
+                # Its ruling is dated after this build's day and nothing records the fact as
+                # it stood before: withheld, as if the ruling line did not exist yet.
+                self._reject((sid, str(f["facet"])), "invalid_citation",
+                             self._source_ids(f.get("sources")))
+                continue
+            f = ruled
             facet_id, state = str(f["facet"]), str(f["state"])
             if f.get("effective_from") is not None or f.get("effective_until") is not None:
                 subject = f.get("subject") or {}
@@ -1127,6 +1135,17 @@ class _Compiler:
                     _date(f.get("effective_from")), _date(f.get("effective_until")),
                 ))
 
+    def _as_of_ruling(self, fact: dict[str, Any]) -> dict[str, Any] | None:
+        """``decision.owner_ruling.as_of_fact`` at this build's cutoff (``as_of``, never later
+        than the UTC day): a ruling dated later is not known yet."""
+        derivation = fact.get("derivation")
+        if not isinstance(derivation, Mapping) or "owner_ruling" not in derivation:
+            return fact
+        from decision.owner_ruling import as_of_fact, ruling_cutoff
+
+        held = as_of_fact(fact, ruling_cutoff(self.as_of))
+        return None if held is None else dict(held)
+
     def _ruling_refused(self, sid: str, fact: Mapping[str, Any], citation: dict | None) -> bool:
         """A fact that carries ``derivation.owner_ruling`` and is not cited, or whose ruling
         does not stand (``decision.owner_ruling.admits``, with the filer's quarantine test on
@@ -1138,9 +1157,8 @@ class _Compiler:
 
         inputs = RulingInputs(self.owner_rulings, self.cited_attempts, self.owner_ruling_claims,
                               self.log)
-        # The real clock, not ``as_of``: ``as_of`` dates measurements and price schedules, and
-        # a snapshot built as of an earlier day still reads today's rulings and logs. Only a
-        # ruling dated after today is refused, as the filer refuses it.
+        # A ruling dated after ``as_of`` never gets here (``_as_of_ruling``); its validity is
+        # checked against the UTC day, as the filer checks it.
         return ruling_refused(fact, sid, cited=citation is not None, inputs=inputs,
                               sources=self.sources)
 
