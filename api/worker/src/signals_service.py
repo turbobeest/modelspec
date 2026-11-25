@@ -32,6 +32,10 @@ SEEN_PREFIX = "release-signals/v1/seen/"
 DISCOVERED_PREFIX = "release-signals/v1/discovered/"
 AUDIT_PREFIX = "release-signals/v1/audit/"
 RECHECK_PREFIX = "release-signals/v1/recheck/"
+#: One permanent marker per completed re-check row, `<due>/<signal_id>` (MODEL-475).
+#: Written before the row is deleted. It makes a retried acknowledgement a no-op
+#: success, and it lets a concurrent relink undo a put that landed on a deleted row.
+RECHECK_DONE_PREFIX = "release-signals/v1/recheck-done/"
 MAX_AGE = timedelta(hours=24)
 MAX_FUTURE_SKEW = timedelta(minutes=5)
 MAX_BODY_BYTES = 4096
@@ -286,39 +290,52 @@ async def pending(
 
 
 async def _relink_rechecks(
-    kv: Any, signal_id: str, acknowledged: dict[str, Any], pr_url: object,
-    *, acknowledged_key: str,
+    kv: Any, signal_id: str, pr_url: object, *, acknowledged_key: str,
 ) -> None:
     """Point a signal's remaining re-checks at the pull request a re-check reported.
 
     The first acknowledgement can carry an identity-review issue or no URL. A
     re-check that later opens a card pull request must move the other re-checks
     onto it, or the workflow finds no open pull request there and drafts the
-    same model again (MODEL-475). Only the stored `pr_url` changes; a report
-    without a pull request keeps what is stored. The sibling keys follow from
-    the acknowledged row, so no KV list is needed.
+    same model again (MODEL-475). A report without a pull request keeps what is
+    stored.
+
+    Every re-check row of the signal is found by listing, so a second schedule
+    left by a retried partial first acknowledgement (another base date) is
+    relinked too. Only `pr_url` changes. KV has no transactions, so each write
+    is conditional: the row is re-read just before the put and skipped if it is
+    gone or no longer the row that was read, and a put that raced the row's own
+    completion is undone once its done marker is seen.
     """
     if not isinstance(pr_url, str) or PULL_REQUEST_URL.fullmatch(pr_url) is None:
         return
-    day, due = acknowledged.get("day"), acknowledged.get("due")
-    if isinstance(day, bool) or day not in RECHECK_DAYS or not isinstance(due, str):
-        return
-    try:
-        first = date.fromisoformat(due) - timedelta(days=day)
-    except ValueError:
-        return
-    for days in RECHECK_DAYS:
-        key = f"{RECHECK_PREFIX}{(first + timedelta(days=days)).isoformat()}/{signal_id}"
-        if key == acknowledged_key:
+    # The acknowledged row first: if a later write fails, the row is still due and
+    # its retry already carries the pull request, so it updates it, never re-drafts.
+    listed = [key for key in await _keys(kv, RECHECK_PREFIX) if key != acknowledged_key]
+    for key in [acknowledged_key, *listed]:
+        due, separator, owner = key.removeprefix(RECHECK_PREFIX).partition("/")
+        if not separator or owner != signal_id:
             continue
         raw = await kv.get(key)
         if not raw:
             continue
         row = json.loads(str(raw))
-        if row.get("signal_id") != signal_id or row.get("pr_url") == pr_url:
+        if (
+            row.get("signal_id") != signal_id
+            or row.get("due") != due
+            or isinstance(row.get("day"), bool)
+            or row.get("day") not in RECHECK_DAYS
+            or row.get("pr_url") == pr_url
+        ):
+            continue
+        done = RECHECK_DONE_PREFIX + key.removeprefix(RECHECK_PREFIX)
+        if await kv.get(done) is not None or await kv.get(key) != raw:
             continue
         row["pr_url"] = pr_url
         await kv.put(key, json.dumps(row, separators=(",", ":")))
+        if await kv.get(done) is not None:
+            # The row was completed between the re-read and the put: never resurrect it.
+            await kv.delete(key)
 
 
 async def acknowledge(
@@ -341,6 +358,18 @@ async def acknowledge(
     recheck = await kv.get(recheck_key) if source is None and recheck_key else None
     if source is None and recheck is not None:
         source = json.dumps(json.loads(str(recheck))["signal"])
+    if source is None and recheck_key and await kv.get(
+        RECHECK_DONE_PREFIX + recheck_key.removeprefix(RECHECK_PREFIX)
+    ) is not None:
+        # A retry of a completed re-check: finish any relink it left, change nothing else.
+        await _relink_rechecks(kv, signal_id, payload.get("pr_url"), acknowledged_key=recheck_key)
+        return Outcome(200, {
+            "schema_version": SCHEMA_VERSION,
+            "endpoint": "signals.ack",
+            "status": "acknowledged",
+            "signal_id": signal_id,
+            "recheck_days": [],
+        })
     if not signal_id or source is None:
         return _error(404, "signal_not_found", "the pending signal does not exist")
     audit = {
@@ -372,11 +401,13 @@ async def acknowledge(
             )
         await kv.delete(pending_key)
     else:
-        await kv.delete(recheck_key)
-        await _relink_rechecks(
-            kv, signal_id, json.loads(str(recheck)), payload.get("pr_url"),
-            acknowledged_key=recheck_key,
+        # Siblings first, then the marker, then the row: a failed write leaves the
+        # row in place, so a retry redoes the whole acknowledgement.
+        await _relink_rechecks(kv, signal_id, payload.get("pr_url"), acknowledged_key=recheck_key)
+        await kv.put(
+            RECHECK_DONE_PREFIX + recheck_key.removeprefix(RECHECK_PREFIX), today.isoformat(),
         )
+        await kv.delete(recheck_key)
     return Outcome(200, {
         "schema_version": SCHEMA_VERSION,
         "endpoint": "signals.ack",
