@@ -437,6 +437,23 @@ BOARD_NAMES: dict[str, dict[str, str | None]] = {
     "anthropic/claude-opus-5-5": {"claude-opus-5-5_max": "max"},
     "openai/gpt-6-sol": {"gpt-6-sol-max": None},
     "openai/gpt-6-luna": {"gpt-6-luna-max": None},
+    # MODEL-496. Exact names only. Epoch's ``_max`` states the effort in the name.
+    # Terminal-Bench 4.1's bare "Fable 5.2" is scoped to that board (``<board key>|<name>``)
+    # and takes its effort and agent from the row's own fields. The general matcher
+    # still requires "Claude".
+    "anthropic/claude-fable-5-2": {
+        "claude-fable-5-2_max": "max",
+        "terminal-bench-4-1|Fable 5.2": None,
+    },
+}
+
+#: Board names that are never mapped to a model, even where the general matcher would
+#: read them as that model. Epoch's ``-fallback`` is a different configuration (a
+#: fallback route), and Arena's xHigh is a different effort from the ``max`` rows.
+BOARD_REFUSED: dict[str, frozenset[str]] = {
+    "anthropic/claude-fable-5-2": frozenset({
+        "claude-fable-5-2-fallback_max", "Claude Fable 5.2 (xHigh)",
+    }),
 }
 
 
@@ -454,20 +471,39 @@ def _with_board_names(refresh) -> None:
 
     def matching(board, front):
         found = match(board, front)
+        refused = BOARD_REFUSED.get(str(front.get("model_id")), frozenset())
         if found is not None:
-            return found
+            return None if refresh._subject(found) in refused else found
         names = BOARD_NAMES.get(str(front.get("model_id")), {})
-        hits = [row for row in board.rows if refresh._subject(row) in names]
+        hits = [row for row in board.rows
+                if refresh._subject(row) in names
+                or f"{board.key}|{refresh._subject(row)}" in names]
         return hits[0] if len(hits) == 1 else None
 
     def evidence(*, root, model_id, front, board):
         rows, failures = new(root=root, model_id=model_id, front=front, board=board)
         held = BOARD_HOLD.get(model_id, frozenset())
         rows = [row for row in rows if row["benchmark_id"] not in held]
+        names = BOARD_NAMES.get(model_id, {})
+        source = refresh._matching_new_row(board, front) if rows else None
         for row in rows:
-            effort = BOARD_NAMES.get(model_id, {}).get(row["model_id_as_evaluated"])
+            name = row["model_id_as_evaluated"]
+            scoped = f"{board.key}|{name}"
+            if name not in names and scoped not in names:
+                continue
+            effort = names.get(name) or names.get(scoped)
+            if effort is None and source is not None:
+                effort = refresh.readers._effort(source)
             if effort:
                 row["effort"] = effort
+            # The agent and its wording belong to the Terminal-Bench boards only.
+            agent = (source.get("agent")
+                     if source is not None and board.key.startswith("terminal-bench") else None)
+            if agent:
+                row["harness"] = "unregistered"
+                row["configuration"] = (
+                    f"tbench.ai leaderboard row read {board.observed_at}: agent {agent}"
+                    + (f", reasoning effort {effort}" if effort else "") + ".")
         return rows, failures
 
     refresh._matching_new_row, refresh._new_evidence = matching, evidence
@@ -479,7 +515,8 @@ def boards(model_ids: list[str]) -> None:
     refresh_leaderboards._front = functools.cache(refresh_leaderboards._front)
     _with_board_names(refresh_leaderboards)
     report = refresh_leaderboards.run(observed_at=READ_DATE, dry_run=False,
-                                      model_ids=model_ids, add_missing=True)
+                                      model_ids=model_ids, add_missing=True,
+                                      release_held_boards=True)
     print(refresh_leaderboards.render_report(report))
     print(f"added {report.added}; re-confirmed {len(report.reconfirmed)}; "
           f"changed {len(report.changes)}; quarantined {len(report.quarantined)}")

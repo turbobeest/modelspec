@@ -5,14 +5,16 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import tempfile
 from datetime import date
 from pathlib import Path
 
+from decision import retention
 from decision.registry import load as load_registry
 from pipeline.data_source import overlay
-from scripts.data_trust import invariants, sample
+from scripts.data_trust import invariants, sample, trust_line
 from scripts.data_trust.catalogue import Finding, calibrate, load
 from scripts.data_trust.report import append_defects, summary, write
 
@@ -26,6 +28,8 @@ def main(argv=None) -> int:
     p.add_argument("--n", type=int, default=60)
     p.add_argument("--seed")
     p.add_argument("--date", type=date.fromisoformat, default=date.today())
+    p.add_argument("--stale-days", type=int, default=None)
+    p.add_argument("--stale-days-price", type=int, default=None)
     p.add_argument("--json", action="store_true")
     p.add_argument("--summary-only", action="store_true")
     p.add_argument("--output-dir", type=Path)
@@ -34,6 +38,13 @@ def main(argv=None) -> int:
     if args.n < 1:
         p.error("--n must be positive")
     seed = args.seed or args.date.strftime("%G-W%V")
+    # The audit reads the private register under this directory (MODEL-510); the
+    # variable does not outlive the call.
+    with retention.using_data_dir(args.data_dir):
+        return _audit(args, seed)
+
+
+def _audit(args, seed) -> int:
     with tempfile.TemporaryDirectory(prefix="modelspec-trust-overlay-") as tmp:
         root = overlay(ENGINE, args.data_dir, Path(tmp))
         c = load(root, source_root=args.data_dir)
@@ -45,6 +56,16 @@ def main(argv=None) -> int:
             c.facts = []
             c.findings.append(Finding("snapshot", "build", "snapshot_build"))
         inv = invariants.run(c, registry, args.date)
+        try:
+            line = trust_line.with_change(
+                trust_line.compute(
+                    c, args.data_dir, args.date, args.stale_days, args.stale_days_price
+                ),
+                args.output_dir or args.data_dir / "reports/data-trust",
+                args.date,
+            )
+        except Exception as error:  # a count must never stop the audit
+            line = {"unavailable": f"{type(error).__name__}: {error}"}
         sampled = (
             sample.run(c, registry, n=args.n, seed=seed, as_of=args.date)
             if args.command != "data"
@@ -53,6 +74,9 @@ def main(argv=None) -> int:
                 "sampled": 0,
                 "seed": seed,
                 "counts": {"matched": 0, "mismatched": 0, "unreadable": 0},
+                "skipped": {},
+                "redirect_unclassified": 0,
+                "shell_page": 0,
                 "error_rate": sample.wilson(0, 0),
                 "strata": [],
                 "results": [],
@@ -75,6 +99,7 @@ def main(argv=None) -> int:
         ).hexdigest(),
         "invariants": inv,
         "sample": sampled,
+        "trust_line": line,
     }
     if args.defect_log:
         report["new_defects"] = append_defects(args.defect_log, report)

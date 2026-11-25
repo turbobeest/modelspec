@@ -68,8 +68,47 @@ def has_parameters(card: ModelCard) -> bool:
     return card.architecture.total_parameters is not None
 
 
+def claim_field_counts(fronts: list[dict]) -> dict[str, int]:
+    """Counts only (MODEL-536): pages with `scoring` set and judged pages with a known
+    `judge_blind`. The baseline (MODEL-537) lives on card readings, not pages, and is counted
+    by `baseline_count`."""
+    from schema.benchmark import JUDGED_SCORING
+
+    pages = [f for f in fronts if isinstance(f, dict)]
+    judged = [f for f in pages if f.get("scoring") in JUDGED_SCORING]
+    return {
+        "pages": len(pages),
+        "scoring_set": sum(1 for f in pages if f.get("scoring")),
+        "judged": len(judged),
+        "judge_blind_known": sum(1 for f in judged if f.get("judge_blind") in ("blind", "not_blind")),
+    }
+
+
+def baseline_count(cards) -> int:
+    """Readings that carry a baseline other than `none_stated`."""
+    return sum(1 for _, card, _ in cards if card is not None
+               for e in card.benchmarks.evidence
+               if e.baseline is not None and e.baseline.kind != "none_stated")
+
+
+def load_benchmark_fronts() -> list[dict]:
+    from pipeline.load import split_front_matter
+
+    fronts = []
+    skipped = 0
+    for path in sorted((REPO_ROOT / "benchmarks").glob("*.md")):
+        try:
+            fronts.append(split_front_matter(path.read_text(encoding="utf-8"), path=path)[0])
+        except Exception:
+            skipped += 1
+    if skipped:
+        print(f"coverage_report: skipped {skipped} unreadable benchmark pages", file=sys.stderr)
+    return fronts
+
+
 def generate_report(
     all_cards: list[tuple[str, ModelCard | None, str | None]],
+    benchmark_fronts: list[dict] | None = None,
 ) -> str:
     """Generate a Markdown coverage report."""
     valid_cards: list[tuple[str, ModelCard]] = [
@@ -119,6 +158,12 @@ def generate_report(
     lines.append(f"| Models without benchmarks | {len(no_benchmarks)} |")
     lines.append(f"| Models without cost data | {len(no_cost)} |")
     lines.append(f"| Models without parameters | {len(no_params)} |")
+    if benchmark_fronts is not None:
+        counts = claim_field_counts(benchmark_fronts)
+        lines.append(f"| Benchmark pages with scoring set | {counts['scoring_set']} of {counts['pages']} |")
+        lines.append(f"| Judged pages with judge_blind known | "
+                     f"{counts['judge_blind_known']} of {counts['judged']} |")
+        lines.append(f"| Readings with a stated baseline | {baseline_count(all_cards)} |")
     lines.append("")
 
     # Provider breakdown
@@ -191,7 +236,7 @@ def generate_report(
 
 def main() -> None:
     all_cards = load_all_cards()
-    report = generate_report(all_cards)
+    report = generate_report(all_cards, load_benchmark_fronts())
     print(report)
 
 

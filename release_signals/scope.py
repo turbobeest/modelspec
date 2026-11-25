@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from typing import Any
 
 from scripts.attribution import normalise
 
@@ -84,3 +87,468 @@ def out_of_scope_reason(provider: str, model_name: str) -> str | None:
         if pattern.search(name):
             return reason
     return None
+
+
+# Hugging Face pipeline tags the catalogue ranks. An unknown tag stays in scope.
+IN_SCOPE_PIPELINE_TAGS = frozenset({
+    "text-generation",
+    "text2text-generation",
+    "feature-extraction",
+    "sentence-similarity",
+    "text-ranking",
+    "image-text-to-text",
+    "visual-question-answering",
+    "any-to-any",
+    "conversational",
+    "video-text-to-text",
+})
+
+# Single-task vision, audio, robotics, reinforcement learning and generation
+# tags. `audio-` is the prefix form of the audio class.
+OUT_OF_SCOPE_PIPELINE_TAGS = frozenset({
+    "robotics",
+    "reinforcement-learning",
+    "text-to-image",
+    "image-to-image",
+    "text-to-video",
+    "image-to-video",
+    "text-to-speech",
+    "automatic-speech-recognition",
+    "time-series-forecasting",
+    "image-classification",
+    "object-detection",
+    "image-segmentation",
+    "depth-estimation",
+    "zero-shot-object-detection",
+    "mask-generation",
+    "video-classification",
+    "keypoint-detection",
+    "unconditional-image-generation",
+    "text-to-audio",
+    "audio-to-audio",
+    "audio-classification",
+    "voice-activity-detection",
+})
+
+# An out-of-scope pipeline tag is filed when the row also carries one of these.
+_TASK_TAGS_THAT_KEEP = frozenset({
+    "text-generation",
+    "image-text-to-text",
+    "any-to-any",
+    "audio-text-to-text",
+    "feature-extraction",
+    "sentence-similarity",
+    "text-ranking",
+})
+
+# Whole tags for an interpretability tool. Matched after `_artefact_key`.
+_ARTEFACT_TAGS = frozenset({
+    "interpretability",
+    "mechanistic-interpretability",
+    "transcoder",
+    "cross-layer-transcoder",
+    "sparse-autoencoder",
+    "sparse-autoencoders",
+    "sae",
+    "saelens",
+    "sae-lens",
+    "crosscoder",
+})
+
+
+def _folded(value: str) -> str:
+    return value.strip().casefold()
+
+
+def _artefact_key(value: str) -> str:
+    """The existing fold, then an underscore is the same mark as a hyphen."""
+    return _folded(value).replace("_", "-")
+
+
+def out_of_scope_pipeline_tag(tag: str) -> bool:
+    folded = _folded(tag)
+    if folded == "audio-text-to-text":
+        return False
+    return folded in OUT_OF_SCOPE_PIPELINE_TAGS or folded.startswith("audio-")
+
+
+def in_scope_pipeline_tag(tag: str) -> bool:
+    return _folded(tag) in IN_SCOPE_PIPELINE_TAGS
+
+
+def known_pipeline_tag(tag: str) -> bool:
+    return in_scope_pipeline_tag(tag) or out_of_scope_pipeline_tag(tag)
+
+
+@dataclass(frozen=True)
+class TagDecision:
+    """`decided` is false when the name rules still have to run."""
+
+    decided: bool
+    reason: str | None = None
+    tag: str | None = None
+
+
+def _listed_bases(base_model: str | Sequence[str] | None) -> list[str]:
+    if base_model is None:
+        return []
+    raw: Sequence[object] = (base_model,) if isinstance(base_model, str) else base_model
+    found: list[str] = []
+    for item in raw:
+        one = repository_id(item)
+        if one and one not in found:
+            found.append(one)
+    return found
+
+
+def _named_after(repository_name: str, base_name: str) -> bool:
+    """`<base-name>` or `<base-name>-<suffix>`, after the same normalisation as names."""
+    repo = normalise(repository_name)
+    base = normalise(base_name)
+    if not repo or not base:
+        return False
+    return repo == base or repo.startswith(f"{base}-")
+
+
+def derivative_reason(
+    repository: str, base_model: str | Sequence[str] | None,
+) -> str | None:
+    """An artefact named after another organisation's model.
+
+    Reject only when no listed base is in this repository's organisation and
+    the repository name is that other model's name plus a suffix. A fine-tune
+    with its own name, or a model that also lists its own base, is filed.
+    A malformed base is ignored. The recorded base is unchanged either way.
+    """
+    repo = repository_id(repository)
+    if repo is None:
+        return None
+    owner, _, name = repo.partition("/")
+    bases = _listed_bases(base_model)
+    if not bases:
+        return None
+    own = owner.casefold()
+    if any(item.partition("/")[0].casefold() == own for item in bases):
+        return None
+    for item in bases:
+        if _named_after(name, item.partition("/")[2]):
+            return f"derivative of {item}"
+    return None
+
+
+def _keeping_task_tag(tags: Sequence[str]) -> str | None:
+    for tag in tags:
+        text = _text(tag)
+        if text and _folded(text) in _TASK_TAGS_THAT_KEEP:
+            return text
+    return None
+
+
+def _generation_or_multimodal_task_tag(tags: Sequence[str]) -> str | None:
+    """A generation or multimodal member of `_TASK_TAGS_THAT_KEEP`, after `_folded`.
+
+    That set also holds feature-extraction, sentence-similarity and
+    text-ranking so an out-of-scope pipeline tag can still be filed. Those
+    three do not skip artefact rejection when the pipeline tag is missing.
+    """
+    not_generation = ("feature-extraction", "sentence-similarity", "text-ranking")
+    for tag in tags:
+        text = _text(tag)
+        if text is None:
+            continue
+        folded = _folded(text)
+        if folded in _TASK_TAGS_THAT_KEEP and folded not in not_generation:
+            return text
+    return None
+
+
+def _artefact_tag(tags: Sequence[str]) -> str | None:
+    for tag in tags:
+        text = _text(tag)
+        if text and _artefact_key(text) in _ARTEFACT_TAGS:
+            return text
+    return None
+
+
+# Hub metadata that marks a repository the catalogue does not rank. Matched on
+# the folded tag with underscores read as hyphens.
+_DETECTION_PATTERN = re.compile(
+    r"deepfake|forensic|(?:ai|aigc|synthetic)-generated(?:-[a-z]+)*-detection"
+    r"|aigc-detection|fake-(?:image|video|audio|media)-detection"
+)
+# Tags that, with no pipeline tag, say the repository is a feature encoder.
+_ENCODER_TAGS = frozenset({
+    "encoder", "vision-encoder", "backbone", "feature-extractor", "radio",
+})
+# Name tokens for the same. A bare `encoder` is not one: encoder-decoder
+# language models carry it.
+_ENCODER_NAME = re.compile(
+    r"(?<![a-z0-9])(?:(?:vision|image|video|audio)-encoder|backbone"
+    r"|radio(?:v?\d+)?|feature-extractor)(?![a-z0-9])"
+)
+ADAPTER_CONFIG_FILE_TAG = "file:adapter_config.json"
+# Libraries of domain simulators and emulators, not language or embedding
+# models. Keep this list explicit and short.
+_SIMULATOR_LIBRARIES = frozenset({"fme", "earth2studio", "neuralgcm"})
+# Tags of research-checkpoint repositories. A task tag that keeps a
+# repository outranks them.
+_CHECKPOINT_TAGS = frozenset({"speculative-decoding", "latent-feedback"})
+# An intermediate training checkpoint: a run hash after `-sft-` or `-dpo-`
+# (seven or more hex characters with a digit and an a-f letter, so a date is not
+# one), or a name that ends in `checkpoints`. Matched on `_scope_key` of the repository name.
+_CHECKPOINT_NAME = re.compile(
+    r"-(?:sft|dpo)-(?:[a-z0-9]+-)*(?=[0-9a-f]*\d)(?=\d*[a-f])[0-9a-f]{7,}$"
+    r"|(?<![a-z0-9])checkpoints$"
+)
+
+
+def _is_detection_key(value: str) -> bool:
+    return _DETECTION_PATTERN.search(_artefact_key(value)) is not None
+
+
+def _scope_key(value: str) -> str:
+    return re.sub(r"[_.]", "-", _folded(value))
+
+
+def _adapter_tag(library: str | None, tags: Sequence[str]) -> str | None:
+    for tag in tags:
+        text = _text(tag)
+        if text is None:
+            continue
+        folded = _folded(text)
+        if folded.startswith("base_model:adapter:") or folded == ADAPTER_CONFIG_FILE_TAG:
+            return text
+        if folded == "peft":
+            return text
+    return "library: peft" if library and _folded(library) == "peft" else None
+
+
+def hub_artefact_reason(
+    repository: str,
+    pipeline_tag: str | None,
+    tags: Sequence[str] = (),
+    library_name: str | None = None,
+) -> str | None:
+    """Out of scope by Hub metadata beyond the task tag.
+
+    (a) An adapter: a `base_model:adapter:*` tag, library `peft`, or an
+    adapter config file. (b) A forensics or detection purpose in a tag, the pipeline
+    tag or the repository name. (c) A feature encoder: no pipeline tag, no
+    task tag that keeps a repository, and a vision, image, video or audio
+    encoder, backbone, RADIO-family or feature-extractor name, or an encoder tag.
+    """
+    adapter = _adapter_tag(library_name, tags)
+    if adapter:
+        return "adapter"
+    name = repository.partition("/")[2] or repository
+    for candidate in (*tags, pipeline_tag or "", name):
+        text = _text(candidate)
+        if text and _is_detection_key(text):
+            return "forensics or detection"
+    if _CHECKPOINT_NAME.search(_scope_key(name)):
+        return "intermediate checkpoint"
+    if _keeping_task_tag(tags) is None:
+        for candidate in (library_name or "", *tags):
+            text = _text(candidate)
+            if text and _scope_key(text) in _SIMULATOR_LIBRARIES:
+                return "domain simulator library"
+            if text and _scope_key(text) in _CHECKPOINT_TAGS:
+                return "research checkpoint"
+    if _text(pipeline_tag) is None and _keeping_task_tag(tags) is None:
+        for tag in tags:
+            text = _text(tag)
+            if text and _scope_key(text) in _ENCODER_TAGS:
+                return "feature encoder without a pipeline tag"
+        if _ENCODER_NAME.search(_scope_key(name)):
+            return "feature encoder without a pipeline tag"
+    return None
+
+
+# Names of speculative-decoding drafters and distilled research checkpoints:
+# `-spec-<N>b`, `sigma-distill`, `-nfe<N>`. Whole tokens of `_scope_key`, so an
+# unrelated word that contains one (spectrum, specific) does not match.
+_DRAFTER_NAME = re.compile(
+    r"(?<![a-z0-9])(?:spec-\d+(?:-\d+)?b|sigma-distill|nfe\d+)(?![a-z0-9])"
+)
+DRAFTER_HOLD_REASON = "name marks a drafter or distilled research checkpoint"
+
+
+def hub_hold_reason(
+    pipeline_tag: str | None, tags: Sequence[str] = (), repository: str | None = None,
+) -> str | None:
+    """Hold for identity review: the repository states no task, or its name
+    marks a speculative-decoding drafter or distilled research checkpoint.
+
+    Not out of scope. No pipeline tag and no task-implying tag, so nothing
+    says the repository is a model the catalogue ranks. Call it only after
+    the out-of-scope rules found nothing, and only on a readable Hub row.
+    """
+    if repository:
+        name = repository.partition("/")[2] or repository
+        if _DRAFTER_NAME.search(_scope_key(name)):
+            return DRAFTER_HOLD_REASON
+    if _text(pipeline_tag) is not None:
+        return None
+    for tag in tags:
+        text = _text(tag)
+        if text and (in_scope_pipeline_tag(text) or _folded(text) in _TASK_TAGS_THAT_KEEP):
+            return None
+    return "Hub repository states no task"
+
+
+def tag_scope(pipeline_tag: str | None, tags: Sequence[str] = ()) -> TagDecision:
+    """Scope from the pipeline tag. With none, the name rules decide.
+
+    An interpretability artefact tag is out of scope when the pipeline tag is
+    feature-extraction. It is also out of scope when the pipeline tag is
+    absent, unless a generation or multimodal member of `_TASK_TAGS_THAT_KEEP`
+    is present. That case falls through, so the result matches a missing
+    pipeline from before this check. feature-extraction is the stated task, so
+    a generation tag beside it does not keep the repository. Any other
+    pipeline tag leaves the row in scope.
+
+    An unknown pipeline tag is in scope. The reason for an out-of-scope tag is
+    the tag itself. An out-of-scope pipeline tag is filed when the tag list
+    also names an in-scope task. With no pipeline tag, a free-form tag rejects
+    only when it is out of scope and no in-scope task tag is present.
+    """
+    primary = _text(pipeline_tag) or ""
+    artefact = _artefact_tag(tags)
+    stated_feature_extraction = _artefact_key(primary) == "feature-extraction"
+    if artefact is not None and (not primary or stated_feature_extraction):
+        if stated_feature_extraction or _generation_or_multimodal_task_tag(tags) is None:
+            return TagDecision(
+                True, f"interpretability artefact (tag: {artefact})", artefact,
+            )
+    if primary:
+        if out_of_scope_pipeline_tag(primary):
+            keeper = _keeping_task_tag(tags)
+            if keeper:
+                return TagDecision(True, None, keeper)
+            return TagDecision(True, primary, primary)
+        return TagDecision(True, None, primary)
+    if _keeping_task_tag(tags) is None:
+        for tag in tags:
+            text = _text(tag)
+            if text and out_of_scope_pipeline_tag(text):
+                return TagDecision(True, text, text)
+    return TagDecision(False)
+
+
+def _text(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    return text or None
+
+
+def repository_id(value: object) -> str | None:
+    """One `org/repo` id from a card value or the body of a `base_model:` tag."""
+    if isinstance(value, dict):
+        for key in ("id", "model", "repo", "modelId"):
+            found = repository_id(value.get(key))
+            if found:
+                return found
+        return None
+    text = _text(value)
+    if text is None:
+        return None
+    for part in text.split(":"):
+        piece = part.strip()
+        if piece.count("/") != 1 or " " in piece:
+            continue
+        owner, _, name = piece.partition("/")
+        if owner and name:
+            return f"{owner}/{name}"
+    return None
+
+
+def _repository_ids(value: object) -> list[str]:
+    if isinstance(value, list):
+        found = []
+        for item in value:
+            found.extend(_repository_ids(item))
+        return found
+    one = repository_id(value)
+    return [one] if one else []
+
+
+def reported_base_model(repository: str, candidates: Sequence[str]) -> str | None:
+    """The base to record. Another organisation wins over this repository's own."""
+    unique: list[str] = []
+    for item in candidates:
+        if item and item not in unique:
+            unique.append(item)
+    if not unique:
+        return None
+    owner = repository.partition("/")[0].casefold()
+    for item in unique:
+        if item.partition("/")[0].casefold() != owner:
+            return item
+    return unique[0]
+
+
+def relevant_hub_tags(
+    tags: object, library_name: object, pipeline_tag: str | None,
+) -> tuple[str, ...]:
+    """Library, base-model tags, task tags, artefact, detection and encoder tags.
+
+    Licence and language tags stay off.
+    """
+    kept: list[str] = []
+
+    def add(value: str) -> None:
+        if value not in kept:
+            kept.append(value)
+
+    library = _text(library_name)
+    if library:
+        add(library)
+    if not isinstance(tags, list):
+        return tuple(kept)
+    declared = _folded(pipeline_tag) if pipeline_tag else ""
+    for tag in tags:
+        text = _text(tag)
+        if text is None:
+            continue
+        if (
+            text.startswith("base_model:")
+            or known_pipeline_tag(text)
+            or _folded(text) == declared
+            or _artefact_key(text) in _ARTEFACT_TAGS
+            or _is_detection_key(text)
+            or _scope_key(text) in _ENCODER_TAGS
+            or _scope_key(text) in _CHECKPOINT_TAGS
+        ):
+            add(text)
+    return tuple(kept)
+
+
+def hub_metadata(
+    row: Mapping[str, Any], repository: str,
+) -> tuple[str | None, tuple[str, ...], str | None, tuple[str, ...]]:
+    """`pipeline_tag`, the tags that matter, the recorded base, and every base.
+
+    The organisation listing already carries these. `cardData` is read when the
+    row includes it and is not requested on its own. The recorded base prefers
+    another organisation; the full list is what the derivative rule reads.
+    """
+    pipeline_tag = _text(row.get("pipeline_tag"))
+    tags = relevant_hub_tags(row.get("tags"), row.get("library_name"), pipeline_tag)
+    bases: list[str] = []
+    card = row.get("cardData")
+    if isinstance(card, dict) and "base_model" in card:
+        bases.extend(_repository_ids(card.get("base_model")))
+    if isinstance(row.get("tags"), list):
+        for tag in row["tags"]:
+            text = _text(tag)
+            if text and text.startswith("base_model:"):
+                bases.extend(_repository_ids(text.split(":", 1)[1]))
+    listed = tuple(dict.fromkeys(bases))
+    siblings = row.get("siblings")
+    if isinstance(siblings, list) and any(
+        isinstance(item, dict) and item.get("rfilename") == "adapter_config.json"
+        for item in siblings
+    ):
+        tags = (*tags, ADAPTER_CONFIG_FILE_TAG)
+    return pipeline_tag, tags, reported_base_model(repository, listed), listed

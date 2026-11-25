@@ -98,7 +98,12 @@ def test_bundled_rank_preserves_large_unicode_guidance(entry, monkeypatch, ensur
     raw = json.dumps(export, ensure_ascii=ensure_ascii, indent=2).encode("utf-8")
     module, _ = _import_bundle(entry, monkeypatch, {entry.CANDIDATES_PATH: raw})
     retained = module._cache["candidates"]
-    assert retained == {key: value for key, value in export.items() if key != "candidates"}
+    # MODEL-531: each guide is retained as its JSON text and decoded when served.
+    guides = retained["authoring_guides"]
+    assert {key: json.loads(value) for key, value in guides.items()} == export["authoring_guides"]
+    assert {key: value for key, value in retained.items() if key != "authoring_guides"} == {
+        key: value for key, value in export.items()
+        if key not in ("candidates", "authoring_guides")}
     assert "candidates" not in retained
     assert len(module._cache["prepared"]) == len(export["candidates"])
 

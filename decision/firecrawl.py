@@ -253,6 +253,35 @@ class FirecrawlFetcher:
             return FetchResult("unreachable", error="Firecrawl request failed or invalid JSON")
 
 
+#: Firecrawl is metered. A run spends only when this variable is "1" in its environment.
+FIRECRAWL_OPT_IN_ENV = "PRICE_REREAD_FIRECRAWL_OPT_IN"
+
+
+DISABLED_STOP_REASON = f"Firecrawl is off ({FIRECRAWL_OPT_IN_ENV} is not set)"
+
+
+def firecrawl_opted_in(env: "os._Environ[str] | dict[str, str] | None" = None) -> bool:
+    return (os.environ if env is None else env).get(FIRECRAWL_OPT_IN_ENV, "") == "1"
+
+
+class DisabledFirecrawlFetcher:
+    """Stands in when the opt-in is unset: reads no key, builds no client, fetches nothing."""
+
+    fake = False
+    allowance = 0
+    credits_spent = 0
+    credits_per_call = 0
+    team_balance = None
+    can_fetch = False
+    stop_reason = DISABLED_STOP_REASON
+
+    def prepare(self) -> bool:
+        return False
+
+    def fetch(self, url: str) -> FetchResult:
+        return FetchResult("unreachable", error=self.stop_reason)
+
+
 class FakeFirecrawlFetcher:
     """Deterministic demo HTML, without reading a key or constructing a client."""
 

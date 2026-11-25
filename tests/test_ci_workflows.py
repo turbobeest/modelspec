@@ -750,6 +750,9 @@ process.stdout.write(JSON.stringify(posted));
     assert comment.get("env", {}).get("VALIDATION_PASSED") == "${{ steps.validate.outputs.passed }}"
 
 
+# Audited: accuracy-nightly.yml, the two `gh issue list ... 2>/dev/null) || fail` lines
+# in the private sink step. Stderr is discarded so nothing private reaches the public
+# log; a failure still fails the step through `|| fail`.
 def test_workflow_failure_masking_is_explicitly_audited() -> None:
     """Every failed validation step must gate CI."""
     unexpected: list[str] = []
@@ -763,7 +766,13 @@ def test_workflow_failure_masking_is_explicitly_audited() -> None:
         for line_number, line in enumerate(
             workflow_path.read_text(encoding="utf-8").splitlines(), start=1
         ):
-            if "2>/dev/null" in line:
+            if "2>/dev/null" in line and not (
+                workflow_path.name == "accuracy-nightly.yml"
+                and line.rstrip().endswith("2>/dev/null) || fail")
+                and "--label accuracy-nightly" in "\n".join(
+                    workflow_path.read_text(encoding="utf-8").splitlines()[line_number - 3:line_number]
+                )
+            ):
                 unexpected.append(f"{workflow_path.name}:{line_number}: {line.strip()}")
             if "|| true" in line and not (
                 workflow_path.name == "daily-research.yml"

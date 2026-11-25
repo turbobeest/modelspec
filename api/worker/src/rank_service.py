@@ -29,6 +29,7 @@ not a feature.
 
 from __future__ import annotations
 
+import json
 import math
 from collections.abc import Mapping
 from typing import Any, TextIO
@@ -322,20 +323,122 @@ def parse_request(payload: Any, known_hardware: set[str]) -> dict[str, Any]:
 
 # ── the catalogue ────────────────────────────────────────────────────────────
 
-def candidate_from_row(row: Mapping[str, Any]) -> Candidate:
+class _Shared:
+    """One copy of each distinct value while a rank export is read (MODEL-531).
+
+    The export repeats the same small values on many rows: a citation entry
+    for the same board, the same set of verified benchmarks, the same device
+    table, the same provider string. A parsed row holds its own copy of each,
+    and the isolate keeps every row. `share` returns the first equal value it
+    saw, so equal values are one object. Two values are equal here only when
+    they have the same types and the same JSON text, key order included, so
+    the Worker's encoder writes the same bytes it wrote for separate copies.
+    Nothing mutates a candidate's fields. The table lives for one load and is
+    dropped with it.
+
+    The table is small on purpose, because its high-water mark is part of the
+    isolate's heap (MODEL-531, headroom). A string or number is its own key. A
+    container's members are already shared, so two containers are equal when
+    their members are the same objects: the table keeps one integer hash per
+    container and compares members by identity, never a second copy of the
+    container's contents. Floats and integers are shared by their exact value
+    and sign, so `0.0` and `-0.0`, `1` and `1.0` stay apart.
+    """
+
+    __slots__ = ("_strings", "_floats", "_ints", "_containers")
+
+    def __init__(self) -> None:
+        self._strings: dict[str, str] = {}
+        self._floats: dict[float, float] = {}
+        self._ints: dict[int, int] = {}
+        # hash of the members' identities -> the shared containers with that hash
+        self._containers: dict[int, Any] = {}
+
+    def share(self, value: Any) -> Any:
+        kind = type(value)
+        if kind is str:
+            return self._strings.setdefault(value, value)
+        if kind is float:
+            # Not NaN (unequal to itself) and not `-0.0` (equal to `0.0`, but
+            # written differently): those two stay as they were read.
+            if value != value or (value == 0.0 and math.copysign(1.0, value) < 0):
+                return value
+            return self._floats.setdefault(value, value)
+        if kind is int:
+            return self._ints.setdefault(value, value)
+        if kind is dict:
+            value = {self.share(key): self.share(item) for key, item in value.items()}
+            return self._unique(value, tuple(map(id, value)) + tuple(map(id, value.values())))
+        if kind is list:
+            value = [self.share(item) for item in value]
+            return self._unique(value, tuple(map(id, value)))
+        return value
+
+    def _unique(self, value: Any, members: tuple[int, ...]) -> Any:
+        """The first container of this type whose members are the same objects."""
+        key = hash((type(value), members))
+        held = self._containers.get(key)
+        if held is None:
+            self._containers[key] = value
+            return value
+        # A hash match is not equality: keep every container of the same hash.
+        candidates = held if type(held) is _Bucket else (held,)
+        for other in candidates:
+            if type(other) is type(value) and _same_members(other, value):
+                return other
+        if type(held) is _Bucket:
+            held.append(value)
+        else:
+            self._containers[key] = _Bucket((held, value))
+        return value
+
+    def share_names(self, members: Any) -> tuple[str, ...]:
+        """The sorted, shared tuple of a set of names (device ids, benchmark ids).
+
+        A tuple holds eight bytes a member where a set or a dict holds a table.
+        The rank path only tests membership in these and intersects them with a
+        dict's keys, which a tuple answers the same way.
+        """
+        ordered = tuple(self.share(name) for name in sorted(members))
+        return self._unique(ordered, tuple(map(id, ordered)))
+
+
+class _Bucket(list):
+    """Containers that share a hash, held in the order they were first seen."""
+
+    __slots__ = ()
+
+
+def _same_members(left: Any, right: Any) -> bool:
+    """Same members, in the same order, as the same objects."""
+    if type(left) is dict:
+        if len(left) != len(right):
+            return False
+        return all(a is b and c is d for (a, c), (b, d) in zip(left.items(), right.items()))
+    return len(left) == len(right) and all(a is b for a, b in zip(left, right))
+
+
+def candidate_from_row(row: Mapping[str, Any], shared: _Shared | None = None) -> Candidate:
     """One ranking record from one `/api/rank/candidates.json` row."""
+    shared = shared or _Shared()
+    share = shared.share
     return Candidate(
-        model_id=row["model_id"], display_name=row["display_name"], provider=row["provider"],
-        model_type=row.get("model_type"), model_subtypes=row.get("model_subtypes") or [],
-        benchmark_scores=row.get("benchmark_scores") or {},
-        capability_tiers=row.get("capability_tiers") or {},
+        model_id=row["model_id"], display_name=row["display_name"],
+        provider=share(row["provider"]),
+        model_type=share(row.get("model_type")),
+        model_subtypes=share(row.get("model_subtypes") or []),
+        benchmark_scores=share(row.get("benchmark_scores") or {}),
+        capability_tiers=share(row.get("capability_tiers") or {}),
         cost_input=row.get("cost_input"), context_window=row.get("context_window"),
-        open_weights=bool(row.get("open_weights")), scores_as_of=row.get("scores_as_of"),
-        fits=row.get("fits") or {},
-        verified_benchmarks=set(row.get("verified_benchmarks") or []),
-        rehost_of=row.get("rehost_of"), release_date=row.get("release_date"),
-        cited_facts=row.get("cited_facts") or _NO_CITED_FACTS,
-        cited_benchmarks=row.get("cited_benchmarks") or _NO_CITED_BENCHMARKS,
+        open_weights=bool(row.get("open_weights")), scores_as_of=share(row.get("scores_as_of")),
+        # Only the device ids are read: `hardware_id in fits`. The predicted
+        # tok/s values never reach a response, so they are not kept.
+        fits=shared.share_names(row.get("fits") or ()),
+        verified_benchmarks=shared.share_names(row.get("verified_benchmarks") or ()),
+        rehost_of=share(row.get("rehost_of")), release_date=share(row.get("release_date")),
+        cited_facts=share(row["cited_facts"]) if row.get("cited_facts") else _NO_CITED_FACTS,
+        cited_benchmarks=(share(row["cited_benchmarks"]) if row.get("cited_benchmarks")
+                          else _NO_CITED_BENCHMARKS),
     )
 
 
@@ -346,7 +449,24 @@ def candidates_from_export(export: dict[str, Any]) -> list[Candidate]:
     file out of the local snapshot. Both feed the same `Candidate`, which is why
     the rows that come out are the same rows.
     """
-    return [candidate_from_row(row) for row in export["candidates"]]
+    shared = _Shared()
+    return [candidate_from_row(row, shared) for row in export["candidates"]]
+
+
+class _PackedGuide(str):
+    """One authoring guide, kept as its JSON text and decoded when it is served.
+
+    A response carries at most one guide, so the other guides stay text: a
+    string holds the guide's bytes once, where its decoded form holds a dict,
+    a list and a str for every field (MODEL-531, headroom). `json.loads` gives
+    back equal values of the same types, so the response bytes do not change.
+    """
+
+    __slots__ = ()
+
+
+def _pack_guide(guide: Any) -> Any:
+    return _PackedGuide(json.dumps(guide)) if isinstance(guide, dict) else guide
 
 
 def load_rank_export(stream: TextIO) -> tuple[dict[str, Any], list[Candidate]]:
@@ -360,8 +480,10 @@ def load_rank_export(stream: TextIO) -> tuple[dict[str, Any], list[Candidate]]:
     """
     from decision.json_stream import Each, JSONStreamReader
 
+    shared = _Shared()
     reader = JSONStreamReader(stream, transforms={
-        "candidates": {None: Each(candidate_from_row)},
+        "candidates": {None: Each(lambda row: candidate_from_row(row, shared))},
+        "authoring_guides": {"*": {None: _pack_guide}},
     })
     export = reader.read_value()
     reader.finish()
@@ -512,6 +634,8 @@ def authoring_guide_block(model_id: str | None, export: dict[str, Any]) -> dict[
         }
     guides = export.get("authoring_guides")
     raw = guides.get(model_id) if isinstance(guides, dict) else None
+    if isinstance(raw, _PackedGuide):
+        raw = json.loads(raw)
     if not isinstance(raw, dict):
         return {
             "state": GUIDE_STATE_ABSENT,

@@ -378,6 +378,17 @@ class SnapshotInputs:
     #: Append-only records that supersede a cite-only fact's stale mismatch
     #: (MODEL-415, ``decision.supersession``). Empty: nothing is superseded.
     supersessions: Sequence[Any] = ()
+    #: The owner's rulings past a recorded rule-15 disagreement (MODEL-551,
+    #: ``decision.owner_ruling``) and the attempt log they resolve. A fact that carries
+    #: ``derivation.owner_ruling`` is admitted only on a valid ruling.
+    owner_rulings: Sequence[Mapping[str, Any]] = ()
+    cited_attempts: Sequence[Mapping[str, Any]] = ()
+    #: Fact id -> its latest filed claim, for facts whose latest claim is a ruling's
+    #: (``decision.owner_ruling.latest_ruling_claims``): a ruling stands only while it is.
+    owner_ruling_claims: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    #: Fact id -> its queue events, for the same facts: a ruling stands at a build's cutoff
+    #: only once its claim line is filed and checked by then (``owner_ruling.stands_at``).
+    owner_ruling_history: Mapping[str, Sequence[Mapping[str, Any]]] = field(default_factory=dict)
     #: Lab id -> ``decision.labs.Lab``. Empty when the checkout has no lab registry.
     labs: Mapping[str, Any] = field(default_factory=dict)
     #: Sourced hardware YAML records. Metadata, never ranking candidates.
@@ -787,6 +798,11 @@ class _Compiler:
         #: Only a compile with records imports ``decision.supersession``; the
         #: Worker never compiles, so the module stays unimported there.
         self._supersessions = self._supersession_index(inputs.supersessions)
+        self.owner_rulings = tuple(dict(r) for r in inputs.owner_rulings)
+        self.cited_attempts = tuple(dict(a) for a in inputs.cited_attempts)
+        self.owner_ruling_claims = {str(k): dict(v) for k, v in inputs.owner_ruling_claims.items()}
+        self.owner_ruling_history = {str(k): tuple(v)
+                                     for k, v in inputs.owner_ruling_history.items()}
         #: record ID -> the mismatches a supersession retired, for provenance.
         self.superseded: dict[str, list[dict[str, Any]]] = {}
         #: subject id -> {"kind", "model", "lifecycle"}
@@ -802,6 +818,10 @@ class _Compiler:
         self.price_periods: dict[str, list[tuple[date | None, date | None]]] = {}
         self.labs: Mapping[str, Any] = inputs.labs
         self.hardware: dict[str, dict[str, Any]] = {}
+        #: Counts only: cards with unregistered sources, and those URLs.
+        self.unregistered_hardware = [0, 0]
+        #: Refused mismatch supersessions by fixed reason wording; no record ids.
+        self.refused_supersessions: Counter[str] = Counter()
         self.hardware_fit: list[dict[str, Any]] = []
         #: Premier models whose lab recorded a sourced null jurisdiction.
         self.jurisdiction_null_ok: set[str] = set()
@@ -899,6 +919,20 @@ class _Compiler:
         return "unverified" if record is None else str(record["outcome"])
 
     def _retain(self, kind: str, record: dict, citation: dict | None = None) -> str:
+        if kind == "evidence" and "baseline" in record:
+            # MODEL-537: the baseline is internal and never enters a snapshot or its record_table.
+            record = {k: v for k, v in record.items() if k != "baseline"}
+        if kind == "evidence" and "derivation" in record:
+            # The cited-change derivation (readers, prompt hashes, manifests) is internal: it
+            # never enters a snapshot or its record_table.
+            record = {k: v for k, v in record.items() if k != "derivation"}
+        if kind == "fact" and isinstance(record.get("derivation"), Mapping) \
+                and "owner_ruling" in record["derivation"]:
+            # The owner's ruling (MODEL-551) is internal, and so is the cited-change block a
+            # ruled re-read fact keeps: one served form, shared with the site exports.
+            from decision.owner_ruling import served_fact
+
+            record = served_fact(record)
         rid = str(record.get("id") or content_hash(record))
         value = (
             fact_verification_value(record)
@@ -994,7 +1028,7 @@ class _Compiler:
             [_as_dict(ref) for ref in refs], self.sources)
         if entry is None:
             if refused:
-                logger.warning("%s: mismatch supersession refused: %s", rid, refused)
+                self.refused_supersessions[str(refused)] += 1
                 return f"quarantined (mismatch; supersession refused: {refused})"
             return "quarantined (mismatch)"
         self.superseded[str(rid)] = [entry]
@@ -1038,6 +1072,11 @@ class _Compiler:
         row = self.facts.setdefault(sid, {})
         for f in self._resolve_prices(sid, facts):
             facet_id, state = str(f["facet"]), str(f["state"])
+            if not self._ruling_known(sid, f):
+                # A ruled fact this build does not know yet (MODEL-551) is withheld before its
+                # citation is read, so its gap names the facet and a count, never a source.
+                self._reject((sid, facet_id), "invalid_citation", [])
+                continue
             if f.get("effective_from") is not None or f.get("effective_until") is not None:
                 subject = f.get("subject") or {}
                 if (self.subjects[sid]["kind"] != "offering"
@@ -1066,6 +1105,12 @@ class _Compiler:
             except ValueError:
                 self._reject((sid, facet_id), "invalid_citation", source_ids)
                 continue
+            if self._ruling_refused(sid, f, citation):
+                # A ruling is the owner's, past a rule-15 disagreement on a cite-only page
+                # (MODEL-551): one that does not stand at this build's cutoff keeps the fact
+                # out, as a bad citation. Its gap names the facet and a count, never a source.
+                self._reject((sid, facet_id), "invalid_citation", [])
+                continue
             if citation is not None and facet_id in {"offering.api_model_id", "offering.router_slug"}:
                 self._reject((sid, facet_id), "quarantined (cited identifier)", source_ids)
                 continue
@@ -1092,6 +1137,37 @@ class _Compiler:
                 self.price_periods.setdefault(sid, []).append((
                     _date(f.get("effective_from")), _date(f.get("effective_until")),
                 ))
+
+    def _ruling_inputs(self):
+        from decision.owner_ruling import RulingInputs
+
+        return RulingInputs(self.owner_rulings, self.cited_attempts, self.owner_ruling_claims,
+                            self.log, self.owner_ruling_history)
+
+    def _ruling_known(self, sid: str, fact: Mapping[str, Any]) -> bool:
+        """False for a fact that carries ``derivation.owner_ruling`` whose ruling or claim line
+        is dated after this build's cutoff (``decision.owner_ruling.stands_at``); true for any
+        other fact. It runs first, before any citation is parsed."""
+        derivation = fact.get("derivation")
+        if not isinstance(derivation, Mapping) or "owner_ruling" not in derivation:
+            return True
+        from decision.owner_ruling import ruling_cutoff, stands_at
+
+        return stands_at(fact, sid, ruling_cutoff(self.as_of), self._ruling_inputs())
+
+    def _ruling_refused(self, sid: str, fact: Mapping[str, Any], citation: dict | None) -> bool:
+        """A fact that carries ``derivation.owner_ruling`` and is not cited, or whose ruling
+        does not stand (``decision.owner_ruling.admits``, with the filer's quarantine test on
+        every value of the fact over this build's verification log). Others are not affected."""
+        derivation = fact.get("derivation")
+        if not isinstance(derivation, Mapping) or "owner_ruling" not in derivation:
+            return False
+        from decision.owner_ruling import ruling_refused
+
+        # Withheld unless the ruling and its checked claim line are dated on or before this
+        # build's cutoff, min(as_of, the UTC day): later knowledge never enters a past build.
+        return ruling_refused(fact, sid, cited=citation is not None, inputs=self._ruling_inputs(),
+                              sources=self.sources, as_of=self.as_of)
 
     def _resolve_prices(self, sid: str, facts: Iterable[Any]) -> list[dict[str, Any]]:
         facts = [_as_dict(raw) for raw in facts or ()]
@@ -1307,16 +1383,28 @@ class _Compiler:
     # output ------------------------------------------------------------------
 
     def prefer_verified_evidence(self) -> None:
-        """A verified model/benchmark reading supersedes its cited siblings."""
+        """A verified reading supersedes only a cited duplicate of itself.
+
+        The key is (model, benchmark, measured_by). A cited row is dropped only
+        when a verified row for the same model and benchmark from the same
+        measurer exists: a true duplicate. A cited reading from another
+        measurer is an independent reading and stays, labelled with its measurer
+        and its cited status. A missing or empty ``measured_by`` compares as the
+        empty string, so it matches only another empty one; ``add_evidence``
+        already refuses such rows (``unclassified``), so none reaches here.
+        """
+        def key(sid: str, row: list[Any]) -> tuple[str, str, str]:
+            return (self.subjects[sid]["model"], row[0], str(row[5] or ""))
+
         verified = {
-            (self.subjects[sid]["model"], row[0])
+            key(sid, row)
             for sid, rows in self.evidence.items() for row in rows
             if "citation" not in self.records[row[10]]
         }
         self.evidence = {
             sid: [row for row in rows
                   if "citation" not in self.records[row[10]]
-                  or (self.subjects[sid]["model"], row[0]) not in verified]
+                  or key(sid, row) not in verified]
             for sid, rows in self.evidence.items()
         }
 
@@ -1413,8 +1501,8 @@ class _Compiler:
         registered = {url: sid for sid, url in sorted(self.sources.items(), reverse=True)}
         unregistered = sorted(set(urls) - registered.keys())
         if unregistered:
-            logger.warning("%s: unregistered hardware source URLs: %s", device_id,
-                           ", ".join(unregistered))
+            self.unregistered_hardware[0] += 1
+            self.unregistered_hardware[1] += len(unregistered)
             self.hardware[device_id] = {
                 "unknown_reason": f"{len(unregistered)} hardware source URLs are not registered",
                 "record_id": None, "source_ids": [],
@@ -1852,6 +1940,16 @@ def _compile(inputs: SnapshotInputs, registry: Any, guard: ExcludedSources | Non
         c.add_hardware(device)
     for record in inputs.hardware_fit_records:
         c.add_hardware_fit(record)
+    if c.refused_supersessions:
+        # Counts and fixed reason wording only: never a record id.
+        logger.warning(
+            "%d mismatch supersessions refused (%s)",
+            sum(c.refused_supersessions.values()),
+            "; ".join(f"{n} x {reason}" for reason, n in sorted(c.refused_supersessions.items())))
+    if c.unregistered_hardware[0]:
+        # Public CI logs carry counts only: never a card id or a source URL.
+        logger.warning("%d hardware cards cite %d unregistered source URLs",
+                       *c.unregistered_hardware)
     return c
 
 
@@ -1924,6 +2022,9 @@ def collect_repo(root: Path) -> SnapshotInputs:
     * Domains: each benchmark page's ``domains`` tags.
     * The verification log: ``verification/log.jsonl``.
     * Mismatch supersessions: ``verification/supersessions.jsonl`` (MODEL-415).
+    * Owner rulings: ``verification/owner-rulings.jsonl`` and, when it holds any, the
+      rule-15 attempt log ``verification/cited-attempts.jsonl`` and the facts whose latest
+      claim in ``verification/queue/events.jsonl`` is a ruling's (MODEL-551).
     * Hardware: dated vendor memory specifications in ``hardware/*.yaml``.
     """
     from pipeline.load import load_benchmarks, load_models
@@ -2013,6 +2114,20 @@ def collect_repo(root: Path) -> SnapshotInputs:
         from decision.supersession import read_store
 
         supersessions = read_store(supersession_store)
+    owner_rulings, cited_attempts, ruling_claims, ruling_history = [], [], {}, {}
+    rulings_store = root / "verification" / "owner-rulings.jsonl"
+    if rulings_store.is_file():
+        from decision.owner_ruling import read_ruling_inputs
+
+        try:
+            # The verification log is ranked by the compiler itself.
+            ruling_inputs = read_ruling_inputs(root, verdicts=False)
+        except (ValueError, KeyError, TypeError) as exc:
+            raise SnapshotBuildError(f"{rulings_store}: {exc}") from exc
+        owner_rulings = list(ruling_inputs.rulings)
+        cited_attempts = list(ruling_inputs.attempts)
+        ruling_claims = dict(ruling_inputs.claims)
+        ruling_history = dict(ruling_inputs.history)
     from decision.labs import load_labs
 
     fit_path = root / "hardware" / "fit" / "records.yaml"
@@ -2027,6 +2142,9 @@ def collect_repo(root: Path) -> SnapshotInputs:
                           benchmark_refinements=refinements,
                           verifications=verifications,
                           supersessions=supersessions,
+                          owner_rulings=owner_rulings, cited_attempts=cited_attempts,
+                          owner_ruling_claims=ruling_claims,
+                          owner_ruling_history=ruling_history,
                           labs=load_labs(root), hardware_fit_records=fit_records,
                           hardware=[yaml.safe_load(path.read_text(encoding="utf-8"))
                                     for path in sorted((root / "hardware").glob("*.yaml"))
@@ -2062,12 +2180,10 @@ def build_from_repo(root: Path, *, premier: str | Path | None, as_of: date | Non
     The fetcher's copy store joins only when ``MODELSPEC_SOURCE_CACHE`` names
     it, so a build never depends on an unconfigured home-directory cache.
     """
-    root = Path(root)
-    store = None
-    if os.environ.get("MODELSPEC_SOURCE_CACHE"):
-        from decision.sources import CopyStore
+    from decision.sources import configured_copy_store
 
-        store = CopyStore()
+    root = Path(root)
+    store = configured_copy_store()
     return build_snapshot(
         collect_repo(root),
         registry=registry if registry is not None else default_registry(),

@@ -4,7 +4,38 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_serializer, model_validator
+
+
+class Baseline(BaseModel):
+    """What a reading is compared against, when its source states one (MODEL-537).
+
+    Internal: never exported (`pipeline.export`) and in no public contract. Absolute scores
+    carry none. `none_stated` is a real value: the source compares but names no baseline.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal["prior_version", "named_model", "human", "random", "none_stated"]
+    #: The baseline model, or a label for a human or random baseline.
+    label: str = ""
+    source: str = ""
+
+    @model_validator(mode="after")
+    def _source_and_label(self) -> Baseline:
+        if self.kind == "none_stated":
+            if self.label or self.source:
+                raise ValueError("none_stated carries no label or source")
+            return self
+        if not self.source.startswith(("http://", "https://")):
+            raise ValueError("a stated baseline needs source, an http(s) URL")
+        from decision.excluded import excluded_sources
+
+        if excluded_sources().url(self.source):
+            raise ValueError("baseline source may not name an excluded source (S1)")
+        if self.kind in ("prior_version", "named_model") and not self.label.strip():
+            raise ValueError(f"{self.kind} baseline needs the model in label")
+        return self
 
 
 class BenchmarkEvidence(BaseModel):
@@ -18,7 +49,8 @@ class BenchmarkEvidence(BaseModel):
 
     Every field here is required. A record that cannot say where a number came
     from or when is not evidence, and admitting a partial one would quietly
-    reintroduce exactly the problem this replaces.
+    reintroduce exactly the problem this replaces. ``not_published_since`` is
+    the exception: absent until a live refresh sees the row listed with no value.
     """
 
     benchmark_id: str
@@ -45,6 +77,14 @@ class BenchmarkEvidence(BaseModel):
     quality_flags: list[Literal["deprecated", "contamination_warning"]] = Field(
         default_factory=list
     )
+    #: The day a live refresh first saw this row listed with no value.
+    #: Absent means the source was still publishing the score.
+    not_published_since: str | None = None
+    #: Internal and optional (MODEL-537): the baseline the source compares this reading with.
+    baseline: Baseline | None = None
+    #: How a cite-only reading was changed (``derivation.cited_change``: rule, readers, prompt
+    #: hashes, manifests, URL, read date, sha256). Absent for every other row. No page text.
+    derivation: dict[str, JsonValue] | None = None
 
     @field_validator("source_url")
     @classmethod
@@ -62,6 +102,27 @@ class BenchmarkEvidence(BaseModel):
         except ValueError as exc:
             raise ValueError(f"must be an exact ISO date YYYY-MM-DD, got {value!r}") from exc
         return value
+
+    @field_validator("not_published_since")
+    @classmethod
+    def _publication_day_must_be_iso(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        from datetime import date as _date
+        try:
+            _date.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError(f"must be an exact ISO date YYYY-MM-DD, got {value!r}") from exc
+        return value
+
+    @model_serializer(mode="wrap")
+    def _omit_absent_publication(self, handler):
+        data = handler(self)
+        if isinstance(data, dict):
+            for key in ("not_published_since", "baseline", "derivation"):
+                if data.get(key) is None:
+                    data.pop(key, None)
+        return data
 
     @model_validator(mode="after")
     def _valid_uncertainty_and_quality(self) -> BenchmarkEvidence:

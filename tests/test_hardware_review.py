@@ -222,13 +222,17 @@ def test_p4_old_snapshot_has_an_explicit_missing_device_reason():
 
 @pytest.mark.parametrize("missing", [("spark-spec",), ("spark-spec", "spark-manual")])
 def test_unregistered_hardware_sources_produce_unknowns_without_invented_ids(missing, caplog):
+    caplog.set_level("WARNING")
     sources = {k: v for k, v in SOURCES_WITH_HARDWARE.items() if k not in missing}
     built = build_snapshot(SnapshotInputs(models=[generator("lab/a")], hardware=[spark()],
                                          sources=sources), gate=False)
     for sid in missing:
         url = SOURCES_WITH_HARDWARE[sid]
         assert url not in json.dumps(built.content)
-        assert url in caplog.text
+        assert url not in caplog.text
+    assert SPARK not in caplog.text
+    assert "http" not in caplog.text
+    assert f"1 hardware cards cite {len(missing)} unregistered source URLs" in caplog.text
     index = load_built_snapshot(built, include_archive=False)
     reason = f"{len(missing)} hardware source URLs are not registered"
     assert index.hardware_device(SPARK) == {"unknown_reason": reason, "record_id": None, "source_ids": []}
@@ -264,3 +268,18 @@ def test_weights_use_three_significant_figures_without_zeroing_tiny_models(param
     decision = answer(fixture_snapshot(models=[generator("lab/tiny", total=parameters, active=parameters)]),
                       estate={"devices": [SPARK]})
     assert estimates(decision, "lab/tiny")["hardware.weights_gb"].value == expected
+
+
+def test_a_refusal_inside_hardware_fit_is_counted_in_the_logged_line(monkeypatch, caplog):
+    from decision import snapshot as snap
+
+    def refuse(self, raw):
+        self.refused_supersessions["same region"] += 1
+
+    monkeypatch.setattr(snap._Compiler, "add_hardware_fit", refuse)
+    caplog.set_level("WARNING")
+    build_snapshot(SnapshotInputs(models=[generator("lab/a")], hardware=[spark()],
+                                  hardware_fit_records=[{"id": "fit-secret"}],
+                                  sources=SOURCES_WITH_HARDWARE), gate=False)
+    assert "1 mismatch supersessions refused (1 x same region)" in caplog.text
+    assert "fit-secret" not in caplog.text

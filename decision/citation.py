@@ -48,17 +48,23 @@ def _fetcher_record(ref: Mapping[str, Any], sources: Mapping[str, str],
     if store is None or not isinstance(snapshot_ref, str) or not _HASH.fullmatch(snapshot_ref):
         return None
     try:
-        metadata = store.citation(snapshot_ref)
+        records = (store.citations(snapshot_ref) if hasattr(store, "citations")
+                   else [r for r in (store.citation(snapshot_ref),) if r is not None])
     except (OSError, AttributeError, TypeError):
         raise ValueError("unreadable citation record") from None
-    if metadata is None:
+    if not records:
         return None
-    if not isinstance(metadata, Mapping) or metadata.get("snapshot_ref") != snapshot_ref:
-        raise ValueError("citation record does not match its hash")
-    if metadata.get("url") != sources.get(ref.get("source_id")):
+    # One record per (hash, URL) (MODEL-513): the ref's own registered URL picks
+    # its record. Every record found is validated; a URL with no record is refused.
+    for record in records:
+        if not isinstance(record, Mapping) or record.get("snapshot_ref") != snapshot_ref:
+            raise ValueError("citation record does not match its hash")
+        if record_origin_status(dict(record)) is None:
+            raise ValueError("invalid citation redirect record")
+    registered = sources.get(ref.get("source_id"))
+    metadata = next((r for r in records if r.get("url") == registered), None)
+    if metadata is None:
         raise ValueError("citation record names another source")
-    if record_origin_status(dict(metadata)) is None:
-        raise ValueError("invalid citation redirect record")
     redirects = redirect_urls(metadata["resolved_urls"]) if "resolved_urls" in metadata else ()
     return _Fetched(metadata_origins(dict(metadata)), redirects)
 

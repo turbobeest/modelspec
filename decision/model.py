@@ -79,7 +79,7 @@ DETERMINISTIC = "deterministic"
 #: A family name's first word -> the lab whose lineage it is.
 _LINEAGES = {
     "anthropic": "anthropic", "claude": "anthropic",
-    "openai": "openai", "gpt": "openai",
+    "openai": "openai", "gpt": "openai", "codex": "openai",
     "google": "google", "gemini": "google", "gemma": "google",
     "alibaba": "alibaba", "qwen": "alibaba",
     "meta": "meta", "llama": "meta",
@@ -101,9 +101,24 @@ def model_family(name: str) -> str:
     return _LINEAGES.get(re.split(r"[-_ ]", base)[0], base)
 
 
+#: The family recorded when a collector or reader's lineage is not known.
+UNKNOWN = "unknown"
+
+#: Placeholder families that name no lineage ("unrecorded" is the data-trust
+#: placeholder): each is treated as ``unknown``.
+_NO_LINEAGE = frozenset({UNKNOWN, "other", "unrecorded"})
+
+
 def independent_families(collector: str, verifier: str) -> bool:
-    """Two keys: the verifier is deterministic, or of another model family (MODEL-140)."""
-    return verifier == DETERMINISTIC or model_family(collector) != model_family(verifier)
+    """Two keys: the verifier is deterministic, or of another model family (MODEL-140).
+
+    An ``unknown`` family on either side is independent of no model: the check
+    fails closed (MODEL-533). "codex" is an OpenAI lineage (see ``_LINEAGES``).
+    """
+    if verifier == DETERMINISTIC:
+        return True
+    a, b = model_family(collector), model_family(verifier)
+    return a not in _NO_LINEAGE and b not in _NO_LINEAGE and a != b
 
 
 def verification_counts(outcome: str, collector: str, verifier: str) -> bool:
@@ -397,6 +412,7 @@ def evidence_verification_value(evidence: object) -> JsonValue:
     Evidence without structured uncertainty or quality metadata keeps the v1
     score-only identity. Once any decision-affecting metadata is present, the
     verification binds all of it, including the absence of the other fields.
+    ``not_published_since`` is not bound: a withdrawn cell is still the same reading.
     """
     get = evidence.get if isinstance(evidence, dict) else lambda key, default=None: getattr(
         evidence, key, default
@@ -600,7 +616,22 @@ class Source(Record):
     #: A ``source_kinds`` id from ``registry/facets.yaml``. Absent means the kind
     #: is unknown; existing registries still load.
     kind: str | None = None
+    #: Who publishes the page: a lab id or a provider id, as the registries spell
+    #: them (MODEL-530). Absent means unknown. The kind check reads it so a lab's own
+    #: pages can back both lab and seller facts. Never served.
+    publisher: str | None = Field(
+        default=None,
+        **({"exclude_if": lambda value: value is None} if NATIVE_EXCLUDE_IF else {
+            "json_schema_extra": {"exclude_if": lambda value: value is None},
+        }))
     cited_regions: list[CitedRegion] = Field(default_factory=list)
+    #: The id of the source this one is an alias or redirect of (MODEL-519). Two sources on
+    #: one host that serve the same bytes are a shell page unless one names the other here.
+    alias_of: str | None = Field(
+        default=None,
+        **({"exclude_if": lambda value: value is None} if NATIVE_EXCLUDE_IF else {
+            "json_schema_extra": {"exclude_if": lambda value: value is None},
+        }))
     rendered_interactions: list[RenderedInteraction] = Field(
         default_factory=list, max_length=16,
         **({"exclude_if": lambda value: not value} if NATIVE_EXCLUDE_IF else {

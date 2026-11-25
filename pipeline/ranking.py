@@ -19,6 +19,7 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from decision.credit import credit_record, is_epoch_url
 from api.ranking.engine import (
     BENCHMARK_RANGES,
     USE_CASE_PROFILES,
@@ -52,7 +53,9 @@ FEATURED_PROFILES = (
 )
 
 
-@dataclass
+#: Slots, not a per-instance dict: the Worker keeps one `Candidate` per card for
+#: the life of the isolate (MODEL-531). Fields are read and never added.
+@dataclass(slots=True)
 class Candidate:
     model_id: str
     display_name: str
@@ -120,6 +123,42 @@ def rehost_of(card: Any) -> str | None:
     return None
 
 
+def reduce_readings(readings: list[tuple[Any, bool]]) -> tuple[Any, bool]:
+    """The one reading that stands for a benchmark: (record, is_cited).
+
+    Same like-with-like rule as the decide path: a cited reading is dropped only
+    beside a verified reading from the same measurer (`source_kind`). A cited
+    reading from another measurer survives, so an independent cited number is
+    not hidden by a provider's own verified one.
+
+    Ranking needs one scalar, so the survivors reduce by a fixed order that does
+    not depend on input order: independent measurer over `provider_self_report`;
+    then verified over cited; then the most recent `evidence_date`; then, only to
+    break a full tie, source_url, then (model_id_as_evaluated, configuration)
+    compared lexically, and score only as the very last resort. Score is kept out
+    of the tie-break so that two configurations of one row (same URL and date) are
+    not settled by whichever number is higher. Independence leads because the
+    ranker should not let a lab's own claim outrank a third party's, and a
+    reading that is not machine-verified is still a reading of the right kind.
+
+    `source_kind` is the measurer field here, because `BenchmarkEvidence` drops
+    `measured_by`; the two agree on all 3,857 rows that carry both. Rows with
+    only `source_kind` are kept by the ranker, while the decide path excludes
+    them as unclassified.
+    """
+    verified_kinds = {r.source_kind for r, cited in readings if not cited}
+    live = [(r, cited) for r, cited in readings
+            if not (cited and r.source_kind in verified_kinds)]
+
+    def key(item: tuple[Any, bool]) -> tuple[Any, ...]:
+        r, cited = item
+        return (r.source_kind != "provider_self_report", not cited,
+                str(r.evidence_date), r.source_url,
+                r.model_id_as_evaluated or "", r.configuration or "", float(r.score))
+
+    return max(live, key=key)
+
+
 def build_candidates(cards: list[Any], sink: CollectingSink, *,
                      cited_facts: dict[str, list[dict[str, Any]]] | None = None) -> list[Candidate]:
     """One ranking record per card, with capability tiers and hardware fit attached."""
@@ -154,16 +193,18 @@ def build_candidates(cards: list[Any], sink: CollectingSink, *,
         source = card.benchmarks.benchmark_source
         cited_benchmarks = ({key: {"status": "cited", "url": source} for key in scores}
                             if is_cite_only_restrictive(source) else {})
+        by_benchmark: dict[str, list[tuple[Any, bool]]] = {}
         for record in card.benchmarks.evidence:
-            cited = is_cite_only_restrictive(record.source_url)
-            if cited and record.benchmark_id in verified:
-                continue
-            scores[record.benchmark_id] = float(record.score)
+            by_benchmark.setdefault(record.benchmark_id, []).append(
+                (record, is_cite_only_restrictive(record.source_url)))
+        for benchmark_id, readings in by_benchmark.items():
+            record, cited = reduce_readings(readings)
+            scores[benchmark_id] = float(record.score)
             if cited:
-                cited_benchmarks[record.benchmark_id] = {"status": "cited", "url": record.source_url}
+                cited_benchmarks[benchmark_id] = {"status": "cited", "url": record.source_url}
             else:
-                verified.add(record.benchmark_id)
-                cited_benchmarks.pop(record.benchmark_id, None)
+                verified.add(benchmark_id)
+                cited_benchmarks.pop(benchmark_id, None)
         out.append(Candidate(
             model_id=ident.model_id,
             display_name=ident.display_name or ident.model_id,
@@ -464,6 +505,11 @@ def write_export(out_dir: Any, cards: list[Any], sink: CollectingSink,
         path.write_text(json.dumps(payload, sort_keys=True, default=str), encoding="utf-8")
 
     candidates = build_candidates(cards, sink, cited_facts=cited_facts)
+    # Epoch AI's CC BY 4.0 asks for credit where its data is shown (MODEL-508).
+    # Additive and absent when no score here came from Epoch, as `authoring_guides` was.
+    credits = ([credit_record()] if any(
+        is_epoch_url(record.source_url)
+        for card in cards for record in card.benchmarks.evidence) else [])
     dump("profiles.json", {
         "build": build_json,
         "featured": list(FEATURED_PROFILES),
@@ -479,6 +525,7 @@ def write_export(out_dir: Any, cards: list[Any], sink: CollectingSink,
         "count": len(candidates),
         "candidates": [c.to_json() for c in candidates],
         "authoring_guides": authoring_guides_from_cards(cards),
+        **({"credits": credits} if credits else {}),
     })
 
     # The device vocabulary, without the 7 MB of FITS_ON edges that the graph
@@ -504,7 +551,8 @@ def write_export(out_dir: Any, cards: list[Any], sink: CollectingSink,
             candidates, key, limit=25,
             min_benchmark_coverage=WIZARD_BENCHMARK_COVERAGE,
         )
-    dump("rankings.json", {"schema_version": "2.0", "build": build_json, "rankings": precomputed})
+    dump("rankings.json", {"schema_version": "2.0", "build": build_json, "rankings": precomputed,
+                            **({"credits": credits} if credits else {})})
 
     return {
         "candidates": len(candidates),

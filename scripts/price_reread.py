@@ -21,6 +21,10 @@ Each fact ends in one status:
 - ``unreadable``: the page fetched but the reader no longer understands it: the
   cited region is gone, no reader accepts the page, or the subject is not found.
 - ``unreachable``: the page did not fetch.
+- ``not_disclosed_no_value``: a price filed ``not_disclosed`` whose cited region read and has
+  no value for that kind. It claims nothing: not unchanged, not an alert, nothing written
+  (MODEL-481). A number read is ``needs_review`` (``disclosed: page now states a value``);
+  an explicit not-available cell is ``needs_review`` too.
 - ``not_reread``: out of this job's reach. A rendered browser was not enabled,
   the retained copy is a text projection that needs re-registering before an
   HTML re-read, the value is still quarantined, or an LLM reader last verified it
@@ -61,6 +65,7 @@ from typing import Any
 import yaml
 
 from decision.excluded import excluded_sources
+from decision.final_hosts import FINAL_HOST_CHANGED, STATE_FILE, observe
 from decision.model import (
     DETERMINISTIC,
     Verification,
@@ -75,6 +80,9 @@ from decision.normalise import (
     normalise_document,
 )
 from decision.sources import (
+    named_refusal,
+    ShellCheck, ShellPageError, shell_alias_urls, shell_page_reason, shell_refusal,
+    refusal_reason,
     RENDERED_PREPARATIONS,
     CopyStore,
     Fetcher,
@@ -99,6 +107,7 @@ from decision.verify import (
     normalise_name,
     parse_quantity,
     split_model_cell,
+    read_not_disclosed,
     verify,
 )
 
@@ -136,9 +145,16 @@ class Status(StrEnum):
     UNREADABLE = "unreadable"
     UNREACHABLE = "unreachable"
     NOT_REREAD = "not_reread"
+    #: A fetch refused at the terms register (MODEL-509): its own alert, never ``unreachable``.
+    REDIRECT_UNCLASSIFIED = "redirect_unclassified"
+    #: Bytes that are a shell, not the page (MODEL-519): its own alert, never ``unreadable``.
+    SHELL_PAGE = "shell_page"
+    #: A ``not_disclosed`` price whose page read and has no value for it: claims nothing.
+    NOT_DISCLOSED_NO_VALUE = "not_disclosed_no_value"
 
 
-ALERTS = frozenset({Status.NEEDS_REVIEW, Status.UNREADABLE, Status.UNREACHABLE})
+ALERTS = frozenset({Status.NEEDS_REVIEW, Status.UNREADABLE, Status.UNREACHABLE,
+                    Status.REDIRECT_UNCLASSIFIED, Status.SHELL_PAGE})
 
 
 @dataclass(frozen=True)
@@ -211,6 +227,8 @@ class Report:
     diffs: dict[str, list[str]] = field(default_factory=dict)
     overdue: list[str] = field(default_factory=list)
     fallback_spend: str | None = None
+    #: Sources whose fetch now ends on another host than last recorded (MODEL-523).
+    final_host_changed: list[dict[str, str]] = field(default_factory=list)
 
     @property
     def changes(self) -> list[FactResult]:
@@ -225,7 +243,9 @@ class Report:
     def counts(self) -> dict[str, int]:
         counts = Counter(f.status.value for f in self.facts)
         return {s.value: counts.get(s.value, 0) for s in Status
-                if s is not Status.CITED or counts.get(s.value, 0)}
+                if s not in (Status.CITED, Status.NOT_DISCLOSED_NO_VALUE,
+                             Status.REDIRECT_UNCLASSIFIED, Status.SHELL_PAGE)
+                or counts.get(s.value, 0)}
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -237,6 +257,10 @@ class Report:
             "reconfirmed": [f.fact_id for f in self.facts if f.status is Status.UNCHANGED],
             "cited": [f.to_dict() for f in self.facts if f.status is Status.CITED],
             "alerts": [f.to_dict() for f in self.alerts],
+            FINAL_HOST_CHANGED: self.final_host_changed,
+            "not_disclosed_no_value": [
+                {"fact": f.fact_id, "sources": list(f.source_ids), "read": f.reason}
+                for f in self.facts if f.status is Status.NOT_DISCLOSED_NO_VALUE],
             "not_reread": dict(Counter(
                 f.reason or "" for f in self.facts if f.status is Status.NOT_REREAD)),
             "sources": {sid: {"url": s.url, "outcome": s.outcome, "copy": s.copy_ref,
@@ -488,6 +512,7 @@ def fetch_sources(source_ids: Iterable[str], sources: Mapping[str, Any], fetcher
             result = fetcher.fetch(url)
         if result.outcome == "ok":
             retrieved_at = result.retrieved_at or datetime.now(UTC)
+            shell = ShellCheck(source.normaliser, shell_alias_urls(source, sources.values()))
             try:
                 if result.snapshot_ref is not None:
                     if cite_only_origin_status(url, result.resolved_urls) is not True:
@@ -495,13 +520,17 @@ def fetch_sources(source_ids: Iterable[str], sources: Mapping[str, Any], fetcher
                     ref = result.snapshot_ref
                     _valid_citation_record(store, ref)  # never overwrite a damaged one
                     store.record_citation(ref, source_url=url, retrieved_at=retrieved_at,
-                                          resolved_urls=result.resolved_urls)
+                                          resolved_urls=result.resolved_urls, shell_check=shell)
                 else:
                     ref = store.put(result.body, source_url=url, retrieved_at=retrieved_at,
-                                    resolved_urls=result.resolved_urls)
+                                    resolved_urls=result.resolved_urls, shell_check=shell)
                 # Granting: "cited" skips verification, so an existing record for
                 # this hash counts only once every origin it carries is valid.
                 outcome = "cited" if _valid_citation_record(store, ref) else "ok"
+            except ShellPageError as stop:
+                # A shell binds nothing (MODEL-519): no citation, its own alert.
+                fetched[sid] = SourceFetch(sid, url, shell_refusal(stop.reason, sid))
+                continue
             except ValueError:
                 # Fail closed for this source only (MODEL-420): no bytes, no
                 # citation, and the other sources still run.
@@ -662,6 +691,14 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
                                "re-register the source to re-read it rendered")
             return replace(base, reason="the page needs a rendered fetch"
                            if "rendered" in outcomes else "excluded source")
+        shelled = [fetched[s.source_id].outcome for s in old_sources
+                   if shell_page_reason(fetched[s.source_id].outcome)]
+        if shelled:
+            return replace(base, status=Status.SHELL_PAGE, reason="; ".join(shelled))
+        refused = [named_refusal(why, s.source_id) for s in old_sources
+                   if (why := refusal_reason(fetched[s.source_id].outcome))]
+        if refused:
+            return replace(base, status=Status.REDIRECT_UNCLASSIFIED, reason="; ".join(refused))
         return replace(base, status=Status.UNREACHABLE, reason="; ".join(outcomes))
 
     copies = {sid: (next(s.snapshot_ref for s in old_sources if s.source_id == sid),
@@ -715,6 +752,17 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
                        reason=f"cited region not found in the new copy: {result.reason}"
                        f"{_page_size(regions, claim)}")
     if result.outcome == "skipped":
+        # A price filed not_disclosed whose region read and shows no cell for the kind
+        # claims nothing and is not a failure (MODEL-481). Nothing is written.
+        if fact["state"] == "not_disclosed" and (
+                seen := read_not_disclosed(claim, regions)) is not None:
+            verdict, where = seen
+            if verdict == "unavailable":
+                return replace(base, status=Status.NEEDS_REVIEW,
+                               reason="the page states this price is not available (a person "
+                               "may re-file it as not_offered); read " + ", ".join(where))
+            return replace(base, status=Status.NOT_DISCLOSED_NO_VALUE,
+                           reason="read " + ", ".join(where) + "; no value for this kind")
         return replace(base, status=Status.UNREADABLE,
                        reason=f"no reader accepts the new copy: {result.reason}"
                        f"{_page_size(regions, claim)}")
@@ -722,6 +770,10 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
     proposal = _propose(claim, regions, today)
     confirmed = proposal.values
     diff = _diff_text(result)
+    # A price filed not_disclosed that a reader now reads is a disclosure a person
+    # confirms; nothing is written (MODEL-481).
+    disclosed = ("disclosed: page now states a value; "
+                 if fact["state"] == "not_disclosed" and fact.get("value") is None else "")
     if not proposal.read_any:
         return replace(base, status=Status.UNREADABLE,
                        reason=f"the readers find no value for {claim.names[0]!r}: {diff}")
@@ -748,7 +800,7 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
         # A value the page did not state is new, not changed: a person confirms the
         # page now states it, and it is not a label for something else (MODEL-235).
         return replace(base, status=Status.NEEDS_REVIEW,
-                       reason=f"was {fact['state']}; a reader now reads "
+                       reason=f"{disclosed}was {fact['state']}; a reader now reads "
                        f"{json.dumps(confirmed[0])}: {diff}")
     if len(confirmed) > 1:
         why = "several new values verify, among them " + ", ".join(map(json.dumps, confirmed))
@@ -757,7 +809,7 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
     else:
         why = "no single new value verifies"
     return replace(base, status=Status.NEEDS_REVIEW,
-                   reason=f"{why}{proposal.cap_note}; {diff}")
+                   reason=f"{disclosed}{why}{proposal.cap_note}; {diff}")
 
 
 def _page_size(regions: StoredRegions, claim: Claim) -> str:
@@ -828,7 +880,7 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
 
     # Some servers answer a fetch now and then with a script shell, a bot wall
     # or a 403. A page whose facts would alert is fetched once more first.
-    retryable = {Status.UNREADABLE, Status.UNREACHABLE}
+    retryable = {Status.UNREADABLE, Status.UNREACHABLE, Status.SHELL_PAGE}
     retry = sorted({sid for r in results if r.status in retryable for sid in r.source_ids})
     if retry:
         again = fetch_sources(retry, sources, fetcher, store, rendered=rendered)
@@ -844,13 +896,24 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
     report.facts += results
 
     report.diffs = source_diffs(report, sources, store)
+    report.final_host_changed = observe(
+        root / STATE_FILE, {sid: f.resolved_urls for sid, f in report.sources.items()
+                            if f.outcome in ("ok", "cited")}, today, write=write)
     if write:
-        for fact in report.facts:
+        for index, fact in enumerate(report.facts):
             if fact.status is Status.CITED and fact.claim is not None:
                 path = root / fact.file
-                before = path.read_text(encoding="utf-8")
-                after = rewrite_fact(before, fact)
-                check_value_only(before, after, [fact])
+                try:
+                    before = path.read_text(encoding="utf-8")
+                    after = rewrite_fact(before, fact)
+                    check_value_only(before, after, [fact])
+                except (ValueError, yaml.YAMLError, OSError) as exc:
+                    # One card that will not rewrite is an alert for its fact, not the
+                    # end of the run: the file stays as it was and the report is written.
+                    report.facts[index] = replace(
+                        fact, status=Status.UNREADABLE, claim=None,
+                        reason=f"the rewrite failed ({type(exc).__name__}); the file is unchanged")
+                    continue
                 path.write_text(after, encoding="utf-8")
                 queue.file(fact.claim, at=at)
                 queue.checked(Result(fact.claim.target, "cited", reason=fact.reason), at=at)
@@ -918,6 +981,36 @@ def _dump_value(value: Any) -> str:
                           default_flow_style=False).strip()
 
 
+_ANCHOR = re.compile(r"^(\s*)resolved_urls: &(\w+)\s*$")
+
+
+def _expand_resolved_urls_anchors(lines: list[str], start: int, end: int) -> list[str]:
+    """Lines with every ``resolved_urls`` alias of an anchor defined inside
+    ``lines[start:end]`` written out as its own list.
+
+    A card dumped by PyYAML shares one list between facts (``&id001`` on the first,
+    ``*id001`` on the rest). Replacing the first fact's list drops the anchor and
+    leaves the aliases undefined, and the whole run then fails. Writing each alias
+    out as a flow list keeps the value of every other fact as it was."""
+    expanded = list(lines)
+    for i in range(start, end):
+        m = _ANCHOR.match(lines[i])
+        if m is None:
+            continue
+        depth = len(m.group(1))
+        urls: list[str] = []
+        j = i + 1
+        while j < end and (len(lines[j]) - len(lines[j].lstrip(" ")) > depth
+                           or re.match(r"^\s*- https?://", lines[j])):
+            urls.append(lines[j].strip()[2:].strip())
+            j += 1
+        alias = re.compile(rf"^(\s*)resolved_urls: \*{re.escape(m.group(2))}\s*$")
+        for k, line in enumerate(expanded):
+            if a := alias.match(line):
+                expanded[k] = f"{a.group(1)}resolved_urls: {json.dumps(urls)}\n"
+    return expanded
+
+
 def rewrite_fact(text: str, change: FactResult) -> str:
     """``text`` with one fact's value, state and re-fetched copy refs replaced, and
     every other line kept byte for byte."""
@@ -936,10 +1029,12 @@ def rewrite_fact(text: str, change: FactResult) -> str:
             break
         end += 1
 
+    cited = change.status is Status.CITED
+    if cited:
+        lines = _expand_resolved_urls_anchors(lines, start, end)
     block = lines[start:end]
     out: list[str] = []
     current_source: str | None = None
-    cited = change.status is Status.CITED
     refs = {ref.source_id: ref for ref in change.claim.sources} if cited and change.claim else {}
     i = 0
     while i < len(block):
@@ -1033,7 +1128,11 @@ def retain_only(store: CopyStore, root: Path, report: Report) -> int:
     keep |= {s.copy_ref for s in report.sources.values() if s.copy_ref}
     removed = 0
     for path in store.root.glob("??/*"):
-        if path.is_file() and f"sha256:{path.name}" not in keep:
+        if path.is_file() and path.name.endswith((".urls.json", ".shell.json")):
+            # The URLs a copy was recorded for (MODEL-519) go with the copy.
+            if f"sha256:{path.name.partition('.')[0]}" not in keep:
+                path.unlink()
+        elif path.is_file() and f"sha256:{path.name}" not in keep:
             path.unlink()
             removed += 1
     return removed
@@ -1042,12 +1141,35 @@ def retain_only(store: CopyStore, root: Path, report: Report) -> int:
 # --- the report ---------------------------------------------------------------------------------
 
 
-def _show(value: Any, state: str | None = None) -> str:
+_SHOW_LIMIT = 120
+#: GitHub rejects a pull request body at 65,536 characters.
+PR_BODY_LIMIT = 60_000
+REPORT_ARTIFACT = "price-reread-report"
+ALERT_SOURCE_ROWS = 40
+_KEEP_FIRST = ("Changed values", "Needs a person", "Not re-read", "Source diffs")
+_SECTION_KIND = {
+    "Changed values": "change",
+    "Needs a person": "alert",
+    "Not re-read": "not-reread",
+    "Not disclosed, nothing to read": "not-disclosed",
+}
+
+
+def _show(value: Any, state: str | None = None, *, middle: bool = False) -> str:
     if state == "not_disclosed" and value is None:
         return "not disclosed"
     text = json.dumps(value, ensure_ascii=False) if not isinstance(value, str) else value
-    text = text.replace("|", "\\|").replace("\n", " ")
-    return text if len(text) <= 120 else text[:117] + "…"
+    text = text.replace("\n", " ")
+    if len(text) > _SHOW_LIMIT:
+        if middle:
+            mark = "…"
+            keep = _SHOW_LIMIT - len(mark)
+            head = keep // 2
+            tail = keep - head
+            text = text[:head] + mark + text[-tail:]
+        else:
+            text = text[:_SHOW_LIMIT - 3] + "…"
+    return text.replace("|", "\\|")
 
 
 def render_report(report: Report) -> str:
@@ -1079,7 +1201,22 @@ def render_report(report: Report) -> str:
                 "The readers could not re-read these, so nothing was written for them.", "",
                 "| Fact | Status | Why |", "|---|---|---|"]
         for f in report.alerts:
-            out.append(f"| `{f.fact_id}` | {f.status.value} | {_show(f.reason)} |")
+            out.append(f"| `{f.fact_id}` | {f.status.value} | {_show(f.reason, middle=True)} |")
+        out.append("")
+    if report.final_host_changed:
+        out += ["### Final host changed", "",
+                "A fetch now ends on another host than the last one recorded.", "",
+                "| Source | Old host | New host |", "|---|---|---|"]
+        out += [f"| `{c['source']}` | {c['old_host']} | {c['new_host']} |"
+                for c in report.final_host_changed]
+        out.append("")
+    quiet = [f for f in report.facts if f.status is Status.NOT_DISCLOSED_NO_VALUE]
+    if quiet:
+        out += ["### Not disclosed, nothing to read", "",
+                "These facts are filed not disclosed and their page read with no value for "
+                "the kind. Nothing is claimed or written; spot-check the regions.", "",
+                "| Fact | Read |", "|---|---|"]
+        out += [f"| `{f.fact_id}` | {_show(f.reason, middle=True)} |" for f in quiet]
         out.append("")
     if report.diffs:
         out += ["### Source diffs", ""]
@@ -1098,6 +1235,137 @@ def render_report(report: Report) -> str:
         out += [f"| {why} | {n} |" for why, n in not_reread.most_common()]
         out.append("")
     return "\n".join(out)
+
+
+def _split_price_report(body: str) -> tuple[str, str, list[tuple[str, str]]]:
+    """Prefix, header, and each ``###`` section of a price re-read report."""
+    lines = body.splitlines()
+    heading = next(
+        (index for index, line in enumerate(lines) if line.startswith("## Price and plan re-read")),
+        None,
+    )
+    if heading is None:
+        return body, "", []
+    prefix = "\n".join(lines[:heading]).strip("\n")
+    rest = lines[heading:]
+    starts = [index for index, line in enumerate(rest) if line.startswith("### ")]
+    if not starts:
+        return prefix, "\n".join(rest).strip("\n"), []
+    header = "\n".join(rest[:starts[0]]).strip("\n")
+    sections: list[tuple[str, str]] = []
+    for index, start in enumerate(starts):
+        end = starts[index + 1] if index + 1 < len(starts) else len(rest)
+        title = rest[start][4:].strip()
+        sections.append((title, "\n".join(rest[start:end]).strip("\n")))
+    return prefix, header, sections
+
+
+def _data_rows(chunk: str) -> list[str]:
+    rows = [line for line in chunk.splitlines() if line.startswith("|")]
+    if len(rows) >= 2 and re.fullmatch(r"\|[-:| ]+\|", rows[1]):
+        return rows[2:]
+    return rows
+
+
+def _left_out(count: int, kind: str, artifact: str) -> str:
+    subject = f"1 {kind} row was left out" if count == 1 else f"{count} {kind} rows were left out"
+    return f"{subject}. The full report is in the run's {artifact} artifact."
+
+
+def _omission(title: str, chunk: str, artifact: str) -> str:
+    if title == "Source diffs":
+        return f"Source diffs were left out. The full report is in the run's {artifact} artifact."
+    return _left_out(len(_data_rows(chunk)), _SECTION_KIND.get(title, "report"), artifact)
+
+
+def _assemble(
+    prefix: str, header: str, sections: list[tuple[str, str]], kept: set[str], artifact: str,
+) -> str:
+    parts = [part for part in (prefix, header) if part]
+    for title, chunk in sections:
+        parts.append(chunk if title in kept else _omission(title, chunk, artifact))
+    return "\n\n".join(parts) + "\n"
+
+
+def fit_pull_request_body(
+    body: str, *, limit: int = PR_BODY_LIMIT, artifact: str = REPORT_ARTIFACT,
+) -> str:
+    """Return ``body`` when it fits in ``limit`` characters.
+
+    A body that does not fit keeps the report header and any section that
+    fits whole. A table that does not fit is left out entirely, with a line
+    naming how many rows were left out and the ``artifact`` that holds the
+    full report. Source diffs follow the same rule.
+    """
+    if len(body) <= limit:
+        return body
+    prefix, header, sections = _split_price_report(body)
+    if not header and not sections:
+        return f"The report was left out. The full report is in the run's {artifact} artifact.\n"
+    by_title = {title: chunk for title, chunk in sections}
+    priority = [(title, by_title[title]) for title in _KEEP_FIRST if title in by_title]
+    seen = {title for title, _chunk in priority}
+    priority += [(title, chunk) for title, chunk in sections if title not in seen]
+    kept: set[str] = set()
+    for title, _chunk in priority:
+        trial = kept | {title}
+        if len(_assemble(prefix, header, sections, trial, artifact)) <= limit:
+            kept = trial
+    fitted = _assemble(prefix, header, sections, kept, artifact)
+    if len(fitted) <= limit:
+        return fitted
+    if prefix:
+        fitted = _assemble("", header, sections, kept, artifact)
+        if len(fitted) <= limit:
+            return fitted
+    return f"The report was left out. The full report is in the run's {artifact} artifact.\n"
+
+
+def alert_comment(
+    payload: Mapping[str, Any], run_url: str, *,
+    artifact: str = REPORT_ARTIFACT, row_limit: int = ALERT_SOURCE_ROWS,
+) -> str:
+    """Short issue comment: run URL, header counts, and counts by source."""
+    counts = payload["counts"]
+    fact_count = len(payload.get("alerts") or [])
+    noun = "alert fact" if fact_count == 1 else "alert facts"
+    moved = len(payload.get(FINAL_HOST_CHANGED) or [])
+    lines = [
+        f"Run: {run_url}",
+        "",
+        "| " + " | ".join(str(key) for key in counts) + " |",
+        "|" + "---|" * len(counts),
+        "| " + " | ".join(str(counts[key]) for key in counts) + " |",
+        "",
+        f"{fact_count} {noun}; a fact with several sources is counted under each.",
+        "",
+        *([f"{moved} final host {'change' if moved == 1 else 'changes'} "
+           f"({FINAL_HOST_CHANGED}); the sources are in the report.", ""] if moved else []),
+        "| Source | Status | Fact-source pairs |",
+        "|---|---|---|",
+    ]
+    groups: Counter[tuple[str, str]] = Counter()
+    for alert in payload.get("alerts") or []:
+        status = str(alert.get("status") or "")
+        sources = [str(source) for source in (alert.get("sources") or [])] or ["(none)"]
+        for source_id in sources:
+            groups[(source_id, status)] += 1
+    ranked = sorted(groups.items(), key=lambda item: (-item[1], item[0][0], item[0][1]))
+    for (source_id, status), count in ranked[:row_limit]:
+        # Python 3.11 rejects a backslash inside an f-string expression.
+        shown = source_id.replace("|", "\\|")
+        lines.append(f"| `{shown}` | {status} | {count} |")
+    left = len(ranked) - min(len(ranked), row_limit)
+    lines.append("")
+    if left == 1:
+        lines.append(f"1 source row was left out. The full report is in the run's {artifact} artifact.")
+    elif left:
+        lines.append(
+            f"{left} source rows were left out. The full report is in the run's {artifact} artifact."
+        )
+    else:
+        lines.append(f"The full report is in the run's {artifact} artifact.")
+    return "\n".join(lines) + "\n"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1157,20 +1425,25 @@ def main(argv: list[str] | None = None) -> int:
             except (OSError, ValueError) as exc:
                 parser.error(f"invalid rendered artifact: {exc}")
         if args.fallback_from_render is not None:
-            from decision.firecrawl import FakeFirecrawlFetcher, FirecrawlFetcher
+            from decision.firecrawl import (
+                DisabledFirecrawlFetcher, FakeFirecrawlFetcher, FirecrawlFetcher, firecrawl_opted_in,
+            )
             from scripts.price_reread_fallback import fallback_to, monthly_budget, read_fallback
 
             try:
                 rendered = RenderedReplayFetcher(args.fallback_from_render)
                 month = datetime.now(UTC).strftime("%Y-%m")
                 budget = monthly_budget(args.fallback_ledger, month)
+                # Default OFF: only an explicit opt-in constructs the paid client.
+                paid = (FakeFirecrawlFetcher() if args.fallback_fake else
+                        FirecrawlFetcher(allowance=budget.allowance) if firecrawl_opted_in()
+                        else DisabledFirecrawlFetcher())
                 fallback_to(root=ROOT, rendered=rendered, directory=args.fallback_to, month=month,
                             # Missing plain entries are unavailable in a fake run.
                             # Demo eligibility never makes a primary HTTP request.
                             plain=(rendered if args.fallback_fake else
                                    Fetcher(user_agent=USER_AGENT)),
-                            firecrawl=FakeFirecrawlFetcher() if args.fallback_fake else
-                            FirecrawlFetcher(allowance=budget.allowance), budget=budget)
+                            firecrawl=paid, budget=budget)
                 replay, _ = read_fallback(args.fallback_to)
                 print(replay.spend_line)
                 if summary := os.environ.get("GITHUB_STEP_SUMMARY"):

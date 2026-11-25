@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.20**
+Contract version: **2.21**
 
 The opt-in bounded HTTP response is a separate representation with its own
 version, **bounded 1.5**. It does not carry a 2.x `contract_version`. See
@@ -683,7 +683,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 ```json decision
 {
-  "contract_version": "2.20",
+  "contract_version": "2.21",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -826,7 +826,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.20"`. |
+| `contract_version` | `"2.21"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -1208,13 +1208,13 @@ contract would need a major bump. It is a different representation instead:
   follows the same MODEL-59 rule on its own: widening any bounded field bumps
   its major.
 - `projects_contract` names the complete contract the body is projected from,
-  currently `"2.20"`. Every field the bounded body does carry has that
+  currently `"2.21"`. Every field the bounded body does carry has that
   contract's type and meaning.
 - A bounded body has **no** `contract_version`. A 2.x decoder that requires
   `contract_version` refuses it rather than misreading it as a complete
   Decision.
 
-Requests with only `limit`, or only `fields: null`, receive complete contract 2.20
+Requests with only `limit`, or only `fields: null`, receive complete contract 2.21
 responses. The decide page never sends `fields` or `evidence_for`, so its
 decoder never sees a bounded body and
 needs no change.
@@ -1247,7 +1247,7 @@ estate lists. A drill-down can remove exclusion records to fit its own budget.
 are shareable, and the link fits the existing byte budget. It is absent with
 the flag off and from complete decisions. Visibility and storage await Jamie's
 approval; see [the draft design](design/decision-link.md). Adding this optional
-field widens no existing field. Complete decisions are 2.20; the bounded
+field widens no existing field. Complete decisions are 2.21; the bounded
 representation is 1.5 after MODEL-384.
 
 `next_move` is optional and additive in bounded 1.2. It is present on
@@ -1645,7 +1645,9 @@ contract version. Version 1.1 retains them.
   leaf had an entry and each repeated its source URLs in `sources`; from 1.4
   `sources` on an origin is always empty.
 - `sources` (1.4) lists every source the origins and shown facts cite, once:
-  its `id`, `url`, `title` (null: the snapshot records no titles yet) and
+  its `id`, `url`, `title` (null: the snapshot records no titles yet, except that a
+  source whose licence asks for credit carries it there: Epoch AI's benchmark data
+  reads `Epoch AI data, CC BY 4.0.` with the licence and source links) and
   `date`, the latest date a record in this decision citing it was verified.
   Source URLs and retained verification or citation records resolve through
   `snapshot.source_url()` and `snapshot.record()`.
@@ -1689,8 +1691,8 @@ restrict admission but cannot establish citation assurance.
 
 Evidence items and named-comparison evidence add the same optional citation
 field. No existing public response field becomes nullable or optional, and no
-closed value set widens. Complete decisions use 2.20 and named comparisons use
-1.1. The bounded representation remains 1.5 and projects complete contract 2.20.
+closed value set widens. Complete decisions use 2.21 and named comparisons use
+1.3. The bounded representation remains 1.5 and projects complete contract 2.21.
 The snapshot format moves to 2 so older readers cannot label cited evidence as
 verified. The citation change left the rank envelope at 1.0; the current rank
 envelope is 2.0. The public export remains 3.0. Both already carry cited
@@ -1844,22 +1846,22 @@ off. A browser visit token does not admit this endpoint. Existing access
 quotas and billing apply at the `decide.full` credit weight. The CLI's named
 comparison and MCP `compare_models` tool call this endpoint.
 
-The named comparison has its own contract, version **1.1**, identified by
+The named comparison has its own contract, version **1.3**, identified by
 `comparison_version` on success and refusal bodies. It has no
 `contract_version`. Its fields follow the same MODEL-59 versioning rule:
 widening a comparison field bumps the comparison's major version.
-No Decision field changes range. The shared Decision contract is 2.20.
-The bounded projection is 1.5 with `projects_contract: "2.20"`.
+No Decision field changes range. The shared Decision contract is 2.21.
+The bounded projection is 1.5 with `projects_contract: "2.21"`.
 
 The success response is a `ModelComparison` with these fields:
 
 | Field | Meaning |
 |---|---|
-| `comparison_version` | `"1.1"`, the named comparison's own contract version. |
+| `comparison_version` | `"1.3"`, the named comparison's own contract version. |
 | `endpoint` | `"compare-models"`. |
 | `snapshot` | The verified snapshot ID. |
 | `models` | One row per requested model, in caller order. |
-| `sources` | Registered sources, each with `id` and `url`. |
+| `sources` | Registered sources, each with `id` and `url`. From comparison 1.2, a source whose licence asks for credit adds `title` with it: Epoch AI's benchmark data reads `Epoch AI data, CC BY 4.0.` with the licence and source links. |
 | `omitted` | Counts of whole `facts`, `offerings`, and `evidence` items removed to fit the response budget. |
 
 A model row has `model`, `lifecycle`, `facts`, `offerings`, and `evidence`.
@@ -2064,6 +2066,13 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **2.21, MODEL-521:** `top[].facts[]` (`ShownFact`) and, in comparison 1.3, each
+  `ComparisonFact` add an optional `verified_at`: the ISO day of the latest
+  verification of the fact's record. It is absent for a cited, computed or
+  undated fact. A new optional field, so no existing field changes range and the
+  major stays 2. Display only: ranking, floors and verdicts never read it.
+  Bounded stays 1.5 and projects 2.21. Named comparison moves 1.2 to 1.3.
+
 - **2.20, MODEL-458:** The published HTTP refusal codes for decide now list
   `invalid_request`, which the service already returned. The decision shape
   and every declared range are unchanged, so this is not a major. Bounded
@@ -2126,6 +2135,12 @@ that used to be accepted is a major change; accepting more is not.
   `<...>` placeholder with a no-verified-fact reason for each missing ID.
   These fields are additive. The bounded representation remains version 1.2
   and projects complete contract 2.17.
+
+- **Comparison 1.2, MODEL-508:** A comparison source whose licence asks for
+  credit adds an optional `title` carrying it. Epoch AI's benchmark data, CC BY
+  4.0, is the only such source. Decision `sources[].title`, an existing nullable
+  field, carries the same credit for that source. No existing field changes
+  range, and `contract_version` stays 2.20.
 
 - **Comparison 1.0, MODEL-364:** Adds keyed named-model comparison through
   `POST /v1/compare-models`, with caller order, sourced facts, explicit unknowns,

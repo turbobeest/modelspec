@@ -63,6 +63,9 @@ class Model:
     front: dict[str, Any]
     body: str
     cited_facts: list[dict[str, Any]] = field(default_factory=list)
+    #: Facets of facts that claim an owner ruling that does not stand (MODEL-551): kept out of
+    #: every export, as the snapshot keeps them out.
+    withheld_facets: tuple[str, ...] = ()
 
     @property
     def cited_evidence(self) -> list[dict[str, Any]]:
@@ -206,14 +209,21 @@ class Catalogue:
         return sorted(i for i, d in self.dispositions.items() if d.is_active)
 
 
-def load_models(root: Path | None = None) -> list[Model]:
+def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[Model]:
+    """Every card. ``as_of`` is the build's day, as the snapshot build is given it: a ruled
+    fact is withheld unless its ruling stands at min(as_of, the UTC day)."""
     from decision.citation import fact_citation
-    from decision.sources import load_sources
+    from decision.owner_ruling import has_ruling, read_ruling_inputs, ruling_refused, served_fact
+    from decision.sources import configured_copy_store, load_sources
 
     root = root or REPO_ROOT
     directory = root / "models"
     sources = {sid: str(source.url) for sid, source in
                load_sources(root / "registry" / "sources.yaml").items()}
+    rulings = None  # read once, and only when a card claims a ruling
+    #: The snapshot build's copy store (``build_from_repo``), so a ruled fact's citation is
+    #: decided here exactly as there; other facts keep the registry-only citation.
+    store = configured_copy_store()
     out: list[Model] = []
     for path in sorted(directory.rglob("*.md")):
         if path.name in NOT_CONTENT:
@@ -224,18 +234,31 @@ def load_models(root: Path | None = None) -> list[Model]:
             # Prose without a model_id is not a card; skip rather than fail, the
             # same rule the PR validator applies.
             continue
-        cited = []
+        cited, withheld = [], []
         for fact in front.get("facts") or []:
+            valid = True
             try:
-                citation = fact_citation(fact, sources)
+                citation = fact_citation(fact, sources, store if has_ruling(fact) else None)
             except ValueError:
                 # Fail closed for this fact only (MODEL-420): never shown as
                 # verified, and one bad citation does not stop the build.
                 logger.warning("%s: a fact's citation is invalid; shown as cited", model_id)
-                citation = {"status": "cited", "sources": []}
+                citation, valid = {"status": "cited", "sources": []}, False
+            if has_ruling(fact):
+                # The snapshot's "ruling stands at cutoff" test and served form (MODEL-551).
+                if rulings is None:
+                    try:
+                        rulings = read_ruling_inputs(root)
+                    except (OSError, ValueError, KeyError, TypeError) as error:
+                        raise LoadError(f"owner rulings: {type(error).__name__}") from None
+                if ruling_refused(fact, str(model_id), cited=bool(citation) and valid,
+                                  inputs=rulings, sources=sources, as_of=as_of):
+                    logger.warning("%s: a fact's owner ruling does not stand; withheld", model_id)
+                    withheld.append(str(fact.get("facet")))
+                    continue
             if citation:
-                cited.append({**fact, "verification": None, "citation": citation})
-        out.append(Model(str(model_id), path, front, body, cited))
+                cited.append({**served_fact(fact), "verification": None, "citation": citation})
+        out.append(Model(str(model_id), path, front, body, cited, tuple(withheld)))
     return out
 
 

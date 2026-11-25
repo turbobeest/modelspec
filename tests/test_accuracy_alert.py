@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import os
+import re
+import subprocess
+import sys
+from copy import deepcopy
 from pathlib import Path
 
-import yaml
 import pytest
+import yaml
 
 from scripts import accuracy_alert
 
@@ -35,7 +41,7 @@ def _report(status: str, sample: list[dict]) -> dict:
     }
 
 
-def test_the_alert_names_each_value_that_did_not_verify_and_its_source() -> None:
+def test_the_alert_publishes_counts_for_values_that_did_not_verify() -> None:
     report = _report(
         "fail",
         [
@@ -50,22 +56,53 @@ def test_the_alert_names_each_value_that_did_not_verify_and_its_source() -> None
              "source_urls": []},
         ],
     )
+    report["layers"][0]["counts"] = {
+        "verified": 1, "mismatch": 0, "unreachable": 1, "undetermined": 1,
+    }
 
-    assert accuracy_alert.body(report, RUN) == (
-        "Snapshot `snap_da666e1f901c2821`, generated 2026-10-06T06:55:39Z.\n"
+    text = accuracy_alert.body(report, RUN, output_dir=Path("accuracy-report"))
+
+    assert text == (
+        "**Overall: FAIL**\n"
         "\n"
         "| Layer | Status | Gate | Summary |\n"
         "| --- | --- | --- | --- |\n"
-        "| data_fidelity | fail | yes | Re-read 12 verified values; 1 did not verify. |\n"
-        "| frozen_image_engine_recall | pass | no | All 20 match. |\n"
+        "| data_fidelity | FAIL | yes | failures 1; mismatches 0; unreachable 1; undetermined 1; "
+        "over the undetermined limit: no. |\n"
+        "| frozen_image_engine_recall | PASS | no | failures 0; mismatches 0; unreachable 0; "
+        "undetermined 0; over the undetermined limit: no; "
+        "verdicts that differ from the baseline: 0. |\n"
         "\n"
-        "Values that did not verify:\n"
-        "\n"
-        "- `fact:xai/subscription/supergrok#offering.subscription.usage_allowance`: "
-        "unreachable (unreachable:model-173-xai-consumer-pricing#page)\n"
-        "  - https://x.ai/pricing\n"
+        "Details are in the private alert issue.\n"
         "\n"
         f"Run: {RUN}\n"
+    )
+    assert "fact:" not in text
+    assert "https://x.ai/pricing" not in text
+
+
+def test_the_public_issue_points_to_the_private_issue_and_names_no_path(tmp_path: Path) -> None:
+    folder = tmp_path / "private-path-sentinel" / "accuracy-report"
+    folder.mkdir(parents=True)
+    report_path = folder / "accuracy.json"
+    report_path.write_text(json.dumps(_report("fail", [])), encoding="utf-8")
+    present = tmp_path / "present.md"
+    missing = tmp_path / "missing.md"
+
+    assert accuracy_alert.main(
+        ["--report", str(report_path), "--run-url", RUN, "--output", str(present)]
+    ) == 0
+    assert accuracy_alert.main(
+        ["--report", str(folder / "missing.json"), "--run-url", RUN, "--output", str(missing)]
+    ) == 0
+
+    for text in (present.read_text(encoding="utf-8"), missing.read_text(encoding="utf-8")):
+        assert "private-path-sentinel" not in text
+        assert str(folder.parent) not in text
+        assert "Details are in the private alert issue.\n" in text
+        assert "accuracy-report" not in text
+    assert missing.read_text(encoding="utf-8").startswith(
+        "the run failed before a report was written\n"
     )
 
 
@@ -76,11 +113,85 @@ def test_a_run_that_wrote_no_report_still_alerts(tmp_path: Path) -> None:
         ["--report", str(tmp_path / "missing.json"), "--run-url", RUN, "--output", str(out)]
     ) == 0
     assert out.read_text() == (
-        f"The nightly wrote no report: it failed before or during the run.\n\nRun: {RUN}\n"
+        "the run failed before a report was written\n"
+        "\n"
+        "Details are in the private alert issue.\n"
+        "\n"
+        f"Run: {RUN}\n"
     )
 
 
-def test_the_alert_preserves_failure_transport_status_source_and_copies() -> None:
+def test_python_is_installed_before_the_private_fetch() -> None:
+    workflow = yaml.load(
+        Path(".github/workflows/accuracy-nightly.yml").read_text(), Loader=yaml.BaseLoader
+    )
+    names = [step.get("name") for step in workflow["jobs"]["accuracy"]["steps"]]
+    fetch = names.index("Read private verification records")
+    assert names.index("Set up Python") < fetch
+    assert names.index("Install dependencies") < fetch
+
+
+def test_the_alert_builder_runs_when_yaml_cannot_be_imported(tmp_path: Path) -> None:
+    report = {
+        "status": "fail",
+        "layers": [{
+            "name": "data_fidelity",
+            "status": "fail",
+            "gating": True,
+            "counts": {"mismatch": 1, "unreachable": 0, "undetermined": 0},
+            "details": {"sample": [{"target": "fact:yaml-block-sentinel"}]},
+        }],
+    }
+    report_path = tmp_path / "accuracy.json"
+    report_path.write_text(json.dumps(report), encoding="utf-8")
+    present = tmp_path / "present.md"
+    missing = tmp_path / "missing.md"
+    driver = tmp_path / "driver.py"
+    root = str(Path(__file__).resolve().parents[1])
+    driver.write_text(
+        "import sys\n"
+        "class BlockYaml:\n"
+        "    def find_spec(self, fullname, path, target=None):\n"
+        "        if fullname == 'yaml' or fullname.startswith('yaml.'):\n"
+        "            raise ModuleNotFoundError(fullname)\n"
+        "        return None\n"
+        "sys.meta_path.insert(0, BlockYaml())\n"
+        "try:\n"
+        "    import yaml\n"
+        "except ModuleNotFoundError:\n"
+        "    pass\n"
+        "else:\n"
+        "    raise SystemExit('yaml imported')\n"
+        "from scripts.accuracy_alert import main\n"
+        f"present_code = main(['--report', {str(report_path)!r}, '--run-url', {RUN!r},"
+        f" '--output', {str(present)!r}])\n"
+        f"missing_code = main(['--report', {str(tmp_path / 'no-report.json')!r},"
+        f" '--run-url', {RUN!r}, '--output', {str(missing)!r}])\n"
+        "if present_code != 0 or missing_code != 0:\n"
+        "    raise SystemExit(f'codes {present_code} {missing_code}')\n",
+        encoding="utf-8",
+    )
+    env = os.environ.copy()
+    env["PYTHONPATH"] = root
+    result = subprocess.run(
+        [sys.executable, str(driver)], cwd=root, capture_output=True, text=True, env=env,
+    )
+
+    assert result.returncode == 0, result.stderr + result.stdout
+    present_text = present.read_text(encoding="utf-8")
+    assert "fact:yaml-block-sentinel" not in present_text
+    assert "FAIL" in present_text
+    assert present_text.endswith(f"Run: {RUN}\n")
+    assert missing.read_text(encoding="utf-8") == (
+        "the run failed before a report was written\n"
+        "\n"
+        "Details are in the private alert issue.\n"
+        "\n"
+        f"Run: {RUN}\n"
+    )
+
+
+def test_the_alert_omits_failure_transport_status_source_and_copies() -> None:
     report = _report("fail", [{
         "target": "fact:lab/blocked#context", "outcome": "unreachable",
         "reason": "unreachable:source#table", "source_urls": ["https://example.test/source"],
@@ -90,11 +201,17 @@ def test_the_alert_preserves_failure_transport_status_source_and_copies() -> Non
             "cited_copy_ref": "sha256:" + "a" * 64,
         }],
     }])
+    report["layers"][0]["counts"] = {
+        "verified": 0, "mismatch": 0, "unreachable": 1, "undetermined": 0,
+    }
 
     text = accuracy_alert.body(report, RUN)
-    assert "fact:lab/blocked#context" in text
-    assert "source `source`; transport `http`; HTTP 403; error `http_error`" in text
-    assert "cited copy `sha256:" + "a" * 64 + "`; current copy `none`" in text
+    assert "FAIL" in text
+    assert "unreachable 1" in text
+    assert "fact:lab/blocked#context" not in text
+    assert "source `source`" not in text
+    assert "sha256:" not in text
+    assert "https://example.test/source" not in text
 
 
 def test_main_reads_the_written_report(tmp_path: Path) -> None:
@@ -161,3 +278,1781 @@ def test_nightly_close_alert_propagates_command_results(
     assert result.returncode == expected_status, result.stdout + result.stderr
     calls = tmp_path / "closed"
     assert (calls.read_text().splitlines() if calls.exists() else []) == closed
+
+
+def test_the_public_issue_lists_mismatch_and_unreachable_counts_only() -> None:
+    report = {
+        "snapshot": "snap_da666e1f901c2821",
+        "generated_at": "2026-10-06T06:55:39Z",
+        "status": "fail",
+        "layers": [
+            {
+                "name": "data_fidelity",
+                "status": "fail",
+                "gating": True,
+                "summary": "Re-read 12 verified values; 1 did not verify.",
+                "counts": {"verified": 10, "mismatch": 1, "unreachable": 2, "undetermined": 3},
+                "details": {"sample": [
+                    {
+                        "target": "fact:lab/blocked#context",
+                        "outcome": "mismatch",
+                        "reason": "value_disagreed",
+                        "source_urls": ["https://example.test/source"],
+                        "sources": [{
+                            "source_id": "source",
+                            "transport": "http",
+                            "http_status": 403,
+                            "error_category": "http_error",
+                            "cited_copy_ref": "sha256:" + "a" * 64,
+                            "copy_ref": "sha256:" + "b" * 64,
+                        }],
+                    },
+                    {
+                        "target": "evidence:lab/model#mmlu#1",
+                        "outcome": "unreachable",
+                        "reason": "unreachable:source#table",
+                        "source_urls": ["https://example.test/other"],
+                        "sources": [],
+                    },
+                ]},
+            },
+        ],
+    }
+
+    text = accuracy_alert.body(report, RUN, output_dir=Path("accuracy-report"))
+
+    assert text == (
+        "**Overall: FAIL**\n"
+        "\n"
+        "| Layer | Status | Gate | Summary |\n"
+        "| --- | --- | --- | --- |\n"
+        "| data_fidelity | FAIL | yes | failures 3; mismatches 1; unreachable 2; undetermined 3; "
+        "over the undetermined limit: no. |\n"
+        "\n"
+        "Details are in the private alert issue.\n"
+        "\n"
+        f"Run: {RUN}\n"
+    )
+    assert "fact:lab/blocked#context" not in text
+    assert "evidence:lab/model#mmlu#1" not in text
+    assert "sha256:" not in text
+    assert "https://example.test/source" not in text
+    assert "https://example.test/other" not in text
+
+
+def test_nightly_fetch_does_not_print_the_private_commit_or_the_report(tmp_path: Path) -> None:
+    workflow = yaml.load(
+        Path(".github/workflows/accuracy-nightly.yml").read_text(), Loader=yaml.BaseLoader
+    )
+    steps = workflow["jobs"]["accuracy"]["steps"]
+    assert not any(
+        (step.get("with") or {}).get("repository") == "turbobeest/modelspec-data"
+        for step in steps
+    )
+    fetch = next(step for step in steps if step.get("name") == "Read private verification records")
+    run = fetch["run"]
+    assert fetch["if"] == "vars.DATA_SPLIT_ENABLED == 'true'"
+    assert fetch["env"]["DATA_TOKEN"] == "${{ secrets.MODELSPEC_DATA_TOKEN }}"
+    assert "http.extraheader" in run
+    assert "echo" not in run
+    assert "set -x" not in run and "xtrace" not in run
+    git_lines = [line.strip() for line in run.splitlines() if re.search(r"\bgit\b", line)]
+    assert git_lines
+    for line in git_lines:
+        assert ">/dev/null" in line and "2>&1" in line
+        assert re.search(r"\b(log|rev-parse)\b", line) is None
+    assert "--depth=1" in run or "--depth 1" in run
+    assert "refs/heads/main" in run
+    for step in steps:
+        uses = step.get("uses") or ""
+        assert "upload-artifact" not in uses
+        assert "upload-pages-artifact" not in uses
+        script = step.get("run") or ""
+        assert "set -x" not in script and "xtrace" not in script
+        assert "GITHUB_STEP_SUMMARY" not in script
+        for line in script.splitlines():
+            prints = re.search(r"\b(cat|jq|echo|printf)\b", line)
+            names_report = re.search(r"accuracy\.(json|md)", line)
+            if prints and names_report:
+                pytest.fail(line)
+
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    recorded = tmp_path / "git-args"
+    git = bindir / "git"
+    git.write_text(
+        "#!/bin/sh\n"
+        f"printf '%s\\n' \"$*\" >> {recorded}\n"
+        "cmd=$1\n"
+        "if [ \"$cmd\" = \"-C\" ]; then shift 2; cmd=$1; fi\n"
+        "while [ \"$cmd\" = \"-c\" ]; do shift 2; cmd=$1; done\n"
+        "if [ \"$cmd\" = fetch ]; then exit \"${FETCH_STATUS:-0}\"; fi\n"
+        "exit 0\n"
+    )
+    git.chmod(0o755)
+    token = "secret-token-sentinel"
+    result = subprocess.run(
+        ["bash", "-c", run], cwd=tmp_path, capture_output=True, text=True,
+        env=os.environ | {
+            "PATH": f"{bindir}:{os.environ.get('PATH', '')}",
+            "DATA_TOKEN": token,
+            "FETCH_STATUS": "0",
+            "GIT_TERMINAL_PROMPT": "0",
+        },
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == ""
+    assert result.stderr == ""
+    assert token not in result.stdout + result.stderr
+    log = recorded.read_text()
+    assert token not in log
+    assert "\nfetch " in f"\n{log}" or log.startswith("fetch ") or " fetch " in log
+    assert re.search(r"(^|\s)(log|rev-parse)(\s|$)", log) is None
+
+    failed = subprocess.run(
+        ["bash", "-c", run], cwd=tmp_path, capture_output=True, text=True,
+        env=os.environ | {
+            "PATH": f"{bindir}:{os.environ.get('PATH', '')}",
+            "DATA_TOKEN": token,
+            "FETCH_STATUS": "7",
+            "GIT_TERMINAL_PROMPT": "0",
+        },
+    )
+    assert failed.returncode == 7
+    assert failed.stdout == ""
+    assert token not in failed.stderr
+
+
+_NIGHTLY_REVIEW = (
+    "this workflow runs in a public repository against private data; "
+    "a reviewer must check every output of a changed step"
+)
+
+_FETCH_RUN = """\
+set -euo pipefail
+dest=.accuracy-private
+rm -rf "$dest"
+mkdir -p "$dest"
+git -C "$dest" init -q >/dev/null 2>&1
+git -C "$dest" remote add origin "https://github.com/turbobeest/modelspec-data.git" >/dev/null 2>&1
+header=$(printf 'x-access-token:%s' "$DATA_TOKEN" | base64 | tr -d '\\n')
+""" + (
+    'git -C "$dest" -c "http.extraheader=AUTHORIZATION: basic ${header}" '
+    "fetch --depth=1 origin '+refs/heads/main:refs/remotes/origin/main' "
+    ">/dev/null 2>&1\n"
+    'git -C "$dest" checkout --detach --quiet origin/main >/dev/null 2>&1\n'
+)
+
+_LAYERS_RUN = """\
+stage=()
+if [ "$STAGE_FAILURE" = "true" ]; then stage=(--stage-failure); fi
+corrections=()
+if [ "$DATA_SPLIT_ENABLED" = "true" ]; then
+  corrections=(--private-data-root .accuracy-private)
+fi
+python scripts/accuracy.py --profile nightly --output-dir accuracy-report "${stage[@]}" "${corrections[@]}"
+"""
+
+_ALERT_RUN = """\
+python scripts/accuracy_alert.py --report accuracy-report/accuracy.json \\
+  --run-url "$RUN_URL" --output alert.md
+gh label create alert --color B60205 \\
+  --description "Read by the orchestrator heartbeat" --force
+number=$(gh issue list --label alert --state open \\
+  --search 'in:title "Accuracy nightly failed"' --json number --jq '.[0].number // empty')
+if [ -n "$number" ]; then
+  gh issue comment "$number" --body-file alert.md
+else
+  gh issue create --title "Accuracy nightly failed" --label alert --body-file alert.md
+fi
+"""
+
+_CLOSE_RUN = """\
+set -o pipefail
+gh issue list --label alert --state open \\
+  --search 'in:title "Accuracy nightly failed"' --json number --jq '.[].number' |
+while read -r number; do
+  gh issue close "$number" --comment "Green again: $RUN_URL"
+done
+"""
+
+_REQUIRE_SINK_RUN = (
+    'test -n "$ALERT_TOKEN" || { echo "private alert sink unavailable"; exit 1; }'
+)
+
+_SINK_RUN = """\
+fail() { echo "private alert sink unavailable"; exit 1; }
+test -n "$GH_TOKEN" || fail
+case "$JOB_STATUS" in
+  failure)
+    python scripts/accuracy_alert.py --report accuracy-report/accuracy.json \\
+      --run-url "$RUN_URL" --detail-output "$RUNNER_TEMP/red-night.md" >/dev/null 2>&1 || fail
+    gh label create accuracy-nightly --color B60205 -R turbobeest/modelspec-data \\
+      --force >/dev/null 2>&1 || fail
+    number=$(gh issue list -R turbobeest/modelspec-data --label accuracy-nightly \\
+      --state open --json number -q '.[0].number // empty' 2>/dev/null) || fail
+    if [ -n "$number" ]; then
+      gh issue comment "$number" -R turbobeest/modelspec-data \\
+        --body-file "$RUNNER_TEMP/red-night.md" >/dev/null 2>&1 || fail
+    else
+      gh issue create -R turbobeest/modelspec-data --title "Accuracy nightly failed" \\
+        --label accuracy-nightly --body-file "$RUNNER_TEMP/red-night.md" >/dev/null 2>&1 || fail
+    fi
+    ;;
+  success)
+    numbers=$(gh issue list -R turbobeest/modelspec-data --label accuracy-nightly \\
+      --state open --json number -q '.[].number' 2>/dev/null) || fail
+    for number in $numbers; do
+      gh issue close "$number" -R turbobeest/modelspec-data \\
+        --comment "Green again: $RUN_URL" >/dev/null 2>&1 || fail
+    done
+    ;;
+esac
+"""
+
+# Every step the nightly job may run, and the exact command text of each run block.
+_NIGHTLY_STEPS = (
+    {
+        "name": "Checkout",
+        "uses": "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+    },
+    {
+        "name": "Set up Python",
+        "uses": "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+    },
+    {"name": "Install dependencies", "run": "python -m pip install -e '.[dev]'"},
+    {"name": "Require the private checkout credential", "run": 'test -n "$DATA_TOKEN"'},
+    {"name": "Require the private alert sink credential", "run": _REQUIRE_SINK_RUN},
+    {"name": "Read private verification records", "run": _FETCH_RUN},
+    {"name": "Run network accuracy layers", "run": _LAYERS_RUN},
+    {"name": "Alert the orchestrator", "run": _ALERT_RUN},
+    {"name": "Close the alert after a green night", "run": _CLOSE_RUN},
+    {"name": "Send the detail to the private alert issue", "run": _SINK_RUN},
+)
+
+_UNLISTED_COMMANDS = (
+    "git -C .accuracy-private log -1",
+    "git -C .accuracy-private rev-parse HEAD",
+    "cat .accuracy-private/.git/HEAD",
+    "cat accuracy-report/*",
+    "head accuracy-report/accuracy.md",
+    "gh issue create --body-file accuracy-report/accuracy.md",
+    'python -c "print(open(\'accuracy-report/accuracy.md\'))"',
+)
+
+
+def _normalise_run(script: str) -> str:
+    return "\n".join(line.rstrip() for line in script.strip("\n").splitlines())
+
+
+def nightly_allowance_problems(steps) -> list[str]:
+    """Allow-list for accuracy-nightly. Any other step or command is a review."""
+    pinned = list(_NIGHTLY_STEPS)
+    if len(steps) != len(pinned) or [step.get("name") for step in steps] != [
+        row["name"] for row in pinned
+    ]:
+        return [_NIGHTLY_REVIEW]
+    problems = []
+    for step, row in zip(steps, pinned):
+        if step.get("uses") != row.get("uses"):
+            problems.append(_NIGHTLY_REVIEW)
+        expected = row.get("run")
+        actual = step.get("run")
+        if expected is None:
+            if actual not in (None, ""):
+                problems.append(_NIGHTLY_REVIEW)
+        elif _normalise_run(actual or "") != _normalise_run(expected):
+            problems.append(_NIGHTLY_REVIEW)
+    return problems
+
+
+class _WorkflowLoader(yaml.SafeLoader):
+    """Anchors and `<<` merge keys resolve. Scalars stay strings, so `on` is not True.
+
+    BaseLoader already kept `on` as a string and the composer already resolved
+    aliases. It left merge keys as a literal `<<` entry. The merge resolver is
+    the one SafeLoader rule this loader keeps.
+    """
+
+
+_WorkflowLoader.yaml_implicit_resolvers = {
+    "<": list(yaml.SafeLoader.yaml_implicit_resolvers["<"]),
+}
+
+
+def _load_workflow(filename: str) -> dict:
+    return yaml.load(
+        Path(f".github/workflows/{filename}").read_text(), Loader=_WorkflowLoader
+    )
+
+
+def _nightly_steps() -> list[dict]:
+    return _load_workflow("accuracy-nightly.yml")["jobs"]["accuracy"]["steps"]
+
+
+def test_accuracy_nightly_steps_match_the_allow_list() -> None:
+    workflow = _load_workflow("accuracy-nightly.yml")
+    assert context_guard_problems("accuracy-nightly.yml", "accuracy", workflow) == []
+
+
+@pytest.mark.parametrize("command", _UNLISTED_COMMANDS)
+def test_an_unlisted_command_fails_the_nightly_allow_list(command: str) -> None:
+    steps = deepcopy(_nightly_steps())
+    fetch = next(step for step in steps if step["name"] == "Read private verification records")
+    fetch["run"] = fetch["run"] + command + "\n"
+
+    problems = nightly_allowance_problems(steps)
+
+    assert problems, _NIGHTLY_REVIEW
+    assert problems == [_NIGHTLY_REVIEW]
+
+
+def test_a_new_nightly_step_fails_the_allow_list() -> None:
+    steps = deepcopy(_nightly_steps())
+    steps.append({"name": "Show the private commit", "run": "git -C .accuracy-private log -1"})
+
+    assert nightly_allowance_problems(steps) == [_NIGHTLY_REVIEW], _NIGHTLY_REVIEW
+
+
+def test_a_new_nightly_action_fails_the_allow_list() -> None:
+    steps = deepcopy(_nightly_steps())
+    steps.append({"name": "Upload the report", "uses": "actions/upload-artifact@v4"})
+
+    assert nightly_allowance_problems(steps) == [_NIGHTLY_REVIEW], _NIGHTLY_REVIEW
+
+
+# data-lag.yml and rank-api.yml fetch the private repository the same way the
+# nightly does. There is no composite action in this repository, so each job
+# repeats the snippet. From that fetch to the end of the job, every step is
+# pinned: name, uses, id, working-directory, and a hash of run, if, env, and with.
+# context_guard_problems also pins the workflow and job fields around those
+# steps, and every step of the guarded job, including the ones before the fetch.
+_RANK_FETCH_RUN = """\
+set -euo pipefail
+dest=modelspec-data
+rm -rf "$dest"
+mkdir -p "$dest"
+git -C "$dest" init -q >/dev/null 2>&1
+git -C "$dest" remote add origin "https://github.com/turbobeest/modelspec-data.git" >/dev/null 2>&1
+header=$(printf 'x-access-token:%s' "$DATA_TOKEN" | base64 | tr -d '\\n')
+""" + (
+    'git -C "$dest" -c "http.extraheader=AUTHORIZATION: basic ${header}" '
+    "fetch --depth=1 origin '+refs/heads/main:refs/remotes/origin/main' "
+    ">/dev/null 2>&1\n"
+    'git -C "$dest" checkout --detach --quiet origin/main >/dev/null 2>&1\n'
+)
+
+_LAG_FETCH_RUN = """\
+set -euo pipefail
+dest=modelspec-data
+rm -rf "$dest"
+mkdir -p "$dest"
+git -C "$dest" init -q >/dev/null 2>&1
+git -C "$dest" remote add origin "https://github.com/turbobeest/modelspec-data.git" >/dev/null 2>&1
+header=$(printf 'x-access-token:%s' "$DATA_TOKEN" | base64 | tr -d '\\n')
+""" + (
+    'git -C "$dest" -c "http.extraheader=AUTHORIZATION: basic ${header}" '
+    "fetch origin '+refs/heads/*:refs/remotes/origin/*' "
+    ">/dev/null 2>&1\n"
+    'git -C "$dest" checkout --detach --quiet origin/main >/dev/null 2>&1\n'
+)
+
+_PRIVATE_FETCHES = (
+    ("data-lag.yml", "lag", "Read the private data with its history", _LAG_FETCH_RUN, None),
+    ("rank-api.yml", "deploy-staging", "Read the private data", _RANK_FETCH_RUN,
+     "vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && "
+     "(github.event_name == 'push' || github.event_name == 'workflow_dispatch' || "
+     "github.event_name == 'schedule')"),
+    ("rank-api.yml", "deploy", "Read the private data", _RANK_FETCH_RUN,
+     "vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && "
+     "(github.event_name == 'push' || github.event_name == 'workflow_dispatch' || "
+     "github.event_name == 'schedule')"),
+)
+
+_PRIVATE_DIR_COMMANDS = (
+    "git -C modelspec-data log -1",
+    "git -C modelspec-data rev-parse HEAD",
+    "cat modelspec-data/models/a.md",
+    "head modelspec-data/models/a.md",
+    "jq . modelspec-data/x.json",
+)
+
+def _workflow_steps(filename: str, job: str) -> list[dict]:
+    return _load_workflow(filename)["jobs"][job]["steps"]
+
+
+_HASHED_STEP_KEYS = {"run", "if", "env", "with"}
+_FETCH_NAMES = {
+    "data-lag.yml": "Read the private data with its history",
+    "rank-api.yml": "Read the private data",
+}
+
+
+def _freeze(value):
+    if isinstance(value, dict):
+        return tuple((key, _freeze(value[key])) for key in sorted(value))
+    if isinstance(value, list):
+        return tuple(_freeze(item) for item in value)
+    return value
+
+
+def _step_pin(step: dict) -> tuple:
+    """Name, uses, id, and working-directory, plus a hash of run, if, env, and with."""
+    pinned = []
+    for key in sorted(step):
+        if key in _HASHED_STEP_KEYS:
+            text = _normalise_run(step[key]) if key == "run" else repr(_freeze(step[key]))
+            digest = hashlib.sha256(text.encode()).hexdigest()
+            pinned.append((f"{key}_sha256", digest))
+        else:
+            pinned.append((key, step[key]))
+    return tuple(pinned)
+
+
+def _private_tail(filename: str, steps: list[dict]) -> list[dict] | None:
+    name = _FETCH_NAMES.get(filename)
+    if name is None:
+        return None
+    indexes = [index for index, step in enumerate(steps) if step.get("name") == name]
+    if len(indexes) != 1:
+        return None
+    return steps[indexes[0]:]
+
+
+_PRIVATE_JOB_TAILS = {
+    ('data-lag.yml', 'lag'): (
+        (
+            ('env_sha256', '8976983088cce184bbb41ffd3cadb8edcf7da41809ac8ac6eb9f1368558779a0'),
+            ('name', 'Read the private data with its history'),
+            ('run_sha256', '1cf5aeb51a4dadaec2275d7367b81b3f1cf12d4ee4cf0d1cf304acfaac28256b'),
+        ),
+        (
+            ('uses', 'actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065'),
+            ('with_sha256', 'bea4bc3e67d4faae28bbb7424225e23369fa71676b9fbcd26d984e7ce6a960bd'),
+        ),
+        (
+            ('id', 'lag'),
+            ('name', 'Publish the image as of today minus nine months'),
+            ('run_sha256', '7502418de50c4f54c20d91ef7a66b22edfce05de5c4ca8eec8a039a421a32681'),
+        ),
+        (
+            ('if_sha256', 'e06dbccd0ce1f95e8cadda83388b9acdf1d1761362cda48a8fe8dda9f570bd75'),
+            ('name', 'Open the pull request'),
+            ('uses', 'peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676'),
+            ('with_sha256', '13dcfb9261eeae0f8b37e44c6bb211a5fba753b1a2de2e6aacf1039944ba00df'),
+        ),
+    ),
+    ('rank-api.yml', 'deploy-staging'): (
+        (
+            ('env_sha256', '8976983088cce184bbb41ffd3cadb8edcf7da41809ac8ac6eb9f1368558779a0'),
+            ('if_sha256', 'a36c564c97d8e5767258ee1d2d62c2d1870cf789e3b747a8fdc21c211c1548da'),
+            ('name', 'Read the private data'),
+            ('run_sha256', 'eeb9d387bdf89a7bcaedb2ea273dc18dba85579b9f6628d17a66fba3ba5f6140'),
+        ),
+        (
+            ('uses', 'actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065'),
+            ('with_sha256', '0533878eac284b0d887f17074801067043bac0da5e1fd30caab7b3a83217571d'),
+        ),
+        (
+            ('uses', 'astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e'),
+            ('with_sha256', '152c8de28c3c497da56a854b15f412a7c116edb16274e5408735aed83891a7aa'),
+        ),
+        (
+            ('uses', 'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020'),
+            ('with_sha256', '6fb296a6aa140e73597d106493abb9b1e5dc166a9b067dd6efe7befcf9ba4491'),
+        ),
+        (
+            ('env_sha256', 'cfdfaeb14593c650faf5aa2420a3dc6e532224f16d091318f46fe46d2d3796e7'),
+            ('name', 'Vendor the scorer into the Worker bundle'),
+            ('run_sha256', 'b86373d58a9f257ca39a6e99ec1468983325e9a276c75c80c413e1ee2df8920b'),
+        ),
+        (
+            ('env_sha256', '4cc70b1dfc3fcff19a2c015882793e684f1b2c3e1165fcd90c61e22ff574a77e'),
+            ('if_sha256', 'c520997cd2844ab801f22bc05e1b1e3f90cc0fd2f314c0798bcd465f0572dc6c'),
+            ('name', 'Check private steady bundle memory against 120 MiB'),
+            ('run_sha256', '7b0431e32a788c7ff15df75ec931020af30ca14c6c492c5e6430cab497f377d1'),
+        ),
+        (
+            ('name', "Resolve the Worker's Python dependencies"),
+            ('run_sha256', 'c01a3e8693bed4bcc29050ac5d7ef1512f99a510850360144d18f1b496b1ae40'),
+        ),
+        (
+            ('name', 'Deploy staging'),
+            ('run_sha256', '5961bd0ed7cb08956d495b111f0aa199b6992622a1dabb207100cd36f131c78c'),
+            ('working-directory', 'api/worker'),
+        ),
+        (
+            ('name', 'Sync the staging decision snapshot verification key'),
+            ('run_sha256', 'dcab67333c1d72e23674af0b63f0e765459e632976c8854f40689b675a2a0322'),
+            ('working-directory', 'api/worker'),
+        ),
+    ),
+    ('rank-api.yml', 'deploy'): (
+        (
+            ('env_sha256', '8976983088cce184bbb41ffd3cadb8edcf7da41809ac8ac6eb9f1368558779a0'),
+            ('if_sha256', 'a36c564c97d8e5767258ee1d2d62c2d1870cf789e3b747a8fdc21c211c1548da'),
+            ('name', 'Read the private data'),
+            ('run_sha256', 'eeb9d387bdf89a7bcaedb2ea273dc18dba85579b9f6628d17a66fba3ba5f6140'),
+        ),
+        (
+            ('uses', 'actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065'),
+            ('with_sha256', '0533878eac284b0d887f17074801067043bac0da5e1fd30caab7b3a83217571d'),
+        ),
+        (
+            ('uses', 'astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e'),
+            ('with_sha256', '152c8de28c3c497da56a854b15f412a7c116edb16274e5408735aed83891a7aa'),
+        ),
+        (
+            ('uses', 'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020'),
+            ('with_sha256', '6fb296a6aa140e73597d106493abb9b1e5dc166a9b067dd6efe7befcf9ba4491'),
+        ),
+        (
+            ('env_sha256', 'cfdfaeb14593c650faf5aa2420a3dc6e532224f16d091318f46fe46d2d3796e7'),
+            ('name', 'Vendor the scorer into the Worker bundle'),
+            ('run_sha256', 'b86373d58a9f257ca39a6e99ec1468983325e9a276c75c80c413e1ee2df8920b'),
+        ),
+        (
+            ('env_sha256', '4cc70b1dfc3fcff19a2c015882793e684f1b2c3e1165fcd90c61e22ff574a77e'),
+            ('if_sha256', 'c520997cd2844ab801f22bc05e1b1e3f90cc0fd2f314c0798bcd465f0572dc6c'),
+            ('name', 'Check private steady bundle memory against 120 MiB'),
+            ('run_sha256', '7b0431e32a788c7ff15df75ec931020af30ca14c6c492c5e6430cab497f377d1'),
+        ),
+        (
+            ('name', "Resolve the Worker's Python dependencies"),
+            ('run_sha256', 'c01a3e8693bed4bcc29050ac5d7ef1512f99a510850360144d18f1b496b1ae40'),
+        ),
+        (
+            ('name', 'Dependencies for the post-deploy spec probe'),
+            ('run_sha256', '6d2ebf8eb8552c869dec8b1fb2b8bca3a4f427f1d5ed3cf40714465a484fcf99'),
+        ),
+        (
+            ('name', 'Deploy'),
+            ('run_sha256', '7f11d5c0c55ecb882b03689fff2fa39be23c2ce7b721e128ff91570521f39e61'),
+            ('working-directory', 'api/worker'),
+        ),
+        (
+            ('name', 'Sync the decision snapshot verification key'),
+            ('run_sha256', 'e36e1488e7278733eab79649ffc94b0c17760c1f9f16f5efa87f0ce27caf578a'),
+            ('working-directory', 'api/worker'),
+        ),
+        (
+            ('env_sha256', '973f661e5b10b052db946ba89c40d9e1601a9a08b85c7bf03339d8b5efc4e76b'),
+            ('name', 'Smoke-test api.modelspec.dev'),
+            ('run_sha256', 'c5c855a7647f13a4a8ee408b01567c1b1cb4c16bbb520a6aa117d33a8ac16da7'),
+        ),
+        (
+            ('name', 'Decision latency smoke (warning only)'),
+            ('run_sha256', '231d3e95dc3751abc7c36f7fbf0e90ab1cf906b710fd7aca5388a1404d8ea1fa'),
+        ),
+    ),
+}
+
+
+def private_fetch_problems(filename: str, job: str, steps: list[dict]) -> list[str]:
+    """Allow-list every step from the private fetch through the end of the job."""
+    expected = _PRIVATE_JOB_TAILS.get((filename, job))
+    tail = _private_tail(filename, steps)
+    if expected is None or tail is None or tuple(_step_pin(step) for step in tail) != expected:
+        return [_JOB_REVIEW]
+    if any(
+        (step.get("with") or {}).get("repository") == "turbobeest/modelspec-data"
+        for step in steps
+    ):
+        return [_JOB_REVIEW]
+    return []
+
+
+def test_data_lag_and_rank_private_fetches_match_the_allow_list() -> None:
+    problems = [
+        f"{filename}:{job}"
+        for filename, job, _, _, _ in _PRIVATE_FETCHES
+        if context_guard_problems(filename, job, _load_workflow(filename))
+    ]
+    assert problems == [], _JOB_REVIEW
+
+
+@pytest.mark.parametrize("command", _PRIVATE_DIR_COMMANDS)
+def test_an_unlisted_command_fails_the_private_fetch_allow_list(command: str) -> None:
+    filename, job, name, _, _ = _PRIVATE_FETCHES[0]
+    steps = deepcopy(_workflow_steps(filename, job))
+    fetch = next(step for step in steps if step.get("name") == name)
+    fetch["run"] = fetch["run"] + command + "\n"
+
+    problems = private_fetch_problems(filename, job, steps)
+
+    assert problems, _NIGHTLY_REVIEW
+    assert problems == [_JOB_REVIEW]
+
+
+@pytest.mark.parametrize("command", _PRIVATE_DIR_COMMANDS)
+def test_a_new_step_that_reads_the_private_directory_fails(command: str) -> None:
+    filename, job, _, _, _ = _PRIVATE_FETCHES[0]
+    steps = deepcopy(_workflow_steps(filename, job))
+    steps.append({"name": "Show private data", "run": command + "\n"})
+
+    problems = private_fetch_problems(filename, job, steps)
+
+    assert problems, _NIGHTLY_REVIEW
+    assert problems == [_JOB_REVIEW]
+
+
+def test_a_new_upload_of_the_private_checkout_fails() -> None:
+    filename, job, _, _, _ = _PRIVATE_FETCHES[2]
+    steps = deepcopy(_workflow_steps(filename, job))
+    steps.append({"name": "Upload the private checkout", "uses": "actions/upload-artifact@v4"})
+
+    problems = private_fetch_problems(filename, job, steps)
+
+    assert problems, _NIGHTLY_REVIEW
+    assert problems == [_JOB_REVIEW]
+
+
+def test_private_fetches_fail_closed_before_publish_or_deploy() -> None:
+    lag = _workflow_steps("data-lag.yml", "lag")
+    fetch = next(step for step in lag if step.get("name") == "Read the private data with its history")
+    publish = next(step for step in lag if step.get("name") == "Publish the image as of today minus nine months")
+    assert lag.index(fetch) < lag.index(publish)
+    assert not fetch.get("continue-on-error")
+    assert "set -euo pipefail" in fetch["run"]
+    assert "|| true" not in fetch["run"]
+    assert "--depth" not in fetch["run"]
+    assert fetch["env"]["DATA_TOKEN"] == "${{ secrets.MODELSPEC_DATA_TOKEN }}"
+    assert fetch["env"]["GIT_TERMINAL_PROMPT"] == "0"
+
+    for job_name, deploy_name in (
+        ("deploy-staging", "Deploy staging"),
+        ("deploy", "Deploy"),
+    ):
+        steps = _workflow_steps("rank-api.yml", job_name)
+        fetch = next(step for step in steps if step.get("name") == "Read the private data")
+        vendor = next(step for step in steps if step.get("name") == "Vendor the scorer into the Worker bundle")
+        deploy = next(step for step in steps if step.get("name") == deploy_name)
+        assert steps.index(fetch) < steps.index(vendor) < steps.index(deploy)
+        assert not fetch.get("continue-on-error") and not deploy.get("continue-on-error")
+        assert "set -euo pipefail" in fetch["run"]
+        assert "|| true" not in fetch["run"]
+        assert "--depth=1" in fetch["run"]
+        assert "if" not in deploy
+        assert fetch["env"]["DATA_TOKEN"] == "${{ secrets.MODELSPEC_DATA_TOKEN }}"
+
+
+@pytest.mark.parametrize(
+    "filename,job,name",
+    [(item[0], item[1], item[2]) for item in _PRIVATE_FETCHES],
+)
+def test_private_fetch_discards_output_and_fails_when_git_fetch_fails(
+    filename: str, job: str, name: str, tmp_path: Path,
+) -> None:
+    fetch = next(step for step in _workflow_steps(filename, job) if step.get("name") == name)
+    run = fetch["run"]
+    assert "echo" not in run
+    assert "set -x" not in run and "xtrace" not in run
+    git_lines = [line.strip() for line in run.splitlines() if re.search(r"\bgit\b", line)]
+    assert git_lines
+    for line in git_lines:
+        assert ">/dev/null" in line and "2>&1" in line
+        assert re.search(r"\b(log|rev-parse)\b", line) is None
+
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    recorded = tmp_path / "git-args"
+    git = bindir / "git"
+    git.write_text(
+        "#!/bin/sh\n"
+        f"printf '%s\\n' \"$*\" >> {recorded}\n"
+        "cmd=$1\n"
+        "if [ \"$cmd\" = \"-C\" ]; then shift 2; cmd=$1; fi\n"
+        "while [ \"$cmd\" = \"-c\" ]; do shift 2; cmd=$1; done\n"
+        "if [ \"$cmd\" = fetch ]; then exit \"${FETCH_STATUS:-0}\"; fi\n"
+        "exit 0\n"
+    )
+    git.chmod(0o755)
+    token = "secret-token-sentinel"
+    result = subprocess.run(
+        ["bash", "-c", run], cwd=tmp_path, capture_output=True, text=True,
+        env=os.environ | {
+            "PATH": f"{bindir}:{os.environ.get('PATH', '')}",
+            "DATA_TOKEN": token,
+            "FETCH_STATUS": "0",
+            "GIT_TERMINAL_PROMPT": "0",
+        },
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == ""
+    assert result.stderr == ""
+    assert token not in result.stdout + result.stderr
+    log = recorded.read_text()
+    assert token not in log
+    assert " fetch " in f" {log}" or "\nfetch " in f"\n{log}"
+    assert re.search(r"(^|\s)(log|rev-parse)(\s|$)", log) is None
+
+    failed = subprocess.run(
+        ["bash", "-c", run], cwd=tmp_path, capture_output=True, text=True,
+        env=os.environ | {
+            "PATH": f"{bindir}:{os.environ.get('PATH', '')}",
+            "DATA_TOKEN": token,
+            "FETCH_STATUS": "7",
+            "GIT_TERMINAL_PROMPT": "0",
+        },
+    )
+    assert failed.returncode == 7
+    assert failed.stdout == ""
+    assert token not in failed.stderr
+
+
+# From the private fetch to the end of the job, every step is pinned. A deny
+# pattern on a few commands misses a dropped redirect, a working-directory, and
+# git show / tail / grep.
+_JOB_REVIEW = (
+    "this job runs in a public repository against private data; "
+    "a reviewer must check every output of a changed step"
+)
+
+
+def _run_step(steps: list[dict], filename: str) -> dict:
+    """A step after the fetch, so a command edit is not the fetch pin itself."""
+    if filename == "data-lag.yml":
+        return next(
+            step for step in steps
+            if (step.get("name") or "").startswith("Publish the image")
+        )
+    return next(
+        step for step in steps
+        if step.get("name") == "Vendor the scorer into the Worker bundle"
+    )
+
+
+def _changed_private_steps(case: str, filename: str, steps: list[dict]) -> None:
+    if case == "dropped-redirect":
+        step = _run_step(steps, filename)
+        assert '> "$RUNNER_TEMP/lag-status.json"' in step["run"]
+        step["run"] = step["run"].replace('> "$RUNNER_TEMP/lag-status.json"', "", 1)
+        return
+    if case == "working-directory-git-log":
+        steps.append({
+            "name": "Inspect the private checkout",
+            "working-directory": "modelspec-data",
+            "run": "git log\n",
+        })
+        return
+    if case == "git-show":
+        step = _run_step(steps, filename)
+        step["run"] = step["run"] + "git -C modelspec-data show HEAD\n"
+        return
+    if case == "tail":
+        step = _run_step(steps, filename)
+        step["run"] = step["run"] + "tail modelspec-data/data-image.json\n"
+        return
+    if case == "grep":
+        step = _run_step(steps, filename)
+        step["run"] = step["run"] + "grep -R . modelspec-data\n"
+        return
+    if case == "upload":
+        steps.append({
+            "name": "Upload the private checkout",
+            "uses": "actions/upload-artifact@v4",
+        })
+        return
+    raise AssertionError(case)
+
+
+_PRIVATE_JOB_CHANGES = [
+    ("data-lag.yml", "lag", "dropped-redirect"),
+    *[
+        (filename, job, case)
+        for filename, job, _, _, _ in _PRIVATE_FETCHES
+        for case in ("working-directory-git-log", "git-show", "tail", "grep", "upload")
+    ],
+]
+
+
+@pytest.mark.parametrize("filename,job,case", _PRIVATE_JOB_CHANGES)
+def test_a_changed_private_job_step_needs_a_review(filename: str, job: str, case: str) -> None:
+    steps = deepcopy(_workflow_steps(filename, job))
+    _changed_private_steps(case, filename, steps)
+
+    problems = private_fetch_problems(filename, job, steps)
+
+    assert problems == [_JOB_REVIEW]
+
+
+# What surrounds a pinned step can change what that step prints while the step
+# text stays byte-identical. The same review message as the step allow-list.
+_GUARDED_JOBS = (
+    ("accuracy-nightly.yml", "accuracy"),
+    ("data-lag.yml", "lag"),
+    ("rank-api.yml", "deploy-staging"),
+    ("rank-api.yml", "deploy"),
+)
+
+_SURROUNDING_EDITS = (
+    "workflow-shell",
+    "job-shell",
+    "workflow-workdir",
+    "job-workdir",
+    "job-git-trace",
+    "job-bash-env",
+    "workflow-env-git-trace",
+    "actions-step-debug",
+    "actions-runner-debug",
+    "container",
+    "services",
+    "strategy",
+    "runs-on",
+    "workflow-permissions",
+    "job-permissions",
+    "environment",
+    "step-shell",
+    "step-env",
+    "step-if",
+    "step-continue-on-error",
+    "step-working-directory",
+    "checkout-with",
+    "uses-tag",
+    "job-uses-branch",
+    "insert-github-env",
+    "insert-bash-env",
+    "insert-hooks-path",
+    "insert-git-alias",
+    "download-artifact",
+)
+
+
+def _review(filename: str) -> str:
+    if filename == "accuracy-nightly.yml":
+        return _NIGHTLY_REVIEW
+    return _JOB_REVIEW
+
+
+def _private_checkout(filename: str) -> str:
+    if filename == "accuracy-nightly.yml":
+        return ".accuracy-private"
+    return "modelspec-data"
+
+
+def _fetch_index(filename: str, steps: list[dict]) -> int:
+    if filename == "accuracy-nightly.yml":
+        name = "Read private verification records"
+    elif filename == "data-lag.yml":
+        name = "Read the private data with its history"
+    else:
+        name = "Read the private data"
+    return next(index for index, step in enumerate(steps) if step.get("name") == name)
+
+
+def _checkout_step(steps: list[dict]) -> dict:
+    return next(
+        step for step in steps
+        if str(step.get("uses") or "").startswith("actions/checkout@")
+    )
+
+
+def _apply_surrounding_edit(workflow: dict, filename: str, job: str, edit: str) -> None:
+    """Mutate one surrounding field. The pinned step `run` text stays put."""
+    body = workflow["jobs"][job]
+    steps = body["steps"]
+    fetch = steps[_fetch_index(filename, steps)]
+    if edit == "workflow-shell":
+        workflow.setdefault("defaults", {}).setdefault("run", {})["shell"] = "bash -x {0}"
+    elif edit == "job-shell":
+        body.setdefault("defaults", {}).setdefault("run", {})["shell"] = "bash -x {0}"
+    elif edit == "workflow-workdir":
+        workflow.setdefault("defaults", {}).setdefault("run", {})["working-directory"] = (
+            _private_checkout(filename)
+        )
+    elif edit == "job-workdir":
+        body.setdefault("defaults", {}).setdefault("run", {})["working-directory"] = (
+            _private_checkout(filename)
+        )
+    elif edit == "job-git-trace":
+        body.setdefault("env", {})["GIT_TRACE"] = "1"
+    elif edit == "job-bash-env":
+        body.setdefault("env", {})["BASH_ENV"] = "/tmp/trace.sh"
+    elif edit == "workflow-env-git-trace":
+        workflow.setdefault("env", {})["GIT_TRACE"] = "1"
+    elif edit == "actions-step-debug":
+        workflow.setdefault("env", {})["ACTIONS_STEP_DEBUG"] = "true"
+    elif edit == "actions-runner-debug":
+        workflow.setdefault("env", {})["ACTIONS_RUNNER_DEBUG"] = "true"
+    elif edit == "container":
+        body["container"] = "ubuntu:22.04"
+    elif edit == "services":
+        body["services"] = {"redis": {"image": "redis"}}
+    elif edit == "strategy":
+        body["strategy"] = {"fail-fast": "true"}
+    elif edit == "runs-on":
+        body["runs-on"] = "self-hosted"
+    elif edit == "workflow-permissions":
+        workflow.setdefault("permissions", {})["actions"] = "write"
+    elif edit == "job-permissions":
+        body.setdefault("permissions", {})["actions"] = "write"
+    elif edit == "environment":
+        body["environment"] = "staging"
+    elif edit == "step-shell":
+        fetch["shell"] = "bash -x {0}"
+    elif edit == "step-env":
+        fetch.setdefault("env", {})["GIT_TRACE"] = "1"
+    elif edit == "step-if":
+        fetch["if"] = "false"
+    elif edit == "step-continue-on-error":
+        fetch["continue-on-error"] = "true"
+    elif edit == "step-working-directory":
+        fetch["working-directory"] = _private_checkout(filename)
+    elif edit == "checkout-with":
+        _checkout_step(steps).setdefault("with", {})["persist-credentials"] = "true"
+    elif edit == "uses-tag":
+        _checkout_step(steps)["uses"] = "actions/checkout@v4"
+    elif edit == "job-uses-branch":
+        # Steps stay byte-identical. A job-level `uses` is not part of the step pin.
+        body["uses"] = "turbobeest/modelspec/.github/workflows/build.yml@main"
+    elif edit == "insert-github-env":
+        steps.insert(_fetch_index(filename, steps), {
+            "name": "Export trace",
+            "run": 'echo GIT_TRACE=1 >> "$GITHUB_ENV"\n',
+        })
+    elif edit == "insert-bash-env":
+        steps.insert(_fetch_index(filename, steps), {
+            "name": "Export bash env",
+            "run": 'echo BASH_ENV=/tmp/trace.sh >> "$GITHUB_ENV"\n',
+        })
+    elif edit == "insert-hooks-path":
+        steps.insert(_fetch_index(filename, steps), {
+            "name": "Point git hooks at a trace script",
+            "run": "git config --global core.hooksPath /tmp/hooks\n",
+        })
+    elif edit == "insert-git-alias":
+        steps.insert(_fetch_index(filename, steps), {
+            "name": "Alias git checkout",
+            "run": "git config --global alias.checkout 'log -1'\n",
+        })
+    elif edit == "download-artifact":
+        workflow["jobs"]["republish"] = {
+            "needs": [job],
+            "runs-on": "ubuntu-latest",
+            "steps": [{"name": "Download", "uses": "actions/download-artifact@v4"}],
+        }
+    else:
+        raise AssertionError(edit)
+
+
+_MISSING = "<absent>"
+_WORKFLOW_CONTEXT_KEYS = ("on", "env", "defaults", "permissions")
+_JOB_CONTEXT_KEYS = (
+    "env",
+    "defaults",
+    "container",
+    "services",
+    "strategy",
+    "runs-on",
+    "permissions",
+    "environment",
+    "outputs",
+)
+# Free keys. Each is free because it cannot change what a step prints or where
+# the output goes; the reason for each is in docs/evidence/MODEL-483-D-guard.md.
+# Every other key at workflow level or guarded-job level fails the guard.
+_WORKFLOW_FREE_KEYS = ("name", "run-name", "concurrency")
+_JOB_FREE_KEYS = ("name", "if", "needs", "timeout-minutes", "concurrency")
+# Taken from the unmodified workflow files. A change of env, defaults, shell,
+# permissions, or any step of the guarded job moves one of these digests.
+_SURROUNDING_PINS = {
+    ("accuracy-nightly.yml", "accuracy"):
+        "451f19dfcdfc9cfd11f7421bf55844be9b248a585981d87ae65099dcd6a2e633",
+    ("data-lag.yml", "lag"):
+        "7db49425242445ef12b118583fcc8a6be0a448eadcf1e8ef1088dc42ff6f9fff",
+    ("rank-api.yml", "deploy-staging"):
+        "afb3c4c094984241beeda52317316c33b5a98be1ad76e66ff604c7e16b0cee78",
+    ("rank-api.yml", "deploy"):
+        "f809ef878d45b08f8a0960a8faafe24f4565d3cbd94773221e796eba5501339b",
+}
+_STEP_PINS = {
+    ("accuracy-nightly.yml", "accuracy"):
+        "e95b17b940ec629c378e706283ae9a8c7346103a638c2878bb343f86c940c23e",
+    ("data-lag.yml", "lag"):
+        "4073d896920e594663d02fadb66fe4e029259f3436f32ab9f2d95602e1c9f835",
+    ("rank-api.yml", "deploy-staging"):
+        "3f56082ba0e87ec558d3012580e64873e84bb79422c9cbbb2ab4122df1486f00",
+    ("rank-api.yml", "deploy"):
+        "ee6da731e3bd7be04b85f2961302ec6b03745873f9fc6f0989cd3fa4b2b34b52",
+}
+_FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
+_DOCKER_PIN = re.compile(r"^docker://[^@\s]+@sha256:[0-9a-f]{64}$")
+
+
+def _picked(mapping: dict, keys: tuple[str, ...]) -> tuple:
+    picked = []
+    for key in keys:
+        if key in mapping:
+            picked.append((key, _freeze(mapping[key])))
+        else:
+            picked.append((key, _MISSING))
+    return tuple(picked)
+
+
+def _surrounding_digest(workflow: dict, job: str) -> str:
+    payload = (
+        _picked(workflow, _WORKFLOW_CONTEXT_KEYS),
+        _picked(workflow["jobs"][job], _JOB_CONTEXT_KEYS),
+    )
+    return hashlib.sha256(repr(payload).encode()).hexdigest()
+
+
+def _guarded_steps_digest(steps: list[dict]) -> str:
+    payload = tuple(_step_pin(step) for step in steps)
+    return hashlib.sha256(repr(payload).encode()).hexdigest()
+
+
+def _uses_ref_is_pinned(uses: str) -> bool:
+    """Full commit SHA. A local `./` action has no ref and moves with this commit."""
+    if uses.startswith("./"):
+        return True
+    if uses.startswith("docker://"):
+        return _DOCKER_PIN.fullmatch(uses) is not None
+    if "@" not in uses:
+        return False
+    return _FULL_SHA.fullmatch(uses.rsplit("@", 1)[1]) is not None
+
+
+def _unpinned_uses(workflow: dict, job: str) -> list[str]:
+    body = workflow["jobs"][job]
+    found = []
+    job_uses = body.get("uses")
+    if isinstance(job_uses, str) and not _uses_ref_is_pinned(job_uses):
+        found.append(job_uses)
+    for step in body.get("steps") or []:
+        uses = step.get("uses")
+        if isinstance(uses, str) and not _uses_ref_is_pinned(uses):
+            found.append(uses)
+    return found
+
+
+def _needs_job(needs, job: str) -> bool:
+    if isinstance(needs, str):
+        return needs == job
+    if isinstance(needs, list):
+        return job in needs
+    return False
+
+
+_ARTIFACT_FETCH = re.compile(
+    r"(?i)download-?artifact|run\s+download|/artifacts\b|artifacts\?"
+    r"|ListWorkflowRunArtifacts|getArtifact|artifacts/"
+)
+
+
+def _leaf_strings(value):
+    """Every key and every scalar under `value`, as text."""
+    if isinstance(value, dict):
+        for key, item in value.items():
+            yield str(key)
+            yield from _leaf_strings(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _leaf_strings(item)
+    else:
+        yield str(value)
+
+
+def _other_job_fetches_artifacts(workflow: dict, job: str) -> bool:
+    """Any other job, with or without `needs`, that names an artifact download."""
+    for name, body in workflow.get("jobs", {}).items():
+        if name == job:
+            continue
+        if any(_ARTIFACT_FETCH.search(text) for text in _leaf_strings(body)):
+            return True
+    return False
+
+
+def _other_job_reads_outputs(workflow: dict, job: str) -> bool:
+    """Any other job that reads `needs.<job>` beyond `.result`, or dumps `needs`."""
+    name = re.escape(job)
+    reads = re.compile(
+        rf"needs\s*\.\s*{name}(?![\w-])(?!\s*\.\s*result\b)"
+        rf"|needs\s*\[\s*['\"]{name}['\"]\s*\](?!\s*\.\s*result\b)"
+        r"|toJSON\(\s*needs\b",
+        re.IGNORECASE,
+    )
+    for other, body in workflow.get("jobs", {}).items():
+        if other == job:
+            continue
+        if any(reads.search(text) for text in _leaf_strings(body)):
+            return True
+    return False
+
+
+def _unknown_keys(workflow: dict, job: str) -> list[str]:
+    workflow_known = set(_WORKFLOW_CONTEXT_KEYS) | set(_WORKFLOW_FREE_KEYS) | {"jobs"}
+    job_known = set(_JOB_CONTEXT_KEYS) | set(_JOB_FREE_KEYS) | {"steps"}
+    found = [f"workflow:{key}" for key in workflow if key not in workflow_known]
+    found += [f"job:{key}" for key in workflow["jobs"][job] if key not in job_known]
+    return found
+
+
+def context_guard_problems(filename: str, job: str, workflow: dict) -> list[str]:
+    """Allow-list for one guarded job, including what surrounds its steps."""
+    message = _review(filename)
+    body = workflow["jobs"][job]
+    steps = body.get("steps")
+    if not isinstance(steps, list):
+        return [message]
+    if filename == "accuracy-nightly.yml":
+        problems = nightly_allowance_problems(steps)
+    else:
+        problems = private_fetch_problems(filename, job, steps)
+    if problems:
+        return problems
+    if _surrounding_digest(workflow, job) != _SURROUNDING_PINS[(filename, job)]:
+        return [message]
+    if _guarded_steps_digest(steps) != _STEP_PINS[(filename, job)]:
+        return [message]
+    if _unpinned_uses(workflow, job):
+        return [message]
+    if _unknown_keys(workflow, job):
+        return [message]
+    if _other_job_reads_outputs(workflow, job):
+        return [message]
+    if _other_job_fetches_artifacts(workflow, job):
+        return [message]
+    return []
+
+
+def _with_merged_debug_shell(filename: str, job: str) -> dict:
+    text = Path(f".github/workflows/{filename}").read_text()
+    needle = f"  {job}:\n"
+    assert text.count(needle) == 1
+    insertion = (
+        f"  {job}:\n"
+        "    defaults:\n"
+        "      run:\n"
+        "        <<: *debug-shell\n"
+    )
+    document = (
+        'x-debug: &debug-shell\n  shell: "bash -x {0}"\n'
+        + text.replace(needle, insertion, 1)
+    )
+    return yaml.load(document, Loader=_WorkflowLoader)
+
+
+@pytest.mark.parametrize("filename", ("accuracy-nightly.yml", "data-lag.yml", "rank-api.yml"))
+def test_the_workflow_key_on_stays_a_string(filename: str) -> None:
+    workflow = _load_workflow(filename)
+    assert "on" in workflow
+    assert True not in workflow
+
+
+@pytest.mark.parametrize("filename,job", _GUARDED_JOBS)
+def test_a_merged_debug_shell_is_visible_to_the_guard(filename: str, job: str) -> None:
+    workflow = _with_merged_debug_shell(filename, job)
+    assert "on" in workflow and True not in workflow
+    assert workflow["jobs"][job]["defaults"]["run"]["shell"] == "bash -x {0}"
+    assert context_guard_problems(filename, job, workflow) == [_review(filename)]
+
+
+@pytest.mark.parametrize("filename,job", _GUARDED_JOBS)
+@pytest.mark.parametrize("edit", _SURROUNDING_EDITS)
+def test_a_private_job_surrounding_edit_needs_a_review(
+    filename: str, job: str, edit: str,
+) -> None:
+    workflow = _load_workflow(filename)
+    _apply_surrounding_edit(workflow, filename, job, edit)
+    assert context_guard_problems(filename, job, workflow) == [_review(filename)]
+
+
+@pytest.mark.parametrize("filename,job", _GUARDED_JOBS)
+def test_concurrency_and_timeout_minutes_stay_free(filename: str, job: str) -> None:
+    workflow = _load_workflow(filename)
+    workflow["concurrency"]["group"] = workflow["concurrency"]["group"] + "-edited"
+    workflow["jobs"][job]["timeout-minutes"] = "45"
+    workflow["jobs"][job]["concurrency"] = {"group": "edited", "cancel-in-progress": "false"}
+    assert context_guard_problems(filename, job, workflow) == []
+
+
+@pytest.mark.parametrize("filename", ("accuracy-nightly.yml", "data-lag.yml", "rank-api.yml"))
+def test_a_job_that_does_not_read_the_private_repository_may_change_env(filename: str) -> None:
+    workflow = _load_workflow(filename)
+    if filename == "rank-api.yml":
+        # `bundle` and `memory` never check the private repository out.
+        workflow["jobs"]["bundle"].setdefault("env", {})["GIT_TRACE"] = "1"
+    else:
+        # Those two workflows have no second job. A job added beside the guarded
+        # one, with no private fetch, is free to set env.
+        workflow["jobs"]["public-report"] = {
+            "runs-on": "ubuntu-latest",
+            "env": {"GIT_TRACE": "1"},
+            "steps": [{"name": "Note", "run": "echo ok\n"}],
+        }
+    for guarded in (name for workflow_name, name in _GUARDED_JOBS if workflow_name == filename):
+        assert context_guard_problems(filename, guarded, workflow) == []
+
+
+@pytest.mark.parametrize("filename,job", _GUARDED_JOBS)
+def test_a_later_job_that_only_needs_the_guarded_job_stays_free(
+    filename: str, job: str,
+) -> None:
+    workflow = _load_workflow(filename)
+    workflow["jobs"]["after"] = {
+        "needs": [job],
+        "runs-on": "ubuntu-latest",
+        "steps": [{"name": "Note", "run": "echo done\n"}],
+    }
+    assert context_guard_problems(filename, job, workflow) == []
+
+
+@pytest.mark.parametrize(
+    "uses,pinned",
+    (
+        ("actions/checkout@11d5960a326750d5838078e36cf38b85af677262", True),
+        ("actions/checkout@v4", False),
+        ("actions/checkout@main", False),
+        ("actions/checkout@11d5960", False),
+        ("actions/checkout", False),
+        ("./.github/actions/fetch", True),
+        ("docker://alpine:3.20", False),
+        ("docker://alpine@sha256:" + ("a" * 64), True),
+        ("turbobeest/modelspec/.github/workflows/build.yml@main", False),
+        ("turbobeest/modelspec/.github/workflows/build.yml@" + ("ab" * 20), True),
+    ),
+)
+def test_a_uses_ref_needs_a_full_commit_sha(uses: str, pinned: bool) -> None:
+    assert _uses_ref_is_pinned(uses) is pinned
+
+
+# ---------------------------------------------------------------------------
+# Round two. Four routes the first guard let through.
+# ---------------------------------------------------------------------------
+
+_TOKEN_STEP = {
+    "name": "Read",
+    "env": {"DATA_TOKEN": "${{ secrets.MODELSPEC_DATA_TOKEN }}"},
+    "run": (
+        'git clone "https://x-access-token:${DATA_TOKEN}@github.com/'
+        'turbobeest/modelspec-data.git" d\ncat d/README.md\n'
+    ),
+}
+
+
+def _all_documents() -> dict[str, dict]:
+    documents = {}
+    for path in sorted(Path(".github/workflows").glob("*.y*ml")):
+        documents[path.name] = yaml.load(path.read_text(), Loader=_WorkflowLoader)
+    for path in sorted(Path(".github/actions").glob("**/action.y*ml")):
+        documents[str(path.relative_to(".github"))] = yaml.load(
+            path.read_text(), Loader=_WorkflowLoader
+        )
+    return documents
+
+
+def _sibling_job_with_token(filename: str):
+    def edit(documents: dict) -> None:
+        documents[filename]["jobs"]["sibling"] = {
+            "runs-on": "ubuntu-latest",
+            "steps": [deepcopy(_TOKEN_STEP)],
+        }
+    return edit
+
+
+def _new_workflow(job: dict, **top):
+    def edit(documents: dict) -> None:
+        documents["brand-new.yml"] = {
+            "name": "New", "on": {"workflow_dispatch": {}}, "jobs": {"j": job}, **top,
+        }
+    return edit
+
+
+def _add_step_to(filename: str, job: str):
+    def edit(documents: dict) -> None:
+        documents[filename]["jobs"][job]["steps"].append(deepcopy(_TOKEN_STEP))
+    return edit
+
+
+def _new_action(documents: dict) -> None:
+    documents["actions/fetch/action.yml"] = {
+        "name": "fetch",
+        "runs": {"using": "composite", "steps": [{**deepcopy(_TOKEN_STEP), "shell": "bash"}]},
+    }
+
+
+def _new_job_in_exception_workflow(documents: dict) -> None:
+    documents["coverage-slo.yml"]["jobs"]["extra"] = {
+        "runs-on": "ubuntu-latest", "steps": [deepcopy(_TOKEN_STEP)],
+    }
+
+
+_PRIVATE_REFERENCE_CASES = (
+    ("repository-as-is", None),
+    ("sibling-job-in-accuracy-nightly", _sibling_job_with_token("accuracy-nightly.yml")),
+    ("sibling-job-in-data-lag", _sibling_job_with_token("data-lag.yml")),
+    ("sibling-job-in-rank-api", _sibling_job_with_token("rank-api.yml")),
+    ("new-workflow-file-with-the-token",
+     _new_workflow({"runs-on": "ubuntu-latest", "steps": [deepcopy(_TOKEN_STEP)]})),
+    ("new-workflow-file-with-the-repository-name-only",
+     _new_workflow({"runs-on": "ubuntu-latest",
+                    "steps": [{"run": "git ls-remote https://github.com/turbobeest/modelspec-data\n"}]})),
+    ("new-workflow-file-with-the-token-in-workflow-env",
+     _new_workflow({"runs-on": "ubuntu-latest", "steps": [{"run": "true"}]},
+                   env={"T": "${{ secrets.MODELSPEC_DATA_TOKEN }}"})),
+    ("new-reusable-job-inherits-every-secret",
+     _new_workflow({"uses": "./.github/workflows/x.yml", "secrets": "inherit"})),
+    ("new-job-dumps-the-secrets-context",
+     _new_workflow({"runs-on": "ubuntu-latest",
+                    "steps": [{"run": "echo '${{ toJSON(secrets) }}'"}]})),
+    ("new-job-indexes-a-secret-by-a-built-name",
+     _new_workflow({"runs-on": "ubuntu-latest",
+                    "steps": [{"run": "echo ${{ secrets[format('{0}_{1}', 'A', 'B')] }}"}]})),
+    ("new-composite-action-with-the-token", _new_action),
+    ("a-listed-exception-job-gains-a-step", _add_step_to("coverage-slo.yml", "private-health")),
+    ("a-dispatch-job-gains-a-step", _add_step_to("release-watch.yml", "dispatch")),
+    ("a-new-job-in-a-workflow-with-listed-exceptions", _new_job_in_exception_workflow),
+)
+
+
+@pytest.mark.parametrize(
+    "case,edit", _PRIVATE_REFERENCE_CASES, ids=[c[0] for c in _PRIVATE_REFERENCE_CASES],
+)
+def test_only_guarded_jobs_may_touch_the_private_repository(case: str, edit) -> None:
+    documents = _all_documents()
+    original = deepcopy(documents)
+    if edit is not None:
+        edit(documents)
+        assert documents != original, "the edit was never applied"
+    problems = private_reference_problems(documents)
+    if edit is None:
+        assert problems == []
+    else:
+        assert problems, case
+        assert all(_PRIVATE_REFERENCE_REVIEW in problem for problem in problems)
+
+
+_PRIVATE_REFERENCE = re.compile(
+    r"(?i)modelspec[-_]data|secrets\s*\[|toJSON\(\s*secrets"
+)
+
+
+def _private_hits(body) -> frozenset:
+    """(path, line) for every key, value or `run` line that names the private
+    repository or its secrets, or hands every secret to a called workflow."""
+    hits = set()
+
+    def walk(value, path: str) -> None:
+        if isinstance(value, dict):
+            for key, item in value.items():
+                walk_text(str(key), f"{path}/<key>{key}")
+                if key == "secrets" and item == "inherit":
+                    hits.add((f"{path}/secrets", "inherit"))
+                walk(item, f"{path}/{key}")
+        elif isinstance(value, list):
+            for index, item in enumerate(value):
+                walk(item, f"{path}[{index}]")
+        else:
+            walk_text(str(value), path)
+
+    def walk_text(text: str, path: str) -> None:
+        for line in text.splitlines() or [text]:
+            if _PRIVATE_REFERENCE.search(line):
+                hits.add((path, line.strip()))
+
+    walk(body, "")
+    return frozenset(hits)
+
+
+def _document_scopes(document: dict):
+    if isinstance(document.get("jobs"), dict):
+        yield "<workflow>", {key: value for key, value in document.items() if key != "jobs"}
+        yield from document["jobs"].items()
+    else:
+        yield "<action>", document
+
+
+def _private_reference_exceptions() -> dict:
+    """Jobs on main that are not guarded and still name the private repository.
+
+    Pinned as they are. Each one prints or hands on no private value (see the
+    note), and each has its own test. A new line, a new job, or a removed line
+    fails `private_reference_problems`.
+    """
+    exceptions = {}
+    for stub in ("curation-benchmarks", "daily-research", "leaderboard-refresh",
+                 "price-reread", "release-signals", "speed-probe"):
+        exceptions[(f"{stub}.yml", "moved")] = frozenset({
+            ("/steps[0]/name", "Run this writer in https://github.com/turbobeest/"
+                               f"modelspec-data/actions/workflows/{stub}.yml"),
+        })
+    for filename, job, path, writer in (
+        ("curation-gate.yml", "dispatch", "/steps[0]", "curation-benchmarks.yml"),
+        ("release-signals-gate.yml", "pending", "/steps[1]", "release-signals.yml"),
+        ("release-watch.yml", "dispatch", "/steps[0]", "release-signals.yml"),
+    ):
+        exceptions[(filename, job)] = frozenset({
+            (f"{path}/env/GH_TOKEN", "${{ secrets.MODELSPEC_DATA_DISPATCH_TOKEN }}"),
+            (f"{path}/run",
+             f"gh workflow run {writer} --repo turbobeest/modelspec-data --ref main"),
+        })
+    token = ("/steps[3]/env/MODELSPEC_DATA_TOKEN", "${{ secrets.MODELSPEC_DATA_TOKEN }}")
+    key = ("/steps[3]/env/<key>MODELSPEC_DATA_TOKEN", "MODELSPEC_DATA_TOKEN")
+    exceptions[("coverage-slo.yml", "private-health")] = frozenset({
+        token, key,
+        ("/steps[3]/run", 'if [ -z "$MODELSPEC_DATA_TOKEN" ]; then'),
+        ("/steps[3]/run",
+         "python -m scripts.slo workflows --repo turbobeest/modelspec-data --quiet"),
+    })
+    exceptions[("coverage-slo.yml", "release-counts")] = frozenset({token, key})
+    return exceptions
+
+
+_PRIVATE_REFERENCE_EXCEPTIONS = _private_reference_exceptions()
+
+
+def private_reference_problems(documents: dict[str, dict]) -> list[str]:
+    """Every workflow and composite action: only the guarded jobs, plus the pinned
+    exceptions above, may name the private repository or its token."""
+    guarded = set(_STEP_PINS)
+    problems = []
+    for name, document in sorted(documents.items()):
+        for scope, body in _document_scopes(document):
+            if (name, scope) in guarded:
+                continue
+            hits = _private_hits(body)
+            allowed = _PRIVATE_REFERENCE_EXCEPTIONS.get((name, scope), frozenset())
+            if hits != allowed:
+                problems.append(f"{name} {scope}: {_PRIVATE_REFERENCE_REVIEW}")
+    return problems
+
+
+_PRIVATE_REFERENCE_REVIEW = (
+    "only the guarded private-read jobs may use the private repository or its token; "
+    "a reviewer must check every output of that job"
+)
+
+_OUTPUT_EDITS = (
+    "job-outputs",
+    "job-outputs-empty",
+    "reader-needs-dot",
+    "reader-needs-bracket",
+    "reader-dumps-needs",
+    "reader-in-env",
+    "reader-in-if",
+)
+
+
+def _apply_output_edit(workflow: dict, job: str, edit: str) -> None:
+    jobs = workflow["jobs"]
+    if edit == "job-outputs":
+        jobs[job]["outputs"] = {"x": "${{ steps.fetch.outputs.x }}"}
+    elif edit == "job-outputs-empty":
+        jobs[job]["outputs"] = {}
+    else:
+        reader = {"needs": [job], "runs-on": "ubuntu-latest"}
+        if edit == "reader-needs-dot":
+            reader["steps"] = [{"run": f"echo ${{{{ needs.{job}.outputs.x }}}}\n"}]
+        elif edit == "reader-needs-bracket":
+            reader["steps"] = [{"run": f"echo ${{{{ needs['{job}'].outputs.x }}}}\n"}]
+        elif edit == "reader-dumps-needs":
+            reader["steps"] = [{"run": "echo '${{ toJSON(needs) }}'\n"}]
+        elif edit == "reader-in-env":
+            reader["env"] = {"X": f"${{{{ needs.{job}.outputs.x }}}}"}
+            reader["steps"] = [{"run": "true"}]
+        elif edit == "reader-in-if":
+            reader["if"] = f"needs.{job}.outputs.x == 'a'"
+            reader["steps"] = [{"run": "true"}]
+        else:
+            raise AssertionError(edit)
+        jobs["reader"] = reader
+
+
+@pytest.mark.parametrize("filename,job", _GUARDED_JOBS)
+@pytest.mark.parametrize("edit", _OUTPUT_EDITS)
+def test_guarded_job_outputs_are_pinned(filename: str, job: str, edit: str) -> None:
+    workflow = _load_workflow(filename)
+    original = deepcopy(workflow)
+    _apply_output_edit(workflow, job, edit)
+    assert workflow != original, "the edit was never applied"
+    assert context_guard_problems(filename, job, workflow) == [_review(filename)]
+
+
+@pytest.mark.parametrize("filename,job", _GUARDED_JOBS)
+def test_reading_only_the_result_of_a_guarded_job_stays_free(filename: str, job: str) -> None:
+    workflow = _load_workflow(filename)
+    workflow["jobs"]["reader"] = {
+        "needs": [job],
+        "if": f"needs.{job}.result == 'failure'",
+        "runs-on": "ubuntu-latest",
+        "env": {"R": f"${{{{ needs.{job}.result }}}}"},
+        "steps": [{"run": "echo other ${{ needs.other.outputs.x }}\n"}],
+    }
+    assert context_guard_problems(filename, job, workflow) == []
+
+
+_UNKNOWN_KEY_EDITS = (
+    "workflow-unknown-key",
+    "workflow-x-anchor-key",
+    "workflow-timeout-minutes",
+    "workflow-outputs",
+    "workflow-on-gains-a-trigger",
+    "workflow-on-removed-trigger-key",
+    "job-unknown-key",
+    "job-continue-on-error",
+    "job-uses",
+    "job-with",
+    "job-secrets",
+    "job-misspelt-environment",
+)
+
+
+def _apply_unknown_key_edit(workflow: dict, job: str, edit: str) -> None:
+    body = workflow["jobs"][job]
+    if edit == "workflow-unknown-key":
+        workflow["trace"] = "1"
+    elif edit == "workflow-x-anchor-key":
+        workflow["x-shared"] = {"shell": "bash -x {0}"}
+    elif edit == "workflow-timeout-minutes":
+        workflow["timeout-minutes"] = "5"
+    elif edit == "workflow-outputs":
+        workflow["outputs"] = {"x": "y"}
+    elif edit == "workflow-on-gains-a-trigger":
+        workflow["on"]["pull_request_target"] = {}
+    elif edit == "workflow-on-removed-trigger-key":
+        workflow["on"] = {"workflow_dispatch": {}}
+    elif edit == "job-unknown-key":
+        body["trace"] = "1"
+    elif edit == "job-continue-on-error":
+        body["continue-on-error"] = "true"
+    elif edit == "job-uses":
+        body["uses"] = "turbobeest/modelspec/.github/workflows/x.yml@" + "ab" * 20
+    elif edit == "job-with":
+        body["with"] = {"a": "b"}
+    elif edit == "job-secrets":
+        body["secrets"] = "inherit"
+    elif edit == "job-misspelt-environment":
+        body["environmnet"] = "production"
+    else:
+        raise AssertionError(edit)
+
+
+@pytest.mark.parametrize("filename,job", _GUARDED_JOBS)
+@pytest.mark.parametrize("edit", _UNKNOWN_KEY_EDITS)
+def test_unknown_workflow_or_job_key_fails_closed(filename: str, job: str, edit: str) -> None:
+    workflow = _load_workflow(filename)
+    original = deepcopy(workflow)
+    _apply_unknown_key_edit(workflow, job, edit)
+    assert workflow != original, "the edit was never applied"
+    assert context_guard_problems(filename, job, workflow) == [_review(filename)]
+
+
+@pytest.mark.parametrize("filename,job", _GUARDED_JOBS)
+def test_the_listed_free_keys_stay_free(filename: str, job: str) -> None:
+    workflow = _load_workflow(filename)
+    original = deepcopy(workflow)
+    workflow["name"] = "Renamed"
+    workflow["run-name"] = "Run ${{ github.run_number }}"
+    workflow["concurrency"] = {"group": "edited", "cancel-in-progress": "false"}
+    body = workflow["jobs"][job]
+    body["name"] = "Renamed job"
+    body["if"] = "github.ref == 'refs/heads/main'"
+    body["needs"] = []
+    body["timeout-minutes"] = "45"
+    body["concurrency"] = {"group": "edited2", "cancel-in-progress": "false"}
+    assert workflow != original
+    assert context_guard_problems(filename, job, workflow) == []
+
+
+_ARTIFACT_EDITS = (
+    "download-action-with-needs",
+    "download-action-without-needs",
+    "download-action-by-tag-without-needs",
+    "gh-run-download",
+    "gh-api-run-artifacts",
+    "gh-api-artifact-zip",
+    "curl-artifact-zip",
+    "script-downloads-artifact",
+    "script-lists-artifacts",
+    "job-level-expression-names-download",
+    "guarded-job-gains-upload-artifact",
+)
+
+
+def _apply_artifact_edit(workflow: dict, job: str, edit: str) -> None:
+    sha = "d3f86a106a0bac45b974a628896c90dbdf5c8093"
+    other = {"runs-on": "ubuntu-latest"}
+    if edit == "download-action-with-needs":
+        other.update(needs=[job], steps=[{"uses": f"actions/download-artifact@{sha}"}])
+    elif edit == "download-action-without-needs":
+        other.update(steps=[{"uses": f"actions/download-artifact@{sha}",
+                             "with": {"run-id": "1", "github-token": "${{ github.token }}"}}])
+    elif edit == "download-action-by-tag-without-needs":
+        other.update(steps=[{"uses": "actions/download-artifact@v4"}])
+    elif edit == "gh-run-download":
+        other.update(steps=[{"run": "gh run download 1 -D out\n"}])
+    elif edit == "gh-api-run-artifacts":
+        other.update(steps=[{"run": "gh api repos/o/r/actions/runs/1/artifacts\n"}])
+    elif edit == "gh-api-artifact-zip":
+        other.update(steps=[{"run": "gh api repos/o/r/actions/artifacts/9/zip > a.zip\n"}])
+    elif edit == "curl-artifact-zip":
+        other.update(steps=[{"run": "curl -L https://api.github.com/repos/o/r/actions/artifacts/9/zip\n"}])
+    elif edit == "script-downloads-artifact":
+        other.update(steps=[{"uses": "actions/github-script@" + "ab" * 20,
+                             "with": {"script": "await github.rest.actions.downloadArtifact({})"}}])
+    elif edit == "script-lists-artifacts":
+        other.update(steps=[{"uses": "actions/github-script@" + "ab" * 20,
+                             "with": {"script": "await actions.listWorkflowRunArtifacts({})"}}])
+    elif edit == "job-level-expression-names-download":
+        other.update(steps=[{"run": "true"}], env={"X": "gh run download"})
+    elif edit == "guarded-job-gains-upload-artifact":
+        workflow["jobs"][job]["steps"].append(
+            {"uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+             "with": {"path": "."}})
+        return
+    else:
+        raise AssertionError(edit)
+    workflow["jobs"]["fetcher"] = other
+
+
+@pytest.mark.parametrize("filename,job", _GUARDED_JOBS)
+@pytest.mark.parametrize("edit", _ARTIFACT_EDITS)
+def test_artifact_downloads_from_guarded_workflows_are_refused(
+    filename: str, job: str, edit: str,
+) -> None:
+    workflow = _load_workflow(filename)
+    original = deepcopy(workflow)
+    _apply_artifact_edit(workflow, job, edit)
+    assert workflow != original, "the edit was never applied"
+    assert context_guard_problems(filename, job, workflow) == [_review(filename)]
+
+
+@pytest.mark.parametrize("filename,job", _GUARDED_JOBS)
+def test_a_sibling_job_that_only_uploads_an_artifact_stays_free(filename: str, job: str) -> None:
+    workflow = _load_workflow(filename)
+    workflow["jobs"]["publisher"] = {
+        "runs-on": "ubuntu-latest",
+        "steps": [{"uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+                   "with": {"name": "x", "path": "."}}],
+    }
+    assert context_guard_problems(filename, job, workflow) == []
+
+
+# ---------------------------------------------------------------------------
+# MODEL-483 E: the private alert sink. ACCURACY_ALERT_TOKEN may appear in the
+# credential check and in the sink step of the nightly, and nowhere else.
+# ---------------------------------------------------------------------------
+
+_SINK_NAME = "Send the detail to the private alert issue"
+_REQUIRE_SINK_NAME = "Require the private alert sink credential"
+_TOKEN_NAME = "ACCURACY_ALERT_TOKEN"
+_ALL_WORKFLOWS = sorted(Path(".github/workflows").glob("*.y*ml"))
+
+
+def _sink_step() -> dict:
+    return next(step for step in _nightly_steps() if step.get("name") == _SINK_NAME)
+
+
+def test_the_token_appears_only_in_the_two_nightly_sink_steps() -> None:
+    holders = []
+    for path in _ALL_WORKFLOWS:
+        document = _load_workflow(path.name)
+        for job_name, job in document["jobs"].items():
+            for index, step in enumerate(job.get("steps") or []):
+                if _TOKEN_NAME in repr(step):
+                    holders.append((path.name, job_name, step.get("name")))
+    assert holders == [
+        ("accuracy-nightly.yml", "accuracy", _REQUIRE_SINK_NAME),
+        ("accuracy-nightly.yml", "accuracy", _SINK_NAME),
+    ]
+    for path in _ALL_WORKFLOWS:
+        text = path.read_text()
+        assert text.count(_TOKEN_NAME) == (2 if path.name == "accuracy-nightly.yml" else 0)
+    # Never at workflow level, job level, or in another file (scripts, docs excepted).
+    document = _load_workflow("accuracy-nightly.yml")
+    assert _TOKEN_NAME not in repr({k: v for k, v in document.items() if k != "jobs"})
+    job = {k: v for k, v in document["jobs"]["accuracy"].items() if k != "steps"}
+    assert _TOKEN_NAME not in repr(job)
+
+
+def test_the_token_is_a_step_env_value_and_nothing_else() -> None:
+    step = _sink_step()
+    assert step["env"]["GH_TOKEN"] == "${{ secrets.ACCURACY_ALERT_TOKEN }}"
+    assert _TOKEN_NAME not in step["run"]
+    assert "with" not in step and "uses" not in step
+    other = {k: v for k, v in step["env"].items() if k != "GH_TOKEN"}
+    assert _TOKEN_NAME not in repr(other)
+    check = next(s for s in _nightly_steps() if s.get("name") == _REQUIRE_SINK_NAME)
+    assert check["env"] == {"ALERT_TOKEN": "${{ secrets.ACCURACY_ALERT_TOKEN }}"}
+    # The check runs before the first gate.
+    names = [s.get("name") for s in _nightly_steps()]
+    assert names.index(_REQUIRE_SINK_NAME) < names.index("Run network accuracy layers")
+
+
+def test_the_sink_step_never_prints_or_publishes_the_detail() -> None:
+    step = _sink_step()
+    run = step["run"]
+    detail_lines = [line for line in run.splitlines() if "red-night" in line]
+    assert detail_lines
+    for line in detail_lines:
+        assert not re.search(r"\b(echo|cat|printf|tee|head|tail|less|more|sed|awk|grep)\b", line)
+    # Every gh call and the script discard their output.
+    calls = re.findall(r"^\s*(?:\S+=\$\()?(?:gh|python) .*?(?=\n\s*(?:gh|python|fi|else|done|;;)|\Z)",
+                       run, flags=re.S | re.M)
+    assert calls
+    for call in calls:
+        assert "/dev/null" in call, call
+    assert not re.search(r"\bset\s+-[a-zA-Z]*x|xtrace", run)
+    assert "GITHUB_STEP_SUMMARY" not in run
+    assert "GITHUB_OUTPUT" not in run
+    assert "id" not in step
+    assert "upload-artifact" not in repr(_nightly_steps())
+    assert "outputs" not in _load_workflow("accuracy-nightly.yml")["jobs"]["accuracy"]
+
+
+def test_a_missing_token_or_failed_call_gives_the_generic_message_and_fails() -> None:
+    run = _sink_step()["run"]
+    assert 'fail() { echo "private alert sink unavailable"; exit 1; }' in run
+    assert 'test -n "$GH_TOKEN" || fail' in run
+    # Every gh call and the script are followed by `|| fail`.
+    for line in run.splitlines():
+        if "/dev/null" in line:
+            assert line.rstrip().endswith("|| fail"), line
+    assert "private alert sink unavailable" in _REQUIRE_SINK_RUN
+
+
+def test_the_sink_posts_to_one_labelled_private_issue() -> None:
+    run = _sink_step()["run"]
+    assert "--label accuracy-nightly" in run
+    assert run.count("-R turbobeest/modelspec-data") >= 4
+    assert "gh issue comment" in run and "gh issue create" in run and "gh issue close" in run
+    assert "turbobeest/modelspec-data" not in Path("scripts/accuracy_alert.py").read_text()
+
+
+def test_the_public_alert_step_links_to_nothing_private() -> None:
+    alert = next(s for s in _nightly_steps() if s.get("name") == "Alert the orchestrator")
+    assert "modelspec-data" not in repr(alert) and _TOKEN_NAME not in repr(alert)
+    text = accuracy_alert.body(None, RUN)
+    assert "modelspec-data" not in text and "red-night" not in text
+
+
+def test_the_detail_is_written_to_a_file_and_not_printed(tmp_path: Path, capfd) -> None:
+    (tmp_path / "accuracy.md").write_text("# full\nper-card rows\n")
+    (tmp_path / "accuracy.json").write_text(json.dumps(_report("fail", [])))
+    out = tmp_path / "detail.md"
+
+    status = accuracy_alert.main([
+        "--report", str(tmp_path / "accuracy.json"), "--run-url", RUN,
+        "--detail-output", str(out),
+    ])
+
+    assert status == 0
+    assert capfd.readouterr() == ("", "")
+    assert out.read_text() == f"# full\nper-card rows\n\nRun: {RUN}\n"
+
+
+def test_the_detail_is_cut_to_the_issue_size_limit(tmp_path: Path) -> None:
+    (tmp_path / "accuracy.md").write_text("x" * 70000)
+    text = accuracy_alert.detail(tmp_path / "accuracy.json", RUN)
+    assert len(text) < 65536 and "[truncated]" in text
+
+
+def test_a_missing_report_still_gives_a_detail_file(tmp_path: Path) -> None:
+    text = accuracy_alert.detail(tmp_path / "accuracy.json", RUN)
+    assert "failed before a report was written" in text
+
+
+def test_main_needs_an_output() -> None:
+    with pytest.raises(SystemExit):
+        accuracy_alert.main(["--report", "x.json", "--run-url", RUN])

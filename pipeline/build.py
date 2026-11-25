@@ -24,6 +24,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from decision import registry as decision_registry
+from decision import retention
 from pipeline import agent_copy, brand, card_ids, data_source
 from pipeline import export as exporter
 from pipeline import render as r
@@ -863,6 +864,14 @@ def write_use_case_pages(tree: Path, public_root: Path, *, examples=None,
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    if not args.data_dir:
+        return _main(args)
+    # MODEL-510: the terms register's forbids class applies to a private build too.
+    with retention.using_data_dir(Path(args.data_dir)):
+        return _main(args)
+
+
+def _main(args: argparse.Namespace) -> int:
     split = os.environ.get("DATA_SPLIT_ENABLED") == "true"
     data_dir = Path(args.data_dir) if args.data_dir else data_source.data_dir_from_env()
     if data_dir is None and os.environ.get(data_source.REQUIRE_DATA_ENV, "").strip() not in ("", "0"):
@@ -911,12 +920,13 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     if out.exists():
         shutil.rmtree(out)
 
-    models = load_models(root)
     benchmarks = load_benchmarks(root)
     catalogue = load_catalogue(root)
     build = exporter.make_build(catalogue, root)
 
     today = build_day(build)
+    # The site sees owner rulings as of the day the decision snapshot is built for (MODEL-551).
+    models = load_models(root, as_of=today)
     if catalogue.as_of > today:
         print(f"error: eligibility report is dated {catalogue.as_of}, which is in the future; "
               "refusing to publish", file=sys.stderr)

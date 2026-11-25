@@ -823,6 +823,7 @@ def test_cli_fallback_writes_only_an_artifact_and_redacts_error_responses(
         price_reread, "Fetcher", lambda **_: ReplayFetcher({PLAN: [None], API: [None]})
     )
     monkeypatch.setattr(firecrawl, "FirecrawlFetcher", lambda **_: paid)
+    monkeypatch.setenv("PRICE_REREAD_FIRECRAWL_OPT_IN", "1")
 
     def forbidden(*_, **__):
         pytest.fail("fallback mode must not construct a browser/store or run verification")
@@ -1160,3 +1161,31 @@ def test_a_fallback_around_a_live_renderer_keeps_the_preparation(tmp_path, retai
                                           AWS_PRICING, ("aws-pricing",))
     assert result.body == b"live"
     assert live.prepared == [price_reread.RENDERED_PREPARATIONS["aws-pricing"]]
+
+
+def test_firecrawl_is_off_unless_opted_in_and_no_client_is_constructed(
+    allowed_estate, tmp_path, monkeypatch
+):
+    """MODEL-481: a run with the opt-in unset never builds the paid client, even with a key."""
+    root, _ = allowed_estate
+    rendered = artifact(tmp_path / "render")
+    ledger = tmp_path / "ledger"
+    ledger.mkdir()
+    monkeypatch.setenv("FIRECRAWL_API_KEY", "present-but-unused")
+    monkeypatch.delenv("PRICE_REREAD_FIRECRAWL_OPT_IN", raising=False)
+    monkeypatch.setattr(price_reread, "ROOT", root)
+    monkeypatch.setattr(
+        price_reread, "Fetcher", lambda **_: ReplayFetcher({PLAN: [None], API: [None]})
+    )
+
+    def forbidden(**_):
+        pytest.fail("the Firecrawl client was constructed with the opt-in unset")
+
+    monkeypatch.setattr(firecrawl, "FirecrawlFetcher", forbidden)
+    out = tmp_path / "out"
+    assert price_reread.main(
+        ["--fallback-from-render", str(rendered), "--fallback-to", str(out),
+         "--fallback-ledger", str(ledger)]) == 0
+    manifest = json.loads((out / "manifest.json").read_text())
+    assert manifest["credits_spent"] == 0 and manifest["pages"] == {}
+    assert "Firecrawl is off" in manifest["stop_reason"]

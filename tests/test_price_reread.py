@@ -591,8 +591,8 @@ def test_a_script_shell_is_fetched_again_before_it_alerts(estate) -> None:
     assert fetcher.fetched.count(PLANS_URL) == 2
 
     report, _ = reread(estate, [page("plans-shell.html")])
-    assert {f.status for f in report.alerts} == {Status.UNREADABLE}
-    assert "characters of text" in report.alerts[0].reason
+    assert {f.status for f in report.alerts} == {Status.SHELL_PAGE}
+    assert report.alerts[0].reason.startswith("shell_page:")
 
 
 def test_an_unreachable_page_alerts_after_one_more_try(estate) -> None:
@@ -1321,7 +1321,8 @@ def test_a_value_the_page_did_not_state_is_reviewed_not_written(estate) -> None:
 
     result = by_id(report)[LARGE_OUTPUT]
     assert result.status is Status.NEEDS_REVIEW
-    assert result.reason.startswith("was not_disclosed; a reader now reads 15:")
+    assert result.reason.startswith("disclosed: page now states a value; was not_disclosed; "
+                                    "a reader now reads 15:")
     assert (root / API_FILE).read_text() == before
 
 
@@ -1344,3 +1345,90 @@ def test_overdue_price_without_filed_claim_alerts(estate):
     report = price_reread.run(root=root, fetcher=fetcher, store=store, today=date(2026, 10, 20))
     assert LARGE_INPUT in {fact.fact_id for fact in report.alerts}
     assert fetcher.fetched == []
+
+
+SHARED_URLS = """\
+- id: example/subscription/pro
+  facts:
+  - id: example/subscription/pro#offering.subscription.price
+    facet: offering.subscription.price
+    value: 20
+    state: known
+    sources:
+    - source_id: example-plans
+      snapshot_ref: sha256:1111111111111111111111111111111111111111111111111111111111111111
+      cited_regions:
+      - page
+      retrieved_at: '2026-11-13T23:41:10.903492+00:00'
+      resolved_urls: &id001
+      - https://example.com/plans.md
+  - id: example/subscription/pro#offering.subscription.coverage_quote
+    facet: offering.subscription.coverage_quote
+    value: Opus
+    state: known
+    sources:
+    - source_id: example-plans
+      snapshot_ref: sha256:1111111111111111111111111111111111111111111111111111111111111111
+      cited_regions:
+      - page
+      retrieved_at: '2026-11-13T23:41:10.903492+00:00'
+      resolved_urls: *id001
+"""
+
+
+@pytest.mark.parametrize("fid", ["example/subscription/pro#offering.subscription.price",
+                                 "example/subscription/pro#offering.subscription.coverage_quote"])
+def test_a_cited_rewrite_keeps_a_list_other_facts_share(fid: str) -> None:
+    """A card dumped by PyYAML anchors one ``resolved_urls`` list and aliases it. Citing
+    either fact must leave the file loadable and every other fact's list as it was."""
+    when = datetime(2026, 11, 17, 7, 45, 29, tzinfo=UTC)
+    old_ref, new_ref = "sha256:" + "1" * 64, "sha256:" + "2" * 64
+    claim = Claim(
+        target=TargetRef(kind="fact", id=fid), subject="example/subscription/pro",
+        names=("Example Pro",), field=fid.split("#")[1], value=20, collector=COLLECTOR,
+        sources=(SourceRef(source_id="example-plans", snapshot_ref=new_ref,
+                           cited_regions=["page"], retrieved_at=when,
+                           resolved_urls=("https://example.com/new.md",)),))
+    change = price_reread.FactResult(
+        fid, fid.split("#")[1], PLAN_FILE, ("example-plans",), Status.CITED, "known", 20,
+        copies={"example-plans": (old_ref, new_ref)}, claim=claim)
+    rewritten = rewrite_fact(SHARED_URLS, change)
+    check_value_only(SHARED_URLS, rewritten, [change])
+    assert "*id001" not in rewritten
+    facts = {f["id"]: f for o in yaml.safe_load(rewritten) for f in o["facts"]}
+    for other, fact in facts.items():
+        urls = [str(u) for u in fact["sources"][0]["resolved_urls"]]
+        assert urls == (["https://example.com/new.md"] if other == fid
+                        else ["https://example.com/plans.md"])
+
+
+def test_a_card_that_will_not_rewrite_alerts_and_the_run_still_reports(estate, monkeypatch) -> None:
+    """MODEL-421: one cited fact whose rewrite cannot be checked is an alert row for that
+    fact; its file stays as it was and the run goes on to write the report."""
+    root, _ = estate
+    new_ref = "sha256:" + "2" * 64
+    original = price_reread.reread_fact
+
+    def cite_one(tracked, claim, *args, **kwargs):
+        result = original(tracked, claim, *args, **kwargs)
+        if result.fact_id != PRO_PRICE:
+            return result
+        cited = replace(claim, sources=(SourceRef(
+            source_id="example-plans", snapshot_ref=new_ref, cited_regions=["page"],
+            retrieved_at=datetime(2026, 10, 6, tzinfo=UTC)),))
+        return replace(result, status=Status.CITED, claim=cited,
+                       copies={"example-plans": ("sha256:" + "1" * 64, new_ref)})
+
+    real_rewrite = price_reread.rewrite_fact
+    monkeypatch.setattr(price_reread, "reread_fact", cite_one)
+    monkeypatch.setattr(price_reread, "rewrite_fact",
+                        lambda text, change: real_rewrite(text, change) + "\nbroken: *undefined\n")
+    before = (root / PLAN_FILE).read_text()
+    report, _ = reread(estate, [page("plans.html")], write=True)
+
+    result = by_id(report)[PRO_PRICE]
+    assert result.status is Status.UNREADABLE
+    assert "rewrite failed" in result.reason
+    assert PRO_PRICE in [f.fact_id for f in report.alerts]
+    assert report.to_dict()["alerts"]
+    assert (root / PLAN_FILE).read_text() == before

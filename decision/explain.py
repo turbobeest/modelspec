@@ -13,6 +13,7 @@ from decision.contract import (
     CITE_ONLY_NOTICE,
     CITE_ONLY_WARNING,
 )
+from decision.credit import credit_text, is_epoch_url
 from decision.refinements import is_refinement_key, split_dimension
 from decision.regions import guarantees_countries, no_guarantee_reason
 from decision.filter import UNVERIFIED_MAY_QUALIFY, governance_unverified_suffix
@@ -863,7 +864,8 @@ def _full(decision, snapshot, ordered, requested, named, *, comparison=False):
                 unit=unit, record_id=fact.record_id,
                 citation=(checked_record(snapshot, fact.record_id).get("citation")
                           if fact.record_id and (comparison or facet in named) else None),
-                source_ids=source_ids(snapshot, [fact.record_id] if fact.record_id else [])))
+                source_ids=source_ids(snapshot, [fact.record_id] if fact.record_id else []),
+                verified_at=verified_at(snapshot, fact.record_id)))
         for facet in COMPUTED_FACETS:
             if facet in HARDWARE_FACETS:
                 continue
@@ -1067,6 +1069,15 @@ def number_origins(decision, snapshot):
             path=path, basis=basis, records=records, source_ids=source_ids(snapshot, records))
 
 
+def verified_at(snapshot, rid):
+    """The day of a record's verification, or None: cited and computed facts carry none."""
+    if not rid:
+        return None
+    record = snapshot.record(rid)
+    day = (record.get("verification") or {}).get("date")
+    return str(day)[:10] if day else None
+
+
 def source_ids(snapshot, records):
     """The registered sources behind checked records, by ID."""
     return sorted({source["source_id"] for rid in records
@@ -1096,7 +1107,10 @@ def cited_sources(decision, snapshot):
             verified.setdefault(sid, None)
             if day and (verified[sid] is None or day > verified[sid]):
                 verified[sid] = day
-    return [CitedSource(id=sid, url=snapshot.source_url(sid), date=verified[sid])
+    # A source whose licence asks for credit carries it in ``title`` (MODEL-508); every
+    # other source keeps a null title, as the snapshot records no titles.
+    return [CitedSource(id=sid, url=snapshot.source_url(sid), date=verified[sid],
+                        title=credit_text() if is_epoch_url(snapshot.source_url(sid)) else None)
             for sid in sorted(verified)]
 
 

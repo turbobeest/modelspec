@@ -45,7 +45,8 @@ from decision.excluded import excluded_sources
 from decision.model import CitedRegion as CitedRegion
 from decision.model import RenderedInteraction, Source, SourceSnapshot
 from decision.retention import (
-    citation_metadata, cite_only_origin_restrictive, cite_only_origin_status,
+    TermsRegisterUnreadable, canonical_host, citation_metadata, classified_hosts,
+    cite_only_origin_restrictive, is_classified, registered_source_hosts, cite_only_origin_status,
     record_origin_status, require_source_url,
 )
 from decision.normalise import (
@@ -210,6 +211,80 @@ class ExcludedSource(ValueError):
     """The requested source or a resolved origin is excluded."""
 
 
+class UnclassifiedRedirectError(ValueError):
+    """A request reached a host with no class in the private terms register, or the register
+    could not be read (MODEL-509)."""
+
+    def __init__(self, host: str, *, unreadable: bool = False) -> None:
+        super().__init__("terms register unreadable" if unreadable
+                         else f"redirect to unclassified host {host}")
+        self.host = host
+        self.unreadable = unreadable
+
+
+REDIRECT_UNCLASSIFIED = "redirect_unclassified"
+TERMS_REGISTER_UNREADABLE = "terms_register_unreadable"
+
+
+def refusal_reason(result: Any) -> str | None:
+    """Why a fetch was refused at the terms register (``redirect_unclassified:<host>`` or
+    ``terms_register_unreadable``), or None when it was not refused for that."""
+    error = (result if isinstance(result, str) else getattr(result, "error", None)) or ""
+    if error == TERMS_REGISTER_UNREADABLE or error.startswith(REDIRECT_UNCLASSIFIED + ":"):
+        return error
+    return None
+
+
+def unclassified_redirect_host(result: Any) -> str | None:
+    """The host a fetch was refused at, or None (also None for an unreadable register)."""
+    error = refusal_reason(result) or ""
+    prefix = REDIRECT_UNCLASSIFIED + ":"
+    return (error[len(prefix):] or None) if error.startswith(prefix) else None
+
+
+def named_refusal(reason: str, source_id: str) -> str:
+    """The reason with the source named: ``redirect_unclassified:<source_id>:<host>``."""
+    if reason == TERMS_REGISTER_UNREADABLE:
+        return reason
+    return f"{REDIRECT_UNCLASSIFIED}:{source_id}:{reason.partition(':')[2]}"
+
+
+def _require_classified_request(start: str | None, url: str, *, first: bool) -> None:
+    """Refuse, before the request, a host the terms register does not class.
+
+    With no data directory nothing is refused. A redirect within the start host
+    passes; every other host needs a class (the host or a parent domain), and so does
+    the first request when its host is the host of a registered source. With an unreadable
+    register (terms or sources) every other host is refused.
+    """
+    try:
+        classes = classified_hosts()
+        unreadable = False
+    except TermsRegisterUnreadable:
+        classes, unreadable = frozenset(), True
+    if classes is None:
+        return
+    try:
+        host = canonical_host(url)
+    except ValueError:
+        host = None
+    if host is not None and not first and host == start:
+        return
+    if first:
+        # Only a host a registered source lives on needs a class at the first request; any
+        # other caller's first fetch (the release-signal feed, a drafter) is checked at its
+        # hops only. The host decides, so a path, query or fragment cannot dodge it.
+        try:
+            registered = registered_source_hosts() or frozenset()
+        except TermsRegisterUnreadable:
+            registered, unreadable = None, True  # cannot tell: fail closed
+        if registered is not None and not is_classified(host, registered):
+            return
+    if not unreadable and is_classified(host, classes):
+        return
+    raise UnclassifiedRedirectError(host or "unparseable", unreadable=unreadable)
+
+
 def require_allowed_source_urls(url: str, resolved_urls: Iterable[str] = ()) -> None:
     rules = excluded_sources()
     if any(rules.url(origin) for origin in (url, *resolved_urls)):
@@ -225,8 +300,13 @@ def get_source_response(
 
     history = []
     request = None
+    try:
+        start = canonical_host(url)
+    except ValueError:
+        start = None
     while True:
         require_allowed_source_urls(url)
+        _require_classified_request(start, url, first=request is None)
         if before_request is not None:
             before_request(url)
         response = (client.get(url, follow_redirects=False, **kwargs) if request is None
@@ -322,6 +402,10 @@ class Fetcher:
                 )
             except ExcludedSource:
                 return FetchResult("unreachable", error="excluded source")
+            except UnclassifiedRedirectError as stop:
+                return FetchResult("unreachable", error=(
+                    TERMS_REGISTER_UNREADABLE if stop.unreadable
+                    else f"{REDIRECT_UNCLASSIFIED}:{stop.host}"))
             except httpx.TooManyRedirects:
                 return FetchResult("unreachable", error="source redirect limit reached")
             except httpx.TimeoutException as exc:
@@ -735,6 +819,57 @@ class RenderedFetcher:
                 page.close()
 
 
+# --- shell pages ---------------------------------------------------------------------------------
+
+SHELL_PAGE = "shell_page"
+#: Fewest characters of normalised text an HTML page must have to be bound (MODEL-519). The
+#: smallest recorded real HTML page has 7,547; a shell is empty or a few words ("Loading",
+#: "Enable JavaScript"), so 40 catches only the empty. The same-bytes rule catches shells that
+#: keep page chrome (the DeepSeek pair has 2,085 characters of text). Text and JSON files can
+#: be short and legitimate, so only an empty body refuses them.
+MIN_PAGE_TEXT_CHARS = 40
+
+
+class ShellPageError(ValueError):
+    """The fetched bytes are a shell, not the page: nothing is cited or verified from them."""
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
+@dataclass(frozen=True)
+class ShellCheck:
+    """How ``CopyStore.put`` and ``record_citation`` check a fetched page (MODEL-519).
+
+    ``normaliser`` names the source's recipe; ``alias_urls`` are the URLs the registry marks
+    as an alias or redirect of this one (they may share its bytes); ``text`` is the
+    already-normalised text, when the caller has it.
+    """
+
+    normaliser: str = "html-default"
+    alias_urls: tuple[str, ...] = ()
+    text: str | None = None
+
+
+def shell_alias_urls(source: Source, sources: Iterable[Source]) -> tuple[str, ...]:
+    """URLs of the sources ``source`` is an alias of, or that are aliases of it."""
+    return tuple(canonical_url(str(other.url)) for other in sources
+                 if other.id != source.id
+                 and (source.alias_of == other.id or other.alias_of == source.id))
+
+
+def shell_refusal(reason: str | None, source_id: str) -> str | None:
+    """The reason with the source named: ``shell_page:<source id>:<detail>``."""
+    if reason is None:
+        return None
+    return f"{SHELL_PAGE}:{source_id}:{reason.partition(':')[2]}"
+
+
+def shell_page_reason(error: str | None) -> str | None:
+    return error if error and error.startswith(SHELL_PAGE + ":") else None
+
+
 # --- retained copies -----------------------------------------------------------------------------
 
 _REF = re.compile(r"^sha256:([0-9a-f]{64})$")
@@ -762,7 +897,7 @@ class CopyStore:
     # trusted only when its bytes still hash to its name (MODEL-235).
 
     def put(self, body: bytes, *, source_url: str, retrieved_at: datetime | None = None,
-            resolved_urls: Iterable[str] = ()) -> str:
+            resolved_urls: Iterable[str] = (), shell_check: ShellCheck | None = None) -> str:
         source_url = require_source_url(source_url)
         resolved_urls = tuple(resolved_urls)
         cite_only = cite_only_origin_status(source_url, resolved_urls)
@@ -770,7 +905,12 @@ class CopyStore:
             # Neither bytes nor a citation record for a malformed origin (MODEL-420).
             raise ValueError("retaining source bytes requires well-formed HTTP URLs")
         ref = fingerprint_bytes(body)
-        if cite_only:
+        if shell_check is not None:
+            # Refuse a shell before anything is kept (MODEL-519).
+            self.check_shell(body, ref, source_url, resolved_urls, shell_check)
+        if cite_only or cite_only_origin_restrictive(source_url, resolved_urls):
+            # Restrictive reading too: a host the private register marks forbids
+            # keeps the citation and hash, never the bytes (MODEL-510).
             self.record_citation(ref, source_url=source_url, retrieved_at=retrieved_at,
                                  resolved_urls=resolved_urls)
             return ref
@@ -785,27 +925,128 @@ class CopyStore:
             os.replace(tmp, target)
         return ref
 
+    def _seen_path(self, ref: str) -> Path:
+        return self.path(ref).with_suffix(".urls.json")
+
+    def _seen(self, ref: str) -> list[dict]:
+        """Every URL this hash was recorded for: the URL list this check keeps, and the
+        per-(hash, URL) citation records (MODEL-513)."""
+        try:
+            data = json.loads(self._seen_path(ref).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            data = []
+        rows = [row for row in data if isinstance(row, dict)] if isinstance(data, list) else []
+        try:
+            records = self.citations(ref)
+        except ValueError:
+            records = []
+        known = {row.get("url") for row in rows}
+        for record in records:
+            if isinstance(record.get("url"), str) and record["url"] not in known:
+                known.add(record["url"])
+                rows.append({"url": canonical_url(record["url"]),
+                             "resolved": [str(u) for u in record.get("resolved_urls", ())]})
+        return rows
+
+    def _flag_path(self, ref: str) -> Path:
+        return self.path(ref).with_suffix(".shell.json")
+
+    def _flagged(self, ref: str) -> dict[str, str]:
+        try:
+            data = json.loads(self._flag_path(ref).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+        return {k: v for k, v in data.items() if isinstance(v, str)} if isinstance(data, dict) else {}
+
+    def _write_json(self, target: Path, value: Any) -> None:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=target.parent, prefix=".tmp-")
+        with os.fdopen(fd, "w", encoding="utf-8") as out:
+            json.dump(value, out, sort_keys=True)
+        os.replace(tmp, target)
+
+    def check_shell(self, body: bytes | None, ref: str, source_url: str,
+                     resolved_urls: Iterable[str], check: ShellCheck) -> None:
+        """Raise ShellPageError when the bytes are empty or thin, or already recorded for a
+        different URL on the same host (HTML pages only; raw text and JSON files can
+        legitimately repeat, as a licence file does). Records the URL on success."""
+        url = canonical_url(source_url)
+        resolved = {canonical_url(str(u)) for u in resolved_urls}
+        rules = NORMALISERS.get(check.normaliser, NORMALISERS["html-default"])
+        if body is not None:
+            if not body.strip():
+                raise ShellPageError(f"{SHELL_PAGE}:empty_body")
+            if rules.content == "html":
+                text = check.text
+                if text is None:
+                    try:
+                        text = normalise_document(body, rules).text
+                    except UnsupportedContentError:
+                        text = None
+                if text is not None and len(text.strip()) < MIN_PAGE_TEXT_CHARS:
+                    raise ShellPageError(
+                        f"{SHELL_PAGE}:text_below_{MIN_PAGE_TEXT_CHARS}_chars")
+        if rules.content == "html":
+            try:
+                host = canonical_host(url)
+            except ValueError:
+                host = None
+            exempt = {canonical_url(u) for u in check.alias_urls} | resolved
+            # A URL already caught in a collision keeps refusing, whichever came first.
+            partner = self._flagged(ref).get(url)
+            if partner is not None and partner not in exempt:
+                raise ShellPageError(f"{SHELL_PAGE}:same_bytes_as:{partner}")
+            for row in self._seen(ref):
+                other = row.get("url")
+                if not isinstance(other, str) or other == url or other in exempt:
+                    continue
+                if url in {canonical_url(str(u)) for u in row.get("resolved", ())}:
+                    continue
+                try:
+                    same_host = canonical_host(other) == host
+                except ValueError:
+                    same_host = False
+                if same_host:
+                    # Neither URL is the page: refuse both, now and on every later read.
+                    flagged = self._flagged(ref)
+                    flagged[url], flagged[other] = other, url
+                    self._write_json(self._flag_path(ref), flagged)
+                    raise ShellPageError(f"{SHELL_PAGE}:same_bytes_as:{other}")
+        rows = [r for r in self._seen(ref)]
+        if not any(r.get("url") == url for r in rows):
+            rows.append({"url": url, "resolved": sorted(resolved)})
+            self._write_json(self._seen_path(ref), rows)
+
+    def _alias_path(self, ref: str, url: str) -> Path:
+        key = hashlib.sha256(url.encode("utf-8")).hexdigest()[:16]
+        base = self.path(ref)
+        return base.with_name(f"{base.name}.citation.{key}.json")
+
     def record_citation(self, ref: str, *, source_url: str,
-                        retrieved_at: datetime | None = None, resolved_urls=()) -> None:
-        target = self.path(ref).with_suffix(".citation.json")
+                        retrieved_at: datetime | None = None, resolved_urls=(),
+                        shell_check: ShellCheck | None = None) -> None:
+        """Record that ``ref`` was fetched from ``source_url`` (MODEL-513).
+
+        One record per (hash, URL): the same bytes served under two registered
+        URLs keep both. ``<digest>.citation.json`` still holds the latest write,
+        so a reader that asks only by hash sees what it always saw.
+        """
+        if shell_check is not None:
+            # No bytes here: only the same-bytes rule can apply (MODEL-519).
+            self.check_shell(None, ref, require_source_url(source_url), resolved_urls,
+                             shell_check)
         metadata = citation_metadata(source_url, ref, retrieved_at=retrieved_at or datetime.now(UTC),
                                      resolved_urls=resolved_urls)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        fd, temporary = tempfile.mkstemp(dir=target.parent, prefix=".tmp-")
-        with os.fdopen(fd, "w", encoding="utf-8") as output:
-            json.dump(metadata, output, sort_keys=True)
-        os.replace(temporary, target)
+        for target in (self._alias_path(ref, metadata["url"]),
+                       self.path(ref).with_suffix(".citation.json")):
+            target.parent.mkdir(parents=True, exist_ok=True)
+            fd, temporary = tempfile.mkstemp(dir=target.parent, prefix=".tmp-")
+            with os.fdopen(fd, "w", encoding="utf-8") as output:
+                json.dump(metadata, output, sort_keys=True)
+            os.replace(temporary, target)
 
-    def citation(self, ref: str) -> dict | None:
-        """The citation record for ``ref``, or None when no entry exists at its path.
-
-        An entry that exists but is not a readable regular file holding a JSON
-        object (a directory, a dangling symlink, bad JSON) raises ValueError:
-        an unreadable record is never read as "no citation" (MODEL-420).
-        """
-        target = self.path(ref).with_suffix(".citation.json")
-        if not os.path.lexists(target):
-            return None
+    @staticmethod
+    def _read_record(target: Path, ref: str) -> dict:
         if not target.is_file():
             raise ValueError("citation record is not a readable file")
         try:
@@ -817,6 +1058,33 @@ class CopyStore:
         if metadata.get("snapshot_ref") != ref:
             raise ValueError("citation metadata does not match its hash")
         return metadata
+
+    def citation(self, ref: str, *, url: str | None = None) -> dict | None:
+        """The citation record for ``ref``, or None when no entry exists at its path.
+
+        An entry that exists but is not a readable regular file holding a JSON
+        object (a directory, a dangling symlink, bad JSON) raises ValueError:
+        an unreadable record is never read as "no citation" (MODEL-420).
+        With ``url``, only the record for that (hash, URL) pair.
+        """
+        if url is not None:
+            return next((r for r in self.citations(ref) if r.get("url") == url), None)
+        target = self.path(ref).with_suffix(".citation.json")
+        if not os.path.lexists(target):
+            return None
+        return self._read_record(target, ref)
+
+    def citations(self, ref: str) -> list[dict]:
+        """Every citation record for ``ref``: one per URL, the latest write first."""
+        latest = self.citation(ref)
+        records = [] if latest is None else [latest]
+        base = self.path(ref)
+        if base.parent.is_dir():
+            for target in sorted(base.parent.glob(f"{base.name}.citation.*.json")):
+                record = self._read_record(target, ref)
+                if all(record.get("url") != seen.get("url") for seen in records):
+                    records.append(record)
+        return records
 
     def get(self, ref: str, *, source_url: str | None = None) -> bytes:
         if self.citation(ref) is not None or source_url is not None and cite_only_origin_restrictive(source_url):
@@ -898,6 +1166,36 @@ class Skipped:
     reason: str
 
 
+@dataclass(frozen=True)
+class RedirectRefused:
+    """An alert event: a fetch was refused at the terms register (MODEL-509)."""
+
+    source_id: str
+    reason: str
+    url: str
+    detected_at: datetime
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"event": "redirect_unclassified", "source_id": self.source_id,
+                "reason": self.reason, "url": self.url,
+                "detected_at": self.detected_at.isoformat()}
+
+
+@dataclass(frozen=True)
+class ShellPageRefused:
+    """An alert event: fetched bytes were a shell page and were not cited (MODEL-519)."""
+
+    source_id: str
+    reason: str
+    url: str
+    detected_at: datetime
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"event": SHELL_PAGE, "source_id": self.source_id,
+                "reason": self.reason, "url": self.url,
+                "detected_at": self.detected_at.isoformat()}
+
+
 @dataclass
 class RecheckReport:
     regions: list[RegionResult] = field(default_factory=list)
@@ -907,12 +1205,23 @@ class RecheckReport:
     reconfirmed: list[str] = field(default_factory=list)
     #: Facts and evidence on a source past its unreachable grace period.
     quarantine: list[str] = field(default_factory=list)
-    alerts: list[GovernanceChange] = field(default_factory=list)
+    alerts: list[GovernanceChange | RedirectRefused | ShellPageRefused] = field(
+        default_factory=list)
     skipped: list[Skipped] = field(default_factory=list)
     #: Every source's state after this run; persist these for the next one.
     states: dict[str, SourceState] = field(default_factory=dict)
     #: The final fetch attempt for each source, including HTTP status and errors.
     fetches: dict[str, FetchResult] = field(default_factory=dict)
+
+    @property
+    def redirect_unclassified(self) -> int:
+        """Sources refused at the terms register this run; above 0 the job ends red."""
+        return sum(isinstance(alert, RedirectRefused) for alert in self.alerts)
+
+    @property
+    def shell_page(self) -> int:
+        """Sources whose bytes were a shell this run (MODEL-519); above 0 the job ends red."""
+        return sum(isinstance(alert, ShellPageRefused) for alert in self.alerts)
 
 
 def recheck(
@@ -936,7 +1245,8 @@ def recheck(
     report = RecheckReport(states=dict(states))
     for source in sources:
         state = states.get(source.id) or SourceState(source.id)
-        report.states[source.id] = _check_one(source, state, fetcher, store, now, grace, report)
+        report.states[source.id] = _check_one(source, state, fetcher, store, now, grace, report,
+                                              shell_alias_urls(source, sources))
 
     by_region: dict[tuple[str, str], list[Citation]] = {}
     for c in citations:
@@ -989,6 +1299,7 @@ def _check_one(
     now: datetime,
     grace: int,
     report: RecheckReport,
+    alias_urls: tuple[str, ...] = (),
 ) -> SourceState:
     if source.fetch == FetchMode.RENDERED.value:
         report.skipped.append(Skipped(source.id, "rendered_fetch_required"))
@@ -1002,10 +1313,29 @@ def _check_one(
         last_modified=previous.last_modified if conditional and previous else None,
     )
     report.fetches[source.id] = result
+    if (refused := refusal_reason(result)) is not None:
+        # Refused before the request (MODEL-509): no bytes, no failure counted. The
+        # refusal is its own alert, not a quiet skip.
+        named = named_refusal(refused, source.id)
+        report.skipped.append(Skipped(source.id, named))
+        report.alerts.append(RedirectRefused(source.id, named, str(source.url), now))
+        return replace(state, last_attempt_at=now)
     old = previous.region_fingerprints if previous else {}
+    shell = ShellCheck(source.normaliser, alias_urls)
+
+    def refuse_shell(stop: ShellPageError) -> SourceState:
+        # Nothing is bound to a shell (MODEL-519): no bytes, no region result, no failure
+        # counted; its own alert.
+        named = shell_refusal(stop.reason, source.id)
+        report.skipped.append(Skipped(source.id, named))
+        report.alerts.append(ShellPageRefused(source.id, named, str(source.url), now))
+        return replace(state, last_attempt_at=now)
 
     try:
-        previous_citation = store.citation(previous.copy_ref) if previous else None
+        previous_citation = None
+        if previous:
+            previous_citation = (store.citation(previous.copy_ref, url=str(source.url))
+                                 or store.citation(previous.copy_ref))
         # Every origin of the previous record is validated before its presence
         # grants the cite-only path (MODEL-420).
         if previous_citation is not None and record_origin_status(previous_citation) is None:
@@ -1024,11 +1354,14 @@ def _check_one(
             and result.outcome in {"ok", "not_modified"}:
         if result.outcome == "not_modified" and previous is None:
             return replace(state, last_attempt_at=now)
-        ref = (previous.copy_ref if result.outcome == "not_modified" else
-               store.put(result.body, source_url=str(source.url), retrieved_at=now,
-                         resolved_urls=resolved_urls))
-        store.record_citation(ref, source_url=str(source.url), retrieved_at=now,
-                              resolved_urls=resolved_urls)
+        try:
+            ref = (previous.copy_ref if result.outcome == "not_modified" else
+                   store.put(result.body, source_url=str(source.url), retrieved_at=now,
+                             resolved_urls=resolved_urls, shell_check=shell))
+            store.record_citation(ref, source_url=str(source.url), retrieved_at=now,
+                                  resolved_urls=resolved_urls, shell_check=shell)
+        except ShellPageError as stop:
+            return refuse_shell(stop)
         for region in source.cited_regions:
             before = previous.copy_ref if previous else None
             status = RegionStatus.UNCHANGED if before == ref else RegionStatus.CHANGED
@@ -1040,6 +1373,11 @@ def _check_one(
         return SourceState(source.id, snapshot, 0, False, now)
 
     if result.outcome == "not_modified" and previous is not None:
+        try:
+            # A 304 has no bytes, but a URL flagged as a shell stays flagged (MODEL-519).
+            store.check_shell(None, previous.copy_ref, str(source.url), result.resolved_urls, shell)
+        except ShellPageError as stop:
+            return refuse_shell(stop)
         snapshot = previous.model_copy(update={
             "retrieved_at": now,
             "etag": result.etag or previous.etag,
@@ -1082,6 +1420,12 @@ def _check_one(
         report.skipped.append(Skipped(source.id, f"unsupported_content:{exc.kind}"))
         return replace(state, last_attempt_at=now)
 
+    try:
+        copy_ref = store.put(result.body, source_url=str(source.url), retrieved_at=now,
+                             resolved_urls=result.resolved_urls,
+                             shell_check=replace(shell, text=doc.text))
+    except ShellPageError as stop:
+        return refuse_shell(stop)
     current: dict[str, str | None] = {}
     for region in source.cited_regions:
         kind = "heading" if region.locator.kind == "heading_anchor" else region.locator.kind
@@ -1099,9 +1443,15 @@ def _check_one(
         retrieved_at=now,
         page_fingerprint=fingerprint(doc.text),
         region_fingerprints=current,
-        copy_ref=store.put(result.body, source_url=str(source.url), retrieved_at=now,
-                           resolved_urls=result.resolved_urls),
+        copy_ref=copy_ref,
         etag=result.etag,
         last_modified=result.last_modified,
     )
     return SourceState(source.id, snapshot, 0, False, now)
+
+
+def configured_copy_store() -> CopyStore | None:
+    """The fetcher's copy store when ``MODELSPEC_SOURCE_CACHE`` names it, else ``None``: the
+    one configuration the snapshot build and the site loader share, so a build never depends
+    on an unconfigured home-directory cache and both read citation records alike."""
+    return CopyStore() if os.environ.get("MODELSPEC_SOURCE_CACHE") else None

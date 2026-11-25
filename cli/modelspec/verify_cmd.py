@@ -49,6 +49,11 @@ def verify(
         None, "--llm-reader", help="Independent prose reader: claude or mistral."
     ),
     as_json: bool = typer.Option(False, "--json", help="Machine-readable output."),
+    skip_absent_copies: bool = typer.Option(
+        False, "--skip-absent-copies",
+        help="For a job that verifies the whole queue against a cache that holds "
+             "only the copies it fetched itself.",
+    ),
     only: str | None = typer.Option(
         None, "--only",
         help="Only claims whose target id starts with this prefix. Other pending claims stay pending.",
@@ -72,7 +77,10 @@ def verify(
     report = v.run(
         v.Queue(directory),
         v.VerificationLog(directory),
-        v.StoredRegions(CopyStore(), v.load_sources(root / "registry" / "sources.yaml")),
+        v.StoredRegions(
+            CopyStore(), v.load_sources(root / "registry" / "sources.yaml"),
+            skip_absent_copies=skip_absent_copies,
+        ),
         extractors,
         today=date.today(),
         changed_only=changed_only,
@@ -84,7 +92,11 @@ def verify(
     scope = "re-queued by change detection" if changed_only else "queued"
     typer.echo(f"Checked what was {scope}: {len(report.results)} value(s).")
     for outcome, n in report.counts.items():
+        if outcome == "skipped_no_copy":
+            continue
         typer.echo(f"  {outcome}: {n}")
+        if outcome == "skipped":
+            typer.echo(f"    no copy: {report.counts['skipped_no_copy']}")
     for r in report.results:
         if r.outcome == "verified":
             continue
@@ -99,7 +111,7 @@ def verify(
 
 
 def accuracy(
-    profile: str = typer.Option("pr", "--profile", help="pr or nightly."),
+    profile: str = typer.Option("pr", "--profile", help="pr, data-pr, or nightly."),
     output_dir: Path = typer.Option(Path("accuracy-report"), "--output-dir"),
     root: Path = typer.Option(v.REPO_ROOT, "--root", help="Repository root."),
     config: Path | None = typer.Option(None, "--config", help="Accuracy config YAML."),
@@ -113,7 +125,10 @@ def accuracy(
     from scripts import accuracy as harness
 
     if profile not in harness.PROFILES:
-        raise typer.BadParameter("supported profiles: pr, nightly", param_hint="--profile")
+        raise typer.BadParameter(
+            "supported profiles: " + ", ".join(harness.PROFILES),
+            param_hint="--profile",
+        )
     try:
         day = date.fromisoformat(report_date) if report_date else date.today()
     except ValueError as exc:

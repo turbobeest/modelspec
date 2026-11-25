@@ -734,6 +734,101 @@ def test_the_gate_fails_on_one_missing_guaranteed_fact():
     assert "no source" in message
 
 
+def test_an_absent_copy_quarantines_unless_skipping_is_asked(tmp_path):
+    """An empty cache records unreachable, and the newer row closes the gate.
+
+    Asking ``StoredRegions`` to skip an absent copy leaves the older verified
+    row in place, so the same build still admits the fact.
+    """
+    from datetime import UTC, datetime
+
+    from decision import verify
+    from decision.model import (
+        CitedRegion, Source, SourceRef, TargetRef, Verification, VerificationActor,
+    )
+    from decision.sources import CopyStore
+
+    today = date(2026, 9, 25)
+    filed_at = datetime(2026, 9, 25, 12, tzinfo=UTC)
+    source = Source(
+        id="src-lab-docs",
+        url="https://lab.example.com/docs/models",
+        normaliser="html-default",
+        cited_regions=[CitedRegion(id="r1", locator={"kind": "page", "value": ""})],
+    )
+
+    def run(root, *, skip_absent_copies: bool):
+        claim = verify.Claim(
+            target=TargetRef(kind="fact", id="lab/alpha#model.context_window"),
+            subject="lab/alpha",
+            names=("Alpha",),
+            field="model.context_window",
+            value=128000,
+            unit="tokens",
+            collector=VerificationActor(
+                agent="collector-a", model_family="family-a", method="read"),
+            sources=(SourceRef(
+                source_id="src-lab-docs",
+                snapshot_ref="sha256:" + "0" * 64,
+                cited_regions=["r1"],
+            ),),
+        )
+        log = verify.VerificationLog(root / "verification")
+        log.append(Verification.model_validate(verification(
+            "fact", "lab/alpha#model.context_window", "verified", "2026-09-20", value=128000,
+        )))
+        queue = verify.Queue(log.directory)
+        queue.file(claim, at=filed_at)
+        regions = verify.StoredRegions(
+            CopyStore(root / "copies"), {source.id: source},
+            skip_absent_copies=skip_absent_copies,
+        )
+        report = verify.run(
+            queue, log, regions, verify.deterministic_extractors(), today=today, at=filed_at,
+        )
+        return log, report
+
+    log, report = run(tmp_path / "closed", skip_absent_copies=False)
+    assert [(row.target.id, row.outcome) for row in report.results] == [
+        ("lab/alpha#model.context_window", "unreachable"),
+    ]
+    assert [row.outcome for row in log.records()] == ["verified", "unreachable"]
+    with pytest.raises(CompletenessError) as exc:
+        build_snapshot(
+            inputs(
+                models=[model("lab/alpha")],
+                offerings=[],
+                evidence=[],
+                verifications=log.records(),
+            ),
+            registry=COMPLETENESS_REGISTRY,
+            premier=["lab/alpha"],
+            as_of=today,
+        )
+    assert [(gap.subject, gap.facet, gap.reason) for gap in exc.value.gaps] == [
+        ("lab/alpha", "model.context_window", "quarantined (unreachable)"),
+    ]
+
+    log, report = run(tmp_path / "open", skip_absent_copies=True)
+    assert [(row.target.id, row.outcome, row.verification) for row in report.results] == [
+        ("lab/alpha#model.context_window", "skipped", None),
+    ]
+    assert report.results[0].reason == "no retained copy in this cache: src-lab-docs#r1"
+    assert [row.outcome for row in log.records()] == ["verified"]
+    built = build_snapshot(
+        inputs(
+            models=[model("lab/alpha")],
+            offerings=[],
+            evidence=[],
+            verifications=log.records(),
+        ),
+        registry=COMPLETENESS_REGISTRY,
+        premier=["lab/alpha"],
+        as_of=today,
+    )
+    assert built.snapshot_id
+
+
 def test_the_gate_names_the_source_of_an_unverified_fact():
     facts = model("lab/alpha")["facts"]
     facts[0] = fact("model", "lab/alpha", "model.context_window", 128000, outcome="mismatch")
@@ -1395,3 +1490,11 @@ def test_verified_benchmark_with_invalid_board_scale_is_not_admitted(score, unit
     }), registry=REGISTRY)
     assert built.content['lineup']['evidence'] == {}
     assert built.content['excluded']['invalid_benchmark_value'] == 1
+
+
+def test_a_reading_derivation_never_enters_a_snapshot_or_its_record_table(tmp_path):
+    row = evidence("lab/alpha", "swe_bench_pro", 55.0)
+    row["derivation"] = {"cited_change": {"rule": "x", "readers": [{"reader_id": "SECRET-READER"}]}}
+    path = build(tmp_path, evidence=[row])
+    assert "SECRET-READER" not in gzip.decompress(path.read_bytes()).decode()
+    assert "derivation" not in load(path).record(row["id"])

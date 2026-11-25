@@ -907,3 +907,305 @@ def test_a_leading_data_cell_button_without_a_price_is_still_dropped(label: byte
     assert normalise_document(page, NORMALISERS["html-header-buttons"]).text == (
         "Name | Price\nClaude Sonnet 5.5 |\nClaude Opus 5.5 | $0.20 / MTok"
     )
+
+
+# --- MODEL-509: every fetch path checks hops against the private terms register ---------------
+
+M509_START = "https://lab.example/page"
+M509_TERMS = {"lab.example": "permits", "www.lab.example": "permits", "mirror.example": "unclear"}
+M509_NOW = datetime(2026, 11, 19, 6, tzinfo=UTC)
+
+
+@pytest.fixture
+def m509_terms(tmp_path):
+    import json
+
+    from decision.retention import using_data_dir
+
+    (tmp_path / "data" / "registry").mkdir(parents=True)
+    (tmp_path / "data" / "registry" / "source-terms.json").write_text(json.dumps(M509_TERMS))
+    (tmp_path / "data" / "registry" / "sources.yaml").write_text(
+        "schema_version: 1\nsources:\n- id: registered\n  url: https://registered.example/page\n")
+    with using_data_dir(tmp_path / "data"):
+        yield tmp_path / "data"
+
+
+def _m509_fetcher(routes, sent):
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        sent.append(url)
+        if url in routes:
+            return httpx.Response(302, headers={"location": routes[url]})
+        return httpx.Response(200, text="<html><body><p>hello</p></body></html>",
+                              headers={"content-type": "text/html"})
+
+    return Fetcher(httpx.Client(transport=httpx.MockTransport(handler)), retries=0,
+                   min_host_interval=0, sleep=lambda _s: None)
+
+
+def test_m509_hop_to_an_unclassified_host_is_refused_before_the_request(m509_terms) -> None:
+    sent: list[str] = []
+    result = _m509_fetcher({M509_START: "https://unknown.example/x"}, sent).fetch(M509_START)
+    assert (result.outcome, result.error, result.body) == (
+        "unreachable", "redirect_unclassified:unknown.example", b"")
+    assert sent == [M509_START]
+
+
+def test_m509_classed_hosts_subdomains_and_the_same_host_pass(m509_terms) -> None:
+    sent: list[str] = []
+    routes = {M509_START: "https://www.lab.example/page",
+              "https://www.lab.example/page": "https://deep.mirror.example/z"}
+    assert _m509_fetcher(routes, sent).fetch(M509_START).outcome == "ok"
+    assert sent[-1] == "https://deep.mirror.example/z"
+
+
+def test_m509_a_registered_source_on_an_unclassed_host_is_refused_at_the_first_request(
+        m509_terms) -> None:
+    sent: list[str] = []
+    result = _m509_fetcher({}, sent).fetch("https://registered.example/page")
+    assert result.error == "redirect_unclassified:registered.example" and sent == []
+
+
+@pytest.mark.parametrize("url", [
+    "https://registered.example/page/", "https://registered.example/page?x=1",
+    "https://registered.example/page#frag", "https://REGISTERED.Example/PAGE",
+    "https://registered.example/elsewhere", "https://www.registered.example/page",
+], ids=["slash", "query", "fragment", "case", "path", "subdomain"])
+def test_m509_the_first_request_is_decided_by_host_not_by_url(m509_terms, url) -> None:
+    sent: list[str] = []
+    result = _m509_fetcher({}, sent).fetch(url)
+    assert result.error == "redirect_unclassified:" + (
+        "www.registered.example" if "www." in url else "registered.example")
+    assert sent == []
+
+
+@pytest.mark.parametrize("content", [None, "{", "[]", "sources: 3"],
+                         ids=["missing", "invalid", "not-object", "not-list"])
+def test_m509_an_unreadable_source_registry_refuses_the_first_request(tmp_path, content) -> None:
+    import json
+
+    from decision.retention import using_data_dir
+
+    (tmp_path / "registry").mkdir()
+    (tmp_path / "registry" / "source-terms.json").write_text(json.dumps(M509_TERMS))
+    if content is not None:
+        (tmp_path / "registry" / "sources.yaml").write_text(content)
+    sent: list[str] = []
+    with using_data_dir(tmp_path):
+        result = _m509_fetcher({}, sent).fetch("https://feed.example/api.json")
+    assert result.error == "terms_register_unreadable" and sent == []
+
+
+def test_m509_an_unregistered_first_fetch_passes_but_its_hops_are_checked(m509_terms) -> None:
+    feed = "https://feed.example/api.json"  # the release-signal feed shape: no class, unregistered
+    sent: list[str] = []
+    assert _m509_fetcher({}, sent).fetch(feed).outcome == "ok" and sent == [feed]
+    same = _m509_fetcher({feed: "https://feed.example/v2"}, []).fetch(feed)
+    assert same.outcome == "ok"
+    hop = _m509_fetcher({feed: "https://other.example/api.json"}, sent).fetch(feed)
+    assert hop.error == "redirect_unclassified:other.example"
+    assert "https://other.example/api.json" not in sent
+
+
+def test_m509_get_source_response_serves_the_unregistered_feed(m509_terms) -> None:
+    from decision.sources import get_source_response
+
+    client = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(200, text="{}")))
+    assert get_source_response(client, "https://feed.example/api.json").status_code == 200
+
+
+def test_m509_without_a_data_dir_nothing_is_refused(monkeypatch) -> None:
+    monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)
+    sent: list[str] = []
+    result = _m509_fetcher({M509_START: "https://unknown.example/x"}, sent).fetch(M509_START)
+    assert result.outcome == "ok" and sent[-1] == "https://unknown.example/x"
+
+
+@pytest.mark.parametrize("content", [None, "{", "[]"], ids=["missing", "invalid", "not-object"])
+def test_m509_an_unreadable_register_refuses_every_cross_host_hop(tmp_path, content) -> None:
+    from decision.retention import using_data_dir
+
+    (tmp_path / "registry").mkdir()
+    (tmp_path / "registry" / "sources.yaml").write_text(
+        "schema_version: 1\nsources:\n- id: s\n  url: https://registered.example/page\n")
+    if content is not None:
+        (tmp_path / "registry" / "source-terms.json").write_text(content)
+    sent: list[str] = []
+    with using_data_dir(tmp_path):
+        crossing = _m509_fetcher({M509_START: "https://mirror.example/x"}, sent).fetch(M509_START)
+        within = _m509_fetcher({M509_START: "https://lab.example/other"}, []).fetch(M509_START)
+    assert crossing.error == "terms_register_unreadable"
+    assert within.outcome == "ok"  # a hop within the first request's host passes
+
+
+def test_m509_recheck_makes_a_refusal_its_own_alert_and_keeps_nothing(m509_terms, tmp_path) -> None:
+    source = Source(id="lab-page", url=M509_START, kind="official_registry",
+                    normaliser="html-default", fetch="http",
+                    cited_regions=[{"id": "page", "locator": {"kind": "page"}}])
+    store = CopyStore(tmp_path / "copies")
+    report = recheck([source], {}, [], store=store, now=M509_NOW,
+                     fetcher=_m509_fetcher({M509_START: "https://unknown.example/x"}, []))
+    assert [(s.source_id, s.reason) for s in report.skipped] == [
+        ("lab-page", "redirect_unclassified:lab-page:unknown.example")]
+    assert report.redirect_unclassified == 1
+    assert report.alerts[0].to_dict()["event"] == "redirect_unclassified"
+    assert report.states["lab-page"].consecutive_failures == 0
+    assert report.states["lab-page"].snapshot is None
+    assert not (tmp_path / "copies").exists() or not list((tmp_path / "copies").rglob("*"))
+
+
+# --- MODEL-519: a shell page is never cited ------------------------------------------------------
+
+_M519_PAGE = ("<html><body><h1>Guide</h1><p>" + "A real documentation page with prose. " * 8
+              + "</p></body></html>")
+_M519_SHELL = "<html><head><script src=app.js></script></head><body><div id=root></div></body></html>"
+
+
+def _m519_fetcher(pages: dict[str, str]):
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text=pages[str(request.url)],
+                              headers={"content-type": "text/html"})
+
+    return Fetcher(httpx.Client(transport=httpx.MockTransport(handler)), retries=0,
+                   min_host_interval=0, sleep=lambda _s: None)
+
+
+def _m519_source(sid: str, url: str, **extra) -> Source:
+    return Source(id=sid, url=url, fetch="http", normaliser="html-default",
+                  cited_regions=[{"id": "page", "locator": {"kind": "page"}}], **extra)
+
+
+@pytest.mark.parametrize("body", [b"", b"  \n", _M519_SHELL.encode()], ids=["empty", "blank", "shell"])
+def test_m519_empty_or_thin_text_is_refused_and_keeps_nothing(tmp_path, body) -> None:
+    from decision.sources import ShellCheck, ShellPageError
+
+    store = CopyStore(tmp_path)
+    with pytest.raises(ShellPageError) as found:
+        store.put(body, source_url="https://docs.example/a", shell_check=ShellCheck())
+    assert found.value.reason.startswith("shell_page:")
+    assert not list(tmp_path.rglob("*"))
+
+
+def test_m519_a_real_page_is_kept_and_the_check_is_opt_in(tmp_path) -> None:
+    from decision.sources import ShellCheck
+
+    store = CopyStore(tmp_path)
+    ref = store.put(_M519_PAGE.encode(), source_url="https://docs.example/a", shell_check=ShellCheck())
+    assert store.has(ref)
+    tiny = store.put(b"<p>hi</p>", source_url="https://docs.example/b")  # no check: unchanged
+    assert store.has(tiny)
+
+
+def test_m519_same_bytes_for_a_different_url_on_one_host_is_refused(tmp_path) -> None:
+    from decision.sources import ShellCheck, ShellPageError
+
+    store = CopyStore(tmp_path)
+    body = _M519_PAGE.encode()
+    store.put(body, source_url="https://docs.example/a", shell_check=ShellCheck())
+    store.put(body, source_url="https://docs.example/a", shell_check=ShellCheck())  # same URL again
+    store.put(body, source_url="https://other.example/a", shell_check=ShellCheck())  # other host
+    with pytest.raises(ShellPageError, match="same_bytes_as:https://docs.example/a"):
+        store.put(body, source_url="https://docs.example/b", shell_check=ShellCheck())
+    # A registered alias, or a redirect between the two URLs, may share bytes.
+    store.put(body, source_url="https://docs.example/b",
+              shell_check=ShellCheck(alias_urls=("https://docs.example/a",)))
+    store.put(body, source_url="https://docs.example/c", resolved_urls=("https://docs.example/a", "https://docs.example/b"),
+              shell_check=ShellCheck())
+    # Raw text files may repeat (a licence file); only HTML pages are held to the rule.
+    store.put(b"MIT License " * 20, source_url="https://docs.example/x/LICENSE",
+              shell_check=ShellCheck("text-default"))
+    store.put(b"MIT License " * 20, source_url="https://docs.example/y/LICENSE",
+              shell_check=ShellCheck("text-default"))
+
+
+def test_m519_a_citation_with_a_hash_seen_on_another_url_is_refused(tmp_path) -> None:
+    from decision.sources import ShellCheck, ShellPageError
+
+    store = CopyStore(tmp_path)
+    ref = store.put(_M519_PAGE.encode(), source_url="https://docs.example/a", shell_check=ShellCheck())
+    with pytest.raises(ShellPageError):
+        store.record_citation(ref, source_url="https://docs.example/b", shell_check=ShellCheck())
+    assert store.citation(ref) is None
+
+
+def test_m519_alias_of_names_the_other_source() -> None:
+    from decision.sources import shell_alias_urls
+
+    a = _m519_source("a", "https://docs.example/a")
+    b = _m519_source("b", "https://docs.example/b", alias_of="a")
+    c = _m519_source("c", "https://docs.example/c")
+    assert shell_alias_urls(a, [a, b, c]) == ("https://docs.example/b",)
+    assert shell_alias_urls(b, [a, b, c]) == ("https://docs.example/a",)
+    assert shell_alias_urls(c, [a, b, c]) == ()
+    assert "alias_of" not in c.model_dump(mode="json")
+
+
+def test_m519_recheck_makes_a_shell_its_own_alert_and_binds_nothing(tmp_path) -> None:
+    urls = {"empty": "https://docs.example/empty", "one": "https://docs.example/one",
+            "two": "https://docs.example/two", "alias": "https://docs.example/alias"}
+    pages = {urls["empty"]: _M519_SHELL, urls["one"]: _M519_PAGE, urls["two"]: _M519_PAGE,
+             urls["alias"]: _M519_PAGE}
+    sources = [_m519_source("empty", urls["empty"]), _m519_source("one", urls["one"]),
+               _m519_source("two", urls["two"]), _m519_source("alias", urls["alias"], alias_of="one")]
+    report = recheck(sources, {}, [], store=CopyStore(tmp_path), now=T0,
+                     fetcher=_m519_fetcher(pages))
+    refused = {s.source_id: s.reason for s in report.skipped}
+    assert refused["empty"].startswith("shell_page:empty:")
+    assert refused["two"] == "shell_page:two:same_bytes_as:https://docs.example/one"
+    assert "one" not in refused and "alias" not in refused
+    assert report.shell_page == 2 and report.redirect_unclassified == 0
+    assert {a.to_dict()["event"] for a in report.alerts} == {"shell_page"}
+    for sid in ("empty", "two"):
+        assert report.states[sid].snapshot is None and report.states[sid].consecutive_failures == 0
+        assert not [r for r in report.regions if r.source_id == sid]
+
+
+@pytest.mark.parametrize("first", ["a", "b"])
+def test_m519_a_collision_refuses_both_urls_whichever_came_first(tmp_path, first) -> None:
+    from decision.sources import ShellCheck, ShellPageError
+
+    store = CopyStore(tmp_path)
+    body = _M519_PAGE.encode()
+    urls = {"a": "https://docs.example/a", "b": "https://docs.example/b"}
+    second = "b" if first == "a" else "a"
+    store.put(body, source_url=urls[first], shell_check=ShellCheck())  # admitted, for now
+    with pytest.raises(ShellPageError):
+        store.put(body, source_url=urls[second], shell_check=ShellCheck())
+    with pytest.raises(ShellPageError, match="same_bytes_as"):  # the earlier one, read again
+        store.put(body, source_url=urls[first], shell_check=ShellCheck())
+    with pytest.raises(ShellPageError):
+        store.put(body, source_url=urls[second], shell_check=ShellCheck())
+    # A registered alias clears it.
+    store.put(body, source_url=urls[first],
+              shell_check=ShellCheck(alias_urls=(urls[second],)))
+
+
+def test_m519_a_collision_sees_the_per_url_citation_records(tmp_path) -> None:
+    from decision.sources import ShellCheck, ShellPageError
+
+    store = CopyStore(tmp_path)
+    body = _M519_PAGE.encode()
+    ref = store.put(body, source_url="https://www.anthropic.com/a")  # cite-only: no check
+    store.record_citation(ref, source_url="https://www.anthropic.com/a")
+    with pytest.raises(ShellPageError, match="same_bytes_as:https://www.anthropic.com/a"):
+        store.put(body, source_url="https://www.anthropic.com/b", shell_check=ShellCheck())
+
+
+def test_m519_a_304_on_a_flagged_source_reports_shell_page(tmp_path) -> None:
+    pages = {"https://docs.example/a": _M519_PAGE, "https://docs.example/b": _M519_PAGE}
+    sources = [_m519_source(sid, f"https://docs.example/{sid}").model_copy(
+        update={"fetch": "conditional_http"}) for sid in ("a", "b")]
+    store = CopyStore(tmp_path)
+    first = recheck(sources, {}, [], store=store, now=T0, fetcher=_m519_fetcher(pages))
+    assert first.shell_page == 1 and first.states["a"].snapshot is not None  # a admitted, b refused
+
+    def not_modified(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(304)
+
+    client = Fetcher(httpx.Client(transport=httpx.MockTransport(not_modified)), retries=0,
+                     min_host_interval=0, sleep=lambda _s: None)
+    second = recheck(sources[:1], first.states, [], store=store, now=T0 + timedelta(days=1),
+                     fetcher=client)
+    assert second.shell_page == 1 and second.skipped[0].reason.startswith("shell_page:a:")
+    assert not [r for r in second.regions if r.source_id == "a"]
+    assert second.states["a"].snapshot == first.states["a"].snapshot  # nothing reconfirmed

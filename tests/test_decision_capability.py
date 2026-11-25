@@ -1197,3 +1197,53 @@ def test_estimate_probabilities_stay_in_the_contract_range(field: str) -> None:
     )
     decision = decide(spec, index, facets=default_registry().facet)
     assert all(0 <= getattr(result, field) <= 1 for result in decision.results)
+
+
+def test_not_published_since_does_not_change_the_capability_observation() -> None:
+    def loaded(marked: bool):
+        rows = []
+        for mid, score in (("lab/alpha", 61.5), ("lab/beta", 48.0)):
+            row = evidence(
+                mid,
+                "novel_repo_work",
+                score,
+                quality_flags=["contamination_warning"],
+                day="2026-08-01",
+            )
+            if marked and mid == "lab/alpha":
+                row = {**row, "not_published_since": "2026-10-12"}
+            rows.append(row)
+        built = build_snapshot(
+            SnapshotInputs(
+                models=[model("lab/alpha"), model("lab/beta")],
+                evidence=rows,
+                sources=SOURCES,
+                benchmark_domains={"novel_repo_work": [("software_engineering", "direct")]},
+                benchmark_metadata={
+                    "novel_repo_work": {
+                        "random_baseline": 25,
+                        "sample_size": 500,
+                        "direction": "higher_is_better",
+                    },
+                },
+            ),
+            registry=default_registry(),
+            as_of=AS_OF,
+        )
+        return load_built_snapshot(built, source="not published capability test")
+
+    plain, marked = loaded(False), loaded(True)
+
+    for mid in ("lab/alpha", "lab/beta"):
+        assert marked.capability_estimate(mid, "software_engineering") == plain.capability_estimate(
+            mid, "software_engineering",
+        )
+        assert marked.capability_estimate(mid, "software_engineering") is not None
+        left = marked.evidence_for_domain(mid, "software_engineering")
+        right = plain.evidence_for_domain(mid, "software_engineering")
+        assert [(item.value, item.quality_flags) for item in left] == [
+            (item.value, item.quality_flags) for item in right
+        ]
+    assert marked.evidence_for_domain(
+        "lab/alpha", "software_engineering",
+    )[0].quality_flags == ("contamination_warning",)

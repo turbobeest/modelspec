@@ -10,7 +10,17 @@ rule, and writes ``premier/slice-1.yaml``.
     python scripts/premier_slice1.py --report  # print the cut, write nothing
 
 Live proposals read current private records, without fetching sources or changing
-the input checkout. The JSON diff compares membership with its premier list::
+the input checkout. The mixed-date check covers only a board whose every row is
+an Arena dataset-root reading: those boards publish one date for the whole
+board. A board whose rows carry each model's own evaluation date is not
+refused. An Arena top 10 that mixes publish dates exits 3 and names the boards
+on stderr, unless ``--allow-mixed-boards`` is set. ``--check`` still exits 1
+when the proposed membership differs. The approved ``--check`` path, with no
+``--data-dir``, is unchanged. The workflow that runs this proposer fails the
+job on any non-zero exit before it opens a proposal, so exit 3 stops the
+proposal without a workflow change.
+
+The JSON diff compares membership with its premier list::
 
     python scripts/premier_slice1.py --data-dir ../modelspec-data \
         --output proposal.yaml --diff proposal.json --as-of 2026-10-04
@@ -21,6 +31,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import re
 import sys
 from datetime import UTC, date, datetime, timedelta
@@ -37,6 +48,7 @@ from decision.excluded import excluded_sources  # noqa: E402
 from decision.model import value_hash, verification_counts  # noqa: E402
 from decision.registry import default as default_registry  # noqa: E402
 from decision.sources import load_sources  # noqa: E402
+from scripts.premier_inputs import require_inputs  # noqa: E402
 
 INPUTS = ROOT / "premier" / "inputs"
 OUTPUT = ROOT / "premier" / "slice-1.yaml"
@@ -116,6 +128,11 @@ STRICT_BOARD_ROWS = False
 # the 2026-09-26 approval, so that file stays the lineup that was approved.
 # --quota-cuts-top10 applies that same cut to a live proposal.
 KEEP_EVERY_CURRENT_TOP10 = True
+
+# MODEL-495: a live proposal does not add a model whose card fails the premier
+# completeness gate (a guaranteed facet unknown). Seats already in the reviewed
+# lineup stay; the gate is not a removal rule. The skipped models are reported.
+SKIP_INCOMPLETE_CARDS = True
 SLICE_CLASSES = {"text-generator", "vectoriser", "orderer", "decider"}
 VISION_DOMAINS = {"vision", "vision_documents"}
 
@@ -165,10 +182,12 @@ def slug(name: str, *, strip: bool) -> str:
 
 
 def _load_json(name: str) -> dict:
+    require_inputs(INPUTS, [name])
     return json.loads((INPUTS / name).read_text())
 
 
 def _rows_from_csv(name: str) -> list[dict]:
+    require_inputs(INPUTS, [name])
     with (INPUTS / name).open(newline="") as handle:
         return list(csv.DictReader(handle))
 
@@ -399,6 +418,12 @@ def slice1_board_id(
             return "swe-bench-verified-bash"
         return None
     return SLICE1_BENCHMARK_BOARDS.get(benchmark_id)
+
+
+# Each slice-1 board id comes from one evidence benchmark id.
+_BOARD_BENCHMARK = {
+    board_id: benchmark_id for benchmark_id, board_id in SLICE1_BENCHMARK_BOARDS.items()
+}
 
 
 def clause1_minimum_rows() -> int:
@@ -777,8 +802,84 @@ def _evidence(hit: dict, read_date: str = READ_DATE) -> dict:
     }
 
 
-def build(*, data_dir: Path | None = None, as_of: date | None = None) -> dict:
+class MixedBoards(Exception):
+    """An Arena dataset-root top 10 holds more than one publish date."""
+
+
+def _as_arena_reading(board: dict, row: dict) -> dict:
+    """The fields ``_arena_reading_row`` reads, from a live slice-1 row."""
+    benchmark_id = str(row.get("benchmark_id") or "")
+    if not benchmark_id:
+        benchmark_id = _BOARD_BENCHMARK.get(str(board.get("id") or ""), "")
+    source_url = row.get("source_url") or row.get("url") or ""
+    return {"benchmark_id": benchmark_id, "source_url": source_url}
+
+
+def _arena_dataset_root_board(board: dict) -> bool:
+    """True when every row is an Arena dataset-root reading.
+
+    The predicate is the refresh writer's ``_arena_reading_row``. A board that
+    publishes one date per model fails it and stays out of the mixed-date check.
+    """
+    from scripts.refresh_leaderboards import _arena_reading_row
+
+    rows = list(board.get("rows") or [])
+    if not rows:
+        return False
+    return all(_arena_reading_row(_as_arena_reading(board, row)) for row in rows)
+
+
+def mixed_publish_dates(board: dict) -> str | None:
+    """``board id: N at date, ...`` when this Arena top 10 mixes publish dates.
+
+    Only a board whose every row is an Arena dataset-root reading is in scope.
+    Fewer than ten rows uses every row. A dateless row occupies a seat and
+    adds no date. Higher scores lead, unless the board says ``lower_is_better``.
+    """
+    if not _arena_dataset_root_board(board):
+        return None
+    scored: list[dict] = []
+    for row in board.get("rows") or []:
+        score = row.get("score")
+        if isinstance(score, bool) or not isinstance(score, (int, float)):
+            continue
+        scored.append(row)
+    if not scored or not any(str(row.get("date") or "") for row in scored):
+        return None
+    higher = board.get("direction") != "lower_is_better"
+
+    def sort_key(row: dict) -> tuple:
+        score = float(row["score"])
+        primary = -score if higher else score
+        return (primary, str(row.get("model_id") or ""), str(row.get("name") or ""))
+
+    counts: dict[str, int] = {}
+    for row in sorted(scored, key=sort_key)[:10]:
+        day = str(row.get("date") or "")
+        if not day:
+            continue
+        counts[day] = counts.get(day, 0) + 1
+    if len(counts) < 2:
+        return None
+    parts = [f"{counts[day]} at {day}" for day in sorted(counts)]
+    return f"{board['id']}: " + ", ".join(parts)
+
+
+def mixed_slice1_boards(boards: list[dict]) -> list[str]:
+    """Refusal lines for slice-1 boards whose current top 10 mixes dates."""
+    found: list[str] = []
+    for board in boards:
+        line = mixed_publish_dates(board)
+        if line:
+            found.append(line)
+    return found
+
+
+def build(*, data_dir: Path | None = None, as_of: date | None = None,
+          allow_mixed_boards: bool = False, baseline_ids: frozenset[str] = frozenset()) -> dict:
+    audit_note = None
     if data_dir is None:
+        require_inputs(INPUTS, ["aliases.json", SLICE2_INPUT.name])
         aliases = json.loads((INPUTS / "aliases.json").read_text())
         cards = load_cards()
         boards = leaderboards()
@@ -798,6 +899,8 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None) -> dict:
 
         as_of = as_of or datetime.now(UTC).date()
         live = load_inputs(data_dir, as_of)
+        audit_note = {"completeness_audit": live["completeness_audit"],
+                      "unregistered_offerings": live["unregistered_offerings"]}
         cards, boards, aliases = live["cards"], live["boards"], live["aliases"]
         slice2 = live["slice2"]
         budget_universe, local_universe = live["budget_candidates"], live["local_candidates"]
@@ -808,6 +911,10 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None) -> dict:
         protected_release = (as_of - timedelta(days=5)).isoformat()
         fresh_boards = {board["id"] for board in boards}
         reviewer_clauses = live["reviewer_clauses"]
+        if not allow_mixed_boards:
+            mixed = mixed_slice1_boards(boards)
+            if mixed:
+                raise MixedBoards("refusing a mixed top 10\n" + "\n".join(mixed))
     minimum_rows = clause1_minimum_rows()
     index = match_index(cards, aliases)
 
@@ -1066,6 +1173,38 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None) -> dict:
         ]
         take(group, pool)
 
+    # A reviewer's clause-4 note keeps a member whatever its group's quota
+    # says. The selection above runs as before, a noted model competing for
+    # and taking a seat; this adds back only a noted model the quota cut. Live
+    # proposals only; the approved path is unchanged. A retired model never
+    # comes back: sunset cards are archived above. Seats past the quota are
+    # counted apart from the over-quota top 10.
+    reviewer_past_quota = {name: 0 for name in GROUP_ORDER}
+    if data_dir is not None:
+        for model_id, entry in sorted(by_model.items()):
+            if 4 not in entry["clauses"] or entry["card"]["status"] == "sunset":
+                continue
+            if model_id in selected_set:
+                continue
+            group = entry["group"]
+            filled = sum(1 for mid in selected if by_model[mid]["group"] == group)
+            if group in QUOTA and filled >= QUOTA[group]:
+                reviewer_past_quota[group] = reviewer_past_quota.get(group, 0) + 1
+            selected.append(model_id)
+            selected_set.add(model_id)
+
+    # MODEL-495: a new seat whose card fails the completeness gate is not
+    # proposed. Reported apart, so a reviewer sees why it is missing.
+    not_proposed: list[dict] = []
+    if data_dir is not None and SKIP_INCOMPLETE_CARDS:
+        for model_id in list(selected):
+            gaps = by_model[model_id]["card"].get("completeness_gaps")
+            if gaps and model_id not in baseline_ids:
+                not_proposed.append({"model_id": model_id, "facets": list(gaps)})
+                selected.remove(model_id)
+                selected_set.discard(model_id)
+    skipped_ids = {row["model_id"] for row in not_proposed}
+
     models = []
     for model_id in selected:
         entry = by_model[model_id]
@@ -1164,7 +1303,7 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None) -> dict:
 
     near = []
     for model_id, entry in sorted(by_model.items()):
-        if model_id in selected_set:
+        if model_id in selected_set or model_id in skipped_ids:
             continue
         card = entry["card"]
         if card["status"] == "sunset":
@@ -1248,7 +1387,11 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None) -> dict:
         counts["over_quota_top10_by_group"] = {
             group: count for group, count in over_quota_by_group.items() if count
         }
-    return {
+        counts["reviewer_additions_past_quota"] = sum(reviewer_past_quota.values())
+        counts["reviewer_additions_past_quota_by_group"] = {
+            group: count for group, count in reviewer_past_quota.items() if count
+        }
+    document = {
         "schema_version": 1,
         "status": "proposed" if data_dir else "approved",
         "approved_date": None if data_dir else "2026-09-26",
@@ -1262,6 +1405,11 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None) -> dict:
         "near_misses": near,
         "counts": counts,
     }
+    if not_proposed:
+        document["not_proposed"] = not_proposed  # main() moves it out of the YAML
+    if audit_note is not None:
+        document["audit_note"] = audit_note  # main() moves it out of the YAML
+    return document
 
 
 def _archived_row(entry: dict) -> dict:
@@ -1302,6 +1450,19 @@ def membership_diff(document: dict, baseline: dict) -> dict:
     return {"added": added, "removed": removed, "changed": bool(added or removed)}
 
 
+def not_proposed_line(row: dict) -> str:
+    return f"not proposed: card incomplete ({', '.join(row['facets'])}): {row['model_id']}"
+
+
+def approval_stamp(as_of: date) -> str:
+    """The one-line change the owner makes to a merged proposal (approval is the owner's, J9)."""
+    return (
+        "A merged proposal stays `status: proposed`. To approve it, change "
+        "`premier/slice-1.yaml` as the owner: `status: proposed` to `status: approved` and "
+        f"`approved_date: null` to `approved_date: <merge date, e.g. {as_of.isoformat()}>`."
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="fail if the YAML differs")
@@ -1322,10 +1483,23 @@ def main() -> int:
         action="store_true",
         help="let a full group quota cut a current top 10, the approval-time rule",
     )
+    parser.add_argument(
+        "--allow-incomplete-cards",
+        action="store_true",
+        help="propose a new model even when its card fails the completeness gate",
+    )
+    parser.add_argument(
+        "--allow-mixed-boards",
+        action="store_true",
+        help="propose even when an Arena top 10 mixes publish dates",
+    )
     args = parser.parse_args()
     if args.strict_board_rows:
         global STRICT_BOARD_ROWS
         STRICT_BOARD_ROWS = True
+    if args.allow_incomplete_cards or os.environ.get("MODELSPEC_ALLOW_INCOMPLETE_CARDS") == "1":
+        global SKIP_INCOMPLETE_CARDS
+        SKIP_INCOMPLETE_CARDS = False
     if args.quota_cuts_top10:
         global KEEP_EVERY_CURRENT_TOP10
         KEEP_EVERY_CURRENT_TOP10 = False
@@ -1336,8 +1510,34 @@ def main() -> int:
         if any(path and path.resolve() == baseline_path.resolve()
                for path in (args.output, args.diff)):
             parser.error("output paths must not overwrite the reviewed premier list")
-        document = build(data_dir=args.data_dir, as_of=args.as_of)
-        changes = membership_diff(document, yaml.safe_load(baseline_path.read_text()))
+        baseline = yaml.safe_load(baseline_path.read_text())
+        baseline_ids = frozenset(
+            row if isinstance(row, str) else row["model_id"] for row in baseline["models"]
+        )
+        as_of = args.as_of or datetime.now(UTC).date()
+        try:
+            document = build(
+                data_dir=args.data_dir,
+                as_of=as_of,
+                allow_mixed_boards=args.allow_mixed_boards,
+                baseline_ids=baseline_ids,
+            )
+        except MixedBoards as error:
+            print(error, file=sys.stderr)
+            return 3
+        not_proposed = document.pop("not_proposed", [])
+        audit_note = document.pop("audit_note", None)
+        changes = membership_diff(document, baseline)
+        if audit_note is not None:
+            changes["completeness_audit"] = audit_note["completeness_audit"]
+            if audit_note["unregistered_offerings"]:
+                changes["unregistered_offerings"] = audit_note["unregistered_offerings"]
+        if not_proposed:
+            changes["not_proposed"] = not_proposed
+            for row in not_proposed:
+                print(not_proposed_line(row), file=sys.stderr)
+        if changes["changed"]:
+            changes["approval_stamp"] = approval_stamp(as_of)
         text = json.dumps(changes, indent=2, ensure_ascii=False) + "\n"
         for path, content in ((args.output, _dump(document)), (args.diff, text)):
             if path:

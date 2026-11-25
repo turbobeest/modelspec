@@ -28,6 +28,7 @@ def test_collector_preserves_named_comparison_bytes_and_unknowns(service, snapsh
         "unit": "tokens",
         "record_id": "lab/b#model.context_window",
         "source_ids": ["src-lab-docs"],
+        "verified_at": "2026-09-20",
     }
     assert facts["model.release_date"]["state"] == "unknown"
     assert facts["model.release_date"]["value"] is None

@@ -24,6 +24,8 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from decision.staleness import is_stale, label as stale_label
+from decision.credit import credit_html, is_epoch_url, credit_text, EPOCH_CREDIT
 from pipeline import landing_chrome
 from pipeline.export import Build, build_day, models_reporting
 from pipeline.load import Benchmark, Catalogue, Model
@@ -368,6 +370,8 @@ def _point_markup(row: dict[str, Any], marker: str, point_id: str, *,
     source_label = f"Source kind: {source_kind}"
     if row.get("citation"):
         source_label += " | Cited, not machine-verified"
+    if is_epoch_url(source):
+        source_label += f" | {EPOCH_CREDIT.rstrip('.')}"
     line_one = f"{name}: {score} | Evidence date: {evidence_date} ({date_type})"
     line_two = f"Configuration: {configuration} | Benchmark version: {version}"
     source_y = panel_y + panel_height - 7
@@ -399,7 +403,8 @@ def _credit_line(rows: list[dict[str, Any]]) -> str:
         f'<a href="{esc(source)}" rel="nofollow noopener">source {i}</a>'
         for i, source in enumerate(sources, 1)
     )
-    return f'<p class="chart-credit">Sources drawn: {links}</p>'
+    credit = f' <span>{credit_html()}</span>' if any(is_epoch_url(u) for u in sources) else ""
+    return f'<p class="chart-credit">Sources drawn: {links}{credit}</p>'
 
 
 def benchmark_chart(bench: Benchmark, covered: list[dict[str, Any]]) -> str:
@@ -606,9 +611,11 @@ def benchmark_strip_asset(rows: list[dict[str, Any]]) -> str:
         ".point-detail text{fill:#eef2f7;font:10px ui-monospace,SFMono-Regular,monospace}"
         ".point-detail .point-source-label{fill:#63c9d9;text-decoration:underline}"
     )
+    credit = (f"<desc>{esc(credit_text())}</desc>"
+              if any(is_epoch_url(row.get("source")) for row in sourced) else "")
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 43">'
-        f'<style>{asset_css}</style>'
+        f'{credit}<style>{asset_css}</style>'
         f'<line class="chart-grid" x1="{left}" y1="17" x2="{width-right}" y2="17"/>'
         f'<text class="chart-label" x="{left}" y="39">{lo:g}</text>'
         f'<text class="chart-label" x="{width-right}" y="39" text-anchor="end">{hi:g}</text>'
@@ -694,9 +701,11 @@ def model_benchmark_strips(model: Model, benchmarks: dict[str, Benchmark],
         )
         heading = f'<h3>{esc(group)}</h3>' if group else ""
         blocks.append(f'<div class="strip-group">{heading}{strips}</div>')
+    shown = epoch_credit_notice(urls=(row.get("source") for _, _, rows, _ in entries
+                                      for row in rows if _sourced_evidence(row)))
     return _section(
         "Benchmark standing",
-        f'<div class="strip-groups">{"".join(blocks)}</div>',
+        f'<div class="strip-groups">{"".join(blocks)}</div>{shown}',
         "Every point is sourced evidence. This model is outlined. Select any point for its "
         "evidence date, type, configuration, and source.",
     )
@@ -704,6 +713,13 @@ def model_benchmark_strips(model: Model, benchmarks: dict[str, Benchmark],
 
 def esc(value: Any) -> str:
     return html.escape(str(value), quote=True)
+
+
+def epoch_credit_notice(*, urls: Iterable[Any]) -> str:
+    """Epoch AI's CC BY 4.0 credit, once, where any of these source URLs is Epoch's (MODEL-508)."""
+    if not any(is_epoch_url(url) for url in urls):
+        return ""
+    return f'<div class="notice ok credit">{credit_html()}</div>'
 
 
 #: Where a static page (a landing, the wizard) takes the site's nav. The build
@@ -1102,7 +1118,14 @@ def competitors_section(relations: Any, pages: Collection[str] | None = None) ->
                     note + f'<div class="grid">{"".join(cards)}</div>')
 
 
-def evidence_section(model: Model) -> str:
+def _stale_note(rec: dict[str, Any], today: date | None) -> str:
+    """The stale label beside a verified record's date; cited rows are not verified."""
+    if today is None or not rec.get("verified_at") or not is_stale(rec["verified_at"], None, today):
+        return ""
+    return f' <span class="pill unverified">{esc(stale_label(rec["verified_at"]))}</span>'
+
+
+def evidence_section(model: Model, today: date | None = None) -> str:
     """Per-score evidence: the reviewed kind, with a source and a date each."""
     block = model.front.get("benchmarks") or {}
     records = block.get("evidence") if isinstance(block, dict) else None
@@ -1112,12 +1135,19 @@ def evidence_section(model: Model) -> str:
     rows = []
     for rec in records:
         kind = str(rec.get("source_kind") or "")
+        score = esc(format_score(rec.get("score"), rec.get("unit")))
+        # The key means the source lists the model without a measured value: an
+        # empty cell, or a value the site estimated. The score above stays the
+        # last measured one.
+        if rec.get("not_published_since") not in (None, ""):
+            last_seen = rec.get("observed_at") or rec.get("evidence_date")
+            score += f" no longer published by the source; last seen {esc(last_seen)}"
         rows.append(
             f'<tr><td>{esc(rec.get("benchmark_id"))}</td>'
             f'<td>{esc(rec.get("model_id_as_evaluated"))}</td>'
-            f'<td class="num">{esc(format_score(rec.get("score"), rec.get("unit")))}</td>'
+            f'<td class="num">{score}</td>'
             f'<td>{esc(rec.get("evidence_date"))} '
-            f'<span class="pill">{esc(rec.get("date_type"))}</span></td>'
+            f'<span class="pill">{esc(rec.get("date_type"))}</span>{_stale_note(rec, today)}</td>'
             f'<td><span class="pill">{esc(kind.replace("_", " "))}</span>'
             + (' <span class="pill">Cited, not machine-verified</span>' if rec in cited else '')
             + '</td>'
@@ -1126,6 +1156,7 @@ def evidence_section(model: Model) -> str:
             'They are not machine-verified.</div>') if cited else ('<div class="notice ok">Each row was checked against its source by a reviewer, '
             'and carries the model identifier as actually evaluated — which is not always the '
             'same as this card\'s.</div>')
+    note += epoch_credit_notice(urls=(rec.get("source_url") for rec in records))
     return _section("Benchmark evidence" if cited else "Verified benchmark evidence",
                     note + _table(["Benchmark", "Evaluated as", "Score", "Evidence date",
                                    "Source kind", ""], rows))
@@ -1465,7 +1496,7 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
 {chips}
 {stat_strip(model)}{cited_facts_section(model)}
 {sections}{authoring_guide_section(front)}{strips}
-{evidence_section(model)}
+{evidence_section(model, build_day(build))}
 <h2>Reported benchmark scores</h2>
 {stale if scores else NO_SCORES}
 <div class="scroll"><table>
@@ -1931,6 +1962,41 @@ def _covered_row(c: dict[str, Any]) -> str:
             f'<td>{when}</td><td>{attribution}</td></tr>')
 
 
+SCORING_TEXT = {
+    "exact": "Exact match: each answer is compared with an answer key.",
+    "programmatic": "Scored automatically by code: tests, checkers or metrics.",
+    "llm_judge": "Graded by a language-model judge.",
+    "human_judge": "Graded by people.",
+    "mixed": "Mixed: automatic checks together with judges.",
+}
+JUDGE_BLIND_TEXT = {
+    "blind": "The judges are blind: they do not know which model they are grading.",
+    "not_blind": "The judges are not blind: they know which model they are grading.",
+    "not_stated": "The source does not say whether the judges know which model they are grading.",
+}
+
+
+def scoring_section(front: dict[str, Any]) -> str:
+    """How the benchmark is scored and, for judged scoring, whether judges are blind (MODEL-536).
+
+    HTML only: the page JSON export still drops these keys (`INTERNAL_PAGE_KEYS`), so no
+    published contract carries them.
+    """
+    text = SCORING_TEXT.get(str(front.get("scoring") or ""))
+    if not text:
+        return ""
+    lines = [esc(text)]
+    blind = JUDGE_BLIND_TEXT.get(str(front.get("judge_blind") or ""))
+    if blind:
+        lines.append(esc(blind))
+    source = str(front.get("scoring_source") or "")
+    if source.startswith(("http://", "https://")):
+        lines.append(f'<a href="{esc(source)}" rel="nofollow noopener">Source</a>')
+    elif front.get("scoring_derivation") == "page_methodology":
+        lines.append("Taken from this page's description of how it is scored.")
+    return "<h2>Who grades it</h2><p>" + " ".join(lines) + "</p>"
+
+
 def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
                    covered: list[dict[str, Any]]) -> str:
     disposition = catalogue.for_benchmark(bench.benchmark_id)
@@ -1961,13 +2027,15 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
             f'<tr><td>{esc(r.get("model_id"))}</td>'
             f'<td class="num">{esc(format_score(r.get("score"), r.get("unit")))}</td>'
             f'<td>{esc(r.get("evidence_date"))} '
-            f'<span class="pill">{esc(r.get("date_type"))}</span></td>'
+            f'<span class="pill">{esc(r.get("date_type"))}</span>'
+            f'{_stale_note(r, build_day(build)) if title == "Verified results" else ""}</td>'
             f'<td>{esc(r.get("source_kind"))}</td>'
             f'<td><a href="{esc(r.get("source_url"))}" rel="nofollow noopener">source</a></td></tr>'
             for r in results
         )
         verified += (f'<h2>{title}</h2><p class="lede">{note}</p>'
-                     '<div class="scroll"><table><thead><tr><th>Model</th>'
+                     + epoch_credit_notice(urls=(r.get("source_url") for r in results))
+                     + '<div class="scroll"><table><thead><tr><th>Model</th>'
                      '<th>Score</th><th>Evidence date</th><th>Source kind</th><th>Link</th></tr>'
                      f'</thead><tbody>{rows}</tbody></table></div>')
 
@@ -1990,6 +2058,7 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
         if any(c.get("citation") for c in covered):
             notices += ('<div class="notice">Cited, not machine-verified: these rows retain '
                         'a source reference without a page copy.</div>')
+        notices += epoch_credit_notice(urls=(c.get("source") for c in covered))
         covered_block = (
             notices
             + '<div class="scroll"><table><thead><tr><th>Model</th><th>Provider</th><th>Score</th>'
@@ -2023,6 +2092,7 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
 {f'<h2>Task format</h2><p>{esc(task)}</p>' if task else ''}
 {f'<div class="prose">{prose}</div>' if prose else ''}
 {fact_notes(facts)}
+{scoring_section(front)}
 {verified}
 {benchmark_links_section(front)}
 <h2>Models reporting this benchmark</h2>

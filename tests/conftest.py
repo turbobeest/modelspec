@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -16,6 +17,45 @@ def _clear_modelspec_cache_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """
     monkeypatch.delenv("MODELSPEC_CACHE", raising=False)
     monkeypatch.delenv("MODELSPEC_ARENA_REVISION", raising=False)
+
+
+@pytest.fixture(autouse=True)
+def _clear_modelspec_data_dir_env(monkeypatch: pytest.MonkeyPatch):
+    """A leaked MODELSPEC_DATA_DIR flips later tests into private mode (MODEL-510).
+
+    Entry points that take a data directory set it for the length of the call;
+    tests that need it set it themselves.
+    """
+    monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)
+    yield
+    os.environ.pop("MODELSPEC_DATA_DIR", None)
+
+
+@pytest.fixture(autouse=True)
+def _no_live_cite_only_reads(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The refresh reads a cite-only board in memory (MODEL-482); a test never reaches the net.
+
+    A test that serves a page replaces ``request_once`` itself.
+    """
+    from scripts import evidence_reread
+
+    def offline(url: str):
+        raise ConnectionError("the network is off in tests")
+
+    monkeypatch.setattr(evidence_reread, "request_once", offline)
+
+
+@pytest.fixture
+def terms_register_present(monkeypatch):
+    """``run`` stops without a source-terms register (MODEL-482). Test roots carry none,
+    so a refresh test module opts in (``pytest.mark.usefixtures``) to a one-line register that
+    holds back no host it reads. The suite as a whole does not get it."""
+    from scripts import evidence_reread, refresh_leaderboards as refresh
+
+    real = evidence_reread.load_terms
+    monkeypatch.setattr(
+        refresh, "load_terms", lambda root: real(root) or {"terms-register.invalid": "restricts"}
+    )
 
 
 @pytest.fixture

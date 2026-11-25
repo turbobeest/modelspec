@@ -12,8 +12,11 @@ import yaml
 
 from decision.excluded import excluded_sources
 from decision.registry import default as default_registry
-from decision.snapshot import LoadedSnapshot, build_snapshot, collect_repo
+from decision.snapshot import (
+    LoadedSnapshot, SnapshotBuildError, audit_build, build_snapshot, collect_repo,
+)
 from pipeline.data_source import check_private
+from scripts.premier_inputs import require_inputs
 
 # The approved lineup counted the lab API as one recorded provider, and a
 # cite-only guaranteed fact as verified when the verification log records it.
@@ -48,6 +51,27 @@ def _guaranteed_verified(
     return all(check(index, index.fact(model_id, facet).record_id) for facet in facets)
 
 
+REVIEWER_MARKER = "Reviewer addition."
+
+
+def reviewer_clauses_from(rows) -> dict:
+    """Clause-4 entries a reviewer wrote: the text starts with the marker.
+
+    Anything else, including the admission drafter's placeholder, is not one.
+    """
+    found = {}
+    for row in rows:
+        clauses = [
+            clause for clause in row.get("clauses", [])
+            if clause.get("clause") == 4
+            and (clause.get("note") or clause.get("reason") or "")
+            .strip().startswith(REVIEWER_MARKER)
+        ]
+        if clauses:
+            found[row["model_id"]] = clauses
+    return found
+
+
 def load_inputs(root: Path, as_of: date) -> dict:
     """Adapt admitted records without writing a snapshot or changing the lineup."""
     from scripts.premier_slice1 import (
@@ -59,9 +83,11 @@ def load_inputs(root: Path, as_of: date) -> dict:
         slice1_board_id,
     )
 
+    require_inputs(Path(root) / "premier" / "inputs", ["slice-2.yaml"])
     root = check_private(root)
     cards = load_cards(root)
     inputs = collect_repo(root)
+    audit_inputs = inputs  # MODEL-520: the gate audits what production audits
     registry = default_registry()
     identity_values = {
         part: registry.allowed_values(registry.facet(f"offering.{part}"))
@@ -98,7 +124,28 @@ def load_inputs(root: Path, as_of: date) -> dict:
         if facet.subject == "model" and facet.tier == "guaranteed"
         and facet.computed_by is None
     }
+    # MODEL-495: the facets each active card lacks under the premier completeness gate.
+    missing_facets: dict[str, set[str]] = {}
+    audit_args = dict(registry=registry, premier=sorted(active), as_of=as_of,
+                      guard=excluded_sources())
+    completeness_audit = "full"
+    unregistered = [
+        {part: offering[part] for part in ("model", "provider", "region", "tier")}
+        for offering in audit_inputs.offerings if offering not in offerings
+    ]
+    try:
+        gaps = audit_build(audit_inputs, **audit_args).gaps
+    except SnapshotBuildError:
+        # An unregistered offering identity stops the full audit; fall back to
+        # the filtered inputs rather than stop the proposer.
+        logging.getLogger(__name__).warning(
+            "full-input audit failed; the completeness gate uses filtered inputs")
+        completeness_audit = "filtered-fallback"
+        gaps = audit_build(inputs, **audit_args).gaps
+    for gap in gaps:
+        missing_facets.setdefault(gap.model, set()).add(gap.facet)
     for model_id, card in cards.items():
+        card["completeness_gaps"] = sorted(missing_facets.get(model_id, ()))
         if model_id not in active:
             card["status"] = "sunset"
         if not COUNT_LAB_API:
@@ -208,16 +255,7 @@ def load_inputs(root: Path, as_of: date) -> dict:
 
     slice2 = yaml.safe_load((root / "premier/inputs/slice-2.yaml").read_text())
     current = yaml.safe_load((root / "premier/slice-1.yaml").read_text())
-    reviewer_clauses = {}
-    for row in current.get("models", []):
-        clauses = [
-            clause for clause in row.get("clauses", [])
-            if clause.get("clause") == 4
-            and (reason := (clause.get("note") or clause.get("reason") or "").strip())
-            and reason != "Admission packet for human review"
-        ]
-        if clauses:
-            reviewer_clauses[row["model_id"]] = clauses
+    reviewer_clauses = reviewer_clauses_from(current.get("models", []))
     return {
         "cards": cards,
         "boards": sorted(boards.values(), key=lambda board: board["id"]),
@@ -226,4 +264,6 @@ def load_inputs(root: Path, as_of: date) -> dict:
         "slice2": slice2,
         "reviewer_clauses": reviewer_clauses,
         "aliases": {},
+        "completeness_audit": completeness_audit,
+        "unregistered_offerings": unregistered if completeness_audit != "full" else [],
     }

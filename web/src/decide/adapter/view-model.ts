@@ -276,6 +276,13 @@ function numberFact(
   return fact.value;
 }
 
+function factDay(
+  facts: Decision["top"][number]["facts"],
+  facet: string,
+): string | undefined {
+  return facts.find((item) => item.facet === facet)?.verified_at;
+}
+
 function stringFact(
   facts: Decision["top"][number]["facts"],
   facet: string,
@@ -404,6 +411,10 @@ function modelAndOffering(
     regions: offeringRef.region ? [valueLabel("offering.region", offeringRef.region)] : null,
     in: priceIn,
     out: priceOut,
+    ...(priceIn !== null && factDay(facts, "offering.price.input")
+      ? { inVerified: factDay(facts, "offering.price.input") } : {}),
+    ...(priceOut !== null && factDay(facts, "offering.price.output")
+      ? { outVerified: factDay(facts, "offering.price.output") } : {}),
     ttft,
     tps: throughput,
     ret: retention,

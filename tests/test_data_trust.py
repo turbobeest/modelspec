@@ -14,7 +14,7 @@ import yaml
 
 from decision.registry import load as load_registry
 from decision.sources import FetchResult
-from scripts.data_trust import invariants, sample
+from scripts.data_trust import invariants, sample, trust_line
 from scripts.data_trust.catalogue import Catalogue, _records, calibrate, load
 from scripts.data_trust.report import append_defects, summary, write
 from tests.snapshot_records import fact
@@ -236,7 +236,7 @@ def test_wilson():
     [
         (b"Model: Test Model\nmodel.context window: 128000 tokens\n", "matched"),
         (b"Model: Test Model\nmodel.context window: 64000 tokens\n", "mismatched"),
-        (b"JavaScript required", "unreadable"),
+        (b"JavaScript required", "shell_page"),
         (b"Model: Sibling Model\nmodel.context window: 128000 tokens\n", "unreadable"),
     ],
 )
@@ -248,8 +248,72 @@ def test_plain_http_readers(catalogue, registry, body, expected):
 
     catalogue.facts = catalogue.facts[1:]
     report = sample.run(catalogue, registry, n=60, seed="week", as_of=TODAY, fetcher=HTTP())
+    if expected == "shell_page":
+        assert report["shell_page"] == 1 and sum(report["counts"].values()) == 0
+        return
     assert report["counts"][expected] == 1
     assert report["error_rate"]["readable"] == (0 if expected == "unreadable" else 1)
+
+
+def test_mismatch_records_what_it_read(catalogue, registry):
+    body = b"Model: Test Model\nmodel.context window: 64000 tokens\n"
+
+    class HTTP:
+        def fetch(self, url):
+            return FetchResult("ok", status=200, body=body)
+
+    catalogue.facts = catalogue.facts[1:]
+    report = sample.run(catalogue, registry, n=60, seed="week", as_of=TODAY, fetcher=HTTP())
+    (row,) = report["results"]
+    assert row["outcome"] == "mismatched"
+    assert "64000" in row["read_value"]
+    assert row["read_value_truncated"] is False
+    assert row["read_field"] == "value"
+    assert row["diff_fields"] == ["value"]
+    from decision.sources import fingerprint_bytes
+
+    assert list(row["source_snapshots"].values()) == [fingerprint_bytes(body)]
+
+
+def test_read_detail_truncates_prose():
+    from decision.verify import Diff, Result
+
+    long = "x" * (sample.READ_VALUE_LIMIT + 50)
+    result = Result(
+        target=None, outcome="mismatch",
+        diffs=(Diff("conditions", None, None), Diff("value", "stored", long)),
+    )
+    detail = sample.read_detail(result, {"https://example.test/a": b"page"})
+    assert detail["read_value"] == "x" * sample.READ_VALUE_LIMIT
+    assert detail["read_value_truncated"] is True
+    assert detail["diff_fields"] == ["conditions", "value"]
+    empty = sample.read_detail(Result(target=None, outcome="mismatch"), {})
+    assert empty["read_value"] is None and empty["read_value_truncated"] is False
+
+
+def test_read_detail_withholds_a_cite_only_value(monkeypatch):
+    from decision import retention
+    from decision.verify import Diff, Result
+
+    monkeypatch.setattr(retention, "cite_only_hosts", lambda: frozenset({"cite.example.test"}))
+    result = Result(target=None, outcome="mismatch", diffs=(Diff("value", "a", "page text"),))
+    held = sample.read_detail(result, {"https://cite.example.test/p": b"page"})
+    assert held["read_value"] is None
+    assert held["read_value_withheld"] == "cite-only"
+    assert len(held["source_snapshots"]) == 1
+    open_ = sample.read_detail(result, {"https://open.example.test/p": b"page"})
+    assert open_["read_value"] == "page text"
+    assert "read_value_withheld" not in open_
+
+
+def test_matched_and_unreadable_carry_no_read_detail(catalogue, registry):
+    catalogue.facts = catalogue.facts[1:]
+    for outcome in ("matched", "unreadable"):
+        report = sample.run(
+            catalogue, registry, n=60, seed="week", as_of=TODAY,
+            reader=lambda *a, o=outcome: (o, "r", {"read_value": "x"}),
+        )
+        assert "read_value" not in report["results"][0]
 
 
 def test_primary_source_fetch_once(catalogue, registry):
@@ -1142,3 +1206,237 @@ def test_trust_open_scale_keeps_nonfinite_diagnostics(balance_catalogue, registr
 def test_trust_open_scale_keeps_unit_diagnostic(balance_catalogue, registry):
     balance_catalogue.facts[0].update(value=1, unit='fraction')
     assert 'benchmark_unit' in rules(balance_catalogue, registry)
+
+
+# --- MODEL-509 -----------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("row, reason", [
+    ({"field": "terminal_bench_v4_0"}, "board no longer published"),
+    ({"field": "terminal_bench_v4_1", "not_published_since": "2026-10-01"}, "not_published_since"),
+    ({"field": "terminal_bench_v4_0", "not_published_since": "2026-10-01"}, "not_published_since"),
+    ({"field": "terminal_bench_v3"}, "board version not named by an audited field"),
+    ({"field": "terminal_bench_v4_1"}, None),
+    ({"field": "terminal_bench_v4_1", "not_published_since": None}, None),
+    ({"field": "swe_bench_verified"}, None),
+])
+def test_unauditable_rows(row, reason):
+    assert sample.unauditable(row) == reason
+
+
+def test_skipped_rows_are_never_fetched_and_are_not_in_sampled(catalogue, registry):
+    catalogue.facts[0]["field"] = "terminal_bench_v4_0"
+
+    class HTTP:
+        def fetch(self, url):
+            return FetchResult("unreachable", error="HTTP 503")
+
+    report = sample.run(catalogue, registry, n=60, seed="week", as_of=TODAY, fetcher=HTTP())
+    assert report["skipped"] == {"board no longer published": 1}
+    assert report["selected"] == 2 and report["sampled"] == 1
+    assert report["counts"] == {"matched": 0, "mismatched": 0, "unreadable": 1}
+
+
+def test_a_refused_hop_is_its_own_count(catalogue, registry):
+    class HTTP:
+        def fetch(self, url):
+            return FetchResult("unreachable", error="redirect_unclassified:unknown.example")
+
+    report = sample.run(catalogue, registry, n=60, seed="week", as_of=TODAY, fetcher=HTTP())
+    assert report["redirect_unclassified"] == 2
+    assert report["counts"]["unreadable"] == 0
+    assert {r["reason"] for r in report["results"]} == {
+        "redirect_unclassified:src-lab-docs:unknown.example"}
+    assert "terms register (redirect_unclassified): 2" in summary(
+        {"sample": report, "invariants": {"facts": 0, "errors": 0, "warnings": 0, "models": 0,
+                                          "offerings": 0}})
+
+
+ARENA = (
+    "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/main/"
+    "text_style_control/latest-00000-of-00001.parquet"
+)
+SHA_A, SHA_B = "a" * 40, "b" * 40
+
+
+def test_arena_revision_helpers():
+    assert sample.at_revision(ARENA, SHA_A) == ARENA.replace("/main/", f"/{SHA_A}/")
+    assert sample.at_revision("https://example.test/main/", SHA_A) == "https://example.test/main/"
+    assert sample.stored_revision({}, [ARENA]) is None
+    assert sample.stored_revision({}, [sample.at_revision(ARENA, SHA_A)]) == SHA_A
+    assert sample.stored_revision({"benchmark_version": "text, revision 1880DBEBFF5B"}, [ARENA]) == "1880dbebff5b"
+    assert sample.stored_revision({"configuration": "x. Revision " + SHA_B}, [ARENA]) == SHA_B
+    commits = [("n" * 40, "2026-11-17T04:00:00.000Z"), (SHA_B, "2026-11-16T23:59:59.000Z"),
+               (SHA_A, "2026-11-15T04:00:00.000Z")]
+    assert sample.revisions_by({"observed_at": "2026-11-16"}, commits) == [SHA_B]
+    assert sample.revisions_by({"observed_at": "2026-11-01"}, commits) == []
+
+
+class Commits:
+    def __init__(self, commits):
+        self.body = json.dumps([{"id": s, "date": d} for s, d in commits]).encode()
+
+    def fetch(self, url):
+        page = self.body if url == sample.ARENA_COMMITS else b"[]"
+        return FetchResult("ok", status=200, body=page)
+
+
+def _arena_reread(monkeypatch, row, outcomes):
+    """``outcomes`` maps the pinned revision (None: the latest board) to a read result."""
+    seen = []
+
+    def read(f, c, registry, fetcher, store, fetched, today, pin=None):
+        seen.append(pin)
+        return outcomes[pin]
+
+    monkeypatch.setattr(sample, "_read", read)
+    monkeypatch.setattr(sample, "source_urls", lambda f, c: [ARENA])
+    fetcher = Commits([(SHA_B, "2026-11-16T10:00:00.000Z"), (SHA_A, "2026-11-10T10:00:00.000Z")])
+    out = sample.reread(row, None, None, fetcher, None, {}, TODAY)
+    return out, seen
+
+
+DIFF = ("mismatched", "deterministic_difference", {"read_value": "1"})
+
+
+def test_arena_row_that_matched_when_read_is_source_moved(monkeypatch):
+    row = {"field": "arena_x", "observed_at": "2026-11-16"}
+    out, seen = _arena_reread(monkeypatch, row, {None: DIFF, SHA_B: ("matched", "deterministic_read")})
+    assert out[:2] == ("source_moved", "board_changed_after_read")
+    assert seen == [None, SHA_B]
+
+
+def test_arena_row_matching_no_revision_is_a_mismatch(monkeypatch):
+    row = {"field": "arena_x", "observed_at": "2026-11-16"}
+    out, _ = _arena_reread(monkeypatch, row, {None: DIFF, SHA_B: DIFF})
+    assert out[0] == "mismatched"
+
+
+def test_arena_row_with_a_stored_revision_is_compared_at_it(monkeypatch):
+    row = {"field": "arena_x", "observed_at": "2026-11-16", "configuration": f"Revision {SHA_A}."}
+    out, seen = _arena_reread(monkeypatch, row, {SHA_A: ("matched", "deterministic_read")})
+    assert out[0] == "matched" and seen == [SHA_A]
+    short = {**row, "configuration": "Revision " + SHA_A[:12]}
+    out, seen = _arena_reread(monkeypatch, short, {SHA_A: DIFF})
+    assert out[0] == "mismatched" and seen == [SHA_A]
+
+
+def test_source_moved_is_counted_apart_from_the_error_rate(catalogue, registry):
+    catalogue.facts = catalogue.facts[1:]
+    answers = iter([("matched", "deterministic_read"), ("source_moved", "board_changed_after_read", {})])
+
+    def reader(*args):
+        return next(answers)
+
+    catalogue.facts = [catalogue.facts[0], {**catalogue.facts[0], "id": "other#id"}]
+    report = sample.run(catalogue, registry, n=60, seed="week", as_of=TODAY, reader=reader)
+    assert report["source_moved"] == 1
+    assert report["counts"] == {"matched": 1, "mismatched": 0, "unreadable": 0}
+    assert report["error_rate"]["readable"] == 1
+    assert report["sampled"] == 2
+    assert {r["outcome"] for r in report["results"]} == {"matched", "source_moved"}
+
+
+@pytest.mark.parametrize("content_type,recipe", [
+    ("application/json", "json-default"), ("application/vnd.api+json; charset=utf-8", "json-default"),
+    ("text/html; charset=utf-8", "html-default"), ("", "html-default"),
+    ("text/plain", "text-default"), ("text/csv", "text-default"),
+])
+def test_m519_the_shell_rule_reads_each_reply_with_its_own_recipe(content_type, recipe):
+    assert sample._shell_normaliser(content_type) == recipe
+
+
+@pytest.mark.parametrize("content_type,shell", [("application/json", 0), ("text/html", 1)])
+def test_m519_a_short_json_reply_is_read_not_refused_as_a_shell(
+        catalogue, registry, content_type, shell):
+    class HTTP:
+        def fetch(self, url):
+            return FetchResult("ok", status=200, body=b'{"context":1}', content_type=content_type)
+
+    catalogue.facts = catalogue.facts[1:]
+    report = sample.run(catalogue, registry, n=60, seed="week", as_of=TODAY, fetcher=HTTP())
+    assert report["shell_page"] == shell
+
+
+def _verified(group_field, when, kind="fact"):
+    return {"kind": kind, "field": group_field, "verification": {"date": when}}
+
+
+def test_trust_line_counts_stale_by_group_and_change(tmp_path):
+    c = Catalogue(
+        facts=[
+            _verified("model.context_window", "2026-06-01"),  # 111 days: older than 90
+            _verified("model.context_window", "2026-09-10"),
+            _verified("offering.price.input", "2026-08-01"),  # 50 days: older than 45
+            _verified("offering.price.input", "2026-09-01"),
+            _verified(None, "2026-09-19", kind="evidence"),
+            {"kind": "fact", "field": "model.x", "verification": {}},  # not verified
+        ]
+    )
+    s = trust_line.stale(c, TODAY, 90, 45)
+    assert (s["verified"], s["older"]) == (5, 2)
+    assert s["by_group"]["offering price"] == {"verified": 2, "older": 1}
+    assert s["by_group"]["benchmark evidence"] == {"verified": 1, "older": 0}
+    assert trust_line.stale(c, TODAY, 200, 200)["older"] == 0  # the age line is a parameter
+    line = trust_line.compute(c, tmp_path, TODAY, 90, 45)
+    assert line["moved_hosts"] == {"recorded": False, "moved": 0, "source_ids": []}
+    assert "not recorded yet" in trust_line.text(line)
+    first = trust_line.with_change(line, tmp_path, TODAY)
+    assert first["change"] is None
+    (tmp_path / "2026-09-13.json").write_text(
+        json.dumps({"trust_line": {**line, "stale": {**line["stale"], "older": 5}}})
+    )
+    later = trust_line.with_change(line, tmp_path, TODAY)
+    assert later["change"]["stale"] == -3 and later["previous"] == "2026-09-13"
+    assert "(-3 since 2026-09-13)" in trust_line.text(later)
+
+
+def test_trust_line_final_host_and_report(catalogue, registry, tmp_path):
+    (tmp_path / "verification").mkdir()
+    (tmp_path / "verification/final-hosts.json").write_text(
+        json.dumps({"src-lab-docs": {"final_url": "https://other.test/docs", "final_host": "other.test", "first_seen": "2026-11-01", "last_seen": "2026-11-20"}, "gone": {"final_host": "x"}})
+    )
+    line = trust_line.compute(catalogue, tmp_path, TODAY)
+    assert line["moved_hosts"] == {"recorded": True, "moved": 1, "source_ids": ["src-lab-docs"]}
+    report = {
+        "as_of": TODAY.isoformat(),
+        "engine_commit": "synthetic",
+        "invariants": invariants.run(catalogue, registry, TODAY),
+        "sample": sample.run(catalogue, registry, n=1, seed="w", as_of=TODAY,
+                             reader=lambda *a: ("matched", "")),
+        "trust_line": line,
+    }
+    assert "final host differs from the registered host: 1" in summary(report)
+    md, _ = write(report, tmp_path / "out")
+    assert "## Trust line" in md.read_text()
+
+
+def test_trust_line_failure_does_not_stop_the_audit(tmp_path, registry, monkeypatch, capsys):
+    from scripts.data_trust import __main__ as command
+
+    monkeypatch.setattr(command, "load_registry", lambda *a, **kw: registry)
+
+    def broken(*args, **kwargs):
+        raise OSError("broken symlink")
+
+    monkeypatch.setattr(command.trust_line, "compute", broken)
+    (tmp_path / "models").mkdir()
+    (tmp_path / "benchmarks").mkdir()
+    raw = fact("model", MID, "model.context_window", -2)
+    (tmp_path / "models/card.md").write_text(
+        "---\n" + yaml.safe_dump({"model_id": MID, "facts": [raw]}) + "---\n"
+    )
+    (tmp_path / "registry").mkdir()
+    (tmp_path / "registry/sources.yaml").write_text(
+        yaml.safe_dump({"schema_version": 1, "sources": [{
+            "id": "src-lab-docs", "url": "https://example.test/docs",
+            "cited_regions": [{"id": "r1", "locator": {"kind": "page"}}]}]})
+    )
+    args = ["data", "--data-dir", str(tmp_path), "--date", str(TODAY),
+            "--output-dir", str(tmp_path / "reports")]
+    status = command.main(args)
+    out = capsys.readouterr().out
+    assert "trust line unavailable (OSError: broken symlink)" in out
+    payload = json.loads((tmp_path / "reports" / f"{TODAY}.json").read_text())
+    assert payload["trust_line"] == {"unavailable": "OSError: broken symlink"}
+    assert status == (1 if payload["invariants"]["errors"] else 0)

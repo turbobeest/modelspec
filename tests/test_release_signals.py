@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import hmac
+import httpx
 import importlib.util
 import json
 import sys
@@ -29,6 +30,7 @@ from release_signals.pipeline import (
     _JsonLd,
     _models_dev_listing,
     _primary_identity,
+    clear_catalogue_cache,
     draft_signal,
     require_allowed_source,
     resolve_signal,
@@ -38,6 +40,11 @@ from scripts import process_release_signals as processor
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = Path(__file__).parent / "fixtures" / "release_signals"
+
+
+@pytest.fixture(autouse=True)
+def _clear_catalogue_index_before_each_test() -> None:
+    clear_catalogue_cache()
 
 
 def signal(**changes: object) -> dict[str, object]:
@@ -549,6 +556,13 @@ sources:
         encoding="utf-8",
     )
     (root / "verification").mkdir()
+    # The writer workflow keeps the data checkout, and its private source-terms register,
+    # under MODELSPEC_DATA_DIR; the engine root has none (MODEL-482).
+    data = tmp_path / "data"
+    (data / "registry").mkdir(parents=True)
+    (data / "registry" / "source-terms.json").write_text(
+        json.dumps({"example.test": "retaining"}), encoding="utf-8")
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(data))
     pending = tmp_path / "pending.json"
     result_path = tmp_path / "result.json"
     pending.write_text(json.dumps({"signals": [signal()]}), encoding="utf-8")
@@ -1867,11 +1881,55 @@ def test_the_roll_up_lists_a_closed_unmerged_result_under_its_own_heading(
     assert "New-model pull requests closed without merge" not in uncertain_only
 
 
+def test_only_the_release_signals_verify_step_skips_absent_copies() -> None:
+    roots = [ROOT / ".github" / "private-writers", ROOT / ".github" / "workflows"]
+    hits = []
+    for root in roots:
+        for path in root.rglob("*"):
+            if not path.is_file():
+                continue
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            if "--skip-absent-copies" in text:
+                hits.append(path.relative_to(ROOT).as_posix())
+    assert hits == [".github/private-writers/release-signals.yml"]
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    steps = workflow["jobs"]["process"]["steps"]
+    verify_steps = [
+        step for step in steps
+        if step.get("name") == "Validate cards and run two-key verification"
+    ]
+    assert len(verify_steps) == 1
+    assert "--skip-absent-copies" in verify_steps[0]["run"]
+    others = "\n".join(
+        step.get("run") or "" for step in steps if step is not verify_steps[0]
+    )
+    assert "--skip-absent-copies" not in others
+
+
+def test_the_verify_step_writes_outcome_counts_to_the_step_summary() -> None:
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    step = next(
+        item for item in workflow["jobs"]["process"]["steps"]
+        if item.get("name") == "Validate cards and run two-key verification"
+    )
+    run = step["run"]
+    for label in (
+        "verified:", "mismatch:", "unreachable:", "skipped:",
+        "skipped for no copy:", "GITHUB_STEP_SUMMARY",
+    ):
+        assert label in run
+    assert "results" not in run
+
+
 def test_the_process_job_cannot_open_issues() -> None:
     workflow = yaml.safe_load(
         (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
     )
-    assert workflow["jobs"]["process"]["timeout-minutes"] == 20
+    assert workflow["jobs"]["process"]["timeout-minutes"] == 30
     assert "issues" not in workflow["jobs"]["process"]["permissions"]
     assert workflow["jobs"]["review"]["permissions"]["issues"] == "write"
     for step in workflow["jobs"]["process"]["steps"]:
@@ -1882,6 +1940,359 @@ def test_the_process_job_cannot_open_issues() -> None:
         step.get("run") or "" for step in workflow["jobs"]["review"]["steps"]
     )
     assert "gh label create new-model" in review_runs
+
+
+def test_the_process_job_gates_on_approved_private_answers_before_push() -> None:
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    steps = workflow["jobs"]["process"]["steps"]
+    names = [step.get("name") for step in steps]
+    recall_at = names.index("Run the MODEL-160 recall report")
+    gate_at = names.index("Compare approved answers on private data")
+    push_at = names.index("Commit and push the isolated signal branch")
+    assert recall_at < gate_at < push_at
+    step = steps[gate_at]
+    assert step["if"] == "steps.classify.outputs.changed == 'true'"
+    assert "continue-on-error" not in step
+    run = step["run"]
+    assert "python -I -m scripts.recall_run" not in run
+    assert "scripts/recall_run.py" not in run
+    assert "||" not in run
+    assert "python -I -m scripts.accuracy --compare-approved-answers" in run
+    assert "reports/recall/check.py" not in run
+    assert '--report-dir "$RUNNER_TEMP/recall"' in run
+    assert "--baseline reports/recall/baseline.json" in run
+    assert '--summary "$GITHUB_STEP_SUMMARY"' in run
+    assert '--approved-baseline "$RUNNER_TEMP/approved-private-recall.json"' in run
+
+
+def test_the_approved_answer_outputs_wire_the_pull_request_step() -> None:
+    gate = _process_step("Compare approved answers on private data")
+    opened = _process_step("Open or update the pull request")
+    writer = (ROOT / "scripts" / "accuracy.py").read_text(encoding="utf-8")
+    step_id = gate["id"]
+
+    assert step_id == "approved"
+    assert '--step-output "$GITHUB_OUTPUT"' in gate["run"]
+    assert 'handle.write(f"regressed=' in writer
+    assert 'handle.write(f"regression_ids=' in writer
+    assert opened["env"]["REGRESSED"] == f"${{{{ steps.{step_id}.outputs.regressed }}}}"
+    assert opened["env"]["REGRESSION_IDS"] == (
+        f"${{{{ steps.{step_id}.outputs.regression_ids }}}}"
+    )
+
+
+def _process_step(name: str) -> dict:
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(encoding="utf-8")
+    )
+    return next(
+        step for step in workflow["jobs"]["process"]["steps"] if step.get("name") == name
+    )
+
+
+def _engine_python(tmp_path: Path) -> Path:
+    """A `python` on PATH that loads this worktree, as the runner's .pth file does."""
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    launcher = bindir / "launch.py"
+    launcher.write_text(
+        "import sys\n"
+        f"sys.path.insert(0, {str(ROOT)!r})\n"
+        "args = sys.argv[1:]\n"
+        "if args and args[0] == '-I':\n"
+        "    args = args[1:]\n"
+        "if len(args) >= 2 and args[0] == '-m':\n"
+        "    sys.argv = [args[1], *args[2:]]\n"
+        "    module = __import__(args[1], fromlist=['main'])\n"
+        "    raise SystemExit(module.main())\n"
+        "if args and args[0] == '-c':\n"
+        "    exec(compile(args[1], '<workflow>', 'exec'), {'__name__': '__main__'})\n"
+        "    raise SystemExit(0)\n"
+        "raise SystemExit('unexpected python arguments')\n",
+        encoding="utf-8",
+    )
+    wrapper = bindir / "python"
+    wrapper.write_text(f"#!/bin/sh\nexec {sys.executable} {launcher} \"$@\"\n", encoding="utf-8")
+    wrapper.chmod(0o755)
+    return bindir
+
+
+def _approved_data_repo(tmp_path: Path) -> Path:
+    import subprocess
+
+    data = tmp_path / "data"
+    recall = data / "reports" / "recall"
+    recall.mkdir(parents=True)
+    verdicts = {f"Q{number:02d}": "pass" for number in range(1, 21)}
+    (recall / "baseline.json").write_text(
+        json.dumps({"schema_version": 1, "verdicts": verdicts}), encoding="utf-8",
+    )
+    subprocess.run(["git", "init", "-q"], cwd=data, check=True)
+    subprocess.run(["git", "config", "user.email", "signals@example.com"], cwd=data, check=True)
+    subprocess.run(["git", "config", "user.name", "signals"], cwd=data, check=True)
+    subprocess.run(["git", "add", "reports"], cwd=data, check=True)
+    subprocess.run(
+        ["git", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "baseline"],
+        cwd=data, check=True,
+    )
+    subprocess.run(["git", "update-ref", "refs/remotes/origin/main", "HEAD"], cwd=data, check=True)
+    return data
+
+
+def _run_approved_step(tmp_path: Path, *, report: dict | None) -> subprocess.CompletedProcess[str]:
+    import os
+    import subprocess
+
+    data = _approved_data_repo(tmp_path)
+    runner = tmp_path / "runner"
+    runner.mkdir()
+    if report is not None:
+        recall = runner / "recall"
+        recall.mkdir()
+        (recall / "recall.json").write_text(json.dumps({"questions": [
+            {"id": question_id, "verdict": verdict}
+            for question_id, verdict in report.items()
+        ]}), encoding="utf-8")
+    step = _process_step("Compare approved answers on private data")
+    env = os.environ | {
+        "PATH": f"{_engine_python(tmp_path)}:{os.environ['PATH']}",
+        "RUNNER_TEMP": str(runner),
+        "GITHUB_OUTPUT": str(runner / "github-output"),
+        "GITHUB_STEP_SUMMARY": str(runner / "summary"),
+    }
+    return subprocess.run(
+        ["bash", "-e", "-c", step["run"]],
+        cwd=data, capture_output=True, text=True, env=env, check=False,
+    )
+
+
+def test_a_regression_exits_zero_and_acknowledgement_still_runs(tmp_path: Path) -> None:
+    report = {f"Q{number:02d}": "pass" for number in range(1, 21)}
+    report["Q01"] = "partial"
+    result = _run_approved_step(tmp_path, report=report)
+    ack = _process_step("Acknowledge the signal and schedule its 1, 7, and 30 day re-checks")
+    commit = _process_step("Commit and push the isolated signal branch")
+    opened = _process_step("Open or update the pull request")
+
+    assert result.returncode == 0, result.stderr
+    recorded = (tmp_path / "runner" / "github-output").read_text(encoding="utf-8")
+    assert "regressed=true\n" in recorded
+    assert "regression_ids=Q01\n" in recorded
+    assert ack["if"] == "steps.classify.outputs.resolution != 'empty'"
+    assert "approved" not in ack["if"]
+    assert commit["if"] == "steps.classify.outputs.changed == 'true'"
+    assert opened["if"] == "steps.classify.outputs.changed == 'true'"
+
+
+def test_an_unreadable_approved_answer_input_fails_the_job(tmp_path: Path) -> None:
+    step = _process_step("Compare approved answers on private data")
+    result = _run_approved_step(tmp_path, report=None)
+
+    assert "continue-on-error" not in step
+    assert result.returncode != 0
+
+
+@pytest.mark.parametrize("human", ["true", "false"])
+def test_a_regression_forces_a_draft_and_lists_the_question_ids(tmp_path: Path, human: str) -> None:
+    import os
+    import subprocess
+
+    step = _process_step("Open or update the pull request")
+    (tmp_path / "result.json").write_text(
+        json.dumps({"model_id": "acme/orbit"}), encoding="utf-8",
+    )
+    env = os.environ | {
+        "PATH": f"{Path(sys.executable).parent}:{os.environ['PATH']}",
+        "RUNNER_TEMP": str(tmp_path),
+        "GITHUB_OUTPUT": str(tmp_path / "github-output"),
+        "BRANCH": "data/release-signal-fixture-initial",
+        "PR_MODE": "initial",
+        "HUMAN": human,
+        "REGRESSED": "true",
+        "REGRESSION_IDS": "Q01, Q05",
+        "EXISTING_PR_URL": "",
+    }
+    stub = (
+        'gh() { printf "%s\\n" "$*" >> "$RUNNER_TEMP/calls"; '
+        'echo "https://github.com/turbobeest/modelspec-data/pull/9"; }\n'
+    )
+    result = subprocess.run(
+        ["bash", "-e", "-c", stub + step["run"]],
+        cwd=tmp_path, capture_output=True, text=True, env=env, check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    recorded = (tmp_path / "calls").read_text(encoding="utf-8")
+    body = (tmp_path / "pr-body.md").read_text(encoding="utf-8")
+    assert recorded.splitlines()[0].startswith("pr create --draft ")
+    assert "ANSWERS REGRESS: " in recorded
+    assert body.startswith("Regressed question ids: Q01, Q05\n")
+    assert _REGRESS_CHECK_LINE in body
+    if human == "true":
+        assert "--label new-model" in recorded
+        assert "data: add or identify acme/orbit (MODEL-113)" in recorded
+    else:
+        assert "--label" not in recorded
+        assert "data: refresh acme/orbit release evidence (MODEL-113)" in recorded
+
+
+_OPEN_PR_URL = "https://github.com/turbobeest/modelspec-data/pull/41"
+_REGRESS_CHECK_LINE = (
+    'A follow-up job of this workflow run starts the "Approved answers on private data" check '
+    'on this branch. A comment on this pull request says it started, or says it could not and '
+    "how to run it by hand. Merge only when it passes.\n"
+)
+
+
+def _run_open_pr_step(
+    tmp_path: Path,
+    *,
+    human: str,
+    regressed: str,
+    title: str,
+    fail: str = "",
+) -> subprocess.CompletedProcess[str]:
+    import os
+    import subprocess
+
+    step = _process_step("Open or update the pull request")
+    (tmp_path / "result.json").write_text(
+        json.dumps({"model_id": "acme/orbit"}), encoding="utf-8",
+    )
+    env = os.environ | {
+        "PATH": f"{Path(sys.executable).parent}:{os.environ['PATH']}",
+        "RUNNER_TEMP": str(tmp_path),
+        "GITHUB_OUTPUT": str(tmp_path / "github-output"),
+        "BRANCH": "data/release-signal-fixture-recheck",
+        "PR_MODE": "open",
+        "HUMAN": human,
+        "REGRESSED": regressed,
+        "REGRESSION_IDS": "Q01, Q05",
+        "EXISTING_PR_URL": _OPEN_PR_URL,
+        "EXISTING_TITLE": title,
+        "GH_FAIL": fail,
+    }
+    stub = """\
+gh() {
+  printf '%s\\n' "$*" >> "$RUNNER_TEMP/calls"
+  if [ -n "${GH_FAIL:-}" ] && [ "$2" = "$GH_FAIL" ]; then
+    echo "gh failed" >&2
+    return 1
+  fi
+  if [ "$1 $2" = "pr view" ]; then
+    printf '%s\\n' "{\\"title\\":\\"$EXISTING_TITLE\\"}"
+    return 0
+  fi
+  printf '%s\\n' "https://github.com/turbobeest/modelspec-data/pull/9"
+}
+"""
+    return subprocess.run(
+        ["bash", "-e", "-c", stub + step["run"]],
+        cwd=tmp_path, capture_output=True, text=True, env=env, check=False,
+    )
+
+
+def _open_pr_calls(tmp_path: Path) -> list[str]:
+    return (tmp_path / "calls").read_text(encoding="utf-8").splitlines()
+
+
+def test_an_open_score_only_regression_converts_the_pull_request_to_a_draft(
+    tmp_path: Path,
+) -> None:
+    title = "data: refresh acme/orbit release evidence (MODEL-113)"
+    result = _run_open_pr_step(
+        tmp_path, human="false", regressed="true", title=title,
+    )
+
+    assert result.returncode == 0, result.stderr
+    recorded = _open_pr_calls(tmp_path)
+    assert recorded[0] == f"pr ready --undo {_OPEN_PR_URL}"
+    assert recorded[1] == f"pr view {_OPEN_PR_URL} --json title"
+    assert recorded[2] == f"pr edit {_OPEN_PR_URL} --title ANSWERS REGRESS: {title}"
+    assert recorded[3].startswith(f"pr comment {_OPEN_PR_URL} --body-file ")
+    assert len(recorded) == 4
+    assert "pr create" not in "\n".join(recorded)
+    body = (tmp_path / "pr-body.md").read_text(encoding="utf-8")
+    assert body.startswith("Regressed question ids: Q01, Q05\n")
+    assert _REGRESS_CHECK_LINE in body
+
+
+def test_an_open_new_model_regression_converts_the_pull_request_to_a_draft(
+    tmp_path: Path,
+) -> None:
+    title = "data: add or identify acme/orbit (MODEL-113)"
+    result = _run_open_pr_step(
+        tmp_path, human="true", regressed="true", title=title,
+    )
+
+    assert result.returncode == 0, result.stderr
+    recorded = _open_pr_calls(tmp_path)
+    assert recorded[0] == f"pr ready --undo {_OPEN_PR_URL}"
+    assert recorded[1] == f"pr view {_OPEN_PR_URL} --json title"
+    assert recorded[2] == f"pr edit {_OPEN_PR_URL} --title ANSWERS REGRESS: {title}"
+    assert recorded[3].startswith(f"pr comment {_OPEN_PR_URL} --body-file ")
+    assert len(recorded) == 4
+    assert "pr create" not in "\n".join(recorded)
+    assert "--label" not in "\n".join(recorded)
+    body = (tmp_path / "pr-body.md").read_text(encoding="utf-8")
+    assert body.startswith("Regressed question ids: Q01, Q05\n")
+    assert _REGRESS_CHECK_LINE in body
+
+
+def test_an_open_regression_keeps_a_title_that_already_has_the_prefix(
+    tmp_path: Path,
+) -> None:
+    title = "ANSWERS REGRESS: data: add or identify acme/orbit (MODEL-113)"
+    result = _run_open_pr_step(
+        tmp_path, human="true", regressed="true", title=title,
+    )
+
+    assert result.returncode == 0, result.stderr
+    recorded = _open_pr_calls(tmp_path)
+    assert recorded[0] == f"pr ready --undo {_OPEN_PR_URL}"
+    assert recorded[1] == f"pr view {_OPEN_PR_URL} --json title"
+    assert recorded[2].startswith(f"pr comment {_OPEN_PR_URL} --body-file ")
+    assert len(recorded) == 3
+    assert "pr edit" not in "\n".join(recorded)
+
+
+def test_an_open_pull_request_that_did_not_regress_is_only_commented(
+    tmp_path: Path,
+) -> None:
+    title = "ANSWERS REGRESS: data: refresh acme/orbit release evidence (MODEL-113)"
+    result = _run_open_pr_step(
+        tmp_path, human="false", regressed="false", title=title,
+    )
+
+    assert result.returncode == 0, result.stderr
+    recorded = _open_pr_calls(tmp_path)
+    assert recorded == [
+        f"pr comment {_OPEN_PR_URL} --body-file {tmp_path / 'result.json'}",
+    ]
+    assert not (tmp_path / "pr-body.md").exists()
+
+
+@pytest.mark.parametrize("fail", ["ready", "view", "edit", "comment"])
+def test_an_open_regression_names_the_pull_request_when_gh_fails(
+    tmp_path: Path, fail: str,
+) -> None:
+    title = "data: refresh acme/orbit release evidence (MODEL-113)"
+    result = _run_open_pr_step(
+        tmp_path, human="false", regressed="true", title=title, fail=fail,
+    )
+
+    assert result.returncode != 0
+    assert (
+        "::error::The signal branch is already pushed. "
+        f"Updating {_OPEN_PR_URL} failed."
+    ) in result.stdout
+    recorded = "\n".join(_open_pr_calls(tmp_path))
+    if fail == "comment":
+        assert "pr comment" in recorded
+    else:
+        assert "pr comment" not in recorded
 
 
 def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> None:
@@ -1895,8 +2306,8 @@ def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> 
     assert "schedule:" not in workflow
     assert "MODELSPEC_SIGNALS_READ_KEY" in workflow
     assert "secrets.GITHUB_TOKEN" in workflow
-    assert "python -I -m cli.modelspec.legacy verify --json" in workflow
-    assert "python -I -m scripts.accuracy --profile pr" in workflow
+    assert "python -I -m cli.modelspec.legacy verify --skip-absent-copies --json" in workflow
+    assert "python -I -m scripts.accuracy --profile data-pr" in workflow
     assert "python -I -m scripts.recall_run" in workflow
     assert "new-model" in workflow
     assert "--draft" in workflow
@@ -4011,14 +4422,19 @@ def test_a_first_seen_org_redirect_to_another_owner_stays_unregistered(
             signal_id="watch:acme:listed-redirect-owner",
             first_seen_url=requested,
         ),
-        {requested: FetchResult(final, b"<h1>Acme releases Orbit 9</h1>", "text/html")},
+        {
+            requested: FetchResult(final, b"<h1>Acme releases Orbit 9</h1>", "text/html"),
+            doc: FetchResult(doc, b"<html><title>weights</title></html>", "text/html"),
+        },
         doc=doc,
     )
 
     assert result["status"] == "uncertain"
     assert result["model_id"] is None
-    assert "host class unregistered" in result["reason"]
-    assert doc not in seen
+    assert result["reason"] == (
+        "host class unregistered; the primary source does not identify the stated lab"
+    )
+    assert doc in seen
     assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
 
 
@@ -4038,14 +4454,19 @@ def test_a_first_seen_lab_redirect_to_an_unregistered_host_stays_unregistered(
             signal_id="watch:acme:listed-redirect-host",
             first_seen_url=requested,
         ),
-        {requested: FetchResult(final, b"<h1>Acme releases Orbit 9</h1>", "text/html")},
+        {
+            requested: FetchResult(final, b"<h1>Acme releases Orbit 9</h1>", "text/html"),
+            doc: FetchResult(doc, b"<html><title>weights</title></html>", "text/html"),
+        },
         doc=doc,
     )
 
     assert result["status"] == "uncertain"
     assert result["model_id"] is None
-    assert "host class unregistered" in result["reason"]
-    assert doc not in seen
+    assert result["reason"] == (
+        "host class unregistered; the primary source does not identify the stated lab"
+    )
+    assert doc in seen
     assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
 
 
@@ -4407,3 +4828,231 @@ def test_a_prohibited_supporting_url_is_refused_after_identity(tmp_path: Path) -
             root=tmp_path,
             fetch=fetch,
         )
+
+
+def _http_error(url: str, status: int) -> httpx.HTTPStatusError:
+    request = httpx.Request("GET", url)
+    response = httpx.Response(status, request=request)
+    return httpx.HTTPStatusError(str(status), request=request, response=response)
+
+
+def _prepare_job(
+    monkeypatch: pytest.MonkeyPatch,
+    root: Path,
+    row: dict[str, object],
+    fetch,
+) -> tuple[Path, Path, list[str]]:
+    pending = root / "pending.json"
+    result_path = root / "result.json"
+    pending.write_text(json.dumps({"signals": [row]}), encoding="utf-8")
+    seen: list[str] = []
+
+    def wrapped(url: str) -> FetchResult:
+        seen.append(url)
+        return fetch(url)
+
+    monkeypatch.setattr(processor, "_fetch", wrapped)
+    monkeypatch.setattr(
+        processor.refresh_leaderboards, "run",
+        lambda **_: processor.refresh_leaderboards.RefreshReport(),
+    )
+    return pending, result_path, seen
+
+
+def test_a_dead_first_seen_page_falls_back_to_the_provider_doc(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    host = "models.acme.example"
+    _watch_lab(tmp_path, host)
+    page = f"https://{host}/orbit-9"
+    doc = "https://docs.sibling.example/orbit-9"
+    models_dev = "https://models.dev/api.json"
+    row = signal(
+        model_name="Orbit 9",
+        signal_id="watch:acme:dead-first-seen",
+        first_seen_url=page,
+    )
+
+    def fetch(url: str) -> FetchResult:
+        if url == models_dev:
+            return FetchResult(models_dev, _listed_doc_payload(doc), "application/json")
+        if url == page:
+            raise _http_error(url, 404)
+        if url == doc:
+            return FetchResult(doc, _DOC_IDENTITY, "text/html")
+        if url.startswith("https://huggingface.co/api/"):
+            return FetchResult(url, b"[]", "application/json")
+        raise AssertionError(url)
+
+    pending, result_path, seen = _prepare_job(monkeypatch, tmp_path, row, fetch)
+    result = processor.process(
+        pending, result_path, root=tmp_path, price_fetcher=_PriceFetcher(),
+    )
+
+    assert result["status"] == "new"
+    assert result["model_id"] == "acme/orbit-9"
+    assert result["identity_basis"] == "json-ld"
+    assert result["gather_failures"] == [f"{host}: HTTPStatusError"]
+    assert page in seen
+    assert doc in seen
+    card = tmp_path / "models" / "acme" / "orbit-9.md"
+    text = card.read_text(encoding="utf-8")
+    front = yaml.safe_load(text.split("---", 2)[1])
+    assert front["sources"]["provider_docs_url"] == doc
+    assert str(front["release_date"]) == "2026-09-26"
+    assert page not in text
+    assert result_path.is_file()
+
+
+def test_a_dead_first_seen_page_and_a_dead_doc_are_uncertain(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    host = "models.acme.example"
+    doc_host = "docs.sibling.example"
+    _watch_lab(tmp_path, host)
+    page = f"https://{host}/orbit-9"
+    doc = f"https://{doc_host}/orbit-9"
+    models_dev = "https://models.dev/api.json"
+    reason = f"{host}: HTTPStatusError; {doc_host}: HTTPStatusError"
+    row = signal(
+        model_name="Orbit 9",
+        signal_id="watch:acme:dead-first-seen-and-doc",
+        first_seen_url=page,
+    )
+
+    def fetch(url: str) -> FetchResult:
+        if url == models_dev:
+            return FetchResult(models_dev, _listed_doc_payload(doc), "application/json")
+        if url == page or url == doc:
+            raise _http_error(url, 404)
+        if url.startswith("https://huggingface.co/api/"):
+            return FetchResult(url, b"[]", "application/json")
+        raise AssertionError(url)
+
+    pending, result_path, seen = _prepare_job(monkeypatch, tmp_path, row, fetch)
+    monkeypatch.setattr(sys, "argv", [
+        "process_release_signals",
+        "--root", str(tmp_path),
+        "--pending", str(pending),
+        "--result", str(result_path),
+    ])
+
+    assert processor.main() == 0
+    output = capsys.readouterr()
+    assert "Traceback" not in output.out
+    assert "Traceback" not in output.err
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    assert result["status"] == "uncertain"
+    assert result["model_id"] is None
+    assert result["reason"] == reason
+    assert page in seen
+    assert doc in seen
+    assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
+
+    from release_signals.pipeline import gather_signal
+
+    clear_catalogue_cache()
+    gathered = gather_signal(
+        ReleaseSignal.from_queue(row),
+        root=tmp_path,
+        fetch=fetch,
+        discover_huggingface=False,
+    )
+    assert gathered.resolution.status == "uncertain"
+    assert gathered.resolution.reason == reason
+    assert gathered.gather_failures == (
+        f"{host}: HTTPStatusError",
+        f"{doc_host}: HTTPStatusError",
+    )
+
+
+def test_a_first_seen_redirect_to_another_owner_falls_back_to_the_provider_doc(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _huggingface_watch(tmp_path, "AcmeLab")
+    requested = "https://huggingface.co/AcmeLab/orbit-9"
+    final = "https://huggingface.co/other-user/orbit-9"
+    doc = "https://docs.sibling.example/orbit-9"
+    models_dev = "https://models.dev/api.json"
+    row = signal(
+        model_name="Orbit 9",
+        signal_id="watch:acme:redirect-owner-doc",
+        first_seen_url=requested,
+    )
+
+    def fetch(url: str) -> FetchResult:
+        if url == models_dev:
+            return FetchResult(models_dev, _listed_doc_payload(doc), "application/json")
+        if url == requested:
+            return FetchResult(final, b"<h1>Acme releases Orbit 9</h1>", "text/html")
+        if url == doc:
+            return FetchResult(doc, _DOC_IDENTITY, "text/html")
+        if url.startswith("https://huggingface.co/api/"):
+            return FetchResult(url, b"[]", "application/json")
+        raise AssertionError(url)
+
+    pending, result_path, seen = _prepare_job(monkeypatch, tmp_path, row, fetch)
+    result = processor.process(
+        pending, result_path, root=tmp_path, price_fetcher=_PriceFetcher(),
+    )
+
+    assert result["status"] == "new"
+    assert result["model_id"] == "acme/orbit-9"
+    assert result["identity_basis"] == "json-ld"
+    assert result["gather_failures"] == []
+    assert requested in seen
+    assert doc in seen
+    text = (tmp_path / "models" / "acme" / "orbit-9.md").read_text(encoding="utf-8")
+    front = yaml.safe_load(text.split("---", 2)[1])
+    assert front["sources"]["provider_docs_url"] == doc
+    assert str(front["release_date"]) == "2026-09-26"
+    assert final not in text
+    assert "other-user" not in text
+
+
+def test_a_gate_refusal_on_the_preferred_first_seen_url_still_raises(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    host = "models.acme.example"
+    _watch_lab(tmp_path, host)
+    page = f"https://{host}/orbit-9"
+    doc = "https://docs.sibling.example/orbit-9"
+    prohibited = "https://" + "artificial" + "analysis.ai" + "/orbit-9"
+    models_dev = "https://models.dev/api.json"
+    row = signal(
+        model_name="Orbit 9",
+        signal_id="watch:acme:gated-first-seen",
+        first_seen_url=page,
+    )
+
+    def fetch(url: str) -> FetchResult:
+        if url == models_dev:
+            return FetchResult(models_dev, _listed_doc_payload(doc), "application/json")
+        if url == page:
+            return FetchResult(prohibited, b"<h1>Acme releases Orbit 9</h1>", "text/html")
+        raise AssertionError(url)
+
+    pending, result_path, seen = _prepare_job(monkeypatch, tmp_path, row, fetch)
+    with pytest.raises(ValueError, match="excluded source") as caught:
+        processor.process(
+            pending, result_path, root=tmp_path, price_fetcher=_PriceFetcher(),
+        )
+
+    assert not isinstance(caught.value, RequiredSourceError)
+    assert page in seen
+    assert doc not in seen
+    assert not result_path.exists()
+    assert not (tmp_path / "models" / "acme" / "orbit-9.md").exists()
+
+
+def test_a_release_signal_test_starts_with_an_empty_catalogue_cache() -> None:
+    from release_signals import pipeline as release_pipeline
+
+    assert release_pipeline._SLUG_INDEX == {}
+    assert release_pipeline._HF_ORG_INDEX == {}

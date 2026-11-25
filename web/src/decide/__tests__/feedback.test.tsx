@@ -168,17 +168,17 @@ describe("the page-wide control", () => {
   });
 });
 
-describe("the response schemas are strict", () => {
+describe("the response schemas", () => {
   it("refuses a field the page does not know", () => {
     expect(feedbackResultSchema.safeParse(NOT_RECORDED).success).toBe(true);
     expect(feedbackResultSchema.safeParse({ ...NOT_RECORDED, extra: 1 }).success).toBe(false);
     expect(feedbackResultSchema.safeParse({ ...NOT_RECORDED, status: "recorded" }).success).toBe(false);
   });
 
-  it("parses the 2.10 feedback pointer on a decision, and nothing looser", () => {
+  it("parses the 2.10 feedback pointer on a decision and drops an unknown key", () => {
     const decision = decisionSchema.parse(full);
-    expect(decision.contract_version).toBe("2.20");
+    expect(decision.contract_version).toBe("2.21");
     expect(decision.feedback?.endpoint).toBe("https://api.modelspec.dev/v1/feedback");
-    expect(decisionSchema.safeParse({ ...full, feedback: { ...full.feedback, extra: 1 } }).success).toBe(false);
+    expect(decisionSchema.safeParse({ ...full, feedback: { ...full.feedback, extra: 1 } }).success).toBe(true);
   });
 });

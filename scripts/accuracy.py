@@ -2,9 +2,24 @@
 """Publishable accuracy report for the decision engine (MODEL-111 and MODEL-160).
 
 The PR profile runs deterministic correctness, frozen-image engine recall, and
-output parity. The nightly profile gates current-data freshness, re-reads verified
-values, compares domain leaders with permitted independent boards, and reports
-recall changes without gating on them.
+output parity. The data-pr profile is the catalogue check for a release-signal
+card. It gates deterministic correctness and the Python output-parity suites.
+It reports the vitest half as omitted: that half reads checked-in fixtures and
+needs Node packages the job does not install. It reports frozen-image engine
+recall as omitted: that layer scores the engine's committed public image, which
+a data pull request cannot change, and on a linked tree it still reads the
+private registry. The engine's own CI owns that check. The nightly profile
+gates current-data freshness, re-reads verified values, compares domain leaders
+with permitted independent boards, and reports recall changes without gating
+on them. The pr and nightly profiles refuse a tree whose data path is a symlink.
+The recall baseline update refuses that tree before it reads the catalogue.
+The data-pr report builds that linked catalogue with the completeness gate on.
+The snapshot line says "(linked catalogue)" when the linked-tree check finds
+a symlink. Naming an omitted data-pr layer is an error.
+
+The compare-approved-answers operation reads one recall report and the
+baselines. It prints counts and question ids. A regression exits 0. It exits
+non-zero only when those inputs cannot be validated.
 """
 
 from __future__ import annotations
@@ -28,13 +43,36 @@ from typing import Any, Literal
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from scripts.accuracy_public import (  # noqa: E402
+    public_nightly_report,
+    public_report_location,
+)
+
+from scripts.observation_dates import (  # noqa: E402
+    day as _day,
+    observation_metadata_date as _observation_metadata_date,
+)
+
 DEFAULT_CONFIG = ROOT / "accuracy.yaml"
 DEFAULT_OUTPUT = ROOT / "accuracy-report"
 DEFAULT_RECALL_BASELINE = ROOT / "tests" / "recall" / "baseline.json"
 PROFILES = {
     "pr": ("deterministic_correctness", "frozen_image_engine_recall", "output_parity"),
+    "data-pr": ("deterministic_correctness", "output_parity"),
     "nightly": ("freshness", "data_fidelity", "reference_agreement", "frozen_image_engine_recall"),
 }
+_DATA_PR_OMITTED_VITEST = (
+    "Omitted: the vitest half reads checked-in fixtures and needs Node "
+    "packages the job does not install."
+)
+_DATA_PR_OMITTED_RECALL = (
+    "Omitted: frozen-image engine recall scores the engine's committed "
+    "public image, which a data pull request cannot change, and on a "
+    "linked tree it still reads the private registry. The engine's own "
+    "CI owns this check."
+)
 Status = Literal["pass", "fail", "report", "undetermined"]
 RecallVerdict = Literal["pass", "partial", "fail"]
 
@@ -105,6 +143,7 @@ class AccuracyReport:
     profile: str
     snapshot: str | None
     layers: tuple[LayerResult, ...]
+    linked_catalogue: bool = False
 
     @property
     def status(self) -> Literal["pass", "fail"]:
@@ -180,19 +219,6 @@ def load_config(path: str | Path = DEFAULT_CONFIG) -> AccuracyConfig:
     return config
 
 
-def _day(value: Any) -> date | None:
-    if isinstance(value, datetime):
-        return value.date()
-    if isinstance(value, date):
-        return value
-    if isinstance(value, str):
-        try:
-            return date.fromisoformat(value[:10])
-        except ValueError:
-            return None
-    return None
-
-
 def _model_candidates(snapshot: Any) -> dict[str, list[str]]:
     result: dict[str, list[str]] = defaultdict(list)
     for candidate in snapshot.candidates():
@@ -216,22 +242,6 @@ def _evidence_record(snapshot: Any, row: Any) -> Mapping[str, Any]:
     return record if isinstance(record, Mapping) else {}
 
 
-def _observation_metadata_date(record: Mapping[str, Any]) -> date | None:
-    """Return a source observation date, never an evaluation/publication date."""
-    containers = [record]
-    source_snapshot = record.get("source_snapshot")
-    if isinstance(source_snapshot, Mapping):
-        containers.append(source_snapshot)
-    sources = record.get("sources")
-    if isinstance(sources, Sequence) and not isinstance(sources, (str, bytes)):
-        containers.extend(source for source in sources if isinstance(source, Mapping))
-    for key in ("observed_at", "retrieved_at"):
-        for container in containers:
-            if (value := _day(container.get(key))) is not None:
-                return value
-    return _day(record.get("verified_at"))
-
-
 def _live_observation_date(
     snapshot: Any,
     row: Any,
@@ -245,6 +255,8 @@ def _live_observation_date(
     observation date.
     """
     record = _evidence_record(snapshot, row)
+    if record.get("not_published_since") not in (None, ""):
+        return False, None
     date_type = getattr(row, "date_type", None) or record.get("date_type")
     source_kind = getattr(row, "source_kind", None) or record.get("source_kind")
     source_ids = set(getattr(row, "source_ids", ()) or ())
@@ -280,6 +292,7 @@ def check_freshness(
     problems: list[dict[str, Any]] = []
     models = _model_candidates(snapshot)
     seen_records: set[str] = set()
+    marked_rows: set[str] = set()
     cited_records: set[tuple[str, str]] = set()
     cited_only_models = 0
     live_rows = 0
@@ -310,6 +323,9 @@ def check_freshness(
             key = row.record_id or f"{model_id}:{row.benchmark_id}:{row.date}:{row.value}"
             if getattr(row, "cited", False):
                 cited_records.add((model_id, key))
+            record = _evidence_record(snapshot, row)
+            if record.get("not_published_since") not in (None, ""):
+                marked_rows.add(key)
             live, observed = _live_observation_date(snapshot, row, sources)
             if key in seen_records or not live:
                 continue
@@ -334,17 +350,22 @@ def check_freshness(
                     }
                 )
     status: Status = "fail" if problems else "pass"
+    summary = (
+        f"{len(models)} lineup models and {live_rows} dated live readings checked; "
+        f"{len(cited_records)} domain records are cited, not machine-verified "
+        f"({cited_only_models} models have only cited domain evidence); "
+        f"{len(problems)} freshness failure(s)."
+    )
+    if marked_rows:
+        summary += f" {len(marked_rows)} reading(s) are marked no longer published."
     return LayerResult(
         "freshness",
         status,
         True,
-        f"{len(models)} lineup models and {live_rows} dated live readings checked; "
-        f"{len(cited_records)} domain records are cited, not machine-verified "
-        f"({cited_only_models} models have only cited domain evidence); "
-        f"{len(problems)} freshness failure(s).",
+        summary,
         {"lineup_models": len(models), "live_readings": live_rows,
          "cited_domain_records": len(cited_records), "cited_only_models": cited_only_models,
-         "failures": len(problems)},
+         "failures": len(problems), "not_published_since": len(marked_rows)},
         problems,
     )
 
@@ -583,12 +604,25 @@ def deterministic_correctness(root: Path, config: SuiteConfig) -> LayerResult:
     )
 
 
-def output_parity(root: Path, config: SuiteConfig) -> LayerResult:
+def output_parity(root: Path, config: SuiteConfig, include_web: bool = True) -> LayerResult:
     python_result = _run_command(
         "output_parity",
         (sys.executable, "-m", "pytest", "-q", *config.python_test_paths),
         cwd=root,
     )
+    if not include_web:
+        failed = python_result.status == "fail"
+        return LayerResult(
+            "output_parity",
+            "fail" if failed else "pass",
+            True,
+            "Python output-parity suites passed."
+            if not failed
+            else "At least one output-parity suite failed.",
+            {"commands": 1, "failed": int(failed)},
+            [python_result.details],
+            round(python_result.duration_seconds or 0, 3),
+        )
     web_command = (
         "npm",
         "exec",
@@ -662,6 +696,49 @@ def _recall_update_command(as_of: date) -> str:
     )
 
 
+def linked_data_path(root: Path) -> str | None:
+    """The first data path that is a symlink, or None on an ordinary checkout."""
+    from pipeline.data_source import DATA_PATHS
+
+    root = Path(root)
+    for relative in DATA_PATHS:
+        current = root
+        for part in Path(relative).parts:
+            current = current / part
+            if current.is_symlink():
+                return current.relative_to(root).as_posix()
+    return None
+
+
+def _refuse_linked_profile(root: Path, profile: str) -> None:
+    if profile not in ("pr", "nightly"):
+        return
+    linked = linked_data_path(root)
+    if linked is not None:
+        raise SystemExit(f"{linked} is a symlink; use --profile data-pr")
+
+
+def omitted_layers(profile: str) -> tuple[LayerResult, ...]:
+    if profile != "data-pr":
+        return ()
+    return (
+        LayerResult(
+            "output_parity_web",
+            "report",
+            False,
+            _DATA_PR_OMITTED_VITEST,
+            {"omitted": 1},
+        ),
+        LayerResult(
+            "frozen_image_engine_recall",
+            "report",
+            False,
+            _DATA_PR_OMITTED_RECALL,
+            {"omitted": 1},
+        ),
+    )
+
+
 def run_golden(
     root: Path,
     snapshot_file: Path | None,
@@ -679,21 +756,21 @@ def run_golden(
             output_dir=Path(temporary),
             report_date=as_of,
         )
-        baseline = load_recall_baseline(root / "tests" / "recall" / "baseline.json")
-        approved = (
-            load_recall_baseline(approved_baseline_path)
-            if approved_baseline_path is not None
-            else None
-        )
-        return recall_ratchet(
-            baseline.verdicts,
-            result.questions,
-            gating=gating,
-            update_command=_recall_update_command(as_of),
-            approved_baseline=None if approved is None else approved.verdicts,
-            frozen_image_reason=baseline.frozen_image_reason,
-            approved_frozen_image_reason=None if approved is None else approved.frozen_image_reason,
-        )
+    baseline = load_recall_baseline(root / "tests" / "recall" / "baseline.json")
+    approved = (
+        load_recall_baseline(approved_baseline_path)
+        if approved_baseline_path is not None
+        else None
+    )
+    return recall_ratchet(
+        baseline.verdicts,
+        result.questions,
+        gating=gating,
+        update_command=_recall_update_command(as_of),
+        approved_baseline=None if approved is None else approved.verdicts,
+        frozen_image_reason=baseline.frozen_image_reason,
+        approved_frozen_image_reason=None if approved is None else approved.frozen_image_reason,
+    )
 
 
 def update_recall_baseline(
@@ -703,6 +780,9 @@ def update_recall_baseline(
     as_of: date,
     frozen_image_reason: Mapping[str, str] | None = None,
 ) -> RecallBaseline:
+    linked = linked_data_path(root)
+    if linked is not None:
+        raise SystemExit(f"{linked} is a symlink; use --profile data-pr")
     from scripts.recall_run import run
 
     path = root / "tests" / "recall" / "baseline.json"
@@ -1122,7 +1202,7 @@ def _current_copies(
     ``render_required``.
     """
     from decision.model import SourceRef
-    from decision.sources import FetchMode, recheck
+    from decision.sources import FetchMode, recheck, refusal_reason
 
     selected = {source.source_id for claim, _ in batch for source in claim.sources}
     report = recheck(
@@ -1182,7 +1262,11 @@ def _current_copies(
                     *map(str, source.resolved_urls), *response.resolved_urls,
                 ]))
                 error_category = None
-                if response.status is not None and response.status >= 400:
+                if (refused := refusal_reason(response)) is not None:
+                    # Refused at the terms register (MODEL-509): its own category, so the
+                    # layer counts it and fails; never a plain transport error.
+                    error_category = refused.partition(":")[0]
+                elif response.status is not None and response.status >= 400:
                     error_category = "http_error"
                 elif response.error:
                     error_category = (
@@ -1193,6 +1277,9 @@ def _current_copies(
                         (row.reason for row in report.skipped if row.source_id == source.source_id),
                         "no_copy",
                     )
+                    if error_category.startswith("shell_page:"):
+                        # Bytes that are a shell (MODEL-519): its own category.
+                        error_category = "shell_page"
                 diagnostics.append({
                     "source_id": source.source_id,
                     "url": str(sources[source.source_id].url),
@@ -1321,6 +1408,8 @@ def data_fidelity(
     sample: list[dict[str, Any]] = []
     drawn = 0
     fetched_sources: set[str] = set()
+    refused_sources: set[str] = set()
+    shell_sources: set[str] = set()
     with tempfile.TemporaryDirectory(prefix="modelspec-accuracy-sources-") as temporary:
         store = CopyStore(Path(temporary))
         fetcher = Fetcher()
@@ -1341,6 +1430,12 @@ def data_fidelity(
                 nightly_methods=nightly_methods,
                 fetch_diagnostics=fetch_diagnostics,
             )
+            refused_sources.update(
+                row["source_id"] for rows in fetch_diagnostics.values() for row in rows
+                if row["error_category"] in {"redirect_unclassified", "terms_register_unreadable"})
+            shell_sources.update(
+                row["source_id"] for rows in fetch_diagnostics.values() for row in rows
+                if row["error_category"] == "shell_page")
             result = verify_fidelity_sample(
                 current,
                 regions=StoredRegions(store, sources),
@@ -1362,6 +1457,15 @@ def data_fidelity(
     # Rendered sources the nightly cannot read stay visible each night (MODEL-336).
     render_required = sum(row["reason"] == "render_required" for row in sample)
     summary += f" {render_required} draw(s) needed a renderer (render_required)."
+    if refused_sources:
+        # A refused hop is loud (MODEL-509): the layer fails, which opens the nightly alert.
+        status = "fail"
+        summary += (f" {len(refused_sources)} source(s) were refused at the terms register "
+                    "(redirect_unclassified).")
+    if shell_sources:
+        # A shell page is loud too (MODEL-519): the layer fails.
+        status = "fail"
+        summary += f" {len(shell_sources)} source(s) returned a shell page (shell_page)."
     summary += (
         f" {counts['public_image_lag']} draw(s) lagged a newer verified private correction."
     )
@@ -1381,12 +1485,16 @@ def data_fidelity(
             "max_values_drawn": config.max_values_drawn,
             "undetermined_share": round(share, 4),
             "max_undetermined_share": config.max_undetermined_share,
+            # The gate's own raw comparison; the share above is rounded (MODEL-553).
+            "over_undetermined_limit": share > config.max_undetermined_share,
             "undetermined_reasons": {
                 reason: sum(row["reason"] == reason for row in sample)
                 for reason in ("source_unchanged", "source_changed", "render_required",
                                "missing_source_metadata")
             },
             "plain_http_sources": len(fetched_sources),
+            "redirect_unclassified": len(refused_sources),
+            "shell_page": len(shell_sources),
             "firecrawl_credits_used": 0,
             "firecrawl_credit_limit": config.max_firecrawl_credits,
         },
@@ -1619,13 +1727,17 @@ def reference_agreement(
 
 
 def _markdown(report: AccuracyReport) -> str:
+    snapshot = report.snapshot or "not used"
+    snapshot_line = f"Snapshot: `{snapshot}`"
+    if report.linked_catalogue:
+        snapshot_line += " (linked catalogue)"
     lines = [
         "# Decision engine accuracy",
         "",
         f"**Overall: {report.status.upper()}**  ",
         f"Generated: {report.generated_at}  ",
         f"Profile: `{report.profile}`  ",
-        f"Snapshot: `{report.snapshot or 'not used'}`",
+        snapshot_line,
         "",
         "| Layer | Status | Gate | Summary |",
         "| --- | --- | --- | --- |",
@@ -1681,10 +1793,22 @@ def run_profile(
 ) -> AccuracyReport:
     del output_dir
     root = Path(root).resolve()
-    as_of = as_of or date.today()
+    _refuse_linked_profile(root, profile)
+    as_of = as_of or datetime.now(UTC).date()
     config = load_config(config_path)
     selected = tuple(layers or PROFILES[profile])
+    if profile == "data-pr":
+        omitted = [
+            name for name in selected
+            if name in {"frozen_image_engine_recall", "output_parity_web"}
+        ]
+        if omitted:
+            raise SystemExit(f"omitted from --profile data-pr: {', '.join(omitted)}")
     snapshot = None
+    # data-pr scores the linked catalogue. The build's completeness gate stays
+    # on: a card that does not compile fails this profile before the other layers.
+    if profile == "data-pr":
+        snapshot = _load_snapshot(root, snapshot_file, as_of)
     # Load the reference snapshot before fidelity can quarantine a mismatched
     # value in this run. Both nightly layers must assess the same starting state.
     if "reference_agreement" in selected:
@@ -1718,7 +1842,7 @@ def run_profile(
                 )
             )
         elif layer == "output_parity":
-            results.append(output_parity(root, config.parity))
+            results.append(output_parity(root, config.parity, profile != "data-pr"))
         elif layer == "data_fidelity":
             results.append(
                 data_fidelity(
@@ -1738,12 +1862,77 @@ def run_profile(
             )
         else:
             raise ValueError(f"unknown accuracy layer: {layer}")
+    if layers is None:
+        results.extend(omitted_layers(profile))
     return AccuracyReport(
         generated_at=datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
         profile=profile,
         snapshot=getattr(snapshot, "snapshot_id", None),
         layers=tuple(results),
+        linked_catalogue=linked_data_path(root) is not None,
     )
+
+
+_APPROVED_LEVEL = {"fail": 0, "partial": 1, "pass": 2}
+_APPROVED_IDS = {f"Q{number:02d}" for number in range(1, 21)}
+
+
+def _approved_verdicts(path: Path, *, report: bool = False) -> dict[str, str]:
+    raw = json.loads(Path(path).read_text(encoding="utf-8"))
+    if report:
+        rows = raw["questions"]
+        result = {row["id"]: row["verdict"] for row in rows}
+        if len(rows) != len(_APPROVED_IDS):
+            raise ValueError("invalid question count")
+    else:
+        if raw["schema_version"] != 1:
+            raise ValueError("invalid baseline schema")
+        result = raw["verdicts"]
+    if set(result) != _APPROVED_IDS or any(
+        value not in _APPROVED_LEVEL for value in result.values()
+    ):
+        raise ValueError("invalid question verdicts")
+    return result
+
+
+def compare_approved_answers(
+    report_dir: Path,
+    baseline: Path,
+    approved_baseline: Path | None,
+    summary: Path,
+) -> list[str]:
+    """Print counts and question ids. Return the regressed question ids."""
+    reports = list(Path(report_dir).glob("*.json"))
+    if len(reports) != 1:
+        raise ValueError("expected one report")
+    current = _approved_verdicts(reports[0], report=True)
+    minima = [_approved_verdicts(baseline)]
+    if approved_baseline is not None:
+        minima.append(_approved_verdicts(approved_baseline))
+    proposed = minima[0]
+    regressions = sorted(
+        question
+        for question in _APPROVED_IDS
+        if any(
+            _APPROVED_LEVEL[current[question]] < _APPROVED_LEVEL[minimum[question]]
+            or _APPROVED_LEVEL[proposed[question]] < _APPROVED_LEVEL[minimum[question]]
+            for minimum in minima
+        )
+    )
+    lines = []
+    for verdict in ("pass", "partial", "fail"):
+        questions = sorted(
+            question for question in _APPROVED_IDS if current[question] == verdict
+        )
+        lines.append(
+            f"{verdict}: {len(questions)}; question ids: {', '.join(questions) or 'none'}"
+        )
+    lines.append("Regression question ids: " + (", ".join(regressions) or "none"))
+    text = "\n".join(lines) + "\n"
+    with Path(summary).open("a", encoding="utf-8") as output:
+        output.write(text)
+    print(text, end="")
+    return regressions
 
 
 STAGED_FAILURE = LayerResult(
@@ -1751,6 +1940,10 @@ STAGED_FAILURE = LayerResult(
     "fail",
     True,
     "A synthetic failure that proves the alert path (MODEL-231); not a real regression.",
+)
+
+_PRIVATE_RUN_FAILURE = (
+    "accuracy: the run failed before a report was written; details are not published"
 )
 
 
@@ -1773,7 +1966,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         type=Path,
         help="Compare the public engine baseline with the merge-base baseline.",
     )
-    parser.add_argument("--date", type=date.fromisoformat, default=date.today())
+    parser.add_argument("--date", type=date.fromisoformat, default=datetime.now(UTC).date())
     parser.add_argument("--llm-reader", choices=("claude", "mistral"))
     parser.add_argument("--sample-size", type=int)
     parser.add_argument("--seed")
@@ -1799,7 +1992,48 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--changed-files", type=Path)
     parser.add_argument("--labels-json")
+    parser.add_argument(
+        "--compare-approved-answers",
+        action="store_true",
+        help="Compare one recall report with the proposed and approved baselines.",
+    )
+    parser.add_argument("--report-dir", type=Path)
+    parser.add_argument("--baseline", type=Path)
+    parser.add_argument("--approved-baseline", type=Path)
+    parser.add_argument("--summary", type=Path)
+    parser.add_argument("--step-output", type=Path)
     args = parser.parse_args(argv)
+    if args.compare_approved_answers and (
+        args.update_recall_baseline or args.check_recall_approval
+    ):
+        parser.error("choose only one maintenance operation")
+    if args.compare_approved_answers:
+        if args.report_dir is None or args.baseline is None or args.summary is None:
+            parser.error(
+                "--compare-approved-answers requires --report-dir, --baseline, and --summary"
+            )
+        try:
+            regressions = compare_approved_answers(
+                args.report_dir,
+                args.baseline,
+                args.approved_baseline,
+                args.summary,
+            )
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            if str(exc) == "expected one report":
+                print(
+                    "::error::Private recall inputs could not be validated: "
+                    "expected one report."
+                )
+            else:
+                print("::error::Private recall inputs could not be validated.")
+            return 1
+        if args.step_output is not None:
+            with args.step_output.open("a", encoding="utf-8") as handle:
+                handle.write(f"regressed={'true' if regressions else 'false'}\n")
+                handle.write(f"regression_ids={', '.join(regressions)}\n")
+            return 0
+        return 1 if regressions else 0
     if args.update_recall_baseline and args.check_recall_approval:
         parser.error("choose only one maintenance operation")
     if args.update_recall_baseline:
@@ -1840,6 +2074,25 @@ def main(argv: Sequence[str] | None = None) -> int:
         for path in result.details:
             print(path)
         return 1 if result.status == "fail" else 0
+    from contextlib import nullcontext
+
+    from decision import retention
+
+    try:
+        # MODEL-510: the terms register's forbids class applies to the private nightly too.
+        with (retention.using_data_dir(args.private_data_root)
+              if args.private_data_root is not None else nullcontext()):
+            return _publish_profile(args)
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except Exception as exc:
+        if args.private_data_root is None:
+            raise
+        print(f"{_PRIVATE_RUN_FAILURE} ({type(exc).__name__})", file=sys.stderr)
+        return 1
+
+
+def _publish_profile(args: argparse.Namespace) -> int:
     report = run_profile(
         root=args.root,
         config_path=args.config,
@@ -1857,8 +2110,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.stage_failure:
         report = replace(report, layers=(*report.layers, STAGED_FAILURE))
     markdown, payload = write_report(report, args.output_dir)
-    print(markdown.read_text(encoding="utf-8"), end="")
-    print(f"JSON: {payload}")
+    if args.private_data_root is not None:
+        print(public_nightly_report(report), end="")
+        print(public_report_location(args.output_dir))
+    else:
+        print(markdown.read_text(encoding="utf-8"), end="")
+        print(f"JSON: {payload}")
     return 1 if report.status == "fail" else 0
 
 

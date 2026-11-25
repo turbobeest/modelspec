@@ -16,6 +16,8 @@ from tests.test_price_reread import estate
 
 PAGE = b"<html><p>Synthetic page text never retained for restricted hosts.</p></html>"
 AT = datetime(2026, 10, 19, 12, tzinfo=UTC)
+#: Jamie, 2026-11-25 (S8, MODEL-473): read in memory and cite, never keep a copy.
+JAMIE_2026_11_25 = ("aistudio.google.com", "thinkingmachines.ai", "arena.ai", "gemma.ai", "grok.com")
 
 
 def test_cite_only_policy_contains_exactly_the_approved_hosts():
@@ -23,7 +25,23 @@ def test_cite_only_policy_contains_exactly_the_approved_hosts():
         "x.ai", "docs.x.ai", "perplexity.ai", "www.anthropic.com",
         "developers.openai.com", "help.openai.com", "chatgpt.com", "cursor.com",
         "platform.claude.com", "privacy.claude.com",
+        *JAMIE_2026_11_25,
     }
+
+
+@pytest.mark.parametrize("host", JAMIE_2026_11_25)
+def test_jamie_2026_11_25_hosts_are_cite_only_without_a_data_dir(monkeypatch, tmp_path, host):
+    """MODEL-473: Jamie's 2026-11-25 rulings hold these hosts cite-only in the public list."""
+    monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)
+    cite_only_hosts.cache_clear()
+    assert host in cite_only_hosts()
+    assert cite_only_status(f"https://{host}/") is True
+    assert cite_only_status(f"https://sub.{host.upper()}.:443/page") is True
+    store = CopyStore(tmp_path)
+    ref = store.put(PAGE, source_url=f"https://{host}/page", retrieved_at=AT)
+    assert not store.has(ref)
+    assert store.citation(ref)["url"] == f"https://{host}/page"
+    assert all(PAGE not in path.read_bytes() for path in tmp_path.rglob("*") if path.is_file())
 
 
 @pytest.mark.parametrize("url", [
@@ -51,7 +69,7 @@ def test_copy_store_cite_only_keeps_only_citation(tmp_path, url):
 
 @pytest.mark.parametrize("host", [
     "www.anthropic.com", "developers.openai.com", "help.openai.com", "chatgpt.com", "cursor.com",
-    "platform.claude.com", "privacy.claude.com",
+    "platform.claude.com", "privacy.claude.com", *JAMIE_2026_11_25,
 ])
 def test_new_cite_only_hosts_require_a_label_boundary(host):
     assert cite_only_status(f"https://not{host}/models") is False
@@ -61,6 +79,7 @@ def test_new_cite_only_hosts_require_a_label_boundary(host):
 @pytest.mark.parametrize("host", [
     "anthropic.com", "docs.anthropic.com", "openai.com", "api.openai.com",
     "claude.com", "support.claude.com",
+    "google.com", "ai.google.dev", "lmarena.ai", "gemma.google.com",
 ])
 def test_new_cite_only_hosts_do_not_include_parents_or_siblings(host):
     assert cite_only_status(f"https://{host}/models") is False

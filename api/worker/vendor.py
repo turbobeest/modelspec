@@ -34,6 +34,7 @@ import logging
 import traceback
 import argparse
 import os
+import re
 import subprocess
 import tempfile
 import gzip
@@ -68,6 +69,7 @@ SOURCES = {
     Path("decision/contract.py"): Path("decision/contract.py"),
     Path("decision/citation.py"): Path("decision/citation.py"),
     Path("decision/coverage.py"): Path("decision/coverage.py"),
+    Path("decision/credit.py"): Path("decision/credit.py"),
     Path("decision/engine.py"): Path("decision/engine.py"),
     Path("decision/estate.py"): Path("decision/estate.py"),
     Path("decision/excluded.py"): Path("decision/excluded.py"),
@@ -217,7 +219,8 @@ def bundle_data(out: Path, data_dir: Path) -> None:
     """Generate private data as an imported module, never a public asset."""
     with tempfile.TemporaryDirectory(prefix="modelspec-worker-") as tmp:
         site = Path(tmp) / "site"
-        env = dict(os.environ, DATA_SPLIT_ENABLED="false", MODELSPEC_REQUIRE_DATA_DIR="1")
+        env = dict(os.environ, DATA_SPLIT_ENABLED="false", MODELSPEC_REQUIRE_DATA_DIR="1",
+                   MODELSPEC_DATA_DIR=str(data_dir.resolve()))
         # Build output and exceptions may contain private rows. Emit only status.
         completed = subprocess.run(
             [sys.executable, str(Path(__file__).resolve()), "--export-data", str(site),
@@ -227,12 +230,12 @@ def bundle_data(out: Path, data_dir: Path) -> None:
         stderr = completed.stderr.decode("utf-8", errors="replace").splitlines()
         for line in stderr:
             if line.startswith("premier models:"):
-                print(line, file=sys.stderr)
+                print(_public_log_line(line, data_dir=data_dir), file=sys.stderr)
         if completed.returncode:
             # The child emits only path/category diagnostics in private mode.
             for line in stderr:
                 if line.startswith(("Worker bundle build failed: path=", "uncited policy rows:")):
-                    print(line, file=sys.stderr)
+                    print(_public_log_line(line, data_dir=data_dir), file=sys.stderr)
             raise RuntimeError("private Worker data build failed")
         api = site
         paths = ("rank/candidates.json", "rank/hardware.json", "policy/catalogue.json",
@@ -267,6 +270,68 @@ def bundled_data_source(blobs: dict[str, str], snapshots: dict[str, dict]) -> st
 
 
 _coverage_log_ready = False
+_DETAIL_NAME = "modelspec-private-build-detail.txt"
+_COVERAGE_LINE = re.compile(
+    r"^(premier models: known \d+, explicit null \d+, gap \d+; "
+    r"gap labs outside premier:)(.*)$"
+)
+_UNCITED_LINE = re.compile(r"^uncited policy rows: \d+$")
+_FAILED_LINE = re.compile(
+    r"^Worker bundle build failed: path=(.*); category=([A-Za-z_][A-Za-z0-9_]*)$"
+)
+
+
+def _private_detail_file() -> Path:
+    """A runner temp file. No deploy step uploads it."""
+    raw = os.environ.get("RUNNER_TEMP")
+    directory = Path(raw) if raw else Path(tempfile.gettempdir())
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory / _DETAIL_NAME
+
+
+def _stash_private_detail(text: str) -> str:
+    """Keep identifiers off the log. Return the file's name, not its path."""
+    path = _private_detail_file()
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(text.rstrip("\n") + "\n")
+    return path.name
+
+
+def _public_log_line(line: str, *, data_dir: Path | None = None) -> str:
+    """Counts and fixed words. Identifiers from the private directory stay in the detail file."""
+    text = line.strip()
+    coverage = _COVERAGE_LINE.match(text)
+    if coverage:
+        head, tail = coverage.group(1), coverage.group(2).strip()
+        if not tail or tail == _DETAIL_NAME:
+            return f"{head} {tail}".rstrip() if tail else head
+        _stash_private_detail(tail)
+        return f"{head} {_DETAIL_NAME}"
+    if _UNCITED_LINE.fullmatch(text):
+        return text
+    failed = _FAILED_LINE.fullmatch(text)
+    if failed is not None and data_dir is not None:
+        path, category = failed.group(1), failed.group(2)
+        allowed = {str(data_dir), str(data_dir.resolve())}
+        if path in allowed:
+            return text
+        _stash_private_detail(path)
+        shown = f"Worker bundle build failed: path={data_dir}; category={category}"
+        return f"{shown}\n{_DETAIL_NAME}"
+    if text == _DETAIL_NAME:
+        return text
+    _stash_private_detail(text)
+    return _DETAIL_NAME
+
+
+class _PrivateDetailHandler(logging.Handler):
+    """The private export's snapshot log: counts on stderr, identifiers in the detail file."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            print(_public_log_line(record.getMessage()), file=sys.stderr)
+        except Exception:
+            self.handleError(record)
 
 
 def _show_coverage_log() -> None:
@@ -276,20 +341,31 @@ def _show_coverage_log() -> None:
         return
     log = logging.getLogger("decision.snapshot")
     log.setLevel(logging.INFO)
-    handler = logging.StreamHandler(sys.stderr)
-    handler.setFormatter(logging.Formatter("%(message)s"))
-    log.addHandler(handler)
+    # Last-resort handling would write the raw warning, identifiers included.
+    log.propagate = False
+    log.addHandler(_PrivateDetailHandler())
     _coverage_log_ready = True
 
 
-def require_consistent_modalities(cards: list) -> None:
-    """MODEL-457: private data must not publish a card whose modality flags contradict its lists."""
+def require_consistent_modalities(cards: list, facts: list | None = None) -> None:
+    """MODEL-457: private data must not publish a card whose modality flags contradict its lists.
+
+    MODEL-462: a list that contradicts the card's filed modality facts (``facts``, each
+    card's front-matter ``facts`` in the order of ``cards``) is a warning only: a count
+    on stderr, never a stop, until the data step that fixes the existing ones.
+    """
     contradictions = [
         f"{card.identity.model_id}: {error}"
         for card in cards for error in card.modality_errors()
     ]
     if contradictions and os.environ.get("MODELSPEC_ALLOW_MODALITY_CONTRADICTIONS") != "1":
         raise SystemExit("modality flag contradicts list:\n" + "\n".join(contradictions))
+    if facts is not None:
+        warned = sum(len(card.modality_fact_errors(card_facts))
+                     for card, card_facts in zip(cards, facts, strict=True))
+        if warned:
+            print(f"warning: {warned} modality list contradiction(s) with filed modality facts",
+                  file=sys.stderr)
 
 
 def export_data(out: Path, data_dir: Path) -> None:
@@ -309,7 +385,7 @@ def export_data(out: Path, data_dir: Path) -> None:
         registry.use_root(root)
         models = load_models(root)
         cards = [ModelCard.from_yaml_file(str(model.path)) for model in models]
-        require_consistent_modalities(cards)
+        require_consistent_modalities(cards, [model.front.get("facts") for model in models])
         build = export.make_build(load_catalogue(root), root).to_json()
         devices = hardware.load_devices(root)
         graph = derive_graph(cards, hardware.device_classes(devices))
@@ -394,6 +470,18 @@ def check_imports_are_stdlib_only(bundle: Path) -> list[str]:
 
 
 def main() -> int:
+    """Run the vendoring CLI; the data-dir environment it sets does not outlive the call."""
+    previous = os.environ.get("MODELSPEC_DATA_DIR")
+    try:
+        return _main()
+    finally:
+        if previous is None:
+            os.environ.pop("MODELSPEC_DATA_DIR", None)
+        else:
+            os.environ["MODELSPEC_DATA_DIR"] = previous
+
+
+def _main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", default=None, help="Bundle root (default: src/).")
     parser.add_argument("--data-dir", type=Path, default=None)
@@ -408,6 +496,11 @@ def main() -> int:
     if args.data_dir is not None and not os.environ.get("MODELSPEC_SNAPSHOT_KEY"):
         print("private Worker build requires the snapshot verification key", file=sys.stderr)
         return 2
+    if args.data_dir is not None:
+        # MODEL-510: the terms register's forbids class applies to every private export.
+        sys.path.insert(0, str(REPO_ROOT))
+        from decision import retention
+        retention.use_data_dir(args.data_dir.resolve())
     try:
         if args.export_data is not None:
             export_data(args.export_data, args.data_dir)
@@ -424,6 +517,24 @@ def main() -> int:
                 )
                 return 1
             print("bundle imports cleanly with only declared dependencies")
+    except SystemExit as error:
+        if args.data_dir is None:
+            raise
+        code = error.code
+        if isinstance(code, int):
+            status = code
+        elif code is None:
+            status = 0
+        else:
+            status = 1
+        if status != 0:
+            if isinstance(code, str) and code:
+                print(_stash_private_detail(code), file=sys.stderr)
+            print(
+                f"Worker bundle build failed: path={args.data_dir}; category=SystemExit",
+                file=sys.stderr,
+            )
+        return status
     except Exception as error:
         if args.data_dir is None:
             traceback.print_exc()
@@ -432,8 +543,13 @@ def main() -> int:
             path = getattr(error, "filename", None)
             if path is None and getattr(error, "_modelspec_redacted", False):
                 path = str(error).split(": line ", 1)[0]
-            path = path or str(args.data_dir)
-            print(f"Worker bundle build failed: path={path}; category={type(error).__name__}", file=sys.stderr)
+            shown = str(args.data_dir)
+            if path and path not in {shown, str(args.data_dir.resolve())}:
+                print(_stash_private_detail(str(path)), file=sys.stderr)
+            print(
+                f"Worker bundle build failed: path={shown}; category={type(error).__name__}",
+                file=sys.stderr,
+            )
         return 2
     return 0
 

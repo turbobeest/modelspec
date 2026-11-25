@@ -57,7 +57,7 @@ first. Deterministic extractors always run first:
   (`mistral-large:123b-instruct-2411-q4_K_M`) on the local ollama host
   (`http://100.127.37.30:11434/api/chat`, or `MODELSPEC_OLLAMA_URL`) at
   temperature 0 in JSON mode. Its actor is `ollama`, model family `mistral`: the
-  reader for values a Claude collector filed. Both readers get the same prompt.
+  reader for values a Claude collector filed. `MODELSPEC_OLLAMA_MODEL` picks another model, only from the fixed `APPROVED_OLLAMA_READERS` table, which also gives its family. Both readers get the same prompt.
   It asks for the value, unit, conditions and a source sentence. The verifier
   checks that sentence against the retained cited region. A region can state
   a condition once for a whole table, in a heading ("Comparison with frontier
@@ -112,7 +112,10 @@ Unknown sentences cannot supply a grant, a condition, or a prohibition for
 another sentence. The reader has no prose windows or grantor slots. The numeric
 monthly-user agreement rule is retained as a full match of the entire cited
 region, ending in a period. A contextual example or hypothetical is unread.
-It does not infer an unbounded cap or fine-tuning rights from silence. Source-kind
+This exact-sentence reader does not infer an unbounded cap or fine-tuning rights
+from silence; the reading rule for `licence.user_cap` below, which gives
+`unbounded` for a provider's terms read in full with no threshold, is a
+different rule (MODEL-490). Source-kind
 checks still apply. The offline seed derivation command is
 in `docs/evidence/g2-ios/MODEL-390-engine-sentence-seeds.py`.
 
@@ -331,6 +334,13 @@ every one raises an extractor error, the claim is skipped: nothing is logged
 and it stays queued. Other facets still verify an absence from a source
 whose kind is unknown. A known kind outside the facet's list is a mismatch
 for every facet.
+
+One exception to the kind list: an `offering.attestation.*` fact that is not disclosed (`not_disclosed`)
+also verifies from a `provider_terms` source whose `publisher` is the offering's
+provider, when `registry/providers.yaml` records that provider with
+`trust_centre: none`. That field needs `trust_centre_checked` (an ISO date) and
+`trust_centre_searched` (the URLs tried); the registry refuses it without both.
+A value claim never takes this route, and neither does another provider's terms.
 
 The first extractor that accepts a region and is independent of the collector
 reads it. Two keys means another model family (MODEL-140, enforced by

@@ -41,6 +41,11 @@ expected:
     sources:
     - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
       read: '2026-09-25'
+  - model_id: google/gemini-2-5-flash
+    reason: Admitted Arena vision rating, 1235.3. Deprecated models rank with a warning by design.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-11-21'
   must_never:
   - model_id: openai/text-embedding-3-large
     reason: An embedding model does not interpret an image.

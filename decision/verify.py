@@ -39,8 +39,12 @@ Outcomes are ``verified``, ``mismatch`` (with a structured diff), ``cited``
 (source policy forbids retained bytes; no Verification is logged) and
 ``unreachable`` (the copy, source or region is missing). A claim no
 independent extractor could read is ``skipped``: nothing is logged and it
-stays queued. Anything whose latest logged outcome is not ``verified``, and
-anything never verified, is **quarantined**.
+stays queued. ``StoredRegions`` can be asked to treat a copy that this cache
+does not hold as that same ``skipped``, with reason
+``no retained copy in this cache: <source>#<region>``. The default does not:
+an absent copy stays ``unreachable`` and is logged. Anything whose latest
+logged outcome is not ``verified``, and anything never verified, is
+**quarantined**.
 
 Files, under ``verification/`` at the repository root:
 
@@ -83,6 +87,9 @@ from urllib.parse import urljoin, urlsplit
 import yaml
 from pydantic import JsonValue, ValidationError
 
+from decision.cited_change import (  # noqa: F401  (the cite-only value-change gate, MODEL-531)
+    CitedChange, cited_change, reread, reread_required,
+)
 from decision.licence_rules import (
     LICENCE_CONDITION_RULE,
     LICENCE_READING_RULES,
@@ -129,6 +136,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DIRECTORY = REPO_ROOT / "verification"
 
 Outcome = Literal["verified", "mismatch", "unreachable", "skipped", "cited"]
+#: ``decision.cited_change.cited_change`` returns "cited_change" (a value written as cited,
+#: Jamie 2026-11-22) or "refused"; ``verify`` itself never produces either.
 CONDITION_KEYS = ("effort", "harness", "date", "effective_from", "effective_until")
 
 # --- claims --------------------------------------------------------------------------------------
@@ -160,6 +169,8 @@ class Claim:
     label: str | None = None
     conditions: Mapping[str, str | None] = field(default_factory=dict)
     base_model: str | None = None
+    #: The filed fact's state (``not_disclosed``, ``requires_contract``...); ``None`` when unknown.
+    state: str | None = None
 
     def __post_init__(self) -> None:
         if not self.names:
@@ -213,6 +224,7 @@ class Claim:
             collector=collector,
             sources=tuple(fact.sources),
             base_model=base_model or None,
+            state=getattr(fact, "state", None),
             conditions={key: getattr(fact, key).isoformat() if getattr(fact, key) else None
                         for key in ("effective_from", "effective_until")}
             if fact.effective_from or fact.effective_until else {},
@@ -233,7 +245,13 @@ class Claim:
         }
         if self.base_model:
             data["base_model"] = self.base_model
+        if self.state:
+            data["state"] = self.state
         return data
+
+    def same_as(self, other: Claim | None) -> bool:
+        """Equal ignoring ``state``, which claims queued before it existed lack."""
+        return other is not None and replace(self, state=None) == replace(other, state=None)
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> Claim:
@@ -249,6 +267,7 @@ class Claim:
             collector=VerificationActor.model_validate(data["collector"]),
             sources=tuple(SourceRef.model_validate(s) for s in data["sources"]),
             base_model=data.get("base_model") or None,
+            state=data.get("state") or None,
         )
 
 
@@ -384,6 +403,114 @@ def normalise_name(name: str) -> str:
     return re.sub(r"[^0-9a-z]+", " ", name.casefold()).strip()
 
 
+#: Effort words ``structured_name_effort`` reads. A hyphenated slug is not in this set.
+_COMPOUND_EFFORT = frozenset({"minimal", "low", "medium", "high", "xhigh", "max"})
+
+
+def _compound_token(part: str) -> bool:
+    token = part.casefold()
+    if token in _COMPOUND_EFFORT or token == "thinking":
+        return True
+    if re.fullmatch(r"\d+k", token):
+        return True
+    return re.fullmatch(r"\d{8}", part) is not None
+
+
+def _compound_parts(qualifier: str) -> list[str] | None:
+    """Tokens inside one compound qualifier, or None when the paren is not one.
+
+    A compound qualifier is a comma- or space-separated list of at least two
+    tokens. Each token is an effort word, ``Thinking``, a context size such as
+    ``32K``, or an eight-digit date. ``Thinking`` counts only with a context
+    size. A single effort word is not compound: ``(High)`` stays the old split.
+    """
+    parts = [part for part in re.split(r"[\s,]+", qualifier.strip()) if part]
+    if len(parts) < 2 or not all(_compound_token(part) for part in parts):
+        return None
+    thinking = any(part.casefold() == "thinking" for part in parts)
+    sized = any(re.fullmatch(r"\d+k", part.casefold()) for part in parts)
+    if thinking and not sized:
+        return None
+    return parts
+
+
+def _compound_qualifier(text: str) -> str | None:
+    """The inside of the one compound parenthesis, or None."""
+    groups = _QUALIFIER.findall(text)
+    if len(groups) != 1 or _compound_parts(groups[0]) is None:
+        return None
+    return groups[0]
+
+
+def _effort_word_in_compound(qualifier: str) -> str | None:
+    """The one effort word in a compound qualifier, canonical, or None.
+
+    ``Thinking`` is not an effort word. Two effort words is not one level.
+    """
+    parts = _compound_parts(qualifier)
+    if parts is None:
+        return None
+    levels = [
+        _EFFORT_ALIASES.get(part.casefold(), part.casefold())
+        for part in parts
+        if part.casefold() in _COMPOUND_EFFORT
+    ]
+    if len(levels) != 1:
+        return None
+    return levels[0]
+
+
+def _compound_effort_stays_in_identity(text: str) -> bool:
+    """True when a compound parenthesis names an effort and the tokens stay."""
+    qualifier = _compound_qualifier(text)
+    return qualifier is not None and _effort_word_in_compound(qualifier) is not None
+
+
+def _ordered_tokens(text: str) -> tuple[str, ...]:
+    return tuple(normalise_name(text.replace("+", " plus ")).split())
+
+
+def _valid_date_token(token: str) -> bool:
+    """An eight-digit token that is a real calendar date, YYYYMMDD."""
+    if not re.fullmatch(r"\d{8}", token):
+        return False
+    try:
+        date(int(token[:4]), int(token[4:6]), int(token[6:]))
+    except ValueError:
+        return False
+    return True
+
+
+def _compound_identity(text: str) -> tuple[tuple[str, ...], tuple[str, ...]] | None:
+    """Ordered name tokens and the qualifier multiset, or None.
+
+    A display name has exactly one compound parenthesis. Tokens outside it are
+    the name, in order. Tokens inside it are the qualifier, as a multiset. The
+    parenthesis must hold exactly one valid calendar date.
+
+    A slug has no parenthesis. It must hold exactly one eight-digit token that
+    is a valid calendar date. The slug is cut at that date: tokens before it
+    are the name, in order. Tokens after it, plus the date, are the qualifier
+    multiset. An effort word, ``thinking``, a size or a non-date eight-digit
+    token before the date stays in the name.
+    """
+    qualifier = _compound_qualifier(text)
+    if qualifier is not None:
+        name = _ordered_tokens(_QUALIFIER.sub(" ", text, count=1))
+        qual = _ordered_tokens(qualifier)
+        if not name or sum(_valid_date_token(t) for t in qual) != 1:
+            return None
+        return name, tuple(sorted(qual))
+    if "(" in text or ")" in text:
+        return None
+    tokens = _ordered_tokens(text)
+    dates = [i for i, token in enumerate(tokens) if _valid_date_token(token)]
+    if len(dates) != 1 or dates[0] == 0:
+        return None
+    cut = dates[0]
+    return tokens[:cut], tuple(sorted(tokens[cut:]))
+
+
 def _published_subject(published: str, names: Sequence[str]) -> str | None:
     """Match a whole published name to a registered name, retaining its spelling.
 
@@ -411,15 +538,21 @@ def split_model_cell(cell: str) -> tuple[str, str | None]:
 
     Only an effort qualifier is split off: "GPT-6 Sol (max effort)" is GPT-6 Sol at
     max effort, but "GPT-6 Sol (thinking)" stays a different identity.
+    A compound parenthesis names its effort word and keeps every token, High
+    included, in the identity. ``Thinking 16K`` is not an effort level.
     """
     effort = None
 
     def take(m: re.Match[str]) -> str:
         nonlocal effort
-        q = _EFFORT_QUALIFIER.match(m.group(1).strip().casefold())
+        raw = m.group(1).strip()
+        q = _EFFORT_QUALIFIER.match(raw.casefold())
         if q and q.group(1) in EFFORT_LEVELS:
             effort = _EFFORT_ALIASES.get(q.group(1), q.group(1))
             return " "
+        named = _effort_word_in_compound(raw)
+        if named is not None and effort is None:
+            effort = named
         return m.group(0)
 
     return normalise_name(_QUALIFIER.sub(take, cell)), effort
@@ -453,6 +586,22 @@ def _condition(key: str, value: str | None) -> str | None:
         parsed = _parse_date(str(value).strip())
         return parsed.isoformat() if parsed else s
     return s
+
+
+#: Effort inside a subject cell. A hyphen is not a separator.
+_STRUCTURED_NAME_EFFORT = re.compile(
+    r"(?:[_\s\(\[])(minimal|low|medium|high|xhigh|max)(?:\)|\]|$)",
+    re.IGNORECASE,
+)
+
+
+def structured_name_effort(name: str) -> str | None:
+    """Effort the structured reader finds in a subject, or None.
+
+    ``Example Model (High)`` names ``High``. ``example-model-high`` names none.
+    """
+    match = _STRUCTURED_NAME_EFFORT.search(str(name))
+    return match.group(1) if match else None
 
 
 _DATE_FORMATS = ("%B %d, %Y", "%b %d, %Y", "%d %B %Y", "%d %b %Y", "%Y/%m/%d")
@@ -813,6 +962,8 @@ class OfferingPriceExtractor:
         price_col = _band_price_column(headers, wanted) if band_table else None
         current_subject: str | None = None
         readings: list[Reading] = []
+        #: The readings taken from a Type column, one per printed row of that type.
+        typed: list[tuple[Any, Reading]] = []
 
         for row in rows[1:]:
             if len(row) != len(headers):
@@ -851,28 +1002,22 @@ class OfferingPriceExtractor:
             # the value in the first price column.
             type_i = next((i for i, header in enumerate(headers) if header == "type"), None)
             if type_i is not None:
-                kind = normalise_name(row[type_i])
                 batch_table = any("batch" in header or "flex" in header for header in headers)
                 has_cache_hit = any(
-                    len(other) == len(headers) and normalise_name(other[type_i]) == "cache hit"
+                    len(other) == len(headers) and _is_cache_row(other[type_i])
                     for other in rows[1:]
                 )
-                expected = {
-                    "input": "input", "output": "output",
-                    "cached_input": "cache hit" if has_cache_hit else "input",
-                    "batch_input": "input" if batch_table else "batch input",
-                    "batch_output": "output" if batch_table else "batch output",
-                }[wanted]
-                matches = (
-                    kind.startswith(expected)
-                    or (wanted.endswith("output") and "output" in kind)
-                )
-                if matches:
+                # A label that equals or extends the type and names no other kind
+                # (MODEL-481): "Output" is never "Batch Output", "Input (text, image)"
+                # is an input row.
+                if _row_fits(row[type_i], _row_kinds(wanted, batch_table, has_cache_hit)):
                     price_columns = [i for i, header in enumerate(headers)
                                      if "price" in header and i != type_i]
                     if wanted == "cached_input":
                         cached = [i for i in price_columns if "cached" in headers[i]]
-                        price_columns = cached or price_columns
+                        # With no cache row, only a cached column on the Input row
+                        # prices it; the plain Input price is never its cell (MODEL-481).
+                        price_columns = cached or (price_columns if has_cache_hit else [])
                     elif price_columns:
                         uncached = [i for i in price_columns if "cached" not in headers[i]]
                         price_columns = uncached or price_columns
@@ -882,6 +1027,9 @@ class OfferingPriceExtractor:
                     )
                     if value:
                         readings.append(Reading(subject, value, claim.unit))
+                        context = tuple(cell for i, cell in enumerate(row)
+                                        if i and i != type_i and i not in price_columns)
+                        typed.append(((normalise_name(subject), context), readings[-1]))
 
             # AWS-style tables encode each price kind in its column header.
             # On a band-tiered table that scan hits the range column first.
@@ -897,15 +1045,207 @@ class OfferingPriceExtractor:
                     "batch_input": ("input tokens batch", "input tokens (batch"),
                     "batch_output": ("output tokens batch", "output tokens (batch"),
                 }[wanted]
+                # Every header that names this kind and no other is read; their cells
+                # must agree (MODEL-481).
+                cells = []
                 for i, header in enumerate(headers):
                     flat = header.replace("price per 1m ", "")
                     if any(term.replace(" ", "") in flat.replace(" ", "") for term in terms):
                         if wanted in {"input", "output"} and "batch" in header:
                             continue
-                        readings.append(Reading(subject, row[i], claim.unit))
-                        break
+                        if _header_fits(header, wanted):
+                            cells.append((subject, Reading(subject, row[i], claim.unit)))
+                if cells:
+                    _agree(cells)
+                    readings.append(cells[0][1])
+        _agree(typed)
         return (readings or _peak_price_tables(claim, rows, wanted)
                 or _grouped_header_tables(claim, text, wanted))
+
+    def nothing_for_kind(self, claim: Claim, text: str) -> str | None:
+        """What a ``not_disclosed`` price's region reads for its kind (MODEL-481).
+
+        ``"nothing"``: the region read, the claim model's row is on it (another price
+        kind of that model reads as a number) and no cell reads for the claimed kind.
+        ``"unavailable"``: the same, and a cell for the kind says it is not available.
+        ``None``: anything else, including a table that did not read, a model that is
+        not on it, or a value that does read. This claims nothing about the price.
+        """
+        wanted = self._wanted(claim.field)
+        if wanted == claim.field or wanted not in _PRICE_KINDS:
+            return None
+        try:
+            if self.extract(claim, text):
+                return None
+        except ExtractorError:
+            return None
+        for other in sorted(_PRICE_KINDS - {wanted}):
+            sibling = replace(claim, field=f"offering.price.{other}")
+            try:
+                readings = self.extract(sibling, text)
+            except ExtractorError:
+                continue
+            if any(reading.subject and _published_subject(reading.subject, claim.names)
+                   and parse_quantity(str(reading.value), claim.unit) is not None
+                   for reading in readings):
+                return "unavailable" if self._unavailable_cell(claim, text, wanted) else "nothing"
+        return None
+
+    def _unavailable_cell(self, claim: Claim, text: str, wanted: str) -> bool:
+        """Whether a cell the reader would read for ``wanted`` says "not available"."""
+        rows = [[part.strip() for part in re.split(r" ?\| ?", line)]
+                for line in text.splitlines() if "|" in line]
+        if len(rows) < 2:
+            return False
+        headers = [normalise_name(cell) for cell in rows[0]]
+        type_i = next((i for i, header in enumerate(headers) if header == "type"), None)
+        batch_table = any("batch" in header or "flex" in header for header in headers)
+        has_cache_hit = type_i is not None and any(
+            len(other) == len(headers) and _is_cache_row(other[type_i])
+            for other in rows[1:])
+        current: str | None = None
+        for row in rows[1:]:
+            if len(row) != len(headers):
+                continue
+            if row[0]:
+                current = row[0]
+            if not current or not _published_subject(current, claim.names):
+                continue
+            if type_i is not None:
+                required = _row_kinds(wanted, batch_table, has_cache_hit)
+                price = [i for i, header in enumerate(headers) if "price" in header and i != type_i]
+                if wanted == "cached_input" and not has_cache_hit:
+                    price = [i for i in price if "cached" in headers[i]]
+                if _row_fits(row[type_i], required) and price \
+                        and all(_UNAVAILABLE.fullmatch(normalise_name(row[i])) for i in price):
+                    return True
+            else:
+                term = "batch" if wanted.startswith("batch_") else (
+                    "cache" if wanted == "cached_input" else wanted)
+                if any(term in header and _UNAVAILABLE.fullmatch(normalise_name(row[i]))
+                       for i, header in enumerate(headers)):
+                    return True
+        return False
+
+
+_PRICE_KINDS = frozenset({"input", "output", "cached_input", "batch_input", "batch_output"})
+#: A cell that states the price is not available.
+_UNAVAILABLE = re.compile(r"n a|na|not available|unavailable|not applicable|not supported")
+#: Words that name a price kind in a row type or a column header. A label fits a wanted
+#: kind when it names that kind and no other (MODEL-481). Other words are free.
+_KIND_WORDS: dict[str, frozenset[str]] = {
+    "input": frozenset({"input", "inputs", "prompt"}),
+    "output": frozenset({"output", "outputs", "response", "completion"}),
+    "batch": frozenset({"batch", "flex", "priority"}),
+    "cache": frozenset({"cache", "cached", "caching"}),
+    "write": frozenset({"write", "writes"}),
+    "read": frozenset({"read", "reads"}),
+}
+
+
+def _kinds_named(label: str) -> frozenset[str]:
+    tokens = set(normalise_name(label).split())
+    return frozenset(kind for kind, words in _KIND_WORDS.items() if tokens & words)
+
+
+def _is_cache_row(label: str) -> bool:
+    """A cached-read row: names cache (and may name read or input), never write or miss.
+
+    ``Cache hit``, ``Cache read``, ``Cache Hit / Cache read``, ``Cached input`` and
+    ``Prompt caching`` fit; ``Cache write`` and ``Cache miss`` do not (MODEL-481).
+    """
+    tokens = set(normalise_name(label).split())
+    named = _kinds_named(label)
+    return ("cache" in named and named <= {"cache", "read", "input"} and "miss" not in tokens
+            and bool(tokens & {"hit", "read", "reads"} or "input" in named))
+
+
+def _row_kinds(wanted: str, batch_table: bool, has_cache_hit: bool) -> tuple[frozenset[str], str | None]:
+    """The kinds a Type-column row label must name for ``wanted``, and a word it needs."""
+    if wanted == "cached_input":
+        return (frozenset({"cache"}), "*") if has_cache_hit else (frozenset({"input"}), None)
+    kind = "input" if wanted.endswith("input") else "output"
+    if wanted.startswith("batch_") and not batch_table:
+        return frozenset({"batch", kind}), None
+    return frozenset({kind}), None
+
+
+def _row_fits(label: str, required: tuple[frozenset[str], str | None]) -> bool:
+    """A label equals or extends the expected type and names no other kind."""
+    kinds, word = required
+    if word == "*":
+        return _is_cache_row(label)
+    return _kinds_named(label) == kinds and (
+        word is None or word in normalise_name(label).split())
+
+
+#: Header-scan kinds per wanted: the kinds a header must name, and those it may also name.
+_HEADER_KINDS: dict[str, tuple[frozenset[str], frozenset[str]]] = {
+    "input": (frozenset({"input"}), frozenset()),
+    "output": (frozenset({"output"}), frozenset()),
+    "cached_input": (frozenset({"cache", "read"}), frozenset({"input"})),
+    "batch_input": (frozenset({"input", "batch"}), frozenset()),
+    "batch_output": (frozenset({"output", "batch"}), frozenset()),
+}
+
+
+def _header_fits(header: str, wanted: str) -> bool:
+    must, may = _HEADER_KINDS[wanted]
+    named = _kinds_named(header)
+    return must <= named <= must | may
+
+
+def _amount(reading: Reading) -> Any:
+    quantity = parse_quantity(str(reading.value), reading.unit)
+    return quantity.number if quantity is not None else str(reading.value).strip()
+
+
+def _agree(readings: Sequence[tuple[Any, Reading]]) -> None:
+    """Raise unless the readings under one key are the same amount.
+
+    ``verify`` passes when any one reading matches, so two different cells for one
+    fact would pass on the wrong one. A key is the model plus the row's other
+    non-price cells (a region column keeps its own rows apart).
+    """
+    seen: dict[Any, Reading] = {}
+    for key, reading in readings:
+        if key in seen and _amount(seen[key]) != _amount(reading):
+            raise ExtractorError(
+                f"the page prints {reading.subject!r} with cells that disagree for one "
+                f"price kind: {seen[key].value!r} and {reading.value!r}")
+        seen.setdefault(key, reading)
+
+
+def read_not_disclosed(claim: Claim, regions: Regions) -> tuple[str, tuple[str, ...]] | None:
+    """What the cited regions of a ``not_disclosed`` price read for it, or ``None``.
+
+    ``("nothing", where)`` when every cited region read and none has a cell for the
+    kind; ``("unavailable", where)`` when one says it is not available. ``where`` is
+    ``source#region`` for each region read. ``None`` for a region that did not
+    resolve, a page the price reader does not accept, or a model that is not on the
+    table: the caller keeps the outcome it had. This confirms nothing (MODEL-481).
+    """
+    if claim.value is not None or not claim.field.startswith("offering.price."):
+        return None
+    reader = OfferingPriceExtractor()
+    where: list[str] = []
+    unavailable = False
+    for source in claim.sources:
+        for region_id in source.cited_regions:
+            text = regions.text(source.source_id, source.snapshot_ref, region_id)
+            if text is None:
+                return None
+            text = MetricPriceTable.outside(text)
+            if not reader.accepts(text):
+                return None
+            verdict = reader.nothing_for_kind(claim, text)
+            if verdict is None:
+                return None
+            unavailable = unavailable or verdict == "unavailable"
+            where.append(f"{source.source_id}#{region_id}")
+    if not where:
+        return None
+    return ("unavailable" if unavailable else "nothing", tuple(where))
 
 
 #: A price cell: a dollar amount, however the unit after it is written.
@@ -2587,9 +2927,132 @@ class ModelPageExtractor:
                         return True
                 return False
 
-            if any(own_feature(line) for line in lines):
-                readings.append(Reading(subject=subject, value="supported"))
+            states: list[str] = []
+            for n, line in enumerate(lines):
+                if own_feature(line):
+                    following = lines[n + 1] if n + 1 < len(lines) else None
+                    state = _feature_state(line, phrases, following)
+                    if state not in states:
+                        states.append(state)
+            if len(states) > 1:
+                # A supported line and a not-supported line for one feature
+                # conflict: neither may confirm a claim.
+                states = ["partial"]
+            for state in states:
+                readings.append(Reading(subject=subject, value=state))
         return readings or [Reading(subject=subject, value=None)]
+
+
+#: Cell or value wordings that say a feature is not offered, or only in part.
+_FEATURE_NO = frozenset({
+    "unsupported", "not supported", "no", "none", "not available", "unavailable",
+    "n a", "na", "not applicable", "✗", "✘", "✕", "x", "-", "–", "—",
+})
+_FEATURE_PARTIAL = frozenset({
+    "partial", "partially", "partial support", "partially supported", "limited",
+    "limited support",
+})
+#: Negations that describe their subject ("X is not supported"): they bind to a
+#: feature named before them in the clause.
+_FEATURE_NO_SUBJECT = re.compile(
+    r"(?i)(?:\b(?:is|are)(?:\s+not|n't)\s+(?:currently\s+)?(?:supported|available|offered)\b"
+    r"|\b(?:un|not\s+)supported\b|\bunavailable\b|\bnot\s+offered\b|(?<![\w/])n/a(?![\w/]))")
+#: Negations that take an object ("does not support X"): they bind to a feature
+#: named after them.
+_FEATURE_NO_OBJECT = re.compile(
+    r"(?i)(?:\b(?:does|do|did|will|would|can|could)(?:\s+not|n't)\s+(?:currently\s+)?support\b"
+    r"|\bno\s+support\s+for\b)")
+_FEATURE_PARTIAL_SENTENCE = re.compile(
+    r"(?i)\b(?:partial(?:ly)?\s+support(?:ed|s)?|limited\s+support|(?:only\s+)?partially)\b")
+#: "not unsupported", "not unavailable": a double negative is not read.
+_FEATURE_DOUBLE_NEGATIVE = re.compile(
+    r"(?i)\b(?:not|isn't|aren't|never)\s+(?:un\w+|not\b)")
+#: Text right before a feature that excludes it: "but not X", "except X", "without X".
+_FEATURE_EXCLUDES = re.compile(
+    r"(?i)\b(?:not|except|without)\s+(?:(?:support(?:s|ing)?|offer(?:s|ing)?|for)\s+)?$")
+_FEATURE_CLAUSES = re.compile(r"(?i);|,|\bbut\b|\bwhile\b|\bwhereas\b")
+_FEATURE_DASH = frozenset({"-", "–", "—"})
+
+
+def _feature_cell(cell: str) -> str | None:
+    """Classify a value cell as supported, not supported or partial."""
+    plain = cell.replace("**", "").replace("`", "").strip()
+    # A bracketed note after the value ("No (coming soon)") does not change it.
+    unnoted = re.sub(r"\s*\([^)]*\)\s*$", "", plain).strip()
+    plain = unnoted or plain
+    if not plain:
+        return None
+    key = normalise_name(plain)
+    if key in _FEATURE_NO or plain in _FEATURE_NO:
+        return "not supported"
+    if key in _FEATURE_PARTIAL:
+        return "partial"
+    return "supported"
+
+
+def _clause_state(clause: str, wanted: Sequence[str], raw: Sequence[str]) -> str:
+    """What one clause that names the feature says of it."""
+    low = clause.casefold()
+    hits = [(low.index(w), w) for w in raw if w in low]
+    start, phrase = min(hits) if hits else (0, "")
+    end = start + len(phrase)
+    if _FEATURE_DOUBLE_NEGATIVE.search(clause):
+        return "partial"
+    if hits and _FEATURE_EXCLUDES.search(low[:start]):
+        return "not supported"
+    # "Streaming: No", "Batch API - unsupported": a value right after the name.
+    tail = re.match(r"\s*[:\u2013\u2014-]\s*(\S.*)$", clause[end:]) if hits else None
+    if tail and (state := _feature_cell(tail.group(1).strip().rstrip("."))) is not None:
+        return state
+    for match in _FEATURE_NO_SUBJECT.finditer(clause):
+        if match.start() >= end and hits:
+            return "not supported"
+    for match in _FEATURE_NO_OBJECT.finditer(clause):
+        if not hits or match.end() <= start:
+            return "not supported"
+    if _FEATURE_PARTIAL_SENTENCE.search(clause):
+        return "partial"
+    return "supported"
+
+
+def _feature_state(line: str, phrases: Sequence[str], following: str | None) -> str:
+    """What a line that names a feature says of it.
+
+    A table cell or value that says unsupported, no, a cross or N/A reads as not
+    supported; a dash does too when it is the only value. Partial or limited
+    reads as neither. Negation binds to the feature in its own clause, not to the
+    rest of the sentence. Two clauses that disagree read as partial (unreadable).
+    Anything else reads as supported, as before.
+    """
+    plain = line.replace("**", "").replace("`", "").lstrip("-* ")
+    wanted = [normalise_name(phrase) for phrase in phrases]
+    raw = [phrase.casefold() for phrase in phrases]
+    if "|" in plain:
+        cells = [c.strip() for c in plain.strip().strip("|").split("|")]
+        named = next((i for i, c in enumerate(cells)
+                      if ":" not in c and any(w in normalise_name(c) for w in wanted)), None)
+        if named is not None:
+            values = [c for c in cells[named + 1:] if c]
+            real = [c for c in values if c not in _FEATURE_DASH]
+            if real:
+                return _feature_cell(real[0]) or "supported"
+            if values:
+                return "not supported"
+    states: list[str] = []
+    for sentence in re.split(r"(?<=[.!?])\s+", plain):
+        for clause in _FEATURE_CLAUSES.split(sentence):
+            if any(w in normalise_name(clause) for w in wanted):
+                states.append(_clause_state(clause, wanted, raw))
+    if not states:
+        states.append("supported")
+    if len(set(states)) > 1:
+        return "partial"
+    if states[0] == "supported" and following is not None and len(following) <= 40 and any(
+            normalise_name(plain) == w for w in wanted):
+        # A bare label followed by its value on the next line.
+        if (state := _feature_cell(following)) in {"not supported", "partial"}:
+            return state
+    return states[0]
 
 
 #: A Metric | Price row label, as normalised, and the price kind it states.
@@ -3967,9 +4430,7 @@ class StructuredDataExtractor:
                 continue
             effort = normal.get("reasoning effort") or normal.get("effort")
             if effort is None:
-                match = re.search(r"(?:[_\s\(\[])(minimal|low|medium|high|xhigh|max)(?:\)|\]|$)",
-                                  str(subject), re.IGNORECASE)
-                effort = match.group(1) if match else None
+                effort = structured_name_effort(str(subject))
             date_ = next((normal.get(key) for key in (
                 "date", "leaderboard publish date", "started at", "snapshot read date",
                 "release date",
@@ -4047,6 +4508,8 @@ class ClaudeCLICompletion:
         command = [
             "claude", "-p", prompt, "--model", "claude-sonnet-5", "--effort", "low",
             "--output-format", "json",
+            # S7: the prompt can hold the text of a cite-only page; keep no session transcript.
+            "--no-session-persistence",
         ]
         try:
             completed = subprocess.run(
@@ -5770,6 +6233,45 @@ def claude_extractor(*, cache: LLMCache | None = None,
 
 OLLAMA_URL = "http://100.127.37.30:11434/api/chat"
 MISTRAL_MODEL = "mistral-large:123b-instruct-2411-q4_K_M"
+#: The only models the ollama reader may run, each with its own model family.
+#: A model is added here by a code change that is reviewed, never by
+#: configuration; the family is the lab that trained it and is never
+#: ``anthropic`` (a Claude collector would make it a false second key).
+_OLLAMA_READER_IDS = {
+    "gpt-oss:120b": "openai",
+    "gpt-oss:20b": "openai",
+    "gemma4:31b": "google",
+    "gemma4:26b": "google",
+    "hf.co/aj9o9/nvidia-nemotron-3.5-lightning-30b:Q4_K_M": "nvidia",
+    MISTRAL_MODEL: "mistral",
+}
+#: Lower-cased model id -> family. The id is matched whole: no namespace, tag
+#: or prefix is stripped.
+APPROVED_OLLAMA_READERS = {k.lower(): v for k, v in _OLLAMA_READER_IDS.items()}
+_OLLAMA_CANONICAL = {k.lower(): k for k in _OLLAMA_READER_IDS}
+
+
+def ollama_reader() -> tuple[str, str]:
+    """The ollama reader's ``(model, family)``, from ``APPROVED_OLLAMA_READERS``.
+
+    ``MODELSPEC_OLLAMA_MODEL`` (unset: Mistral Large) must be an approved id,
+    compared lower-cased; anything else is refused. The family is the table's.
+    ``MODELSPEC_OLLAMA_FAMILY`` is not a setting: if it is set and differs, the
+    reader is refused.
+    """
+    model = os.environ.get("MODELSPEC_OLLAMA_MODEL") or MISTRAL_MODEL
+    key = model.lower()
+    family = APPROVED_OLLAMA_READERS.get(key)
+    if family is None:
+        raise ExtractorError(
+            f"ollama model {model!r} is not an approved reader: "
+            f"{sorted(APPROVED_OLLAMA_READERS)}")
+    declared = os.environ.get("MODELSPEC_OLLAMA_FAMILY")
+    if declared and declared.lower() != family:
+        raise ExtractorError(
+            f"MODELSPEC_OLLAMA_FAMILY {declared!r} differs from the table's {family!r} "
+            f"for {model!r}")
+    return _OLLAMA_CANONICAL[key], family
 #: Ollama's ``format: json`` constrains a reply to one JSON object, so a bare
 #: array cannot be returned: Mistral then reports only the first value in a
 #: region. This system turn asks for the array inside an object; ``LLM_PROMPT``
@@ -5806,10 +6308,17 @@ def _as_array(content: str) -> str:
 class OllamaChatCompletion:
     """Call a model served by ollama's ``/api/chat`` at temperature 0, in JSON mode."""
 
-    def __init__(self, *, url: str | None = None, model: str = MISTRAL_MODEL,
+    def __init__(self, *, url: str | None = None, model: str | None = None,
                  max_calls: int = 400, timeout: float = 900) -> None:
         self.url = url or os.environ.get("MODELSPEC_OLLAMA_URL") or OLLAMA_URL
-        self.model = model
+        if model is None:
+            self.model = ollama_reader()[0]
+        elif model.lower() in APPROVED_OLLAMA_READERS:
+            self.model = _OLLAMA_CANONICAL[model.lower()]
+        else:
+            raise ExtractorError(
+                f"ollama model {model!r} is not an approved reader: "
+                f"{sorted(APPROVED_OLLAMA_READERS)}")
         self.max_calls = max_calls
         self.timeout = timeout
         self.calls = 0
@@ -5850,14 +6359,15 @@ def mistral_extractor(*, cache: LLMCache | None = None,
                       complete: Callable[[str], str] | None = None,
                       max_calls: int = 400) -> LLMExtractor:
     """The local Mistral Large reader: a third model family, for Claude-collected values."""
+    model, family = ollama_reader()
     return LLMExtractor(
         complete or OllamaChatCompletion(max_calls=max_calls),
         agent="ollama",
-        model=MISTRAL_MODEL,
-        model_family="mistral",
+        model=model,
+        model_family=family,
         # The namespace names the request shape too: a reply cached before the
         # JSON-mode system turn read only one value per region.
-        cache=cache or LLMCache(namespace=f"ollama:{MISTRAL_MODEL}:values-object"),
+        cache=cache or LLMCache(namespace=f"ollama:{model}:values-object"),
     )
 
 
@@ -5878,13 +6388,14 @@ def mistral_licence_extractor(*, cache: LLMCache | None = None,
                               complete: Callable[[str], str] | None = None,
                               max_calls: int = 400) -> LicenceExtractor:
     """Licence reader on the same local Mistral completion as ``mistral_extractor``."""
+    model, family = ollama_reader()
     return LicenceExtractor(
         complete or OllamaChatCompletion(max_calls=max_calls),
         agent="ollama",
-        model=MISTRAL_MODEL,
-        model_family="mistral",
+        model=model,
+        model_family=family,
         cache=cache if cache is not None else LLMCache(
-            namespace=f"ollama:{MISTRAL_MODEL}:licence"),
+            namespace=f"ollama:{model}:licence"),
     )
 
 
@@ -6125,9 +6636,11 @@ class StoredRegions:
     """
 
     def __init__(self, store: CopyStore, sources: Mapping[str, Source], *,
-                 cache_documents: bool = False) -> None:
+                 cache_documents: bool = False,
+                 skip_absent_copies: bool = False) -> None:
         self.store = store
         self.sources = sources
+        self.skip_absent_copies = skip_absent_copies
         self._pdf_copies: dict[str, bool] = {}
         self._documents: dict[tuple[str, RuleSet], Document] | None = \
             {} if cache_documents else None
@@ -6157,6 +6670,36 @@ class StoredRegions:
             return select_region(doc, Locator(kind, region.locator.value))
         except (UnsupportedContentError, ValueError):
             return None
+
+    def miss_reason(self, source_id: str, copy_ref: str, region_id: str) -> str:
+        """Why ``text`` is ``None``: ``no_copy`` or ``unreachable``.
+
+        ``no_copy`` is returned only when this store was asked to skip a copy
+        the cache does not hold. A corrupt copy, an unreadable citation, and
+        an unregistered source or region stay ``unreachable``.
+        """
+        if not self.skip_absent_copies:
+            return "unreachable"
+        try:
+            citation = self.store.citation(copy_ref)
+        except ValueError:
+            return "unreachable"
+        if citation is not None:
+            return "unreachable"
+        source = self.sources.get(source_id)
+        region = next((item for item in source.cited_regions if item.id == region_id), None) \
+            if source else None
+        if source is None or region is None or self.store.has(copy_ref):
+            return "unreachable"
+        try:
+            slot = self.store.path(copy_ref)
+        except ValueError:
+            return "unreachable"
+        # Bytes at the path that do not hash to the ref were retained and
+        # cannot be read. An absent path was never stored.
+        if os.path.lexists(slot):
+            return "unreachable"
+        return "no_copy"
 
     def is_pdf(self, source_id: str, copy_ref: str) -> bool:
         source = self.sources.get(source_id)
@@ -6189,6 +6732,10 @@ class StoredRegions:
     def source_kind(self, source_id: str) -> str | None:
         source = self.sources.get(source_id)
         return None if source is None else source.kind
+
+    def source_publisher(self, source_id: str) -> str | None:
+        source = self.sources.get(source_id)
+        return None if source is None else source.publisher
 
     def dated_prices(self, claim: Claim, source: SourceRef, region_id: str) -> list[Reading]:
         from decision.dated_prices import read_dated_prices
@@ -6468,6 +7015,18 @@ def _diffs(claim: Claim, reading: Reading) -> list[Diff]:
         found = _condition(key, reading.conditions.get(key))
         if key == "effort" and found is None:
             found = name_effort
+        # High in "(High, 32K, date)" stays in the identity. A claim that names
+        # no effort is not contradicted by that token. A claim that names one
+        # still has to match it. "(High)" alone is stripped, so this does not apply.
+        if (
+            key == "effort"
+            and claimed is None
+            and found is not None
+            and _condition(key, reading.conditions.get(key)) is None
+            and reading.subject
+            and _compound_effort_stays_in_identity(reading.subject)
+        ):
+            continue
         if key == "date" and claimed is None:
             continue  # a date the claim does not carry is not checked
         if key == "harness" and claimed == UNREGISTERED and found is not None \
@@ -6484,8 +7043,46 @@ def _reading_subject_matches(subject: str, names: Sequence[str], *, field: str |
         return True
     # Effort is a separate condition. Other qualifiers and '+' remain identity.
     identity = split_model_cell(subject.replace("+", " plus "))[0]
-    aliases = tuple(split_model_cell(name.replace("+", " plus "))[0] for name in names)
-    return _published_subject(identity, aliases) is not None
+    # Two names that each carry a compound parenthesis are compared by their ordered
+    # name and qualifier multiset below, never flattened: "Max (High, 32K, d)" and
+    # "(Max, High, 32K, d)" flatten to one string and are different names. A slug has no
+    # parenthesis, so a display name still matches its slug by the flat identity.
+    flat = [name for name in names
+            if not (_compound_qualifier(subject) is not None
+                    and _compound_qualifier(name) is not None)]
+    aliases = tuple(split_model_cell(name.replace("+", " plus "))[0] for name in flat)
+    if _published_subject(identity, aliases) is not None:
+        return True
+    # The name outside a compound parenthesis is ordered. The qualifier is a
+    # multiset. A subset, a reordered version, or a collapsed repeat does not match.
+    if _compound_qualifier(subject) is None:
+        return False
+    subject_key = _compound_identity(subject)
+    if subject_key is None:
+        return False
+    return any(_compound_identity(name) == subject_key for name in names)
+
+
+def _colliding_compound_identities(
+    readings: Sequence[Reading], names: Sequence[str],
+) -> set[tuple[tuple[str, ...], tuple[str, ...]]]:
+    """Compound rows that share one identity with each other and a claim name.
+
+    The identity is the ordered name plus the qualifier multiset, the same
+    comparison as ``_reading_subject_matches``. Two rows with that identity
+    are not one row. The caller refuses the claim.
+    """
+    claim_keys = {key for name in names if (key := _compound_identity(name)) is not None}
+    counts: dict[tuple[tuple[str, ...], tuple[str, ...]], int] = {}
+    for reading in readings:
+        subject = reading.subject or ""
+        if _compound_qualifier(subject) is None:
+            continue
+        key = _compound_identity(subject)
+        if key is None or key not in claim_keys:
+            continue
+        counts[key] = counts.get(key, 0) + 1
+    return {key for key, count in counts.items() if count > 1}
 
 
 def compare(claim: Claim, readings: Sequence[Reading]) -> list[Diff]:
@@ -6525,6 +7122,18 @@ class Result:
     reason: str | None = None
 
 
+def _no_copy_reason(regions: Regions, source_id: str, copy_ref: str, region_id: str) -> str | None:
+    """The skip reason when an opted-in cache holds no copy of this region.
+
+    A regions object that cannot say so (a test double with only ``text``)
+    keeps the unreachable outcome.
+    """
+    classify = getattr(regions, "miss_reason", None)
+    if not callable(classify) or classify(source_id, copy_ref, region_id) != "no_copy":
+        return None
+    return f"no retained copy in this cache: {source_id}#{region_id}"
+
+
 def _verification(claim: Claim, actor: VerificationActor, outcome: str, today: date,
                   diffs: Sequence[Diff] = ()) -> Verification:
     """Raises ``ValidationError`` when ``actor`` is not independent of the collector."""
@@ -6561,6 +7170,16 @@ def _number_agrees(expected: int | float, found: object, unit: str | None = None
     return quantity is not None and numbers_agree(expected, unit, quantity)
 
 
+#: How an evidence claim's skip says that the stored copy was read and no row was its own.
+#: Each reason starts with one of these; the refresh files them under one skip class.
+UNOWNED_REASONS = (
+    "no reader accepts the stored copy",
+    "no independent reader for the stored copy",
+    "no row matched this model's names",
+    "the reader found no rows in the stored copy",
+)
+
+
 def _verify_evidence_reading(
     claim: Claim,
     regions: Regions,
@@ -6578,6 +7197,9 @@ def _verify_evidence_reading(
     actor: VerificationActor | None = None
     reachable = False
     reasons: list[str] = []
+    no_copy: list[str] = []
+    #: Why a region read but unowned says nothing else: used only when no other reason is.
+    silent: list[str] = []
     diffs: list[Diff] = []
 
     for source in claim.sources:
@@ -6585,19 +7207,31 @@ def _verify_evidence_reading(
             where = f"{source.source_id}#{region_id}"
             text = regions.text(source.source_id, source.snapshot_ref, region_id)
             if text is None:
-                reasons.append(f"unreachable:{where}")
+                absent = _no_copy_reason(
+                    regions, source.source_id, source.snapshot_ref, region_id)
+                if absent:
+                    no_copy.append(absent)
+                else:
+                    reasons.append(f"unreachable:{where}")
                 continue
             reachable = True
-            for extractor in [
-                item
-                for item in ordered
-                if item.accepts(text) and _independent(claim, item.actor, today)
-            ]:
+            accepting = [item for item in ordered if item.accepts(text)]
+            readers_here = [item for item in accepting if _independent(claim, item.actor, today)]
+            if not accepting:
+                silent.append(f"no reader accepts the stored copy: {where}")
+            elif not readers_here:
+                silent.append(f"no independent reader for the stored copy: {where}")
+            for extractor in readers_here:
                 try:
                     readings = extractor.extract(claim, text)
                 except ExtractorError as exc:
                     reasons.append(f"extractor_error:{where}: {exc}")
                     continue
+                if _colliding_compound_identities(readings, claim.names):
+                    actor = actor or extractor.actor
+                    diffs.append(Diff("model", claim.names[0], None))
+                    continue
+                matched_here = False
                 for reading in readings:
                     if not isinstance(reading.value, dict) or not reading.subject:
                         continue
@@ -6605,6 +7239,7 @@ def _verify_evidence_reading(
                     benchmark = _published_subject(reading.subject, benchmark_names) is not None
                     if not own and not benchmark:
                         continue
+                    matched_here = True
                     actor = actor or extractor.actor
                     found = reading.value
                     if own and "score" in found:
@@ -6636,6 +7271,11 @@ def _verify_evidence_reading(
                         else:
                             diffs.append(Diff("n", expected["n"], found["n"]))
                     found_flags.update(str(flag) for flag in found.get("quality_flags", []))
+                if not matched_here:
+                    silent.append(
+                        f"no row matched this model's names ({len(readings)} rows read): "
+                        f"{where}" if readings else
+                        f"the reader found no rows in the stored copy: {where}")
 
     expected_flags = set(expected.get("quality_flags") or [])
     if found_flags == expected_flags:
@@ -6656,6 +7296,8 @@ def _verify_evidence_reading(
             _verification(claim, actor, "mismatch", today, diffs),
             tuple(diffs),
         )
+    if not reachable and no_copy and not reasons:
+        return Result(claim.target, "skipped", reason="; ".join(no_copy))
     if not reachable:
         return Result(
             claim.target,
@@ -6663,7 +7305,8 @@ def _verify_evidence_reading(
             _verification(claim, REGION_LOOKUP, "unreachable", today),
             reason="; ".join(reasons),
         )
-    return Result(claim.target, "skipped", reason="; ".join(reasons))
+    return Result(claim.target, "skipped",
+                  reason="; ".join([*reasons, *no_copy]) or "; ".join(silent))
 
 
 def _verify_jurisdiction_set(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
@@ -6684,6 +7327,7 @@ def _verify_jurisdiction_set(claim: Claim, regions: Regions, extractors: Sequenc
     reasons: list[str] = []
     diffs: list[Diff] = []
     unreachable = False
+    no_copy: list[str] = []
     ordered = sorted(extractors, key=lambda e: e.actor.model_family != DETERMINISTIC)
     for source in claim.sources:
         _, kind = _source_kind(regions, source.source_id)
@@ -6691,8 +7335,13 @@ def _verify_jurisdiction_set(claim: Claim, regions: Regions, extractors: Sequenc
             where = f"{source.source_id}#{region_id}"
             text = regions.text(source.source_id, source.snapshot_ref, region_id)
             if text is None:
-                unreachable = True
-                reasons.append(f"unreachable:{where}")
+                absent = _no_copy_reason(
+                    regions, source.source_id, source.snapshot_ref, region_id)
+                if absent:
+                    no_copy.append(absent)
+                else:
+                    unreachable = True
+                    reasons.append(f"unreachable:{where}")
                 continue
             accepting = _readers_for(ordered, claim, text, kind)
             independent = [item for item in accepting if _independent(claim, item.actor, today)]
@@ -6728,6 +7377,8 @@ def _verify_jurisdiction_set(claim: Claim, regions: Regions, extractors: Sequenc
         return Result(claim.target, "unreachable",
                       _verification(claim, REGION_LOOKUP, "unreachable", today),
                       reason="; ".join(reasons))
+    if no_copy:
+        return Result(claim.target, "skipped", reason="; ".join(no_copy))
     if union == claimed and not diffs and actor is not None:
         return Result(claim.target, "verified",
                       _verification(claim, actor, "verified", today))
@@ -6748,6 +7399,67 @@ def _source_kind(regions: Regions, source_id: str) -> tuple[bool, str | None]:
     return True, method(source_id)
 
 
+def _publisher(regions: Regions, source_id: str) -> str | None:
+    """The source's recorded ``publisher``; ``None`` when unknown or untracked."""
+    method = getattr(regions, "source_publisher", None)
+    return method(source_id) if callable(method) else None
+
+
+def _provider_of_lab(provider_id: str, lab: str) -> bool:
+    try:
+        return default_registry().provider(provider_id).lab == lab
+    except KeyError:
+        return False
+
+
+def _provider_has_no_trust_centre(provider_id: str) -> bool:
+    try:
+        return default_registry().provider(provider_id).trust_centre == "none"
+    except KeyError:
+        return False
+
+
+def _kind_admitted(claim: Claim, facet, kind: str | None, publisher: str | None) -> bool:
+    """Whether a source of ``kind`` and ``publisher`` may back ``claim`` (MODEL-530).
+
+    Every place that checks a source kind against a facet calls this. A kind the facet
+    admits passes. Otherwise a lab's own page passes either way: (a) a facet that admits
+    ``lab_documentation`` takes a ``provider_documentation`` source whose publisher is
+    the model's lab; (b) a facet that admits ``provider_documentation`` takes a
+    ``lab_documentation`` source whose publisher is the offering's provider, when that
+    provider is the own API of the same lab. A reseller, an unknown publisher, or an
+    unknown kind never passes by this route.
+
+    One more route: an ``offering.attestation.*`` fact that is ``not_disclosed`` passes on a
+    ``provider_terms`` source whose publisher is the offering's provider, when the
+    registry records that provider with ``trust_centre: none``. A value claim never does.
+    """
+    permitted = facet.permitted_source_kinds
+    if kind in permitted:
+        return True
+    if kind is None or not publisher:
+        return False
+    parts = claim.subject.split("/")
+    if (kind == "provider_terms" and claim.value is None and claim.state == "not_disclosed"
+            and claim.field.startswith("offering.attestation.")
+            and getattr(facet, "subject", None) == "offering" and len(parts) >= 4):
+        # An attestation absence may rest on the provider's own terms only when that
+        # provider has no trust or compliance page at all (registry `trust_centre: none`).
+        return publisher == parts[0] and _provider_has_no_trust_centre(parts[0])
+    if getattr(facet, "subject", None) == "offering" and len(parts) >= 4:
+        provider, lab = parts[0], parts[1]
+    elif getattr(facet, "subject", None) == "model" and len(parts) == 2:
+        provider, lab = None, parts[0]
+    else:
+        return False
+    if kind == "provider_documentation" and "lab_documentation" in permitted:
+        return publisher == lab
+    if kind == "lab_documentation" and "provider_documentation" in permitted:
+        return provider is not None and publisher == provider \
+            and _provider_of_lab(provider, lab)
+    return False
+
+
 def _facet_or_none(field: str):
     try:
         return default_registry().facet(field)
@@ -6755,7 +7467,8 @@ def _facet_or_none(field: str):
         return None
 
 
-def _binding_page(claim: Claim, regions: Regions, kind: str | None) -> bool:
+def _binding_page(claim: Claim, regions: Regions, kind: str | None,
+                  source_id: str) -> bool:
     """A licence region whose kind the facet does not permit, beside a permitted one.
 
     The region can name the licence. It is not a reading, and it gives no
@@ -6767,14 +7480,13 @@ def _binding_page(claim: Claim, regions: Regions, kind: str | None) -> bool:
     facet = _facet_or_none(claim.field)
     if facet is None:
         return False
-    permitted = set(facet.permitted_source_kinds)
-    if kind in permitted:
+    if _kind_admitted(claim, facet, kind, _publisher(regions, source_id)):
         return False
     for source in claim.sources:
         if not source.cited_regions:
             continue
         _, cited = _source_kind(regions, source.source_id)
-        if cited in permitted:
+        if _kind_admitted(claim, facet, cited, _publisher(regions, source.source_id)):
             return True
     return False
 
@@ -6794,7 +7506,7 @@ def _absence_block(claim: Claim, regions: Regions, source_id: str) -> list[Diff]
         return None
     permitted = list(facet.permitted_source_kinds)
     tracked, kind = _source_kind(regions, source_id)
-    if kind in permitted:
+    if _kind_admitted(claim, facet, kind, _publisher(regions, source_id)):
         return None
     if not claim.field.startswith("licence.") and (not tracked or kind is None):
         return None
@@ -6819,8 +7531,7 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
         return []  # Dated claims use StoredRegions.dated_prices exclusively.
     if claim.field.startswith("licence."):
         facet = _facet_or_none(claim.field)
-        permitted = set(facet.permitted_source_kinds) if facet is not None else set()
-        if kind not in permitted:
+        if facet is None or not _kind_admitted(claim, facet, kind, None):
             return []
         if kind == "licence_text":
             canonical = [
@@ -6907,10 +7618,12 @@ def _verify_architecture_fact(
         return Result(claim.target, "skipped", reason="no_independent_extractor")
     url_of = getattr(regions, "source_url", None)
     pages = []
-    permitted = set(default_registry().facet(claim.field).permitted_source_kinds)
+    facet = default_registry().facet(claim.field)
+    permitted = set(facet.permitted_source_kinds)
     for source in claim.sources:
         _, kind = _source_kind(regions, source.source_id)
-        if kind is not None and kind not in permitted:
+        if kind is not None and not _kind_admitted(
+                claim, facet, kind, _publisher(regions, source.source_id)):
             diffs = [Diff("source_kind", sorted(permitted), kind)]
             return Result(
                 claim.target,
@@ -6922,6 +7635,9 @@ def _verify_architecture_fact(
         for region in source.cited_regions:
             text = regions.text(source.source_id, source.snapshot_ref, region)
             if text is None:
+                absent = _no_copy_reason(regions, source.source_id, source.snapshot_ref, region)
+                if absent:
+                    return Result(claim.target, "skipped", reason=absent)
                 return Result(
                     claim.target,
                     "unreachable",
@@ -7011,10 +7727,18 @@ def _verify_dated_price(claim: Claim, regions: Regions, *, today: date) -> Resul
         return Result(claim.target, "skipped", reason="no_independent_dated_price_reader")
     reader = getattr(regions, "dated_prices", None)
     reachable = False
+    unreadable = False
+    no_copy: list[str] = []
     diffs = []
     for source in claim.sources:
         for region_id in source.cited_regions:
             if regions.text(source.source_id, source.snapshot_ref, region_id) is None:
+                absent = _no_copy_reason(
+                    regions, source.source_id, source.snapshot_ref, region_id)
+                if absent:
+                    no_copy.append(absent)
+                else:
+                    unreadable = True
                 continue
             reachable = True
             readings = reader(claim, source, region_id) if callable(reader) else []
@@ -7030,10 +7754,12 @@ def _verify_dated_price(claim: Claim, regions: Regions, *, today: date) -> Resul
             else:
                 diffs.append(Diff("dated_price_row", dict(claim.conditions),
                                   [dict(row.conditions) for row in readings]))
-    if not reachable:
+    if not reachable and (unreadable or not no_copy):
         return Result(claim.target, "unreachable",
                       _verification(claim, actor, "unreachable", today),
                       reason="cited dated price region is unreachable")
+    if not reachable:
+        return Result(claim.target, "skipped", reason="; ".join(no_copy))
     return Result(claim.target, "mismatch",
                   _verification(claim, actor, "mismatch", today, diffs), tuple(diffs))
 
@@ -7090,6 +7816,9 @@ def _verify_xai_matrix(claim: Claim, regions: Regions, extractors: Sequence[Extr
             return drift("source URL, kind or whole-page citation differs")
         text = regions.text(source.source_id, source.snapshot_ref, "page")
         if text is None:
+            absent = _no_copy_reason(regions, source.source_id, source.snapshot_ref, "page")
+            if absent:
+                return Result(claim.target, "skipped", reason=absent)
             return Result(claim.target, "unreachable",
                           _verification(claim, actor, "unreachable", today),
                           reason=f"unreachable:{source.source_id}#page")
@@ -7193,13 +7922,19 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
     reachable = False
     mismatch: tuple[VerificationActor, list[Diff]] | None = None
     reasons: list[str] = []
+    no_copy: list[str] = []
     for source in claim.sources:
         _, kind = _source_kind(regions, source.source_id)
         for region_id in source.cited_regions:
             where = f"{source.source_id}#{region_id}"
             text = regions.text(source.source_id, source.snapshot_ref, region_id)
             if text is None:
-                reasons.append(f"unreachable:{where}")
+                absent = _no_copy_reason(
+                    regions, source.source_id, source.snapshot_ref, region_id)
+                if absent:
+                    no_copy.append(absent)
+                else:
+                    reasons.append(f"unreachable:{where}")
                 continue
             reachable = True
             source_url = url_of(source.source_id) if callable(url_of) else None
@@ -7207,7 +7942,7 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
             accepting = _readers_for(ordered, read_claim, text, kind, source_url=source_url)
             independent = [e for e in accepting if _independent(claim, e.actor, today)]
             if not independent:
-                if _binding_page(claim, regions, kind):
+                if _binding_page(claim, regions, kind, source.source_id):
                     continue
                 if claim.value is None and claim.field.startswith("licence."):
                     blocked = _absence_block(claim, regions, source.source_id)
@@ -7286,12 +8021,15 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
         actor, diffs = mismatch
         return Result(claim.target, "mismatch",
                       _verification(claim, actor, "mismatch", today, diffs), tuple(diffs))
-    reason = "; ".join(reasons)
+    if not reachable and no_copy and not reasons:
+        return Result(claim.target, "skipped", reason="; ".join(no_copy))
+    reason = "; ".join([*reasons, *no_copy])
     if not reachable:
         if not _independent(claim, REGION_LOOKUP, today):
             return Result(claim.target, "skipped", reason="no_independent_extractor")
         return Result(claim.target, "unreachable",
-                      _verification(claim, REGION_LOOKUP, "unreachable", today), reason=reason)
+                      _verification(claim, REGION_LOOKUP, "unreachable", today),
+                      reason="; ".join(reasons))
     return Result(claim.target, "skipped", reason=reason)
 
 
@@ -7497,10 +8235,14 @@ class RunReport:
     @property
     def counts(self) -> dict[str, int]:
         counts = dict.fromkeys(("verified", "mismatch", "unreachable", "skipped"), 0)
+        skipped_no_copy = 0
         for r in self.results:
             if r.outcome == "cited":
                 counts.setdefault("cited", 0)
             counts[r.outcome] += 1
+            if r.outcome == "skipped" and _only_no_copy(r.reason):
+                skipped_no_copy += 1
+        counts["skipped_no_copy"] = skipped_no_copy
         return counts
 
     def to_dict(self) -> dict[str, Any]:
@@ -7515,6 +8257,14 @@ class RunReport:
             ],
             "unknown": [ref_str(t) for t in self.unknown],
         }
+
+
+def _only_no_copy(reason: str | None) -> bool:
+    """True when every segment of ``reason`` is an absent-copy skip."""
+    if not reason:
+        return False
+    parts = [part.strip() for part in reason.split(";")]
+    return all(part.startswith("no retained copy in this cache:") for part in parts)
 
 
 def ref_str(target: TargetRef) -> str:
@@ -7553,7 +8303,7 @@ __all__ = [
     "GovernanceProseExtractor", "KeyValueExtractor", "LLMCache", "LLMCallBudgetExceededError",
     "LabJurisdictionExtractor", "LicenceTermsExtractor",
     "LLMExtractor", "MISTRAL_MODEL", "ModelPageExtractor", "OLLAMA_URL", "OfferingPriceExtractor",
-    "OLLAMA_JSON_MODE", "OllamaChatCompletion", "Quantity", "Queue", "Reading",
+    "APPROVED_OLLAMA_READERS", "OLLAMA_JSON_MODE", "OllamaChatCompletion", "ollama_reader", "Quantity", "Queue", "Reading",
     "Regions", "Result",
     "RunReport", "StoredRegions", "StructuredDataExtractor", "SubscriptionPageExtractor",
     "TableExtractor", "TOLERANCE_RULE",

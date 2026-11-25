@@ -14,7 +14,9 @@ premier facts are part of this change. Later decisions append hosts in that
 file. MODEL-436 added `www.anthropic.com`, `developers.openai.com`,
 `help.openai.com`, `chatgpt.com` and `cursor.com`. MODEL-409-HOSTS adds
 `platform.claude.com` and `privacy.claude.com`. `claude.com` and
-`support.claude.com` stay off the list.
+`support.claude.com` stay off the list. MODEL-473 adds Jamie's 2026-11-25
+rulings: `aistudio.google.com`, `thinkingmachines.ai`, `arena.ai`, `gemma.ai`
+and `grok.com`. `lmarena.ai` is not under `arena.ai` and stays off the list.
 
 A shared, standard-library retention module loads this file. Hosts are
 case-insensitive, ignore a terminal dot and port, and match the named host or

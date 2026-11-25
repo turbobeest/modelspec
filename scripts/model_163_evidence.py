@@ -11,6 +11,7 @@ import yaml
 
 from decision.model import SourceRef, TargetRef, VerificationActor
 from decision.sources import CopyStore, load_sources
+from scripts.premier_inputs import require_inputs
 from decision.verify import Claim, Queue, StructuredDataExtractor, normalise_name
 from scripts.model_143_evidence import (
     _set_field,
@@ -88,6 +89,7 @@ def replace_evidence(path: Path, text: str, original: tuple, row: dict) -> None:
 
 def main() -> None:
     inputs = ROOT / "premier" / "inputs"
+    require_inputs(inputs, {row[1] for row in SELECTED.values()})
     store = CopyStore()
     snapshots: dict[str, str] = {}
     for filename in sorted({row[1] for row in SELECTED.values()}):

@@ -18,12 +18,12 @@ it("accepts the engine's nulls for optional fields and its with_estate block", (
   const parsed = decisionSchema.safeParse(decision);
   expect(parsed.success, JSON.stringify(parsed.error?.issues.slice(0, 3))).toBe(true);
 
-  // MODEL-202 parses with_estate strictly: the engine's own block passes, a
-  // block without its gap or with a field the page does not know does not.
+  // The engine's own with_estate block passes and a block without its gap
+  // does not. A key the page does not know is dropped, never rejected.
   decision.with_estate = structuredClone(codingJson.with_estate);
   expect(decisionSchema.safeParse(decision).success).toBe(true);
   decision.with_estate = { status: "no_feasible", results: [] };
   expect(decisionSchema.safeParse(decision).success).toBe(false);
   decision.with_estate = { ...structuredClone(codingJson.with_estate), leaked: true };
-  expect(decisionSchema.safeParse(decision).success).toBe(false);
+  expect(decisionSchema.safeParse(decision).success).toBe(true);
 });

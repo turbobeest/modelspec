@@ -21,7 +21,10 @@ from datetime import UTC, date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from decision.credit import credit_for
+from decision.owner_ruling import has_ruling, served_fact
 from pipeline.load import REPO_ROOT, Benchmark, Catalogue, Model
+from schema.benchmark import INTERNAL_PAGE_KEYS
 from schema.card import applicability_block
 
 #: Shape of the published JSON tree (`/api/index.json`, per-model files,
@@ -110,7 +113,7 @@ _EVIDENCE_ROW_KEYS = ("unit", "date_type", "source_kind", "model_id_as_evaluated
 
 def _coverage_row(model: Model, score: float, as_of: Any, source: Any,
                   attribution: str, record: dict[str, Any]) -> dict[str, Any]:
-    return {
+    row = {
         "model_id": model.model_id,
         "display_name": model.display_name,
         "provider": model.provider,
@@ -122,6 +125,12 @@ def _coverage_row(model: Model, score: float, as_of: Any, source: Any,
         "release_date": str(model.front.get("release_date") or "") or None,
         **{key: record.get(key) for key in _EVIDENCE_ROW_KEYS},
     }
+    # Where a licence asks for credit (Epoch AI, CC BY 4.0), the row carries it
+    # (MODEL-508). Absent for every other source, so those rows are unchanged.
+    credit = credit_for(source)
+    if credit is not None:
+        row["credit"] = credit
+    return row
 
 
 def models_by_benchmark(models: list[Model],
@@ -207,7 +216,8 @@ PARTS_ALL = ("index", "models", "catalogue", "benchmarks")
 
 
 def _fact_identity(fact: dict[str, Any]) -> str:
-    return json.dumps({key: value for key, value in fact.items()
+    """A fact's identity in its served form, so a ruled card fact meets its cited copy."""
+    return json.dumps({key: value for key, value in served_fact(fact).items()
                        if key not in {"verification", "citation"}}, sort_keys=True, default=str)
 
 
@@ -232,11 +242,33 @@ def write(out_dir: Path, models: list[Model], benchmarks: list[Benchmark],
             cited_by_identity = {_fact_identity(fact): fact for fact in model.cited_facts}
             card = {**card, "facts": [cited_by_identity.get(_fact_identity(fact), fact)
                                      for fact in card.get("facts") or []]}
+        if model.withheld_facets or any(has_ruling(f) for f in card.get("facts") or []):
+            # MODEL-551: a fact whose owner ruling does not stand is kept out, and a ruled
+            # fact is published in the snapshot's served form (``served_fact``).
+            cited_by_identity = {_fact_identity(fact): fact for fact in model.cited_facts}
+            facts = [f for f in card.get("facts") or []
+                     if f.get("facet") not in model.withheld_facets]
+            card = {**card, "facts": [cited_by_identity.get(_fact_identity(f), served_fact(f))
+                                      for f in facts]}
         if model.cited_evidence:
             card = {**card, "benchmarks": {**card["benchmarks"], "evidence": [
                 {**record, "citation": {"status": "cited", "url": record["source_url"]}}
                 if record in model.cited_evidence else record
                 for record in card["benchmarks"]["evidence"]
+            ]}}
+        if any(isinstance(r, dict) and "baseline" in r for r in model.evidence):
+            # MODEL-537: the baseline is internal. Stripped after the cited mapping above, which
+            # compares whole records, so a cite-only row keeps its citation marker.
+            card = {**card, "benchmarks": {**card["benchmarks"], "evidence": [
+                {k: v for k, v in r.items() if k != "baseline"} if isinstance(r, dict) else r
+                for r in card["benchmarks"]["evidence"]]}}
+        if any(isinstance(r, dict) and "derivation" in r
+               for r in (card.get("benchmarks") or {}).get("evidence") or []):
+            # The reading's cited-change derivation is internal; stripped after the cited
+            # mapping above.
+            card = {**card, "benchmarks": {**card["benchmarks"], "evidence": [
+                {k: v for k, v in r.items() if k != "derivation"} if isinstance(r, dict) else r
+                for r in card["benchmarks"]["evidence"]
             ]}}
         if model.scores_citation:
             card = {**card, "benchmarks": {**card["benchmarks"], "scores_citation": model.scores_citation}}
@@ -260,7 +292,7 @@ def write(out_dir: Path, models: list[Model], benchmarks: list[Benchmark],
         disposition = catalogue.for_benchmark(bench.benchmark_id)
         dump(f"benchmarks/{bench.benchmark_id}.json", {
             "build": build.to_json(),
-            "page": bench.front,
+            "page": {k: v for k, v in bench.front.items() if k not in INTERNAL_PAGE_KEYS},
             "body": bench.body,
             "disposition": {
                 "status": disposition.status,

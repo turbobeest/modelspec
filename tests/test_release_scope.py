@@ -4,13 +4,85 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
+import yaml
 
 from release_signals.contract import ReleaseSignal
 from release_signals.pipeline import FetchResult
-from release_signals.scope import out_of_scope_reason
+from release_signals.scope import (
+    IN_SCOPE_PIPELINE_TAGS,
+    OUT_OF_SCOPE_PIPELINE_TAGS,
+    TagDecision,
+    derivative_reason,
+    hub_hold_reason,
+    hub_metadata,
+    known_pipeline_tag,
+    out_of_scope_reason,
+    relevant_hub_tags,
+    tag_scope,
+)
+from release_signals.watch import ROOT, Seen, Source, load_registry
 from scripts import process_release_signals as processor
+from scripts.release_watch_filter import _hub_scope_reason
+
+# Language, embedding, reranker and neighbouring types the catalogue ranks.
+# Modality types the watcher is built to skip stay out of this replay.
+_IN_SCOPE_MODEL_TYPES = frozenset({
+    "llm-chat", "llm-reasoning", "llm-code", "llm-base", "vlm",
+    "embedding-text", "embedding-multimodal", "embedding-code", "reranker",
+    "safety-classifier", "medical", "legal", "financial",
+    "reward-model", "router", "agent-model", "decision-model",
+    "adapter", "quantized-variant", "distilled", "merged", "text-encoder",
+})
+
+# 42 public cards stay rejected. 28 are named after another lab's base.
+# 14 carry an out-of-scope pipeline tag or an out-of-scope name.
+_CATALOGUE_SCOPE_EXCEPTIONS: dict[str, str] = {
+    "nvidia/bigvgan-v2-22khz-80band-256x": "audio-to-audio",
+    "nvidia/bigvgan-v2-44khz-128band-512x": "audio-to-audio",
+    "nvidia/deepseek-r1-0528-nvfp4-v2": "derivative of deepseek-ai/DeepSeek-R1-0528",
+    "nvidia/gemma-4-31b-it-nvfp4": "derivative of google/gemma-4-31B-it",
+    "nvidia/glm-5-nvfp4": "derivative of zai-org/GLM-5",
+    "nvidia/kimi-k2-5-nvfp4": "derivative of moonshotai/Kimi-K2.5",
+    "nvidia/llama-3-1-8b-instruct-fp8": "derivative of meta-llama/Llama-3.1-8B-Instruct",
+    "nvidia/llama-3-1-8b-instruct-nvfp4": "derivative of meta-llama/Llama-3.1-8B-Instruct",
+    "nvidia/llama-3-3-70b-instruct-nvfp4": "derivative of meta-llama/Llama-3.3-70B-Instruct",
+    "nvidia/personaplex-7b-v1": "audio-to-audio",
+    "nvidia/qwen3-14b-nvfp4": "derivative of Qwen/Qwen3-14B",
+    "nvidia/qwen3-30b-a3b-nvfp4": "derivative of Qwen/Qwen3-30B-A3B",
+    "nvidia/qwen3-32b-nvfp4": "derivative of Qwen/Qwen3-32B",
+    "nvidia/qwen3-5-397b-a17b-nvfp4": "derivative of Qwen/Qwen3.5-397B-A17B",
+    "qwen/qwen-vl-ocr": "ocr",
+    "stability/stable-audio-open-1-0": "text-to-audio",
+    "stability/stable-video-diffusion-img2vid-xt-1-1": "image-to-video",
+    "stability/stable-video-diffusion-img2vid-xt": "image-to-video",
+    "stability/stable-video-diffusion-img2vid": "image-to-video",
+    "stability/stable-virtual-camera": "image-to-video",
+    "tencent/songgeneration": "text-to-audio",
+    "unsloth/deepseek-ocr-2": "derivative of deepseek/deepseek-ocr-2",
+    "unsloth/gemma-4-26b-a4b-it-gguf": "derivative of google/gemma-4-26b-a4b-it",
+    "unsloth/gemma-4-31b-it-gguf": "derivative of google/gemma-4-31b-it",
+    "unsloth/gemma-4-e4b-it-gguf": "derivative of google/gemma-4-e4b-it",
+    "unsloth/glm-4-7-flash-fp8-dynamic": "derivative of zhipu/glm-4-7-flash",
+    "unsloth/gpt-oss-20b-gguf": "derivative of openai/gpt-oss-20b",
+    "unsloth/llama-3-1-8b-instruct": "derivative of meta/llama-3-1-8b-instruct",
+    "unsloth/ltx-2-3-gguf": "image-to-video",
+    "unsloth/mistral-7b-v0-3-bnb-4bit": "derivative of mistral/mistral-7b-v0-3",
+    "unsloth/qwen3-0-6b": "derivative of Qwen/Qwen3-0.6B",
+    "unsloth/qwen3-5-0-8b-gguf": "derivative of qwen/qwen3-5-0-8b",
+    "unsloth/qwen3-5-122b-a10b-gguf": "derivative of qwen/qwen3-5-122b-a10b",
+    "unsloth/qwen3-5-27b-gguf": "derivative of qwen/qwen3-5-27b",
+    "unsloth/qwen3-5-2b-gguf": "derivative of qwen/qwen3-5-2b",
+    "unsloth/qwen3-5-35b-a3b-gguf": "derivative of qwen/qwen3-5-35b-a3b",
+    "unsloth/qwen3-5-4b-gguf": "derivative of qwen/qwen3-5-4b",
+    "unsloth/qwen3-5-9b-gguf": "derivative of qwen/qwen3-5-9b",
+    "unsloth/qwen3-coder-next-gguf": "derivative of qwen/qwen3-coder-next",
+    "zhipu/cogvideox-5b-i2v": "image-to-video",
+    "zhipu/cogvideox1-5-5b-i2v": "image-to-video",
+    "zhipu/glm-4-voice-9b": "speech",
+}
 
 
 def test_named_modalities_are_out_of_scope_and_ordinary_names_stay_in() -> None:
@@ -182,3 +254,522 @@ def test_an_out_of_scope_alias_writes_nothing_and_does_not_resolve(
     assert not audit_path.exists()
     assert json.loads(result_path.read_text(encoding="utf-8"))["status"] == "out_of_scope"
     assert not (tmp_path / "offerings").exists()
+
+
+@pytest.mark.parametrize("tag", sorted(IN_SCOPE_PIPELINE_TAGS))
+def test_listed_pipeline_tags_are_in_scope(tag: str) -> None:
+    assert tag_scope(tag) == TagDecision(True, None, tag)
+
+
+@pytest.mark.parametrize("tag", sorted(OUT_OF_SCOPE_PIPELINE_TAGS))
+def test_listed_pipeline_tags_are_out_of_scope_with_the_tag_as_the_reason(tag: str) -> None:
+    assert tag_scope(tag) == TagDecision(True, tag, tag)
+
+
+def test_multimodal_tags_stay_in_scope_and_can_keep_a_speech_pipeline_tag() -> None:
+    for tag in (
+        "audio-text-to-text",
+        "zero-shot-image-classification",
+        "image-feature-extraction",
+    ):
+        assert tag not in OUT_OF_SCOPE_PIPELINE_TAGS
+        assert tag not in IN_SCOPE_PIPELINE_TAGS
+        assert not known_pipeline_tag(tag)
+        assert tag_scope(tag) == TagDecision(True, None, tag)
+    assert tag_scope("audio-classification") == TagDecision(
+        True, "audio-classification", "audio-classification",
+    )
+    assert tag_scope("graph-ml", ("robotics",)) == TagDecision(True, None, "graph-ml")
+    assert tag_scope("Robotics", ("en",)) == TagDecision(True, "Robotics", "Robotics")
+    assert tag_scope("text-to-speech", ("image-text-to-text",)) == TagDecision(
+        True, None, "image-text-to-text",
+    )
+    assert tag_scope("automatic-speech-recognition", ("audio-text-to-text",)) == TagDecision(
+        True, None, "audio-text-to-text",
+    )
+    assert tag_scope("Robotics", ("text-generation", "en")) == TagDecision(
+        True, None, "text-generation",
+    )
+
+
+def test_no_pipeline_tag_lets_the_name_rules_decide() -> None:
+    assert tag_scope(None, ()) == TagDecision(False)
+    assert tag_scope("", ("en", "license:mit", "transformers")) == TagDecision(False)
+    assert tag_scope("  ", ()) == TagDecision(False)
+    assert tag_scope(None, ("en", "reinforcement-learning")) == TagDecision(
+        True, "reinforcement-learning", "reinforcement-learning",
+    )
+    assert tag_scope(None, ("text-generation", "robotics")) == TagDecision(False)
+    assert tag_scope(None, ("transformers", "text-generation")) == TagDecision(False)
+    assert tag_scope(None, ("audio",)) == TagDecision(False)
+    assert tag_scope("audio") == TagDecision(True, None, "audio")
+    assert not known_pipeline_tag("audio")
+    assert tag_scope("text-generation", ("robotics",)) == TagDecision(
+        True, None, "text-generation",
+    )
+
+
+def test_a_derivative_is_an_artefact_named_after_another_labs_base() -> None:
+    assert derivative_reason(
+        "acme-lab/orbit-1-sparse", "other-lab/Orbit-1",
+    ) == "derivative of other-lab/Orbit-1"
+    assert derivative_reason("acme-lab/flagship", "other-lab/Orbit-1") is None
+    assert derivative_reason(
+        "acme-lab/siglip-vl", ("acme-lab/flagship", "other-lab/siglip"),
+    ) is None
+    assert derivative_reason("acme-lab/orbit-1-tune", "acme-lab/Orbit-1") is None
+    assert derivative_reason("Acme-Lab/orbit-1-tune", "acme-lab/Orbit-1") is None
+    assert derivative_reason("acme-lab/orbit-1-sparse", None) is None
+    assert derivative_reason("acme-lab/orbit-1-sparse", "") is None
+    assert derivative_reason("acme-lab/orbit-1-sparse", "not-a-repository") is None
+    assert derivative_reason(
+        "acme-lab/orbit-1-sparse", ("not-a-repository", "other-lab/Orbit-1"),
+    ) == "derivative of other-lab/Orbit-1"
+    assert derivative_reason("acme-lab/orbit-10-sparse", "other-lab/Orbit-1") is None
+
+
+def _text(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    return text or None
+
+
+def _huggingface_repo(url: object) -> str | None:
+    if not isinstance(url, str) or "huggingface.co/" not in url:
+        return None
+    path = url.split("huggingface.co/", 1)[1].strip().strip("/").split("?", 1)[0]
+    parts = [part for part in path.split("/") if part]
+    if not parts or parts[0] in {"datasets", "spaces", "collections"}:
+        return None
+    if len(parts) < 2 or not parts[0] or not parts[1]:
+        return None
+    return f"{parts[0]}/{parts[1]}"
+
+
+def _catalogue_scope_rejections() -> dict[str, str]:
+    """Watcher scope for each in-scope card under a registered Hugging Face lab."""
+    loader = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+    by_dir: dict[str, tuple[Source, str]] = {}
+    for source in load_registry().sources:
+        if source.kind != "huggingface":
+            continue
+        authors = parse_qs(urlsplit(source.url).query, keep_blank_values=True).get("author", [])
+        org = authors[0] if authors else ""
+        by_dir.setdefault(source.provider, (source, org))
+        if org:
+            by_dir.setdefault(org.casefold(), (source, org))
+    rejected: dict[str, str] = {}
+    for path in sorted((ROOT / "models").glob("*/*.md")):
+        lab = path.parent.name
+        if lab not in by_dir:
+            continue
+        parts = path.read_text(encoding="utf-8").split("---", 2)
+        if len(parts) < 3:
+            continue
+        front = yaml.load(parts[1], Loader=loader)
+        if not isinstance(front, dict):
+            continue
+        model_type = _text(front.get("model_type")) or ""
+        if model_type not in _IN_SCOPE_MODEL_TYPES:
+            continue
+        source, org = by_dir[lab]
+        model_id = _text(front.get("model_id")) or f"{lab}/{path.stem}"
+        sources = front.get("sources") if isinstance(front.get("sources"), dict) else {}
+        repo = _huggingface_repo(sources.get("huggingface_url")) or f"{org}/{path.stem}"
+        tags = tuple(tag for tag in (front.get("tags") or []) if isinstance(tag, str))
+        lineage = front.get("lineage") if isinstance(front.get("lineage"), dict) else {}
+        seen = Seen(
+            repo, repo.partition("/")[2], source.provider,
+            f"https://huggingface.co/{repo}",
+            pipeline_tag=_text(front.get("pipeline_tag")),
+            tags=tags,
+            base_model=_text(lineage.get("base_model")),
+        )
+        reason = _hub_scope_reason(seen, source)
+        if reason:
+            rejected[model_id] = reason
+    return rejected
+
+
+def test_catalogue_cards_under_huggingface_labs_stay_in_scope() -> None:
+    source = Source(
+        "hf-acme", "huggingface",
+        "https://huggingface.co/api/models?author=acme-lab", 0.7, provider="Acme",
+    )
+
+    def decide(repo: str, name: str, **fields: object) -> str | None:
+        return _hub_scope_reason(Seen(
+            repo, name, "Acme", f"https://huggingface.co/{repo}", **fields,
+        ), source)
+
+    assert decide(
+        "acme-lab/orbit-1-sparse", "orbit-1-sparse",
+        pipeline_tag="text-generation", base_model="other-lab/Orbit-1",
+    ) == "derivative of other-lab/Orbit-1"
+    assert decide("acme-lab/walker", "walker", pipeline_tag="robotics") == "robotics"
+    assert decide(
+        "acme-lab/pong", "pong", pipeline_tag="reinforcement-learning",
+    ) == "reinforcement-learning"
+    assert _catalogue_scope_rejections() == _CATALOGUE_SCOPE_EXCEPTIONS
+
+
+# Whole tags only. Matched after the same fold the scope module already uses.
+_INTERPRETABILITY_ARTEFACT_TAGS = (
+    "interpretability",
+    "mechanistic-interpretability",
+    "transcoder",
+    "cross-layer-transcoder",
+    "sparse-autoencoder",
+    "sparse-autoencoders",
+    "sae",
+    "saelens",
+    "sae-lens",
+    "crosscoder",
+)
+
+
+def _artefact(tag: str) -> TagDecision:
+    return TagDecision(True, f"interpretability artefact (tag: {tag})", tag)
+
+
+@pytest.mark.parametrize("tag", _INTERPRETABILITY_ARTEFACT_TAGS)
+def test_interpretability_artefact_tags_are_out_of_scope(tag: str) -> None:
+    decision = _artefact(tag)
+    assert tag_scope("feature-extraction", (tag,)) == decision
+    assert tag_scope(None, (tag,)) == decision
+    assert tag_scope("", (tag,)) == decision
+    assert tag_scope("  ", (tag,)) == decision
+
+
+def test_an_in_scope_pipeline_tag_keeps_a_card_that_mentions_interpretability() -> None:
+    assert tag_scope("text-generation", ("interpretability",)) == TagDecision(
+        True, None, "text-generation",
+    )
+    assert tag_scope("image-text-to-text", ("transcoder", "sae")) == TagDecision(
+        True, None, "image-text-to-text",
+    )
+    assert tag_scope("text_generation", ("interpretability",)) == TagDecision(
+        True, None, "text_generation",
+    )
+    assert tag_scope("text-to-speech", ("feature-extraction", "transcoder")) == TagDecision(
+        True, None, "feature-extraction",
+    )
+
+
+def test_feature_extraction_without_an_artefact_tag_stays_in_scope() -> None:
+    assert tag_scope("feature-extraction") == TagDecision(True, None, "feature-extraction")
+    assert tag_scope("feature-extraction", ("en", "transformers", "license:mit")) == TagDecision(
+        True, None, "feature-extraction",
+    )
+
+
+@pytest.mark.parametrize("tag", ("sae-j3016", "disaese", "my-sae-lens", "transcoder-v2"))
+def test_a_tag_that_only_contains_an_artefact_word_stays_in_scope(tag: str) -> None:
+    assert tag_scope("feature-extraction", (tag,)) == TagDecision(
+        True, None, "feature-extraction",
+    )
+    assert tag_scope(None, (tag,)) == TagDecision(False)
+
+
+def test_artefact_tags_fold_case_and_underscores() -> None:
+    assert tag_scope("Feature-Extraction", ("Transcoder",)) == _artefact("Transcoder")
+    assert tag_scope("Feature_Extraction", ("interpretability",)) == _artefact("interpretability")
+    assert tag_scope(None, ("SPARSE_AUTOENCODER",)) == _artefact("SPARSE_AUTOENCODER")
+    assert tag_scope("feature-extraction", ("  SAE-Lens  ",)) == _artefact("SAE-Lens")
+    assert tag_scope(None, ("feature-extraction", "cross_layer_transcoder")) == _artefact(
+        "cross_layer_transcoder",
+    )
+    assert tag_scope("feature-extraction", ("cross_coder",)) == TagDecision(
+        True, None, "feature-extraction",
+    )
+
+
+def test_a_keeping_task_tag_does_not_keep_an_interpretability_artefact() -> None:
+    assert tag_scope(
+        "feature-extraction", ("text-generation", "transcoder"),
+    ) == _artefact("transcoder")
+    assert tag_scope(None, ("feature-extraction", "crosscoder")) == _artefact("crosscoder")
+
+
+def test_a_generation_task_tag_keeps_a_missing_pipeline_the_way_main_did() -> None:
+    """Main left these undecided, so the name rules still run.
+
+    The generation and multimodal members of `_TASK_TAGS_THAT_KEEP` are
+    text-generation, image-text-to-text, any-to-any and audio-text-to-text.
+    feature-extraction, sentence-similarity and text-ranking are in that set
+    and do not keep a missing pipeline.
+    """
+    assert tag_scope(None, ("text-generation", "interpretability")) == TagDecision(False)
+    assert tag_scope(None, ("image-text-to-text", "sae")) == TagDecision(False)
+    assert tag_scope(None, ("any-to-any", "transcoder")) == TagDecision(False)
+    assert tag_scope(None, ("audio-text-to-text", "sae-lens")) == TagDecision(False)
+    assert tag_scope(None, ("interpretability", "transcoder")) == _artefact("interpretability")
+    assert tag_scope(
+        "feature-extraction", ("text-generation", "transcoder"),
+    ) == _artefact("transcoder")
+    assert tag_scope(None, ("sentence-similarity", "transcoder")) == _artefact("transcoder")
+    assert tag_scope(None, ("text-ranking", "sae")) == _artefact("sae")
+
+
+def test_artefact_tags_survive_relevant_hub_tags() -> None:
+    raw = [
+        "transformers",
+        "license:mit",
+        "en",
+        "arxiv:1234.5678",
+        "feature-extraction",
+        "base_model:finetune:other-lab/Orbit-1",
+        *_INTERPRETABILITY_ARTEFACT_TAGS,
+        "SPARSE_AUTOENCODER",
+    ]
+    kept = relevant_hub_tags(raw, "transformers", "feature-extraction")
+    for tag in (*_INTERPRETABILITY_ARTEFACT_TAGS, "SPARSE_AUTOENCODER"):
+        assert tag in kept
+    assert "license:mit" not in kept
+    assert "en" not in kept
+    assert "arxiv:1234.5678" not in kept
+    pipeline, tags, base, bases = hub_metadata(
+        {
+            "pipeline_tag": "feature-extraction",
+            "library_name": "transformers",
+            "tags": [
+                "transformers",
+                "feature-extraction",
+                "interpretability",
+                "transcoder",
+                "license:mit",
+                "en",
+                "arxiv:1234.5678",
+                "base_model:other-lab/Orbit-1",
+                "base_model:finetune:other-lab/Orbit-1",
+            ],
+        },
+        "acme-lab/probe",
+    )
+    assert pipeline == "feature-extraction"
+    assert "transcoder" in tags
+    assert "license:mit" not in tags
+    assert base == "other-lab/Orbit-1"
+    assert bases == ("other-lab/Orbit-1",)
+    assert tag_scope(pipeline, tags) == _artefact("interpretability")
+
+
+def test_the_watcher_reports_an_interpretability_artefact() -> None:
+    source = Source(
+        "hf-acme", "huggingface",
+        "https://huggingface.co/api/models?author=acme-lab", 0.7, provider="Acme",
+    )
+    assert _hub_scope_reason(Seen(
+        "acme-lab/probe", "probe", "Acme", "https://huggingface.co/acme-lab/probe",
+        pipeline_tag="feature-extraction", tags=("transformers", "transcoder"),
+    ), source) == "interpretability artefact (tag: transcoder)"
+    assert _hub_scope_reason(Seen(
+        "acme-lab/orbit", "orbit", "Acme", "https://huggingface.co/acme-lab/orbit",
+        pipeline_tag="text-generation", tags=("text-generation", "interpretability"),
+    ), source) is None
+    assert _hub_scope_reason(Seen(
+        "acme-lab/embed", "embed", "Acme", "https://huggingface.co/acme-lab/embed",
+        pipeline_tag="feature-extraction", tags=("transformers", "feature-extraction"),
+    ), source) is None
+
+
+# MODEL-474: adapters, forensics detectors and task-less feature encoders.
+_HUB_SOURCE = Source(
+    "hf-acme", "huggingface",
+    "https://huggingface.co/api/models?author=acme-lab", 0.7, provider="Acme",
+)
+
+
+def _hub_reason(repository: str, row: dict) -> str | None:
+    pipeline_tag, tags, base_model, base_models = hub_metadata(row, repository)
+    return _hub_scope_reason(Seen(
+        repository, repository.partition("/")[2], "Acme",
+        f"https://huggingface.co/{repository}",
+        pipeline_tag=pipeline_tag, tags=tags,
+        base_model=base_model, base_models=base_models,
+    ), _HUB_SOURCE)
+
+
+def test_a_peft_adapter_for_video_forensics_is_out_of_scope() -> None:
+    row = {
+        "pipeline_tag": "video-text-to-text",
+        "library_name": "peft",
+        "tags": [
+            "peft", "safetensors", "ai-generated-video-detection", "video-forensics",
+            "lora", "video-text-to-text", "base_model:acme-lab/base-4b",
+            "base_model:adapter:acme-lab/base-4b", "license:apache-2.0",
+        ],
+    }
+    assert _hub_reason("acme-lab/clip-forensics", row) == "adapter"
+
+
+def test_a_forensics_tag_alone_is_out_of_scope() -> None:
+    row = {
+        "pipeline_tag": "image-text-to-text",
+        "library_name": "transformers",
+        "tags": ["transformers", "image-text-to-text", "deepfake-detection"],
+    }
+    assert _hub_reason("acme-lab/checker", row) == "forensics or detection"
+    row["tags"] = ["transformers", "image-text-to-text", "ai_generated_image_detection"]
+    assert _hub_reason("acme-lab/checker", row) == "forensics or detection"
+
+
+def test_an_adapter_config_file_is_out_of_scope() -> None:
+    row = {
+        "pipeline_tag": "text-generation",
+        "tags": ["text-generation"],
+        "siblings": [{"rfilename": "adapter_config.json"}],
+    }
+    assert _hub_reason("acme-lab/tuned", row) == "adapter"
+
+
+def test_a_feature_encoder_with_no_task_tag_is_out_of_scope() -> None:
+    row = {
+        "pipeline_tag": None,
+        "tags": [
+            "base_model:acme-lab/vision-backbone-h",
+            "base_model:finetune:acme-lab/vision-backbone-h",
+            "license:other",
+        ],
+    }
+    assert _hub_reason("acme-lab/radiov4-h-av", row) == (
+        "feature encoder without a pipeline tag"
+    )
+    assert _hub_reason("acme-lab/vision-backbone", {"tags": []}) == (
+        "feature encoder without a pipeline tag"
+    )
+
+
+def test_a_multimodal_llm_with_a_feature_extraction_tag_is_kept() -> None:
+    row = {
+        "pipeline_tag": "video-text-to-text",
+        "library_name": "transformers",
+        "tags": [
+            "transformers", "safetensors", "feature-extraction", "multimodal",
+            "video", "video-text-to-text", "custom_code",
+        ],
+    }
+    assert _hub_reason("acme-lab/omni-video-2b", row) is None
+
+
+def test_a_base_llm_checkpoint_is_kept() -> None:
+    row = {
+        "pipeline_tag": "text-generation",
+        "library_name": "transformers",
+        "tags": ["transformers", "safetensors", "text-generation", "conversational"],
+    }
+    assert _hub_reason("acme-lab/lm-base", row) is None
+
+
+def test_an_untagged_repository_without_an_encoder_name_is_kept() -> None:
+    assert _hub_reason("acme-lab/plain-lm", {"tags": []}) is None
+    # A bare `encoder` in a name is an encoder-decoder language model.
+    assert _hub_reason("acme-lab/bert-seq-encoder", {"tags": []}) is None
+    # An embedding model that names itself an encoder keeps its task tag.
+    row = {"pipeline_tag": None, "tags": ["sentence-similarity"]}
+    assert _hub_reason("acme-lab/text-encoder", row) is None
+
+
+def test_a_research_checkpoint_with_no_task_is_out_of_scope() -> None:
+    row = {
+        "pipeline_tag": None,
+        "library_name": "pytorch",
+        "tags": ["pytorch", "speculative-decoding", "latent-feedback", "license:mit"],
+    }
+    assert _hub_reason("acme-lab/lab-notes-7b", row) == "research checkpoint"
+
+
+def test_a_checkpoint_tag_beside_a_task_tag_is_kept() -> None:
+    row = {
+        "pipeline_tag": "text-generation",
+        "tags": ["text-generation", "speculative-decoding"],
+    }
+    assert _hub_reason("acme-lab/draft-head-7b", row) is None
+
+
+def test_an_intermediate_sft_checkpoint_name_is_out_of_scope() -> None:
+    assert _hub_reason("acme-lab/chat-joint-sft-9b-3fa91c2d", {"tags": []}) == (
+        "intermediate checkpoint"
+    )
+    assert _hub_reason("acme-lab/chat-dpo-a1b2c3d4e", {"tags": []}) == (
+        "intermediate checkpoint"
+    )
+    assert _hub_reason("acme-lab/checkpoints", {"tags": []}) == "intermediate checkpoint"
+    assert _hub_reason("acme-lab/chat-7b-checkpoints", {"tags": []}) == (
+        "intermediate checkpoint"
+    )
+
+
+def test_a_released_sft_or_dpo_name_without_a_run_hash_is_kept() -> None:
+    row = {"pipeline_tag": "text-generation", "tags": ["text-generation"]}
+    for name in ("chat-sft", "chat-sft-9b", "chat-dpo-decaded", "chat-sft-instruct-v2"):
+        assert _hub_reason(f"acme-lab/{name}", row) is None
+
+
+def test_a_domain_emulator_library_is_out_of_scope() -> None:
+    row = {"pipeline_tag": None, "library_name": "fme", "tags": ["fme", "license:apache-2.0"]}
+    assert _hub_reason("acme-lab/climate-emulator-v1", row) == "domain simulator library"
+
+
+def test_a_repository_that_states_no_task_is_held_not_out() -> None:
+    row = {"pipeline_tag": None, "library_name": "transformers", "tags": ["transformers"]}
+    assert _hub_reason("acme-lab/mystery-7b", row) is None
+    assert hub_hold_reason(*hub_metadata(row, "acme-lab/mystery-7b")[:2]) == (
+        "Hub repository states no task"
+    )
+
+
+_DRAFTER_ROW = {"pipeline_tag": "text-generation", "tags": ["text-generation"]}
+
+
+def _held(repository: str) -> str | None:
+    pipeline_tag, tags = hub_metadata(_DRAFTER_ROW, repository)[:2]
+    return hub_hold_reason(pipeline_tag, tags, repository)
+
+
+@pytest.mark.parametrize("name", [
+    "nemotron-labs-sigma-distill-spec-3b",
+    "nemotron-labs-sigma-distill-spec-8b",
+    "nemotron-labs-sigma-distill-8b-nfe4",
+    "nemotron-labs-sigma-distill-8b-nfe8",
+])
+def test_drafter_and_distill_checkpoint_names_are_held(name: str) -> None:
+    assert _held(f"acme-lab/{name}") is not None
+
+
+@pytest.mark.parametrize("name", [
+    "nex-n2-6", "nemotron-3-super", "spectrum-8b", "acme-spectrum-spec", "specific-8b",
+    "distill-8b", "nfe-base",
+])
+def test_ordinary_names_are_not_held_for_a_drafter_rule(name: str) -> None:
+    assert _held(f"acme-lab/{name}") is None
+
+
+def test_tasks_that_name_a_ranked_model_are_neither_out_nor_held() -> None:
+    shapes = {
+        "acme-lab/video-lm": {"pipeline_tag": "video-text-to-text", "tags": ["video-text-to-text"]},
+        "acme-lab/distill-8b": {"pipeline_tag": "text-generation", "tags": ["text-generation"]},
+        "acme-lab/lm-4b": {"pipeline_tag": "text-generation", "tags": ["text-generation"]},
+        "acme-lab/base-vl": {"pipeline_tag": "image-text-to-text", "tags": ["image-text-to-text"]},
+        "acme-lab/embed-v2": {"pipeline_tag": "sentence-similarity", "tags": ["sentence-similarity"]},
+        "acme-lab/embed-base": {"pipeline_tag": None, "tags": ["feature-extraction"]},
+    }
+    for repository, row in shapes.items():
+        assert _hub_reason(repository, row) is None, repository
+        assert hub_hold_reason(*hub_metadata(row, repository)[:2]) is None, repository
+
+
+def test_an_untagged_run_id_name_with_empty_metadata_is_held() -> None:
+    row = {"pipeline_tag": None, "tags": []}
+    name = "acme-lab/agent-joint-sft-9b-ab12cd-2n"
+    assert _hub_reason(name, row) is None
+    assert hub_hold_reason(None, ()) == "Hub repository states no task"
+
+
+def test_a_date_suffix_after_sft_is_not_a_run_hash() -> None:
+    row = {"pipeline_tag": "text-generation", "tags": ["text-generation"]}
+    assert _hub_reason("acme/model-sft-20241105", row) is None
+    assert _hub_reason("acme/model-sft-3f9a2c1", row) == "intermediate checkpoint"
+    for name in ("model-SFT", "model-sft-v2", "model-dpo-2024"):
+        assert _hub_reason(f"acme/{name}", row) is None

@@ -235,6 +235,36 @@ def test_vending_projection_reads_only_the_vb2_object() -> None:
                              unit="USD", day="2026-09-25"))
 
 
+def test_vending_projection_reads_the_json_text_form_of_the_board() -> None:
+    # Since late 2026-11 the page ships the board as the JSON text of JSON.parse`...`.
+    chunk = ('runs:JSON.parse(`{"vb2":{"Claude Opus 4.6":{"num_epochs":5,"time_series":[500,510.5],'
+             '"final_value":8017.594,"final_value_geomean":7000.1,"final_value_sem":3.2},'
+             '"Claude Fable 5 - Max":{"num_epochs":5,"time_series":[],"final_value":4966.64}},'
+             '"arena-x":{"Claude Opus 4.6":{"num_epochs":5,"final_value":5062.33}}}`)')
+    assert m160.vending_marker(chunk) == '{"vb2":{'
+    assert m160.vending_marker(b"nothing here") is None
+    body = m160.project_vending(chunk, url="https://example.test", page_ref="sha256:x",
+                                read_date="2026-11-21")
+    rows = json.loads(body)["rows"]
+    assert [r["model"] for r in rows] == ["Claude Opus 4.6", "Claude Fable 5 - Max"]
+    assert diffs(body, claim(8017.59, names=("Claude Opus 4.6",), label="money_balance",
+                             unit="USD", day="2026-11-21")) == []
+    with pytest.raises(ValueError):
+        m160.project_vending("no board", url="u", page_ref="x")
+
+
+@pytest.mark.parametrize("chunk", [
+    'runs:JSON.parse(`{"vb2":{}}`)',
+    "const m={vb2:{}};",
+    'runs:JSON.parse(`{"vb2":{"Orbit":{"num_epochs":5,"time_series":[1]}}}`)',
+    'const m={vb2:{"Orbit":{num_epochs:5,time_series:[1]}}};',
+    'runs:JSON.parse(`{"vb2":{"Orbit":{"final_value":10.5},"Rival":{"num_epochs":5}}}`)',
+])
+def test_vending_projection_fails_loudly_on_an_empty_board_or_a_missing_value(chunk: str) -> None:
+    with pytest.raises(ValueError):
+        m160.project_vending(chunk, url="https://example.test", page_ref="sha256:x")
+
+
 FRONTIERCODE_MD = """\
 | # | Model | Score▼ | Pass rate▼ | Flag rate▼ | Cost / rollout▼ | Output tokens▼ |
 | --- | --- | --- | --- | --- | --- | --- |

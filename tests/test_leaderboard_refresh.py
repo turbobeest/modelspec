@@ -10,9 +10,12 @@ from pathlib import Path
 import pytest
 import yaml
 
+from decision import verify
 from decision.excluded import REMOVED_HOSTS
 from scripts import accuracy
 from scripts import refresh_leaderboards as refresh
+
+pytestmark = pytest.mark.usefixtures("terms_register_present")
 
 FIXTURES = Path(__file__).parent / "fixtures" / "leaderboard_refresh"
 
@@ -702,7 +705,7 @@ benchmarks:
     )
 
 
-def test_source_dated_row_keeps_its_read_date_and_date_type(
+def test_source_dated_row_retells_its_read_day_and_keeps_its_date_type(
     monkeypatch, tmp_path: Path,
 ) -> None:
     root = tmp_path / "repo"
@@ -780,7 +783,7 @@ benchmarks:
     assert str(row["evidence_date"]) == "2026-09-01"
     assert str(row["observed_at"]) == "2026-09-28"
     assert row["date_type"] == "published"
-    assert row["configuration"] == "Board row read 2026-09-24; published 2026-09-01."
+    assert row["configuration"] == "Board row read 2026-09-28; published 2026-09-01."
 
 
 def _run_one_row_refresh(
@@ -862,7 +865,7 @@ benchmarks:
 
 
 @pytest.mark.parametrize("date_key", refresh._SOURCE_DATE_KEYS)
-def test_same_day_source_date_stays_published_and_unchanged(
+def test_same_day_source_date_stays_published_with_its_read_day_retold(
     monkeypatch, tmp_path: Path, date_key: str,
 ) -> None:
     configuration = "dataset re-read 2026-09-24. Board row read 2026-09-24."
@@ -878,7 +881,7 @@ def test_same_day_source_date_stays_published_and_unchanged(
     assert str(row["evidence_date"]) == "2026-09-28"
     assert str(row["observed_at"]) == "2026-09-28"
     assert row["date_type"] == "published"
-    assert row["configuration"] == configuration
+    assert row["configuration"] == "dataset re-read 2026-09-24. Board row read 2026-09-28."
 
 
 def test_dataset_reread_text_is_not_rewritten(monkeypatch, tmp_path: Path) -> None:
@@ -1001,7 +1004,7 @@ benchmarks:
     result = refresh.check_score_only(before, root)
     assert report.quarantined == []
     assert row["date_type"] == "published"
-    assert row["configuration"] == configuration
+    assert row["configuration"] == configuration.replace("read 2026-09-24", "read 2026-09-28")
     assert str(row["observed_at"]) == "2026-09-28"
     assert str(row["evidence_date"]) == "2026-09-28"
     assert result.ok, result.errors
@@ -1054,6 +1057,436 @@ def test_score_only_check_refuses_an_unrelated_configuration_edit(tmp_path: Path
 
     assert not result.ok
     assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def _arena_guard_card(observed_at: str, *, model: str = "Example Model (High)") -> str:
+    return _card(observed_at).replace(
+        "benchmark_id: fixture_benchmark", "benchmark_id: arena_text",
+    ).replace(
+        "source_url: https://example.test/leaderboard.json",
+        "source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",
+    ).replace(
+        "model_id_as_evaluated: Stable Model", f"model_id_as_evaluated: {model}",
+    ).replace("unit: percent", "unit: Arena score (Elo scale)")
+
+
+def _guard_result(tmp_path: Path, before_text: str, after_text: str):
+    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+    return refresh.check_score_only(before, after)
+
+
+def test_score_only_check_refuses_interval_and_vote_count_on_a_non_arena_row(
+    tmp_path: Path,
+) -> None:
+    before_text = _card("2026-09-24")
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "    id: lab/model#stable\n",
+        "    interval: [70.0, 76.0]\n    n: 40\n    id: lab/model#stable\n",
+    )
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_accepts_interval_and_vote_count_on_a_refreshed_arena_row(
+    tmp_path: Path,
+) -> None:
+    before_text = _arena_guard_card("2026-09-24").replace(
+        "source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",
+        "source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/",
+    )
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "    id: lab/model#stable\n",
+        "    interval: [70.0, 76.0]\n    n: 40\n    id: lab/model#stable\n",
+    )
+    assert _guard_result(tmp_path, before_text, after_text).ok
+
+
+def test_score_only_check_accepts_a_figures_only_configuration_on_an_arena_row(
+    tmp_path: Path,
+) -> None:
+    before_text = _arena_guard_card("2026-09-24").replace(
+        "    date_type: published\n",
+        "    date_type: published\n"
+        "    configuration: rating 1100, CI 1080 to 1120, votes 100, rank 4, "
+        "revision aaaaaaa, published 2026-09-01\n",
+    )
+    after_text = before_text.replace("score: 72.0", "score: 1200.5").replace(
+        "evidence_date: '2026-09-01'",
+        "evidence_date: '2026-11-12'",
+    ).replace(
+        "    id: lab/model#stable\n",
+        "    interval: [1180.0, 1220.0]\n    n: 200\n    id: lab/model#stable\n",
+    ).replace(
+        "rating 1100, CI 1080 to 1120, votes 100, rank 4, "
+        "revision aaaaaaa, published 2026-09-01",
+        "rating 1200.50, CI 1180 to 1220, votes 200, rank 3, "
+        "revision aaaaaaa, published 2026-11-12",
+    )
+    assert _guard_result(tmp_path, before_text, after_text).ok
+
+
+def _arena_sentence_with_token(before_token: str, after_token: str) -> tuple[str, str]:
+    before_sentence = (
+        f"model {before_token}; publication date 2026-10-01; rating 1100.00 "
+        "[1080.00, 1120.00], CI 1080.00-1120.00, 2222 votes, rank 4. "
+        "Observed 2026-10-01."
+    )
+    after_sentence = (
+        f"model {after_token}; publication date 2026-11-02; rating 1210.25 "
+        "[1190.50, 1230.75], CI 1190.50-1230.75, 3333 votes, rank 3. "
+        "Observed 2026-11-11."
+    )
+    before_text = _arena_guard_card("2026-10-01").replace(
+        "score: 72.0", "score: 1100.0",
+    ).replace(
+        "    date_type: published\n",
+        f"    date_type: published\n    configuration: {before_sentence}\n",
+    )
+    after_text = before_text.replace("score: 1100.0", "score: 1210.25").replace(
+        "evidence_date: '2026-09-01'", "evidence_date: '2026-11-02'",
+    ).replace(
+        "observed_at: '2026-10-01'", "observed_at: '2026-11-11'",
+    ).replace(
+        "verified_at: '2026-10-01'", "verified_at: '2026-11-11'",
+    ).replace(
+        "    id: lab/model#stable\n",
+        "    interval: [1190.5, 1230.75]\n    n: 3333\n    id: lab/model#stable\n",
+    ).replace(before_sentence, after_sentence)
+    return before_text, after_text
+
+
+def test_score_only_check_accepts_an_unchanged_id_that_contains_a_date(
+    tmp_path: Path,
+) -> None:
+    before_text, after_text = _arena_sentence_with_token(
+        "gpt-4o-2024-08-06", "gpt-4o-2024-08-06",
+    )
+
+    assert _guard_result(tmp_path, before_text, after_text).ok
+
+
+def test_score_only_check_refuses_a_changed_id_that_contains_a_date(
+    tmp_path: Path,
+) -> None:
+    before_text, after_text = _arena_sentence_with_token(
+        "gpt-4o-2024-08-06", "gpt-4o-2026-11-11",
+    )
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_accepts_a_writer_shaped_arena_sentence(tmp_path: Path) -> None:
+    """Two-decimal rating, bracket, CI a-b, votes over 1000, rank, and both dates."""
+    before_sentence = (
+        "publication date 2026-10-01; rating 1100.00 [1080.00, 1120.00], "
+        "CI 1080.00-1120.00, 2222 votes, rank 4. Observed 2026-10-01."
+    )
+    after_sentence = (
+        "publication date 2026-11-02; rating 1210.25 [1190.50, 1230.75], "
+        "CI 1190.50-1230.75, 3333 votes, rank 3. Observed 2026-11-11."
+    )
+    before_text = _arena_guard_card("2026-10-01").replace(
+        "score: 72.0", "score: 1100.0",
+    ).replace(
+        "    date_type: published\n",
+        f"    date_type: published\n    configuration: {before_sentence}\n",
+    )
+    after_text = before_text.replace("score: 1100.0", "score: 1210.25").replace(
+        "evidence_date: '2026-09-01'", "evidence_date: '2026-11-02'",
+    ).replace(
+        "observed_at: '2026-10-01'", "observed_at: '2026-11-11'",
+    ).replace(
+        "verified_at: '2026-10-01'", "verified_at: '2026-11-11'",
+    ).replace(
+        "    id: lab/model#stable\n",
+        "    interval: [1190.5, 1230.75]\n    n: 3333\n    id: lab/model#stable\n",
+    ).replace(before_sentence, after_sentence)
+
+    assert _guard_result(tmp_path, before_text, after_text).ok
+
+
+@pytest.mark.parametrize("before_sentence, after_sentence", [
+    ("context 32k", "context 16k"),
+    ("model v2", "model v3"),
+    ("cutoff 32.", "cutoff 16."),
+    ("serial 1234567", "serial 7654321"),
+    ("revision aaaaaaa", "revision bbbbbbb"),
+])
+def test_score_only_check_refuses_an_unchecked_figure_on_an_arena_row(
+    tmp_path: Path, before_sentence: str, after_sentence: str,
+) -> None:
+    before_text, after_text = _arena_sentence(before_sentence, after_sentence)
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def _arena_sentence(before_sentence: str, after_sentence: str) -> tuple[str, str]:
+    before_text = _arena_guard_card("2026-09-24").replace(
+        "    date_type: published\n",
+        f"    date_type: published\n    configuration: {before_sentence}\n",
+    )
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        before_sentence, after_sentence,
+    )
+    return before_text, after_text
+
+
+@pytest.mark.parametrize("before_sentence, after_sentence", [
+    ("top 10 of 190 at 95%", "top 3 of 20 at 50%"),
+    ("row 12 of the board", "row 17 of the board"),
+    ("see MODEL-100 for the note", "see MODEL-467 for the note"),
+    ("rating 1100", "rating -5"),
+])
+def test_score_only_check_refuses_a_changed_number_that_is_not_the_reading(
+    tmp_path: Path, before_sentence: str, after_sentence: str,
+) -> None:
+    before_text, after_text = _arena_sentence(before_sentence, after_sentence)
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_a_configuration_wording_change_on_an_arena_row(
+    tmp_path: Path,
+) -> None:
+    before_text = _arena_guard_card("2026-09-24").replace(
+        "    date_type: published\n",
+        "    date_type: published\n    configuration: rating 1100 overall\n",
+    )
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "rating 1100 overall", "rating 1200 on the style-controlled board",
+    )
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_accepts_null_effort_becoming_the_canonical_level(
+    tmp_path: Path,
+) -> None:
+    before_text = _arena_guard_card("2026-09-24")
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "    date_type: published\n",
+        "    date_type: published\n    effort: high\n",
+    )
+    assert _guard_result(tmp_path, before_text, after_text).ok
+
+
+def test_score_only_check_accepts_a_hyphenated_effort_the_stored_name_spells(
+    tmp_path: Path,
+) -> None:
+    """Null effort may become the trailing token, with that row's own figures."""
+    before_text = _arena_guard_card("2026-09-24", model="example-model-high")
+    after_text = before_text.replace("score: 72.0", "score: 1210.25").replace(
+        "evidence_date: '2026-09-01'", "evidence_date: '2026-11-02'",
+    ).replace(
+        "    id: lab/model#stable\n",
+        "    interval: [1190.5, 1230.75]\n    n: 2222\n"
+        "    effort: high\n    id: lab/model#stable\n",
+    )
+
+    assert _guard_result(tmp_path, before_text, after_text).ok
+
+
+def test_score_only_check_refuses_effort_the_stored_name_does_not_spell(
+    tmp_path: Path,
+) -> None:
+    before_text = _arena_guard_card("2026-09-24", model="example-model")
+    after_text = before_text.replace("score: 72.0", "score: 1210.25").replace(
+        "    id: lab/model#stable\n",
+        "    effort: high\n    id: lab/model#stable\n",
+    )
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_a_different_spelled_effort(tmp_path: Path) -> None:
+    before_text = _arena_guard_card("2026-09-24", model="example-model-high")
+    after_text = before_text.replace("score: 72.0", "score: 1210.25").replace(
+        "    id: lab/model#stable\n",
+        "    effort: max\n    id: lab/model#stable\n",
+    )
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_an_effort_already_set_to_another_level(
+    tmp_path: Path,
+) -> None:
+    before_text = _arena_guard_card("2026-09-24", model="example-model-high").replace(
+        "    date_type: published\n",
+        "    date_type: published\n    effort: max\n",
+    )
+    after_text = before_text.replace("score: 72.0", "score: 1210.25").replace(
+        "effort: max", "effort: high",
+    )
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_a_non_canonical_effort_spelling(tmp_path: Path) -> None:
+    before_text = _arena_guard_card("2026-09-24")
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "    date_type: published\n",
+        "    date_type: published\n    effort: High\n",
+    )
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_effort_changing_from_a_stored_value(tmp_path: Path) -> None:
+    before_text = _arena_guard_card("2026-09-24").replace(
+        "    date_type: published\n",
+        "    date_type: published\n    effort: high\n",
+    )
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "effort: high", "effort: max",
+    )
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_benchmark_version_on_any_row(tmp_path: Path) -> None:
+    for root_name, before_text in (
+        ("arena", _arena_guard_card("2026-09-24")),
+        ("other", _card("2026-09-24")),
+    ):
+        after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+            "    date_type: published\n",
+            "    date_type: published\n    benchmark_version: revision 0123456789ab\n",
+        )
+        result = _guard_result(tmp_path / root_name, before_text, after_text)
+        assert not result.ok
+        assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_the_arena_widening_on_a_non_arena_row(tmp_path: Path) -> None:
+    before_text = _card("2026-09-24").replace(
+        "model_id_as_evaluated: Stable Model",
+        "model_id_as_evaluated: Example Model (High)",
+    ).replace(
+        "    date_type: published\n",
+        "    date_type: published\n    configuration: rating 1100\n",
+    )
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "rating 1100", "rating 1200",
+    ).replace(
+        "    date_type: published\n",
+        "    date_type: published\n    effort: high\n",
+    )
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_arena_widening_when_the_source_is_not_the_dataset_root(
+    tmp_path: Path,
+) -> None:
+    before_text = _arena_guard_card("2026-09-24").replace(
+        "source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",
+        "source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/main",
+    )
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "    id: lab/model#stable\n",
+        "    interval: [70.0, 76.0]\n    n: 40\n    id: lab/model#stable\n",
+    )
+    result = _guard_result(tmp_path, before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_a_changed_model_id(tmp_path: Path) -> None:
+    before_text = _card("2026-09-24")
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "model_id_as_evaluated: Stable Model",
+        "model_id_as_evaluated: Other Model",
+    )
+    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+
+    result = refresh.check_score_only(before, after)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_a_changed_benchmark_id(tmp_path: Path) -> None:
+    before_text = _card("2026-09-24")
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "benchmark_id: fixture_benchmark",
+        "benchmark_id: other_benchmark",
+    )
+    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+
+    result = refresh.check_score_only(before, after)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_a_changed_source_url(tmp_path: Path) -> None:
+    before_text = _card("2026-09-24")
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "source_url: https://example.test/leaderboard.json",
+        "source_url: https://example.test/other.json",
+    )
+    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+
+    result = refresh.check_score_only(before, after)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_effort_the_card_id_does_not_name(tmp_path: Path) -> None:
+    before_text = _card("2026-09-24")
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "    date_type: published\n",
+        "    date_type: published\n    effort: high\n",
+    )
+    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+
+    result = refresh.check_score_only(before, after)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_a_sentence_that_quotes_no_reading_is_left_unchanged() -> None:
+    text = "Text Arena overall, style-controlled"
+    assert refresh._retell_reading(
+        text, old_score=1100, new_score=1200, old_interval=None, new_interval=None,
+        old_n=None, new_n=None, old_dates=(), new_publish=None,
+        new_observed="2026-11-11", new_revision="0123456789abcdef", new_effort=None,
+    ) == text
+
+
+def test_two_revision_quotes_are_not_rewritten() -> None:
+    assert refresh._retell_reading(
+        "revision aaaaaaa and revision bbbbbbb",
+        old_score=1, new_score=2, old_interval=None, new_interval=None,
+        old_n=None, new_n=None, old_dates=(), new_publish=None,
+        new_observed="2026-11-11", new_revision="c" * 40, new_effort=None,
+    ) is None
 
 
 def test_score_only_check_refuses_reread_and_carried_source_date_edits(tmp_path: Path) -> None:
@@ -1309,7 +1742,7 @@ def _replay_finbenchmark(monkeypatch) -> None:
 
     page = gzip.decompress((FIXTURES / "finbenchmark_2026-09-29.html.gz").read_bytes())
 
-    def fetch(url: str) -> bytes:
+    def fetch(url: str, **_declared) -> bytes:
         if url == refresh.FINBENCH_URL:
             return page
         raise OSError(f"offline replay: {url}")
@@ -1472,7 +1905,7 @@ def test_weekly_refresh_collects_mteb_subboards(monkeypatch, tmp_path: Path) -> 
     urls = {url for _, url, _, _, _ in refresh.MTEB_BOARDS}
     fetched = []
 
-    def fetch(url):
+    def fetch(url, **_declared):
         if url not in urls:
             raise ValueError("board outside this fixture")
         fetched.append(url)
@@ -1522,7 +1955,7 @@ def _replay_matharena(monkeypatch) -> None:
     pages[refresh.readers.MATHARENA_INDEX] = gzip.decompress(
         (FIXTURES / "matharena_index_2026-09-29.html.gz").read_bytes())
 
-    def fetch(url: str) -> bytes:
+    def fetch(url: str, **_declared) -> bytes:
         if url in pages:
             return pages[url]
         raise OSError(f"offline replay: {url}")
@@ -1652,6 +2085,31 @@ def test_pull_request_body_over_the_limit_cuts_on_a_change_row() -> None:
     assert "leaderboard-refresh-report" in note
 
 
+def test_pull_request_body_keeps_both_board_tables_when_failures_are_cut() -> None:
+    report = _refresh_report(changes=2271, failures=1060)
+    report.boards["arena"].update(
+        rows_rewritten=10, rows_reconfirmed=2, rows_left=0, rows_skipped={"configuration": 3},
+    )
+    report.arena_rows_without_board = 19
+    report.arena_rows_off_root = 7
+    body = _weekly_pull_request_body(report)
+    fitted = refresh.fit_pull_request_body(body)
+
+    assert len(fitted) < refresh._PR_BODY_LIMIT
+    assert "| Board | Models read |" in fitted
+    assert "| Board | Rewritten |" in fitted
+    assert "Arena rows with no board: 19" in fitted
+    assert "Arena rows whose source is not the dataset root: 7" in fitted
+    failure_rows = _marked_lines(body, "`fail_bench`")
+    kept = _marked_lines(fitted, "`fail_bench`")
+    assert kept == failure_rows[:len(kept)]
+    assert len(kept) < len(failure_rows)
+    omitted = len(failure_rows) - len(kept)
+    note = next(line for line in fitted.splitlines() if "failure" in line and "left out" in line)
+    assert str(omitted) in note
+    assert "leaderboard-refresh-report" in note
+
+
 def test_pull_request_body_keeps_every_failure_row_when_changes_are_cut() -> None:
     body = _weekly_pull_request_body(_refresh_report(changes=40, failures=6))
     failure_rows = _marked_lines(body, "`fail_bench`")
@@ -1673,6 +2131,44 @@ def test_fitted_body_stays_within_the_limit_after_the_pull_request_url_expands()
     assert "${PR_URL}" not in filled
     assert len(filled) <= 4_000
     assert "leaderboard-refresh-report" in filled
+
+
+def test_dates_the_writer_cannot_retell_are_listed_for_a_person() -> None:
+    """Those refusals have their own heading, count, and card list, including over the limit."""
+    report = _refresh_report(changes=40, failures=1)
+    report.failures.extend([
+        refresh.RowFailure(
+            "lab/stale-a", "arena_elo_overall", "https://example.test/arena",
+            refresh._DATE_THE_WRITER_CANNOT_RETELL,
+        ),
+        refresh.RowFailure(
+            "lab/stale-b", "arena_elo_code", "https://example.test/arena",
+            refresh._DATE_THE_WRITER_CANNOT_RETELL,
+        ),
+    ])
+    rendered = refresh.render_report(report)
+    heading = "## Dates the writer cannot retell"
+    sentence = (
+        "These rows need a person to rewrite the sentence; they will not refresh until then."
+    )
+    section = rendered.split(heading, 1)[1].split("\n## ", 1)[0]
+    assert "2 rows." in section
+    assert sentence in section
+    assert "| `lab/stale-a` | `arena_elo_overall` |" in section
+    assert "| `lab/stale-b` | `arena_elo_code` |" in section
+    failures = rendered.split("## Failures", 1)[1]
+    assert "lab/stale-a" not in failures
+    assert "lab/stale-b" not in failures
+    assert "`lab/f0`" in failures
+
+    fitted = refresh.fit_pull_request_body(_weekly_pull_request_body(report), limit=2_500)
+    assert len(fitted) <= 2_500
+    fitted_section = fitted.split(heading, 1)[1].split("\n## ", 1)[0]
+    assert "2 rows." in fitted_section
+    assert sentence in fitted_section
+    assert fitted.count("`lab/stale-a`") == 1
+    assert fitted.count("`lab/stale-b`") == 1
+    assert "`lab/f0`" in fitted
 
 
 def test_large_refresh_uploads_the_report_before_a_body_edit_can_fail() -> None:
@@ -1721,6 +2217,1891 @@ def test_large_refresh_uploads_the_report_before_a_body_edit_can_fail() -> None:
     assert "exit 1" in no_update["run"]
 
 
+_ARENA_DATASET = "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset"
+_ARENA_NEW = "0123456789abcdef0123456789abcdef01234567"
+_ARENA_OLD_REV = "aaaaaaaaaaaa"
+
+
+def _arena_registry(root: Path, source_id: str) -> None:
+    (root / "registry").mkdir(parents=True)
+    (root / "registry" / "sources.yaml").write_text(
+        f"""schema_version: 1
+sources:
+- id: {source_id}
+  url: {_ARENA_DATASET}/resolve/{_ARENA_NEW}/text/latest-00000-of-00001.parquet
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator: {{kind: page, value: ''}}
+""",
+        encoding="utf-8",
+    )
+
+
+def _arena_effort_card(
+    root: Path, *, model: str, evaluated: str, display: str,
+    store_reading: bool = True, configuration: str | None = None,
+    effort: str | None = None, unit: str = "Arena score (Elo scale)",
+    score: float = 1100.0,
+) -> Path:
+    card = root / "models" / "lab" / "model.md"
+    card.parent.mkdir(parents=True)
+    reading = "interval: [1080.0, 1120.0]\n    n: 1000\n    " if store_reading else ""
+    sentence = configuration or (
+        "Pinned LMArena dataset; publication date 2026-10-01; rating 1100.00 "
+        "[1080.00, 1120.00], 1000 votes, rank 4. Observed 2026-10-01."
+    )
+    card.write_text(
+        f"""---
+model_id: {model}
+display_name: {display}
+version: {evaluated}
+benchmarks:
+  evidence:
+  - benchmark_id: arena_elo_overall
+    model_id_as_evaluated: {evaluated}
+    score: {score}
+    unit: {unit}
+    {reading}effort: {"null" if effort is None else effort}
+    source_url: {_ARENA_DATASET}
+    source_kind: independent_evaluator
+    evidence_date: '2026-10-01'
+    date_type: published
+    observed_at: '2026-10-01'
+    verified_at: '2026-10-01'
+    benchmark_version: text / overall, latest split, rating 1100
+    configuration: >-
+      {sentence}
+    id: {model}#arena_elo_overall#old
+    sources:
+    - source_id: fixture-arena
+      snapshot_ref: sha256:{'a' * 64}
+      cited_regions: [rows]
+---
+""",
+        encoding="utf-8",
+    )
+    return card
+
+
+def _arena_census_card(
+    root: Path, *, model: str, benchmark: str, score: float, day: str, evaluated: str,
+) -> None:
+    path = root / "models" / f"{model}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        f"""---
+model_id: {model}
+display_name: {evaluated}
+version: {evaluated}
+benchmarks:
+  evidence:
+  - benchmark_id: {benchmark}
+    model_id_as_evaluated: {evaluated}
+    score: {score}
+    unit: Arena score (Elo scale)
+    effort: null
+    source_url: {_ARENA_DATASET}
+    source_kind: independent_evaluator
+    evidence_date: '{day}'
+    date_type: published
+    observed_at: '{day}'
+    verified_at: '{day}'
+    id: {model}#{benchmark}
+---
+""",
+        encoding="utf-8",
+    )
+
+
+def _renamed_effort_row(
+    name: str, rating: float = 1210.25, *, lower: float = 1190.5,
+    upper: float = 1230.75, votes: int = 2222, rank: int = 3,
+) -> dict:
+    return {
+        "model_name": name,
+        "rating": rating,
+        "rating_lower": lower,
+        "rating_upper": upper,
+        "vote_count": votes,
+        "leaderboard_publish_date": "2026-11-02",
+        "rank": rank,
+    }
+
+
+def _some_model_high_board() -> list[dict]:
+    """One effort row for Some Model, plus rows that must not count as it."""
+    return [
+        _renamed_effort_row("Some Model (High)"),
+        _renamed_effort_row(
+            "Some Model (Preview)", 900.0, lower=880.0, upper=920.0, votes=111, rank=20,
+        ),
+        _renamed_effort_row(
+            "Other Model (Max)", 1400.0, lower=1380.0, upper=1420.0, votes=3333, rank=1,
+        ),
+    ]
+
+
+def _run_arena_effort_refresh(monkeypatch, tmp_path: Path, *, dataset_name: str,
+                              evaluated: str, display: str,
+                              dataset_rows: list[dict] | None = None,
+                              model: str = "lab/example-model",
+                              snapshot: Path | None = None,
+                              siblings: list[dict] | None = None,
+                              dry_run: bool = False, **card):
+    """Refresh one Arena row from a fixture projection. No network."""
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    source_id = "fixture-arena"
+    card = _arena_effort_card(
+        root, model=model, evaluated=evaluated, display=display, **card,
+    )
+    for sibling in siblings or ():
+        _arena_census_card(root, **sibling)
+    _arena_registry(root, source_id)
+    (root / "verification").mkdir()
+    url = (
+        f"{_ARENA_DATASET}/resolve/{_ARENA_NEW}/text/latest-00000-of-00001.parquet"
+    )
+    store = refresh.CopyStore(cache)
+    projection = refresh.readers.document(
+        dataset_rows or [{
+            "model_name": dataset_name,
+            "rating": 1210.25,
+            "rating_lower": 1190.5,
+            "rating_upper": 1230.75,
+            "vote_count": 2222,
+            "leaderboard_publish_date": "2026-11-02",
+            "rank": 3,
+        }],
+        url=url, page_ref="sha256:" + "b" * 64, read_date="2026-11-11", note="fixture",
+    )
+    board = refresh._reading_from_projection(
+        key="arena:text", source_id=source_id, benchmarks=("arena_elo_overall",),
+        source_url=url, projected=projection, observed_at="2026-11-11",
+        value_field="rating", store=store, card_urls=(_ARENA_DATASET,),
+    )
+    monkeypatch.delenv(refresh.ARENA_REVISION_ENV, raising=False)
+    monkeypatch.setattr(
+        refresh.readers, "resolve_arena_revision",
+        lambda _fetch: refresh.readers.ArenaRevision(sha=_ARENA_NEW),
+    )
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([board], []))
+    if snapshot is not None:
+        shutil.copytree(root, snapshot)
+    report = refresh.run(
+        observed_at="2026-11-11", dry_run=dry_run, root=root, source_cache=cache,
+        model_ids=(model,), arena_latest=True,
+    )
+    return report, card, root
+
+
+def _evidence_row(card: Path) -> dict:
+    return refresh._front(card)["benchmarks"]["evidence"][0]
+
+
+def _arena_skip_classes(report) -> dict:
+    return report.boards["arena:text"]["rows_skipped"]
+
+
+def _verification_log(root: Path) -> dict:
+    return json.loads((root / "verification" / "log.jsonl").read_text(encoding="utf-8"))
+
+
+def test_refreshed_arena_row_verifies_against_the_matched_reading(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """The model id names High in parentheses, and so does the dataset row."""
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (High)",
+        evaluated="Example Model (High)",
+        display="Example Model",
+    )
+
+    assert report.quarantined == [], report.quarantined
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["model_id_as_evaluated"] == "Example Model (High)"
+    assert row["score"] == 1210.25
+    assert row["interval"] == [1190.5, 1230.75]
+    assert row["n"] == 2222
+    assert row["effort"] == "high"
+    assert "1210.25" in row["configuration"]
+    assert "1190.50" in row["configuration"]
+    assert "1230.75" in row["configuration"]
+    assert "2222 votes" in row["configuration"]
+    assert "2026-11-02" in row["configuration"]
+    assert "2026-11-11" in row["configuration"]
+    assert "rank 3" in row["configuration"]
+    assert "rank 4" not in row["configuration"]
+    for stale in ("1100", "1080", "1120", "1000", "2026-10-01"):
+        assert stale not in row["configuration"]
+    assert row["benchmark_version"] == "text / overall, latest split, rating 1100"
+    log = _verification_log(root)
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
+
+
+def test_a_score_only_rewrite_is_refused_before_it_is_written(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    def score_only(old, observation, *, observed_at):
+        return {**dict(old), "score": observation.new_value}, None
+
+    monkeypatch.setattr(refresh, "_copy_matched_reading", score_only)
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (High)",
+        evaluated="example-model-high",
+        display="Example Model",
+    )
+
+    assert report.quarantined == []
+    assert any(row.reason.startswith("verifier:") for row in report.failures)
+    assert _evidence_row(card)["score"] == 1100.0
+    assert not (root / "verification" / "log.jsonl").exists()
+
+
+def test_a_hyphenated_dataset_name_keeps_null_effort(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """A hyphen is not an effort separator. The verifier leaves effort null."""
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="example-model-high",
+        evaluated="example-model-high",
+        display="example-model-high",
+    )
+
+    assert report.quarantined == [], report.quarantined
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["effort"] is None
+    assert row["score"] == 1210.25
+    log = _verification_log(root)
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
+
+
+def test_a_hyphenated_stored_name_adopts_the_parenthetical_effort(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """example-model-high is the same row as Example Model (High)."""
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (High)",
+        evaluated="example-model-high",
+        display="Example Model",
+    )
+
+    assert report.quarantined == [], report.quarantined
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["model_id_as_evaluated"] == "example-model-high"
+    assert row["score"] == 1210.25
+    assert row["interval"] == [1190.5, 1230.75]
+    assert row["n"] == 2222
+    assert row["effort"] == "high"
+    assert str(row["evidence_date"]) == "2026-11-02"
+    log = _verification_log(root)
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
+    rendered = refresh.render_report(report)
+    assert "Arena boards with a mixed top 10: 0 of 1" in rendered
+    assert "| arena_elo_overall | 1 | 0 | no |" in rendered
+
+
+def test_a_stored_name_without_the_effort_token_is_left_for_a_person(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (High)",
+        evaluated="Example Model",
+        display="Example Model",
+    )
+
+    assert report.quarantined == []
+    assert [row.reason for row in report.failures] == [
+        "dataset names an effort the stored name does not",
+    ]
+    assert _arena_skip_classes(report) == {"effort": 1}
+    assert _evidence_row(card)["score"] == 1100.0
+    assert _evidence_row(card)["effort"] is None
+    assert _evidence_row(card)["model_id_as_evaluated"] == "Example Model"
+
+
+def test_a_hand_set_effort_matches_the_datasets_only_renamed_row(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """some-model with effort high is the only Some Model (High) row on the board."""
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="unused",
+        evaluated="some-model",
+        display="Some Model",
+        model="lab/some-model",
+        effort="high",
+        dataset_rows=_some_model_high_board(),
+    )
+
+    assert report.quarantined == [], report.quarantined
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["model_id_as_evaluated"] == "some-model"
+    assert row["effort"] == "high"
+    assert row["score"] == 1210.25
+    assert row["interval"] == [1190.5, 1230.75]
+    assert row["n"] == 2222
+    assert str(row["evidence_date"]) == "2026-11-02"
+    assert "1210.25" in row["configuration"]
+    assert "rank 3" in row["configuration"]
+    assert "900" not in row["configuration"]
+    log = _verification_log(root)
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
+
+
+def test_a_stored_slug_with_null_effort_is_left_for_a_person(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Some Model (High)",
+        evaluated="some-model",
+        display="Some Model",
+        model="lab/some-model",
+    )
+
+    assert report.quarantined == []
+    assert [row.reason for row in report.failures] == [
+        "dataset names an effort the stored name does not",
+    ]
+    assert _arena_skip_classes(report) == {"effort": 1}
+    row = _evidence_row(card)
+    assert row["score"] == 1100.0
+    assert row["effort"] is None
+    assert row["model_id_as_evaluated"] == "some-model"
+
+
+def test_a_hand_set_effort_that_differs_from_the_only_row_is_not_written(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """One (High) row and a card set to max. Another model's (Max) row does not count."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="unused",
+        evaluated="some-model",
+        display="Some Model",
+        model="lab/some-model",
+        effort="max",
+        dataset_rows=[
+            _renamed_effort_row("Some Model (High)"),
+            _renamed_effort_row(
+                "Other Model (Max)", 1400.0, lower=1380.0, upper=1420.0, votes=3333, rank=1,
+            ),
+        ],
+    )
+
+    assert report.quarantined == []
+    assert [row.reason for row in report.failures] == [
+        "card effort differs from the dataset's only row",
+    ]
+    assert _arena_skip_classes(report) == {"effort": 1}
+    row = _evidence_row(card)
+    assert row["score"] == 1100.0
+    assert row["effort"] == "max"
+    assert row["model_id_as_evaluated"] == "some-model"
+
+
+@pytest.mark.parametrize("card_effort", ["high", "max", None], ids=[
+    "card-high", "card-max", "card-null",
+])
+def test_several_effort_rows_for_one_name_are_left_for_a_person(
+    monkeypatch, tmp_path: Path, card_effort: str | None,
+) -> None:
+    """(High) and (Max) are a person's choice, even when the card names one of them."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="unused",
+        evaluated="some-model",
+        display="Some Model",
+        model="lab/some-model",
+        effort=card_effort,
+        dataset_rows=[
+            _renamed_effort_row("Some Model (High)"),
+            _renamed_effort_row(
+                "Some Model (Max)", 1400.0, lower=1380.0, upper=1420.0, votes=3333, rank=1,
+            ),
+        ],
+    )
+
+    assert report.quarantined == []
+    assert [row.reason for row in report.failures] == [
+        "dataset has several effort rows for this name",
+    ]
+    assert _arena_skip_classes(report) == {"no-unique-row": 1}
+    row = _evidence_row(card)
+    assert row["score"] == 1100.0
+    assert row["effort"] == card_effort
+    assert row["model_id_as_evaluated"] == "some-model"
+
+
+def test_a_parenthesis_that_is_not_an_effort_is_not_written(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Some Model (Preview)",
+        evaluated="some-model",
+        display="Some Model",
+        model="lab/some-model",
+        effort="high",
+    )
+
+    assert report.quarantined == []
+    assert any("no unique row" in row.reason for row in report.failures)
+    row = _evidence_row(card)
+    assert row["score"] == 1100.0
+    assert row["effort"] == "high"
+    assert row["model_id_as_evaluated"] == "some-model"
+
+
+def test_a_hyphenated_dataset_name_is_not_the_hand_set_row(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """A trailing hyphen token is not a parenthesis, so it is not this match."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="some-model-high",
+        evaluated="some-model",
+        display="Some Model",
+        model="lab/some-model",
+        effort="high",
+    )
+
+    assert report.quarantined == []
+    assert any("no unique row" in row.reason for row in report.failures)
+    row = _evidence_row(card)
+    assert row["score"] == 1100.0
+    assert row["effort"] == "high"
+    assert row["model_id_as_evaluated"] == "some-model"
+
+
+@pytest.mark.parametrize("card_effort", ["high", "max"], ids=["card-high", "card-max"])
+def test_hand_set_effort_refuses_when_a_slug_effort_row_exists(
+    monkeypatch, tmp_path: Path, card_effort: str,
+) -> None:
+    """(High) plus a slug max is two effort rows. The card's level does not choose."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="unused",
+        evaluated="acme-orbit-9",
+        display="Acme Orbit 9",
+        model="lab/acme-orbit-9",
+        effort=card_effort,
+        dataset_rows=[
+            _renamed_effort_row("Acme Orbit 9 (High)"),
+            _renamed_effort_row(
+                "acme-orbit-9-max", 1400.0, lower=1380.0, upper=1420.0, votes=3333, rank=1,
+            ),
+        ],
+    )
+
+    assert report.quarantined == []
+    assert [row.reason for row in report.failures] == [
+        "dataset has several effort rows for this name",
+    ]
+    assert _arena_skip_classes(report) == {"no-unique-row": 1}
+    row = _evidence_row(card)
+    assert row["score"] == 1100.0
+    assert row["effort"] == card_effort
+    assert row["model_id_as_evaluated"] == "acme-orbit-9"
+
+
+def test_hand_set_effort_refuses_when_a_double_parenthesis_row_exists(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """(Max) plus (Max) (High) is two effort rows. The single parenthesis is not chosen."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="unused",
+        evaluated="acme-orbit-9",
+        display="Acme Orbit 9",
+        model="lab/acme-orbit-9",
+        effort="max",
+        dataset_rows=[
+            _renamed_effort_row("Acme Orbit 9 (Max)"),
+            _renamed_effort_row(
+                "Acme Orbit 9 (Max) (High)", 1400.0,
+                lower=1380.0, upper=1420.0, votes=3333, rank=1,
+            ),
+        ],
+    )
+
+    assert report.quarantined == []
+    assert [row.reason for row in report.failures] == [
+        "dataset has several effort rows for this name",
+    ]
+    assert _arena_skip_classes(report) == {"no-unique-row": 1}
+    row = _evidence_row(card)
+    assert row["score"] == 1100.0
+    assert row["effort"] == "max"
+    assert row["model_id_as_evaluated"] == "acme-orbit-9"
+
+
+def test_hand_set_effort_still_writes_the_single_renamed_row(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """Only Acme Orbit 9 (High), with card high, is written. Identity stays."""
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Acme Orbit 9 (High)",
+        evaluated="acme-orbit-9",
+        display="Acme Orbit 9",
+        model="lab/acme-orbit-9",
+        effort="high",
+    )
+
+    assert report.quarantined == [], report.quarantined
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["model_id_as_evaluated"] == "acme-orbit-9"
+    assert row["effort"] == "high"
+    assert row["score"] == 1210.25
+    log = _verification_log(root)
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
+
+
+def test_hand_set_effort_ignores_a_different_model_with_the_same_effort(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """Acme Orbit 9.1 is another model. The exact Acme Orbit 9 (High) row is written."""
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="unused",
+        evaluated="acme-orbit-9",
+        display="Acme Orbit 9",
+        model="lab/acme-orbit-9",
+        effort="high",
+        dataset_rows=[
+            _renamed_effort_row("Acme Orbit 9 (High)"),
+            _renamed_effort_row(
+                "Acme Orbit 9.1 (High)", 1500.0, lower=1480.0, upper=1520.0, votes=4444, rank=1,
+            ),
+        ],
+    )
+
+    assert report.quarantined == [], report.quarantined
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["model_id_as_evaluated"] == "acme-orbit-9"
+    assert row["effort"] == "high"
+    assert row["score"] == 1210.25
+    assert "1500" not in row["configuration"]
+    log = _verification_log(root)
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
+
+
+def test_a_stored_slug_with_no_parenthesis_in_the_dataset_still_verifies(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Some Model",
+        evaluated="some-model",
+        display="Some Model",
+        model="lab/some-model",
+    )
+
+    assert report.quarantined == [], report.quarantined
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["model_id_as_evaluated"] == "some-model"
+    assert row["effort"] is None
+    assert row["score"] == 1210.25
+    log = _verification_log(root)
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
+
+
+def test_a_hand_set_effort_refresh_is_score_only_and_an_effort_change_still_fails(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """The guard already allows this refresh. Changing the stored effort still fails."""
+    before = tmp_path / "before"
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="unused",
+        evaluated="some-model",
+        display="Some Model",
+        model="lab/some-model",
+        effort="high",
+        snapshot=before,
+        dataset_rows=_some_model_high_board(),
+    )
+
+    assert report.failures == [], report.failures
+    assert report.quarantined == [], report.quarantined
+    row = _evidence_row(card)
+    assert row["model_id_as_evaluated"] == "some-model"
+    assert row["effort"] == "high"
+    assert row["score"] == 1210.25
+    assert refresh.check_score_only(before, root).ok
+    mutated = tmp_path / "effort-changed"
+    shutil.copytree(root, mutated)
+    written = mutated / "models" / "lab" / "model.md"
+    text = written.read_text(encoding="utf-8")
+    assert text.count("effort: high") == 1
+    written.write_text(text.replace("effort: high", "effort: max", 1), encoding="utf-8")
+    refused = refresh.check_score_only(root, mutated)
+    assert not refused.ok
+    assert refused.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_a_stored_name_that_spells_another_effort_is_not_written(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (Max)",
+        evaluated="example-model-high",
+        display="Example Model",
+    )
+
+    assert report.quarantined == []
+    assert [row.reason for row in report.failures] == [
+        "stored name spells a different effort than the dataset row",
+    ]
+    assert _arena_skip_classes(report) == {"effort": 1}
+    assert _evidence_row(card)["score"] == 1100.0
+    assert _evidence_row(card)["effort"] is None
+    assert _evidence_row(card)["model_id_as_evaluated"] == "example-model-high"
+
+
+def test_two_dataset_rows_that_normalise_alike_are_not_written(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="unused",
+        evaluated="example-model-high",
+        display="Example Model",
+        dataset_rows=[
+            {
+                "model_name": "Example Model (High)",
+                "rating": 1210.25,
+                "rating_lower": 1190.5,
+                "rating_upper": 1230.75,
+                "vote_count": 2222,
+                "leaderboard_publish_date": "2026-11-02",
+                "rank": 3,
+            },
+            {
+                "model_name": "example-model-high",
+                "rating": 1300.0,
+                "rating_lower": 1280.0,
+                "rating_upper": 1320.0,
+                "vote_count": 3333,
+                "leaderboard_publish_date": "2026-11-02",
+                "rank": 1,
+            },
+        ],
+    )
+
+    assert report.quarantined == []
+    # Both rows spell the stored identifier exactly, so neither is taken (MODEL-524).
+    assert [row.reason for row in report.failures] == [
+        "two dataset rows normalise to the stored name; undetermined, no exact "
+        "identifier match among 'Example Model (High)', 'example-model-high'",
+    ]
+    assert _arena_skip_classes(report) == {"no-unique-row": 1}
+    assert _evidence_row(card)["score"] == 1100.0
+    assert _evidence_row(card)["effort"] is None
+
+
+def test_a_card_effort_already_at_another_level_is_not_overwritten(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (High)",
+        evaluated="example-model-high",
+        display="Example Model",
+        effort="max",
+    )
+
+    assert report.quarantined == []
+    assert [row.reason for row in report.failures] == [
+        "card effort is already a different level",
+    ]
+    assert _arena_skip_classes(report) == {"effort": 1}
+    row = _evidence_row(card)
+    assert row["score"] == 1100.0
+    assert row["effort"] == "max"
+    assert row["model_id_as_evaluated"] == "example-model-high"
+
+
+def test_a_longer_stored_name_is_not_the_parenthetical_row(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """A prefix or an interior token is not the effort this rule reads."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (High)",
+        evaluated="example-model-high-extra",
+        display="Example Model High Extra",
+    )
+
+    assert report.quarantined == []
+    assert any("no unique row" in row.reason for row in report.failures)
+    assert _evidence_row(card)["score"] == 1100.0
+    assert _evidence_row(card)["effort"] is None
+
+
+def test_a_parenthetical_name_matches_only_the_stored_name_that_spells_it() -> None:
+    """Five invented names, plus the lookalikes the whole-name rule must miss."""
+    matched = refresh._parenthetical_effort_for_stored_name
+    spelled = refresh._effort_spelled_by_stored_name
+    cases = [
+        ("example-model-high", "Example Model (High)", "high"),
+        ("example-model-max", "Example Model (Max)", "max"),
+        ("example-model", "Example Model (High)", None),
+        ("example-model-high", "Example Model (Max)", None),
+        ("example-model-xhigh", "Example Model (xHigh)", "xhigh"),
+        ("example-model-x-high", "Example Model (xHigh)", None),
+        ("claude-fable-5.1-max", "Claude Fable 5.1 (Max)", "max"),
+        ("claude-fable-5.1", "Claude Fable 5.1 (Max)", None),
+        ("claude-fable-5.1-high", "Claude Fable 5.1 (Max)", None),
+        ("gpt-5.6-sol-xhigh", "GPT-5.6 Sol (xHigh)", "xhigh"),
+        ("gpt-5.6-sol", "GPT-5.6 Sol (xHigh)", None),
+        ("o3-mini-high", "o3-mini (High)", "high"),
+        ("o3-mini", "o3-mini (High)", None),
+        ("model-high-32k", "model (High) 32k", None),
+        ("example-model-high-extra", "Example Model (High)", None),
+        ("some-high-model", "Some Model (High)", None),
+    ]
+    for stored, dataset, effort in cases:
+        assert matched(stored, dataset) == effort, (stored, dataset)
+    assert spelled("model-high-32k") is None
+    assert spelled("o3-mini") is None
+    assert spelled("o3-mini-high") == "high"
+    assert spelled("example-model-x-high") == "high"
+    assert spelled("example-model-xhigh") == "xhigh"
+
+
+def test_the_report_counts_rows_left_on_an_older_publish_date(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, _card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (High)",
+        evaluated="example-model-high",
+        display="Example Model",
+        siblings=[
+            {
+                "model": "lab/older",
+                "benchmark": "arena_elo_overall",
+                "score": 1400.0,
+                "day": "2026-09-13",
+                "evaluated": "Older Model",
+            },
+            {
+                "model": "lab/coding",
+                "benchmark": "arena_elo_coding",
+                "score": 1000.0,
+                "day": "2026-10-01",
+                "evaluated": "Coding Model",
+            },
+        ],
+    )
+
+    assert report.failures == [], report.failures
+    rendered = refresh.render_report(report)
+    assert "Arena boards with a mixed top 10: 1 of 1" in rendered
+    assert "| arena_elo_coding | not read | not read | not read |" in rendered
+    assert "| arena_elo_overall | 1 | 1 | yes |" in rendered
+    assert "of 2" not in rendered
+    assert refresh.fit_pull_request_body(rendered) == rendered
+    path = tmp_path / "report.json"
+    refresh.write_report_json(path, report)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["arena_boards"] == 1
+    assert payload["arena_boards_with_mixed_top_10"] == 1
+    assert payload["arena_publish_dates"] == [
+        {
+            "benchmark": "arena_elo_coding",
+            "rows_at_new_publish_date": "not read",
+            "rows_at_older_publish_date": "not read",
+            "mixed_top_10": "not read",
+        },
+        {
+            "benchmark": "arena_elo_overall",
+            "rows_at_new_publish_date": 1,
+            "rows_at_older_publish_date": 1,
+            "mixed_top_10": True,
+        },
+    ]
+
+
+def test_an_unmoved_board_is_all_older_and_an_unread_board_is_not_read(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """The new date is the date this run read. A board left out of the run is not read."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        dry_run=True,
+        siblings=[
+            {
+                "model": "lab/coding",
+                "benchmark": "arena_elo_coding",
+                "score": 1000.0,
+                "day": "2026-10-01",
+                "evaluated": "Coding Model",
+            },
+        ],
+    )
+
+    assert str(_evidence_row(card)["evidence_date"]) == "2026-10-01"
+    rendered = refresh.render_report(report)
+    assert "Arena boards with a mixed top 10: 0 of 1" in rendered
+    assert "| arena_elo_overall | 0 | 1 | no |" in rendered
+    assert "| arena_elo_coding | not read | not read | not read |" in rendered
+    assert "of 2" not in rendered
+
+
+def test_the_pull_request_body_keeps_the_mixed_board_line() -> None:
+    line = "Arena boards with a mixed top 10: 1 of 2"
+    table = "\n".join([
+        "| Arena board | At the new publish date | Left at an older publish date | Mixed top 10 |",
+        "|---|---:|---:|---|",
+        "| arena_elo_coding | 1 | 0 | no |",
+        "| arena_elo_overall | 1 | 1 | yes |",
+    ])
+    body = f"Weekly refresh.\n\n{line}\n\n{table}\n"
+    assert refresh.fit_pull_request_body(body) == body
+    fitted = refresh.fit_pull_request_body(body, limit=80)
+    assert line in fitted
+    assert "| Arena board |" not in fitted
+
+
+def test_a_model_name_without_an_effort_suffix_still_verifies(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+    )
+
+    assert report.quarantined == [], report.quarantined
+    row = _evidence_row(card)
+    assert row["effort"] is None
+    assert row["score"] == 1210.25
+    assert row["interval"] == [1190.5, 1230.75]
+    assert row["n"] == 2222
+    log = _verification_log(root)
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
+
+
+def test_a_quoted_interval_is_rewritten_when_the_card_field_is_empty(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        store_reading=False,
+    )
+
+    assert report.quarantined == [], report.quarantined
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["interval"] == [1190.5, 1230.75]
+    assert row["n"] == 2222
+    assert "1190.50" in row["configuration"]
+    assert "2222 votes" in row["configuration"]
+    assert "1080" not in row["configuration"]
+    assert "1000 votes" not in row["configuration"]
+    log = _verification_log(root)
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
+
+
+def test_a_quoted_rank_with_no_dataset_rank_is_not_written(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        dataset_rows=[{
+            "model_name": "Example Model",
+            "rating": 1210.25,
+            "rating_lower": 1190.5,
+            "rating_upper": 1230.75,
+            "vote_count": 2222,
+            "leaderboard_publish_date": "2026-11-02",
+        }],
+    )
+
+    assert any("rank" in row.reason for row in report.failures)
+    assert _evidence_row(card)["score"] == 1100.0
+    assert "rank 4" in _evidence_row(card)["configuration"]
+
+
+@pytest.mark.parametrize("configuration, old_rank, kept", [
+    (
+        "Pinned LMArena dataset; publication date 2026-11-02; rating 1100.00 "
+        "[1080.00, 1120.00], 1000 votes, rank 11. Observed 2026-10-01.",
+        "rank 11",
+        "2026-11-02",
+    ),
+    (
+        "Pinned LMArena dataset; publication date 2026-11-02; rating 1100.00 "
+        "[1080.00, 1120.00], 1000 votes, rank 2. Observed 2026-10-01.",
+        "rank 2",
+        "2026-11-02",
+    ),
+    (
+        "Pinned LMArena dataset; publication date 2026-10-01; rating 1100.00 "
+        "[1080.00, 1120.00], 1000 votes, rank 191. See MODEL-191 for the note. "
+        "Observed 2026-10-01.",
+        "rank 191",
+        "MODEL-191",
+    ),
+])
+def test_an_old_rank_equal_to_a_date_part_or_ticket_id_is_written(
+    monkeypatch, tmp_path: Path, configuration: str, old_rank: str, kept: str,
+) -> None:
+    """November, day 02, and MODEL-191 are not the previous rank."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        configuration=configuration,
+    )
+
+    assert report.failures == [], report.failures
+    assert report.quarantined == [], report.quarantined
+    row = _evidence_row(card)
+    assert row["score"] == 1210.25
+    assert "rank 3" in row["configuration"]
+    assert old_rank not in row["configuration"]
+    assert kept in row["configuration"]
+
+
+_ARENA_WRITER_FIXTURES = [
+    {
+        "dataset_name": "Example Model",
+        "evaluated": "Example Model",
+        "display": "Example Model",
+    },
+    {
+        "dataset_name": "Example Model",
+        "evaluated": "Example Model",
+        "display": "Example Model",
+        "configuration": (
+            "Pinned LMArena dataset; publication date 2026-10-01; rating 1100.00 "
+            "CI 1080.00-1120.00, 1000 votes, rank 4. Observed 2026-10-01."
+        ),
+    },
+    {
+        "dataset_name": "Example Model",
+        "evaluated": "Example Model",
+        "display": "Example Model",
+        "store_reading": False,
+    },
+    {
+        "dataset_name": "Example Model (High)",
+        "evaluated": "Example Model (High)",
+        "display": "Example Model",
+    },
+    {
+        "dataset_name": "Example Model",
+        "evaluated": "Example Model",
+        "display": "Example Model",
+        "configuration": (
+            "Pinned LMArena dataset; publication date 2026-11-02; rating 1100.00 "
+            "[1080.00, 1120.00], 1000 votes, rank 11. Observed 2026-10-01."
+        ),
+    },
+    {
+        "dataset_name": "Example Model",
+        "evaluated": "Example Model",
+        "display": "Example Model",
+        "configuration": (
+            "Pinned LMArena dataset; publication date 2026-11-02; rating 1100.00 "
+            "[1080.00, 1120.00], 1000 votes, rank 2. Observed 2026-10-01."
+        ),
+    },
+    {
+        "dataset_name": "Example Model",
+        "evaluated": "Example Model",
+        "display": "Example Model",
+        "configuration": (
+            "Pinned LMArena dataset; publication date 2026-10-01; rating 1100.00 "
+            "[1080.00, 1120.00], 1000 votes, rank 191. See MODEL-191 for the note. "
+            "Observed 2026-10-01."
+        ),
+    },
+    {
+        "dataset_name": "Example Model",
+        "evaluated": "Example Model",
+        "display": "Example Model",
+        "dataset_rows": [{
+            "model_name": "Example Model",
+            "rating": 1100.0,
+            "rating_lower": 1080.0,
+            "rating_upper": 1120.0,
+            "vote_count": 1000,
+            "leaderboard_publish_date": "2026-10-01",
+            "rank": 4,
+        }],
+    },
+    {
+        "dataset_name": "Example Model (High)",
+        "evaluated": "example-model-high",
+        "display": "Example Model",
+    },
+]
+
+
+@pytest.mark.parametrize("card", _ARENA_WRITER_FIXTURES, ids=[
+    "bracket", "ci", "quoted-interval", "effort", "november-rank", "day-rank",
+    "ticket-rank", "observed-date", "hyphen-effort",
+])
+def test_the_guard_accepts_the_writers_arena_fixture_row(
+    monkeypatch, tmp_path: Path, card: dict,
+) -> None:
+    """The weekly guard sees the sentence this writer actually emits."""
+    before = tmp_path / "before"
+    report, _card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path, snapshot=before, **card,
+    )
+
+    assert report.failures == [], report.failures
+    assert report.quarantined == [], report.quarantined
+    result = refresh.check_score_only(before, root)
+    assert result.ok, result.errors
+
+
+def test_a_bracket_that_does_not_contain_the_score_is_not_rewritten(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        store_reading=False,
+        configuration=(
+            "Pinned LMArena dataset; publication date 2026-10-01; rating 1100.00 "
+            "[1.00, 2.00], 1000 votes, rank 4. Observed 2026-10-01."
+        ),
+    )
+
+    assert report.quarantined == []
+    assert any("configuration" in row.reason for row in report.failures)
+    assert _arena_skip_classes(report) == {"configuration": 1}
+    assert _evidence_row(card)["score"] == 1100.0
+
+
+def test_a_parenthetical_effort_the_card_does_not_name_is_not_written(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (High)",
+        evaluated="Example Model",
+        display="Example Model",
+    )
+
+    assert report.quarantined == []
+    assert any("effort" in row.reason for row in report.failures)
+    assert _arena_skip_classes(report) == {"effort": 1}
+    assert _evidence_row(card)["score"] == 1100.0
+
+
+def test_a_card_effort_the_dataset_does_not_name_is_not_written(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        effort="high",
+    )
+
+    assert report.quarantined == []
+    assert any("effort" in row.reason for row in report.failures)
+    assert _arena_skip_classes(report) == {"effort": 1}
+    assert _evidence_row(card)["score"] == 1100.0
+    assert _evidence_row(card)["effort"] == "high"
+
+
+def test_an_elo_unit_is_not_refreshed(monkeypatch, tmp_path: Path) -> None:
+    """The extractor reads rating as an Arena score. ``elo`` is another dimension."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        unit="elo",
+        dataset_rows=[{
+            "model_name": "Example Model",
+            "rating": 1100.0,
+            "rating_lower": 1080.0,
+            "rating_upper": 1120.0,
+            "vote_count": 1000,
+            "leaderboard_publish_date": "2026-11-02",
+            "rank": 3,
+        }],
+    )
+
+    assert report.quarantined == []
+    assert any("unit" in row.reason for row in report.failures)
+    assert _arena_skip_classes(report) == {"unit": 1}
+    assert _evidence_row(card)["score"] == 1100.0
+    assert _evidence_row(card)["unit"] == "elo"
+
+
+def test_a_token_match_the_verifier_does_not_own_is_not_swapped(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="unused",
+        evaluated="Beta Alpha",
+        display="Alpha",
+        dataset_rows=[
+            {
+                "model_name": "Alpha Beta",
+                "rating": 1300.0,
+                "rating_lower": 1290.0,
+                "rating_upper": 1310.0,
+                "vote_count": 3333,
+                "leaderboard_publish_date": "2026-11-02",
+                "rank": 1,
+            },
+            {
+                "model_name": "Alpha",
+                "rating": 1210.25,
+                "rating_lower": 1190.5,
+                "rating_upper": 1230.75,
+                "vote_count": 2222,
+                "leaderboard_publish_date": "2026-11-02",
+                "rank": 3,
+            },
+        ],
+    )
+
+    assert report.quarantined == []
+    assert any("verifier" in row.reason for row in report.failures)
+    assert _arena_skip_classes(report) == {"other-row": 1}
+    row = _evidence_row(card)
+    assert row["score"] == 1100.0
+    assert "1210.25" not in row.get("configuration", "")
+    assert "1300" not in row.get("configuration", "")
+
+
+def test_a_match_the_verifier_does_not_own_is_not_written(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model (High)",
+        evaluated="Example-Model-High",
+        display="Example-Model-High",
+        model="lab/zz-unrelated",
+    )
+
+    assert report.quarantined == []
+    assert any("verifier" in row.reason for row in report.failures)
+    assert _arena_skip_classes(report) == {"not-owned": 1}
+    # MODEL-486: the refusal says why the verifier skipped, not just "skipped".
+    reasons = [row.reason for row in report.failures if row.reason.startswith("verifier")]
+    assert reasons and all(
+        reason != "verifier: skipped" and reason[len("verifier: "):].startswith(
+            verify.UNOWNED_REASONS)
+        for reason in reasons
+    ), reasons
+    assert _evidence_row(card)["score"] == 1100.0
+
+
+def test_an_observed_date_alone_reconfirms_the_row(monkeypatch, tmp_path: Path) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        dataset_rows=[{
+            "model_name": "Example Model",
+            "rating": 1100.0,
+            "rating_lower": 1080.0,
+            "rating_upper": 1120.0,
+            "vote_count": 1000,
+            "leaderboard_publish_date": "2026-10-01",
+            "rank": 4,
+        }],
+    )
+
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["score"] == 1100.0
+    assert "Observed 2026-11-11" in row["configuration"]
+    assert "rating 1100.00" in row["configuration"]
+    summary = report.boards["arena:text"]
+    assert summary["rows_rewritten"] == 0
+    assert summary["rows_reconfirmed"] == 1
+
+
+def test_an_arena_row_off_the_dataset_root_is_one_count(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    (root / "models" / "lab").mkdir(parents=True)
+    (root / "premier").mkdir(parents=True)
+    (root / "verification").mkdir()
+    (root / "registry").mkdir()
+    (root / "premier" / "slice-1.yaml").write_text("models: []\n", encoding="utf-8")
+    (root / "registry" / "sources.yaml").write_text(
+        "schema_version: 1\nsources: []\n", encoding="utf-8",
+    )
+
+    def write_card(name: str, url: str) -> None:
+        (root / "models" / "lab" / f"{name}.md").write_text(
+            f"""---
+model_id: lab/{name}
+benchmarks:
+  evidence:
+  - benchmark_id: arena_elo_overall
+    source_url: {url}
+    score: 1.0
+---
+""",
+            encoding="utf-8",
+        )
+
+    write_card("root", _ARENA_DATASET + "/")
+    write_card("off", _ARENA_DATASET + "/resolve/main/text/file.parquet")
+    (root / "models" / "lab" / "plain.md").write_text(
+        """---
+model_id: lab/plain
+benchmarks:
+  evidence:
+  - benchmark_id: fixture_benchmark
+    source_url: https://example.test/leaderboard.json
+    score: 1.0
+---
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.delenv(refresh.ARENA_REVISION_ENV, raising=False)
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([], []))
+
+    report = refresh.run(
+        observed_at="2026-11-11", dry_run=True, root=root, source_cache=tmp_path / "cache",
+    )
+
+    rendered = [
+        line for line in refresh.render_report(report).splitlines()
+        if "dataset root" in line
+    ]
+    assert rendered == ["Arena rows whose source is not the dataset root: 1"]
+    path = tmp_path / "report.json"
+    refresh.write_report_json(path, report)
+    assert json.loads(path.read_text(encoding="utf-8"))["arena_rows_off_root"] == 1
+
+
+def test_no_unique_dataset_row_is_its_own_skip_class(monkeypatch, tmp_path: Path) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Some Other Model",
+        evaluated="Example Model",
+        display="Example Model",
+    )
+
+    assert report.quarantined == []
+    assert any("no unique row" in row.reason for row in report.failures)
+    assert _arena_skip_classes(report) == {"no-unique-row": 1}
+    assert _evidence_row(card)["score"] == 1100.0
+
+
+_RAW_ARENA_RATING = 1234.5678912345
+_ROUNDED_ARENA_RATING = 1234.57
+
+
+def _arena_dataset_row(**overrides) -> dict:
+    row = {
+        "model_name": "Example Model",
+        "rating": _RAW_ARENA_RATING,
+        "rating_lower": 1210.126,
+        "rating_upper": 1250.874,
+        "vote_count": 2222,
+        "leaderboard_publish_date": "2026-11-02",
+        "rank": 3,
+    }
+    row.update(overrides)
+    return row
+
+
+def test_an_arena_score_is_written_with_two_decimals(monkeypatch, tmp_path: Path) -> None:
+    """The card, the sentence, the id, the report and the table share one rounded score."""
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        dataset_rows=[_arena_dataset_row()],
+    )
+
+    assert report.failures == [], report.failures
+    assert report.quarantined == [], report.quarantined
+    row = _evidence_row(card)
+    assert row["score"] == _ROUNDED_ARENA_RATING
+    assert str(_RAW_ARENA_RATING) not in card.read_text(encoding="utf-8")
+    assert f"{_ROUNDED_ARENA_RATING:.2f}" in row["configuration"]
+    assert row["id"] == refresh.evidence_id("lab/example-model", row)
+    assert report.changes[0].new_value == _ROUNDED_ARENA_RATING
+    rendered = refresh.render_report(report)
+    assert f"{_ROUNDED_ARENA_RATING:.2f}" in rendered
+    assert str(_RAW_ARENA_RATING) not in rendered
+    audit_path = tmp_path / "audit.json"
+    refresh.write_audit(audit_path, report.changes)
+    audit = json.loads(audit_path.read_text(encoding="utf-8"))
+    assert audit[0]["new_value"] == _ROUNDED_ARENA_RATING
+    assert str(_RAW_ARENA_RATING) not in audit_path.read_text(encoding="utf-8")
+    log = _verification_log(root)
+    assert log["outcome"] == "verified"
+    assert log["diff"] is None
+
+
+def test_a_rounded_arena_score_verifies_against_the_raw_dataset_value() -> None:
+    """The verifier's existing tolerance accepts a score rounded to 2 decimals."""
+    from decision.verify import numbers_agree, parse_quantity
+
+    found = parse_quantity(str(_RAW_ARENA_RATING), "Arena score (Elo scale)")
+    assert found is not None
+    assert numbers_agree(_ROUNDED_ARENA_RATING, "Arena score (Elo scale)", found)
+
+
+def test_a_raw_arena_score_on_the_card_is_reconfirmed_at_two_decimals(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """A card score with more than 2 decimals is rewritten rounded and is not a value change."""
+    raw = 1100.123456789012
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        score=raw,
+        configuration=(
+            "Pinned LMArena dataset; publication date 2026-10-01; rating 1100.12 "
+            "[1080.00, 1120.00], 1000 votes, rank 4."
+        ),
+        dataset_rows=[{
+            "model_name": "Example Model",
+            "rating": raw,
+            "rating_lower": 1080.0,
+            "rating_upper": 1120.0,
+            "vote_count": 1000,
+            "leaderboard_publish_date": "2026-10-01",
+            "rank": 4,
+        }],
+    )
+
+    assert report.failures == [], report.failures
+    assert report.changes == []
+    assert len(report.reconfirmed) == 1
+    assert report.reconfirmed[0].new_value == round(raw, 2)
+    row = _evidence_row(card)
+    assert row["score"] == round(raw, 2)
+    # The stored score changed, so the evidence id changes. That is intended.
+    assert row["id"] != "lab/example-model#arena_elo_overall#old"
+    assert row["id"] == refresh.evidence_id("lab/example-model", row)
+    assert row["configuration"] == (
+        "Pinned LMArena dataset; publication date 2026-10-01; rating 1100.12 "
+        "[1080.00, 1120.00], 1000 votes, rank 4."
+    )
+    summary = report.boards["arena:text"]
+    assert summary["rows_rewritten"] == 0
+    assert summary["rows_reconfirmed"] == 1
+    assert summary["values_changed"] == 0
+
+
+def test_a_read_date_beside_the_publish_date_becomes_the_observed_date(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    before = tmp_path / "before"
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        snapshot=before,
+        configuration=(
+            "LMArena leaderboard dataset, CC BY 4.0, category overall, "
+            "leaderboard_publish_date 2026-10-01, read 2026-09-24. "
+            "Rank 4, 1000 votes, interval [1080.00, 1120.00]."
+        ),
+        dataset_rows=[_arena_dataset_row()],
+    )
+
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["score"] == _ROUNDED_ARENA_RATING
+    assert row["configuration"] == (
+        "LMArena leaderboard dataset, CC BY 4.0, category overall, "
+        "leaderboard_publish_date 2026-11-02, read 2026-11-11. "
+        "Rank 3, 2222 votes, interval [1210.13, 1250.87]."
+    )
+    assert refresh.check_score_only(before, root).ok
+
+
+def test_a_stale_snapshot_sentence_is_removed_when_the_publish_date_changes(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    before = tmp_path / "before"
+    report, card, root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        snapshot=before,
+        store_reading=False,
+        configuration=(
+            "LMArena's official leaderboard dataset, split latest, subset `text` "
+            "(raw, non-style-controlled), category overall; "
+            "leaderboard_publish_date 2026-10-01 is the stated date. "
+            "Rating 1100.00 (95% CI 1080.00-1120.00), 1000 votes. "
+            "The live arena.ai board read 2026-09-24 still shows this snapshot "
+            "(same vote counts)."
+        ),
+        dataset_rows=[_arena_dataset_row()],
+    )
+
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["score"] == _ROUNDED_ARENA_RATING
+    assert row["configuration"] == (
+        "LMArena's official leaderboard dataset, split latest, subset `text` "
+        "(raw, non-style-controlled), category overall; "
+        "leaderboard_publish_date 2026-11-02 is the stated date. "
+        f"Rating {_ROUNDED_ARENA_RATING:.2f} (95% CI 1210.13-1250.87), 2222 votes."
+    )
+    assert refresh.check_score_only(before, root).ok
+
+
+def test_a_configuration_date_the_writer_cannot_retell_is_not_written(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        configuration=(
+            "LMArena leaderboard dataset, category overall, "
+            "leaderboard_publish_date 2026-10-01, read 2026-09-24. "
+            "Tasks noted 2026-08-01. Rank 4, 1000 votes, interval [1080.00, 1120.00]."
+        ),
+        dataset_rows=[_arena_dataset_row()],
+    )
+
+    assert report.changes == []
+    assert _evidence_row(card)["score"] == 1100.0
+    assert "2026-08-01" in _evidence_row(card)["configuration"]
+    matched = [
+        row for row in report.failures
+        if row.reason == "configuration states a date the writer cannot retell"
+    ]
+    assert len(matched) == 1
+    assert matched[0].model_id == "lab/example-model"
+    assert matched[0].benchmark == "arena_elo_overall"
+
+
+@pytest.mark.parametrize("extra", [
+    "model gpt-4o-2024-08-06",
+    "model `gpt-4o-2024-08-06` noted `2024-08-06`",
+    "see https://example.test/cards?id=gpt-4o&on=2024-08-06",
+])
+def test_a_date_inside_an_id_backticks_or_a_url_is_written(
+    monkeypatch, tmp_path: Path, extra: str,
+) -> None:
+    """Those dates are not a date the writer can retell, and the token stays."""
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        configuration=(
+            "LMArena leaderboard dataset, CC BY 4.0, category overall, "
+            "leaderboard_publish_date 2026-10-01, read 2026-09-24. "
+            f"{extra}. "
+            "Rank 4, 1000 votes, interval [1080.00, 1120.00]."
+        ),
+        dataset_rows=[_arena_dataset_row()],
+    )
+
+    assert report.failures == [], report.failures
+    sentence = _evidence_row(card)["configuration"]
+    assert extra in sentence
+    assert "leaderboard_publish_date 2026-11-02, read 2026-11-11" in sentence
+    assert "2024-08-06" in sentence
+
+
+def test_an_unchanged_publish_date_retells_only_the_read_day(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    sentence = (
+        "LMArena leaderboard dataset, CC BY 4.0, category overall, "
+        "leaderboard_publish_date 2026-10-01, read 2026-09-24. "
+        "Rank 4, 1000 votes, interval [1080.00, 1120.00]. "
+        "The live arena.ai board read 2026-09-24 still shows this snapshot "
+        "(same vote counts)."
+    )
+    report, card, _root = _run_arena_effort_refresh(
+        monkeypatch, tmp_path,
+        dataset_name="Example Model",
+        evaluated="Example Model",
+        display="Example Model",
+        configuration=sentence,
+        dataset_rows=[{
+            "model_name": "Example Model",
+            "rating": 1100.0,
+            "rating_lower": 1080.0,
+            "rating_upper": 1120.0,
+            "vote_count": 1000,
+            "leaderboard_publish_date": "2026-10-01",
+            "rank": 4,
+        }],
+    )
+
+    assert report.failures == [], report.failures
+    assert report.changes == []
+    # The read day beside the publish date is this run's day (MODEL-486-B). Nothing else moves.
+    assert _evidence_row(card)["configuration"] == sentence.replace(
+        "read 2026-09-24. Rank", "read 2026-11-11. Rank",
+    )
+    summary = report.boards["arena:text"]
+    assert summary["rows_reconfirmed"] == 1
+
+
+def test_a_non_arena_score_keeps_its_precision() -> None:
+    raw = 81.5123456789
+    body = json.dumps({
+        "rows": [{"model": "Changed Model", "score": raw, "observed_at": "2026-09-25"}],
+    }).encode()
+    board = refresh.json_board(
+        key="fixture",
+        source_id="fixture-source",
+        benchmark_ids={"fixture_benchmark"},
+        source_url="https://example.test/leaderboard.json",
+        body=body,
+        observed_at="2026-09-25",
+        value_field="score",
+    )
+
+    changes, failures = refresh.plan_rows(
+        "lab/model", "models/lab/model.md", [evidence("Changed Model", 80.0)], board,
+    )
+
+    assert failures == []
+    assert len(changes) == 1
+    assert changes[0].new_value == raw
+    assert changes[0].new_value != round(raw, 2)
+
+
+def test_an_added_arena_row_is_stored_rounded_and_the_next_refresh_keeps_it(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """A release-signal add and the next refresh share one rounded score and one id."""
+    raw = 1210.256789
+    rounded = round(raw, 2)
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    source_id = "fixture-arena"
+    _arena_effort_card(
+        root, model="lab/template", evaluated="Template Model", display="Template Model",
+    )
+    card = root / "models" / "lab" / "new.md"
+    card.write_text(
+        """---
+model_id: lab/new-model
+display_name: Example Model
+version: example-model
+benchmarks:
+  evidence: []
+---
+""",
+        encoding="utf-8",
+    )
+    _arena_registry(root, source_id)
+    (root / "verification").mkdir()
+    url = f"{_ARENA_DATASET}/resolve/{_ARENA_NEW}/text/latest-00000-of-00001.parquet"
+    store = refresh.CopyStore(cache)
+    projection = refresh.readers.document(
+        [_arena_dataset_row(rating=raw, rating_lower=1190.0, rating_upper=1230.0)],
+        url=url, page_ref="sha256:" + "b" * 64, read_date="2026-11-11", note="fixture",
+    )
+    board = refresh._reading_from_projection(
+        key="arena:text", source_id=source_id, benchmarks=("arena_elo_overall",),
+        source_url=url, projected=projection, observed_at="2026-11-11",
+        value_field="rating", store=store, card_urls=(_ARENA_DATASET,),
+    )
+    monkeypatch.delenv(refresh.ARENA_REVISION_ENV, raising=False)
+    monkeypatch.setattr(
+        refresh.readers, "resolve_arena_revision",
+        lambda _fetch: refresh.readers.ArenaRevision(sha=_ARENA_NEW),
+    )
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([board], []))
+
+    added = refresh.run(
+        observed_at="2026-11-11", dry_run=False, root=root, source_cache=cache,
+        model_ids=("lab/new-model",), add_missing=True, arena_latest=True,
+    )
+
+    assert added.quarantined == [], added.quarantined
+    assert added.failures == [], added.failures
+    assert added.added == 1
+    row = _evidence_row(card)
+    assert row["score"] == rounded
+    assert row["score"] != raw
+    assert row["id"] == refresh.evidence_id("lab/new-model", row)
+    raw_row = {**row, "score": raw}
+    assert row["id"] != refresh.evidence_id("lab/new-model", raw_row)
+
+    again = refresh.run(
+        observed_at="2026-11-11", dry_run=False, root=root, source_cache=cache,
+        model_ids=("lab/new-model",), arena_latest=True,
+    )
+
+    assert again.failures == [], again.failures
+    assert again.quarantined == [], again.quarantined
+    assert again.changes == []
+    assert len(again.reconfirmed) == 1
+    kept = _evidence_row(card)
+    assert kept["score"] == rounded
+    assert kept["id"] == row["id"]
+
+
+def test_an_added_non_arena_row_keeps_its_precision(monkeypatch, tmp_path: Path) -> None:
+    shown = "81.5123456789%"
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    (root / "models" / "lab").mkdir(parents=True)
+    (root / "registry").mkdir(parents=True)
+    (root / "verification").mkdir(parents=True)
+    (root / "registry" / "sources.yaml").write_text(
+        """schema_version: 1
+sources:
+- id: fixture-source
+  url: https://example.test/leaderboard.json
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator: {kind: page, value: ''}
+""",
+        encoding="utf-8",
+    )
+    card = root / "models" / "lab" / "new.md"
+    card.write_text(
+        """---
+model_id: lab/new
+display_name: New Model
+version: new-model
+benchmarks:
+  scores: {}
+  evidence: []
+---
+""",
+        encoding="utf-8",
+    )
+    template = root / "models" / "lab" / "template.md"
+    template.write_text(
+        _card("2026-09-25").replace("lab/model", "lab/template").replace(
+            "Stable Model", "Template Model"
+        ).replace("prose\n", ""),
+        encoding="utf-8",
+    )
+    store = refresh.CopyStore(cache)
+    projection = refresh.readers.document(
+        [{"model": "New Model", "score": shown}],
+        url="https://example.test/leaderboard.json",
+        page_ref="sha256:" + "b" * 64,
+        read_date="2026-09-26",
+        note="fixture",
+    )
+    board = refresh._reading_from_projection(
+        key="fixture", source_id="fixture-source", benchmarks=("fixture_benchmark",),
+        source_url="https://example.test/leaderboard.json", projected=projection,
+        observed_at="2026-09-26", value_field="score", store=store,
+    )
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_args, **_kwargs: ([board], []))
+
+    report = refresh.run(
+        observed_at="2026-09-26", dry_run=False, root=root, source_cache=cache,
+        model_ids=("lab/new",), add_missing=True,
+    )
+
+    assert report.quarantined == [], report.quarantined
+    assert report.failures == [], report.failures
+    row = refresh._front(card)["benchmarks"]["evidence"][0]
+    expected = refresh.readers.parse_quantity(shown).number
+    assert row["score"] == expected
+    assert row["score"] != round(expected, 2)
+
+
+def _arena_read_date_cards(tmp_path: Path, after_sentence: str, *, evidence_date: str,
+                           observed_at: str, snapshot: bool = True) -> tuple[str, str]:
+    before_sentence = (
+        "leaderboard_publish_date 2026-09-13, read 2026-09-24. Rank 4, 1000 votes."
+    )
+    if snapshot:
+        before_sentence += (
+            " The live arena.ai board read 2026-09-24 still shows this snapshot "
+            "(same vote counts)."
+        )
+    before_text = _arena_guard_card("2026-09-13").replace(
+        "    date_type: published\n",
+        f"    date_type: published\n    configuration: {before_sentence}\n",
+    )
+    after_text = before_text.replace("score: 72.0", "score: 73.0").replace(
+        "evidence_date: '2026-09-01'", f"evidence_date: '{evidence_date}'",
+    ).replace(
+        "observed_at: '2026-09-13'", f"observed_at: '{observed_at}'",
+    ).replace(
+        "verified_at: '2026-09-13'", f"verified_at: '{observed_at}'",
+    ).replace(
+        "    id: lab/model#stable\n",
+        "    n: 2222\n    id: lab/model#stable\n",
+    ).replace(before_sentence, after_sentence)
+    return before_text, after_text
+
+
+def test_score_only_check_accepts_a_read_date_that_becomes_the_observed_date(
+    tmp_path: Path,
+) -> None:
+    before_text, after_text = _arena_read_date_cards(
+        tmp_path,
+        "leaderboard_publish_date 2026-11-02, read 2026-11-12. Rank 3, 2222 votes.",
+        evidence_date="2026-11-02",
+        observed_at="2026-11-12",
+        snapshot=False,
+    )
+
+    assert _guard_result(tmp_path, before_text, after_text).ok
+
+
+def test_score_only_check_refuses_a_read_date_that_becomes_the_evidence_date(
+    tmp_path: Path,
+) -> None:
+    before_text, after_text = _arena_read_date_cards(
+        tmp_path / "evidence-date",
+        "leaderboard_publish_date 2026-11-02, read 2026-11-02. Rank 3, 2222 votes.",
+        evidence_date="2026-11-02",
+        observed_at="2026-11-12",
+        snapshot=False,
+    )
+    result = _guard_result(tmp_path / "evidence-date", before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_the_arena_sentence_edits_off_the_dataset_root(
+    tmp_path: Path,
+) -> None:
+    """A retold read date and a removed snapshot sentence stay dataset-root edits."""
+    before_text, after_text = _arena_read_date_cards(
+        tmp_path,
+        "leaderboard_publish_date 2026-11-02, read 2026-11-12. Rank 3, 2222 votes.",
+        evidence_date="2026-11-02",
+        observed_at="2026-11-12",
+    )
+    root = "source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset"
+    cases = {
+        "non-arena": (
+            ("benchmark_id: arena_text", "benchmark_id: fixture_benchmark"),
+            (root, "source_url: https://example.test/leaderboard.json"),
+        ),
+        "off-root": (
+            (
+                root,
+                "source_url: https://huggingface.co/datasets/lmarena-ai/"
+                "leaderboard-dataset/resolve/main/text/file.parquet",
+            ),
+        ),
+    }
+    for name, replacements in cases.items():
+        edited_before, edited_after = before_text, after_text
+        for old, new in replacements:
+            edited_before = edited_before.replace(old, new)
+            edited_after = edited_after.replace(old, new)
+        result = _guard_result(tmp_path / name, edited_before, edited_after)
+        assert not result.ok, name
+        assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_accepts_a_retold_read_date_and_a_removed_snapshot_sentence(
+    tmp_path: Path,
+) -> None:
+    before_text, after_text = _arena_read_date_cards(
+        tmp_path,
+        "leaderboard_publish_date 2026-11-02, read 2026-11-12. Rank 3, 2222 votes.",
+        evidence_date="2026-11-02",
+        observed_at="2026-11-12",
+    )
+
+    assert _guard_result(tmp_path, before_text, after_text).ok
+
+
+def test_score_only_check_refuses_a_word_change_beside_a_retold_read_date(
+    tmp_path: Path,
+) -> None:
+    before_text, after_text = _arena_read_date_cards(
+        tmp_path,
+        "leaderboard_publish_date 2026-11-02, read 2026-11-12. Place 3, 2222 votes.",
+        evidence_date="2026-11-02",
+        observed_at="2026-11-12",
+    )
+    result = _guard_result(tmp_path / "word", before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_snapshot_removal_when_the_publish_date_stays(
+    tmp_path: Path,
+) -> None:
+    before_text, after_text = _arena_read_date_cards(
+        tmp_path,
+        "leaderboard_publish_date 2026-09-13, read 2026-09-24. Rank 4, 1000 votes.",
+        evidence_date="2026-09-13",
+        observed_at="2026-09-13",
+    )
+    result = _guard_result(tmp_path / "kept", before_text, after_text)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
 def test_the_matharena_index_marks_only_retired_competitions() -> None:
     import gzip
 
@@ -1731,3 +4112,27 @@ def test_the_matharena_index_marks_only_retired_competitions() -> None:
     assert refresh.readers.matharena_deprecated(index, "overall--arxivmath") is False
     with pytest.raises(ValueError, match="no competition"):
         refresh.readers.matharena_deprecated(index, "aime--aime_2099")
+
+
+def test_refresh_report_files_carry_no_pull_request_placeholder(tmp_path: Path) -> None:
+    change = refresh.ScoreChange(
+        card="example/invented-model", model_id="invented-model", model="Invented Model", benchmark="invented_bench",
+        old_value=41.5, new_value=43.0, source="https://example.test/board",
+        observed_date="2026-01-02",
+    )
+    report = refresh.RefreshReport(changes=[change])
+    markdown = refresh.render_report(report)
+    refresh.write_report_json(tmp_path / "report.json", report)
+    refresh.write_audit(tmp_path / "audit.json", report.changes)
+    report_json = (tmp_path / "report.json").read_text(encoding="utf-8")
+    audit_json = (tmp_path / "audit.json").read_text(encoding="utf-8")
+
+    for text in (markdown, report_json, audit_json):
+        assert "${PR_URL}" not in text
+    for row in (json.loads(report_json)["changes"][0], json.loads(audit_json)[0]):
+        assert "pr" in row
+        assert row["pr"] is None
+    table = [line for line in markdown.splitlines() if line.startswith("| ")
+             and ("Old value" in line or "invented_bench" in line)]
+    assert len(table) == 2
+    assert table[0].count("|") == table[1].count("|") == 7

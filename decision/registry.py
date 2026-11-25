@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import difflib
 import re
+import sys
 from dataclasses import dataclass, replace
 from datetime import date
 from functools import cache
@@ -211,6 +212,13 @@ class Provider:
     jurisdiction: Jurisdiction
     attestations: Mapping[str, Sourced]
     v1_availability_field: str | None = None
+    #: The lab this provider is the own API of (MODEL-530). Absent means none stated.
+    lab: str | None = None
+    #: ``none`` when the provider has no trust or compliance page at all. It needs
+    #: ``trust_centre_checked`` (an ISO date) and ``trust_centre_searched`` (the URLs tried).
+    trust_centre: str | None = None
+    trust_centre_checked: str | None = None
+    trust_centre_searched: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -517,6 +525,19 @@ def _keys(err: _Errors, where: str, entry: dict, required: set[str], optional: s
         err.add(where, f"unknown field {k!r}")
 
 
+def _wall_clock_is_trusted() -> bool:
+    """False in the Worker's Pyodide runtime, true everywhere else.
+
+    The Worker loads the registry at module scope, which Cloudflare runs at
+    deploy validation and again in its memory snapshot. Workers freeze the
+    clock outside a request, so `date.today()` there is not today's date, and
+    a "must not be in the future" comparison against it rejects a valid
+    record and fails the version upload (error 10021). Data CI, the build and
+    the tests all run on a real clock and keep the check.
+    """
+    return sys.platform != "emscripten"
+
+
 def _iso_date(value: Any) -> bool:
     try:
         date.fromisoformat(str(value))
@@ -717,15 +738,60 @@ def _sourced(err: _Errors, where: str, raw: Any, extra: set[str] = frozenset()) 
     return raw
 
 
+def _lab_ids(root: Path) -> set[str] | None:
+    """Lab ids in ``labs.yaml`` beside the registry files, or ``None`` when there is none.
+
+    The public checkout has no ``labs.yaml`` (it is private data), so there a provider's
+    ``lab`` gets the format check only; with the labs registry loaded it must name a known lab.
+    """
+    path = root / "labs.yaml"
+    if not path.is_file():
+        return None
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    rows = data.get("labs") if isinstance(data, dict) else None
+    return {str(r.get("id")) for r in rows or [] if isinstance(r, dict)}
+
+
 def _load_providers(err: _Errors, root: Path) -> dict[str, Provider]:
     entries = _read(root, "providers", "providers")
     _unique(err, "providers.yaml", entries, KEBAB_ID, "kebab-case")
     required = {"id", "name", "url", "kind", "jurisdiction", "attestations"}
     availability: set[str] | None = None
+    lab_ids = _lab_ids(root)
     out: dict[str, Provider] = {}
     for e in entries:
         where = f"providers.yaml {e.get('id')!r}"
-        _keys(err, where, e, required, {"v1_availability_field"})
+        _keys(err, where, e, required, {"v1_availability_field", "lab", "trust_centre",
+                                           "trust_centre_checked", "trust_centre_searched"})
+        trust_centre = e.get("trust_centre")
+        checked = e.get("trust_centre_checked")
+        searched = e.get("trust_centre_searched")
+        if trust_centre is not None and trust_centre != "none":
+            err.add(where, "trust_centre must be `none` when present")
+            trust_centre = None
+        elif trust_centre == "none":
+            if not _iso_date(checked):
+                err.add(where, "trust_centre `none` needs trust_centre_checked as an ISO date")
+                trust_centre = None
+            elif _wall_clock_is_trusted() and date.fromisoformat(str(checked)) > date.today():
+                err.add(where, "trust_centre_checked must not be in the future")
+                trust_centre = None
+            if not (isinstance(searched, list) and searched and all(_https(u) for u in searched)):
+                err.add(where, "trust_centre `none` needs trust_centre_searched as a non-empty list of https URLs")
+                trust_centre = None
+        elif checked is not None or searched is not None:
+            err.add(where, "trust_centre_checked and trust_centre_searched need trust_centre: none")
+        lab = e.get("lab")
+        if lab is not None:
+            if not isinstance(lab, str) or not KEBAB_ID.fullmatch(lab):
+                err.add(where, "lab must be a kebab-case lab id")
+                lab = None
+            elif e.get("kind") != "lab_api":
+                err.add(where, "lab is allowed only on a lab_api provider")
+                lab = None
+            elif lab_ids is not None and lab not in lab_ids:
+                err.add(where, f"lab {lab!r} is not in labs.yaml")
+                lab = None
         if not _https(e.get("url")):
             err.add(where, "url must be an https URL")
         if e.get("kind") not in PROVIDER_KINDS:
@@ -766,7 +832,10 @@ def _load_providers(err: _Errors, root: Path) -> dict[str, Provider]:
             out.setdefault(e["id"], Provider(
                 id=e["id"], name=str(e.get("name", "")), url=str(e.get("url", "")),
                 kind=str(e.get("kind", "")), jurisdiction=jurisdiction,
-                attestations=MappingProxyType(attestations), v1_availability_field=field_))
+                attestations=MappingProxyType(attestations), v1_availability_field=field_,
+                lab=lab, trust_centre=trust_centre,
+                trust_centre_checked=str(checked) if trust_centre else None,
+                trust_centre_searched=tuple(searched) if trust_centre else ()))
     return out
 
 

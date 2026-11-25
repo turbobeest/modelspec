@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from dataclasses import replace
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -38,6 +39,7 @@ class FakeEvidence:
         verified_at=None,
         verified=True,
         cited=False,
+        not_published_since=None,
     ):
         self.benchmark_id = benchmark
         self.value = value
@@ -48,6 +50,7 @@ class FakeEvidence:
         self.verified_at = verified_at
         self.verified = verified
         self.cited = cited
+        self.not_published_since = not_published_since
         self.record_id = f"evidence:{benchmark}"
 
 
@@ -87,12 +90,15 @@ class FakeSnapshot:
 
     def record(self, record_id):
         row = next(row for row in self._evidence if row.record_id == record_id)
-        return {
+        stored = {
             "source_kind": row.source_kind,
             "evidence_date": row.date.isoformat(),
             "date_type": row.date_type,
             "verified_at": row.verified_at.isoformat() if row.verified_at else None,
         }
+        if row.not_published_since is not None:
+            stored["not_published_since"] = row.not_published_since
+        return stored
 
 
 def test_thresholds_and_budgets_live_in_one_config() -> None:
@@ -267,6 +273,73 @@ def test_freshness_uses_registered_source_volatility() -> None:
     assert result.details[0]["reason"] == "stale_live_leaderboard"
 
 
+def test_not_published_since_is_not_a_live_reading() -> None:
+    live = Source(id="live-board", url="https://example.test/live", volatility="live")
+    marked = FakeEvidence(
+        "fixture_benchmark", 61.5, date(2026, 8, 1),
+        source_ids=(live.id,), verified_at=date(2026, 8, 1),
+        not_published_since="2026-10-01",
+    )
+    undated = FakeEvidence(
+        "undated_benchmark", 40, date(2026, 8, 1),
+        source_ids=(live.id,), verified_at=None,
+        not_published_since="2026-10-01",
+    )
+    sibling = FakeEvidence(
+        "sibling_benchmark", 70, date(2026, 8, 1),
+        source_ids=(live.id,), verified_at=date(2026, 8, 1),
+    )
+
+    result = accuracy.check_freshness(
+        FakeSnapshot(evidence=(marked, undated, sibling)),
+        as_of=date(2026, 9, 25),
+        config=accuracy.load_config(Path("accuracy.yaml")).freshness,
+        sources={live.id: live},
+    )
+
+    assert result.status == "fail"
+    assert result.counts["not_published_since"] == 2
+    assert result.counts["live_readings"] == 1
+    assert [(row["benchmark"], row["reason"]) for row in result.details] == [
+        ("sibling_benchmark", "stale_live_leaderboard"),
+    ]
+    assert "undated_live_leaderboard" not in {row["reason"] for row in result.details}
+    assert "2 reading(s) are marked no longer published." in result.summary
+
+
+def test_not_published_since_blank_still_ages() -> None:
+    live = Source(id="live-board", url="https://example.test/live", volatility="live")
+    blank = FakeEvidence(
+        "fixture_benchmark", 61.5, date(2026, 8, 1),
+        source_ids=(live.id,), verified_at=date(2026, 8, 1),
+        not_published_since="",
+    )
+
+    result = accuracy.check_freshness(
+        FakeSnapshot(evidence=(blank,)),
+        as_of=date(2026, 9, 25),
+        config=accuracy.load_config(Path("accuracy.yaml")).freshness,
+        sources={live.id: live},
+    )
+
+    assert result.status == "fail"
+    assert result.counts["not_published_since"] == 0
+    assert result.details[0]["reason"] == "stale_live_leaderboard"
+    assert "no longer published" not in result.summary
+
+
+def test_not_published_since_stays_out_of_the_public_freshness_summary() -> None:
+    from scripts.accuracy_public import _public_summary
+
+    text = _public_summary(
+        "freshness", "pass", {"failures": 0, "not_published_since": 4}, {},
+    )
+
+    assert "not_published" not in text
+    assert "no longer published" not in text
+    assert "4" not in text
+
+
 @pytest.mark.parametrize("age,expected", [(3, "pass"), (30, "pass"), (31, "fail"), (None, "fail")])
 def test_private_freshness_uses_current_data_and_its_registry_without_disclosure(
     tmp_path: Path, monkeypatch, caplog, age: int | None, expected: str,
@@ -414,6 +487,193 @@ def test_pr_checks_frozen_engine_without_a_current_data_age_gate(tmp_path: Path,
     assert report.snapshot == snapshot.snapshot_id
 
 
+def test_data_pr_profile_gates_python_parity_and_omits_only_vitest(monkeypatch) -> None:
+    snapshot = FakeSnapshot()
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args, **kwargs: snapshot)
+    commands = []
+
+    def run_command(name, command, cwd):
+        commands.append((name, tuple(command), Path(cwd)))
+        return accuracy.LayerResult(name, "pass", True, "ok", duration_seconds=0.1)
+
+    monkeypatch.setattr(accuracy, "_run_command", run_command)
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness",
+        lambda *args: accuracy.LayerResult("deterministic_correctness", "pass", True, "ok"),
+    )
+    recall_calls = []
+
+    def recall(*args, **kwargs):
+        recall_calls.append(kwargs)
+        return accuracy.LayerResult(
+            "frozen_image_engine_recall", "pass", kwargs.get("gating", True), "ok",
+        )
+
+    monkeypatch.setattr(accuracy, "run_golden", recall)
+
+    report = accuracy.run_profile(profile="data-pr")
+    config = accuracy.load_config()
+    parity_commands = [command for name, command, _cwd in commands if name == "output_parity"]
+
+    assert parity_commands == [
+        (sys.executable, "-m", "pytest", "-q", *config.parity.python_test_paths),
+    ]
+    assert all("vitest" not in command for command in parity_commands)
+    assert recall_calls == []
+    assert [row.name for row in report.layers] == [
+        "deterministic_correctness",
+        "output_parity",
+        "output_parity_web",
+        "frozen_image_engine_recall",
+    ]
+    assert report.layers[1].status == "pass"
+    assert report.layers[1].gating is True
+    omitted = report.layers[2]
+    assert omitted.status == "report"
+    assert omitted.gating is False
+    assert omitted.summary == (
+        "Omitted: the vitest half reads checked-in fixtures and needs Node "
+        "packages the job does not install."
+    )
+    recall = report.layers[3]
+    assert recall.status == "report"
+    assert recall.gating is False
+    assert recall.summary == (
+        "Omitted: frozen-image engine recall scores the engine's committed "
+        "public image, which a data pull request cannot change, and on a "
+        "linked tree it still reads the private registry. The engine's own "
+        "CI owns this check."
+    )
+    assert report.status == "pass"
+    assert accuracy.PROFILES["data-pr"] == ("deterministic_correctness", "output_parity")
+
+
+def _linked_engine(tmp_path: Path) -> Path:
+    repo = tmp_path / "engine"
+    private = tmp_path / "private-models"
+    repo.mkdir()
+    private.mkdir()
+    (repo / "models").symlink_to(private)
+    return repo
+
+
+def test_pr_profile_on_a_linked_tree_exits_nonzero(tmp_path: Path, monkeypatch) -> None:
+    repo = _linked_engine(tmp_path)
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness", lambda *args, **kwargs: pytest.fail("ran"),
+    )
+    monkeypatch.setattr(accuracy, "output_parity", lambda *args, **kwargs: pytest.fail("ran"))
+    monkeypatch.setattr(accuracy, "run_golden", lambda *args, **kwargs: pytest.fail("ran"))
+
+    with pytest.raises(SystemExit) as raised:
+        accuracy.main([
+            "--root", str(repo), "--profile", "pr", "--output-dir", str(tmp_path / "out"),
+        ])
+
+    assert raised.value.code == "models is a symlink; use --profile data-pr"
+
+
+def test_nightly_profile_on_a_linked_tree_exits_nonzero(tmp_path: Path, monkeypatch) -> None:
+    repo = _linked_engine(tmp_path)
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args, **kwargs: pytest.fail("ran"))
+
+    with pytest.raises(SystemExit) as raised:
+        accuracy.run_profile(root=repo, profile="nightly")
+
+    assert raised.value.code == "models is a symlink; use --profile data-pr"
+
+
+def test_an_ordinary_directory_still_runs_the_pr_profile(tmp_path: Path, monkeypatch) -> None:
+    repo = tmp_path / "engine"
+    (repo / "models").mkdir(parents=True)
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "deterministic_correctness", "pass", True, "ok",
+        ),
+    )
+    monkeypatch.setattr(
+        accuracy, "output_parity",
+        lambda *args, **kwargs: accuracy.LayerResult("output_parity", "pass", True, "ok"),
+    )
+    monkeypatch.setattr(
+        accuracy, "run_golden",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "frozen_image_engine_recall", "pass", True, "ok",
+        ),
+    )
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args, **kwargs: FakeSnapshot())
+
+    report = accuracy.run_profile(root=repo, profile="pr")
+
+    assert report.status == "pass"
+    assert [row.name for row in report.layers] == [
+        "deterministic_correctness", "frozen_image_engine_recall", "output_parity",
+    ]
+
+
+def test_data_pr_profile_runs_on_a_linked_tree(tmp_path: Path, monkeypatch) -> None:
+    repo = _linked_engine(tmp_path)
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "deterministic_correctness", "pass", True, "ok",
+        ),
+    )
+    monkeypatch.setattr(
+        accuracy, "_run_command",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "output_parity", "pass", True, "ok", duration_seconds=0,
+        ),
+    )
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args, **kwargs: FakeSnapshot())
+
+    report = accuracy.run_profile(root=repo, profile="data-pr")
+
+    assert report.status == "pass"
+    assert report.profile == "data-pr"
+
+
+def test_run_golden_reads_data_that_stays_inside_the_root(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    repo = tmp_path / "engine"
+    (repo / "models").mkdir(parents=True)
+    (repo / "models" / "marker.txt").write_text("local\n", encoding="utf-8")
+    seen = {}
+
+    def fake_run(*, root, snapshot_file, output_dir, report_date):
+        seen["marker"] = (Path(root) / "models" / "marker.txt").read_text(encoding="utf-8")
+        return type("Run", (), {"questions": (), "snapshot_id": "snap_test"})()
+
+    monkeypatch.setattr("scripts.recall_run.run", fake_run)
+    monkeypatch.setattr(
+        accuracy, "load_recall_baseline",
+        lambda path: accuracy.RecallBaseline(
+            snapshot="snap", as_of=date(2026, 11, 12), verdicts={},
+        ),
+    )
+    monkeypatch.setattr(
+        accuracy, "recall_ratchet",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "frozen_image_engine_recall", "pass", True, "ok",
+        ),
+    )
+
+    accuracy.run_golden(repo, None, date(2026, 11, 12), gating=True)
+
+    assert seen["marker"] == "local\n"
+
+
+def test_committed_public_image_recall_matches_the_baseline() -> None:
+    result = accuracy.run_golden(accuracy.ROOT, None, date.today(), gating=True)
+
+    assert result.status == "pass"
+    assert result.gating is True
+    assert result.counts["improvements"] == 0
+    assert result.counts["regressions"] == 0
+
+
 def _recall_question(
     question_id: str, verdict: str, cause: str = "engine_behavior"
 ) -> QuestionResult:
@@ -539,6 +799,106 @@ def test_recall_approval_guard_does_not_cover_ratchet_documentation() -> None:
     assert result.details == []
 
 
+def _stub_data_pr_layers(monkeypatch) -> None:
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "deterministic_correctness", "pass", True, "ok",
+        ),
+    )
+    monkeypatch.setattr(
+        accuracy, "_run_command",
+        lambda *args, **kwargs: accuracy.LayerResult(
+            "output_parity", "pass", True, "ok", duration_seconds=0,
+        ),
+    )
+
+
+def test_data_pr_report_labels_the_linked_catalogue_snapshot(tmp_path: Path, monkeypatch) -> None:
+    repo = _linked_engine(tmp_path)
+    snapshot = FakeSnapshot()
+    loads = []
+
+    def load(root, snapshot_file, as_of):
+        loads.append(root)
+        return snapshot
+
+    monkeypatch.setattr(accuracy, "_load_snapshot", load)
+    _stub_data_pr_layers(monkeypatch)
+
+    report = accuracy.run_profile(root=repo, profile="data-pr")
+    text = accuracy._markdown(report)
+
+    assert loads == [repo.resolve()]
+    assert report.snapshot == "snap_test_accuracy"
+    assert "linked_catalogue" not in report.to_dict()
+    assert "Snapshot: `snap_test_accuracy` (linked catalogue)" in text
+
+
+def test_data_pr_report_without_a_link_omits_the_catalogue_label(monkeypatch) -> None:
+    snapshot = FakeSnapshot()
+
+    def load(root, snapshot_file, as_of):
+        return snapshot
+
+    monkeypatch.setattr(accuracy, "_load_snapshot", load)
+    _stub_data_pr_layers(monkeypatch)
+
+    report = accuracy.run_profile(profile="data-pr")
+    text = accuracy._markdown(report)
+
+    assert "linked catalogue" not in text
+
+
+@pytest.mark.parametrize("layer", ["frozen_image_engine_recall", "output_parity_web"])
+def test_data_pr_rejects_an_omitted_layer(layer: str, tmp_path: Path, monkeypatch) -> None:
+    def recall(*args, **kwargs):
+        raise AssertionError(f"ran gating={kwargs.get('gating')}")
+
+    monkeypatch.setattr(accuracy, "run_golden", recall)
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness", lambda *args, **kwargs: pytest.fail("ran"),
+    )
+    monkeypatch.setattr(accuracy, "output_parity", lambda *args, **kwargs: pytest.fail("ran"))
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args, **kwargs: FakeSnapshot())
+
+    with pytest.raises(SystemExit) as raised:
+        accuracy.main([
+            "--profile", "data-pr",
+            "--layers", layer,
+            "--output-dir", str(tmp_path / "out"),
+        ])
+
+    assert raised.value.code == f"omitted from --profile data-pr: {layer}"
+
+
+def test_data_pr_snapshot_build_failure_fails_before_the_other_layers(monkeypatch) -> None:
+    def boom(*args, **kwargs):
+        raise ValueError("completeness gate")
+
+    monkeypatch.setattr(accuracy, "_load_snapshot", boom)
+    monkeypatch.setattr(
+        accuracy, "deterministic_correctness", lambda *args, **kwargs: pytest.fail("ran"),
+    )
+
+    with pytest.raises(ValueError, match="completeness gate"):
+        accuracy.run_profile(profile="data-pr")
+
+
+def test_pr_snapshot_line_does_not_claim_the_linked_catalogue() -> None:
+    report = accuracy.AccuracyReport(
+        generated_at="2026-09-25T12:00:00Z",
+        profile="pr",
+        snapshot="snap_test_accuracy",
+        layers=(),
+    )
+
+    text = accuracy._markdown(report)
+
+    assert "Snapshot: `snap_test_accuracy`\n" in text
+    assert "linked catalogue" not in text
+
+
 def test_report_writes_publishable_markdown_and_json(tmp_path: Path) -> None:
     report = accuracy.AccuracyReport(
         generated_at="2026-09-25T12:00:00Z",
@@ -559,6 +919,17 @@ def test_report_writes_publishable_markdown_and_json(tmp_path: Path) -> None:
     raw = json.loads(payload.read_text())
     assert raw["status"] == "pass"
     assert raw["layers"][1]["gating"] is False
+
+
+def test_accuracy_profile_help_lists_the_profiles_that_exist() -> None:
+    listed = CliRunner().invoke(cli_mod.app, ["verify", "accuracy", "--help"])
+    rejected = CliRunner().invoke(cli_mod.app, ["verify", "accuracy", "--profile", "nope"])
+
+    assert listed.exit_code == 0, listed.output
+    assert rejected.exit_code != 0
+    for profile in accuracy.PROFILES:
+        assert profile in listed.output
+        assert profile in rejected.output
 
 
 def test_modelspect_verify_accuracy_is_a_command_group(monkeypatch, tmp_path: Path) -> None:
@@ -1004,8 +1375,9 @@ def test_a_current_reading_that_rejects_the_private_correction_keeps_fidelity_re
     )
     markdown, payload = accuracy.write_report(report, tmp_path / "report")
     alert = accuracy_alert.body(report.to_dict(), "https://example.test/run")
-    assert "fact:" + claim.target.id in alert
-    assert "mismatch" in alert
+    assert "fact:" + claim.target.id in markdown.read_text()
+    assert "fact:" + claim.target.id not in alert
+    assert "mismatches 1" in alert
     for text in (markdown.read_text(), payload.read_text(), alert,
                  Queue(public / "verification").path.read_text(),
                  VerificationLog(public / "verification").path.read_text()):
@@ -1190,15 +1562,13 @@ def test_nightly_checks_out_private_verification_for_the_correction_reader() -> 
         Path(".github/workflows/accuracy-nightly.yml").read_text(), Loader=yaml.BaseLoader
     )
     steps = workflow["jobs"]["accuracy"]["steps"]
-    checkouts = [step for step in steps
-                 if step.get("with", {}).get("repository") == "turbobeest/modelspec-data"]
-    assert len(checkouts) == 1
-    checkout = checkouts[0]
-    assert checkout["with"]["token"] == "${{ secrets.MODELSPEC_DATA_TOKEN }}"
-    assert checkout["with"]["persist-credentials"] == "false"
-    assert checkout["if"] == "vars.DATA_SPLIT_ENABLED == 'true'"
+    fetch = next(step for step in steps if step.get("name") == "Read private verification records")
+    assert fetch["if"] == "vars.DATA_SPLIT_ENABLED == 'true'"
+    assert fetch["env"]["DATA_TOKEN"] == "${{ secrets.MODELSPEC_DATA_TOKEN }}"
+    assert "https://github.com/turbobeest/modelspec-data.git" in fetch["run"]
+    assert ".accuracy-private" in fetch["run"]
     command = next(step["run"] for step in steps if step.get("name") == "Run network accuracy layers")
-    assert "--private-data-root " + checkout["with"]["path"] in command
+    assert "--private-data-root .accuracy-private" in command
     assert '"$DATA_SPLIT_ENABLED" = "true"' in command
 
 
@@ -1247,6 +1617,34 @@ def test_a_plain_http_source_403_is_still_unreachable(tmp_path: Path) -> None:
     assert queue.recrawl_requests() == [(claim.target, "unreachable")]
     assert log.latest()[("fact", "lab/blocked#context")].outcome == "unreachable"
     assert queue.pending() == ([], [])
+
+
+def test_a_200_the_cache_cannot_retain_stays_unreachable(tmp_path: Path) -> None:
+    """A text source that answers 200 with a PDF stores nothing. Flag off."""
+    plain = _text_source("plain", "http")
+    claim = _sourced("lab/pdf#context", "plain")
+
+    result, unread, queue, log = _run_fidelity_fetch(
+        tmp_path,
+        {"plain": plain},
+        [claim],
+        {
+            "https://example.test/plain": FetchResult(
+                "ok", 200, body=b"%PDF-1.4 not retained", content_type="application/pdf",
+            ),
+        },
+    )
+
+    assert unread[("fact", "lab/pdf#context")] == "source_changed"
+    assert result.status == "fail"
+    assert result.details[0]["outcome"] == "unreachable"
+    assert result.details[0]["reason"] == "unreachable:plain#table"
+    assert result.counts == {"verified": 0, "mismatch": 0, "unreachable": 1, "undetermined": 0,
+                             "public_image_lag": 0}
+    assert queue.recrawl_requests() == [(claim.target, "unreachable")]
+    assert log.latest()[("fact", "lab/pdf#context")].outcome == "unreachable"
+    assert queue.pending() == ([], [])
+    assert not (tmp_path / "copies" / "fetch-failures").exists()
 
 
 def test_a_403_on_a_rendered_source_beside_a_failed_http_source_stays_unreachable(
@@ -1648,6 +2046,28 @@ def test_baseline_update_refuses_unexplained_drop_and_preserves_reasons(
     }
 
 
+def test_update_recall_baseline_refuses_a_linked_tree(tmp_path: Path, monkeypatch) -> None:
+    repo = _linked_engine(tmp_path)
+    baseline = repo / "tests" / "recall" / "baseline.json"
+    baseline.parent.mkdir(parents=True)
+    baseline.write_text("sentinel\n", encoding="utf-8")
+
+    def ran(**kwargs):
+        raise AssertionError("recall ran on a linked tree")
+
+    monkeypatch.setattr("scripts.recall_run.run", ran)
+
+    with pytest.raises(SystemExit) as raised:
+        accuracy.main([
+            "--root", str(repo),
+            "--update-recall-baseline",
+            "--date", "2026-10-01",
+        ])
+
+    assert raised.value.code == "models is a symlink; use --profile data-pr"
+    assert baseline.read_text(encoding="utf-8") == "sentinel\n"
+
+
 def test_the_sources_behind_the_october_false_alarms_are_declared_rendered() -> None:
     """MODEL-335: runs 36975426430 (10-02) and 37426044223 (10-06) failed on 403s
     from these pages. Declared rendered, a 403 is render_required, not a failure."""
@@ -1667,3 +2087,677 @@ def test_the_sources_behind_the_october_false_alarms_are_declared_rendered() -> 
         ("model-205-perplexity-pro", "model-173-openai-pro", "model-173-xai-consumer-pricing"),
         FetchMode.RENDERED,
     )
+
+
+# Sentinels for the nightly public form. None of these may survive into a public sink.
+_PRIVATE_MODEL = "lab/private-model-sentinel"
+_PRIVATE_FACT = "fact:lab/private-model-sentinel#offering.price"
+_PRIVATE_EVIDENCE = "evidence:lab/private-model-sentinel#mmlu#1"
+_PRIVATE_SOURCE = "private-source-sentinel"
+_PRIVATE_URL = "https://private-sentinel.example/secret"
+_PRIVATE_RESOLVED = "https://cdn.private-sentinel.example/a"
+_PRIVATE_HASH = "sha256:" + ("ab" * 32)
+_PRIVATE_COMMIT = "c0ffee01" * 5
+_PRIVATE_VALUE = "private-filed-value"
+_PRIVATE_FIELDS = (
+    _PRIVATE_MODEL, _PRIVATE_FACT, _PRIVATE_EVIDENCE, _PRIVATE_SOURCE, _PRIVATE_URL,
+    _PRIVATE_RESOLVED, _PRIVATE_HASH, _PRIVATE_COMMIT, _PRIVATE_VALUE,
+)
+
+
+def _private_nightly_report() -> accuracy.AccuracyReport:
+    """One of each private field, inside details and inside the layer summary."""
+    leaked_summary = " ".join(_PRIVATE_FIELDS)
+    sample = {
+        "sample": [
+            {
+                "target": _PRIVATE_FACT,
+                "model": _PRIVATE_MODEL,
+                "outcome": "mismatch",
+                "reason": "value_disagreed",
+                "diff": [{"field": "value", "expected": _PRIVATE_VALUE, "found": "9"}],
+                "source_urls": [_PRIVATE_URL],
+                "sources": [{
+                    "source_id": _PRIVATE_SOURCE,
+                    "url": _PRIVATE_URL,
+                    "declared_fetch": "http",
+                    "resolved_urls": [_PRIVATE_RESOLVED],
+                    "transport": "http",
+                    "http_status": 403,
+                    "error_category": "http_error",
+                    "copy_ref": _PRIVATE_HASH,
+                    "cited_copy_ref": _PRIVATE_HASH,
+                }],
+            },
+            {
+                "target": _PRIVATE_EVIDENCE,
+                "model": _PRIVATE_MODEL,
+                "outcome": "unreachable",
+                "record_id": _PRIVATE_EVIDENCE,
+                "source_urls": [_PRIVATE_URL],
+                "sources": [],
+            },
+        ],
+        "commit": _PRIVATE_COMMIT,
+    }
+    return accuracy.AccuracyReport(
+        generated_at="2026-11-12T06:23:00Z",
+        profile="nightly",
+        snapshot=_PRIVATE_COMMIT,
+        layers=(
+            accuracy.LayerResult(
+                "data_fidelity", "fail", True, leaked_summary,
+                {"verified": 12, "mismatch": 1, "unreachable": 1, "undetermined": 2,
+                 "public_image_lag": 0},
+                sample,
+            ),
+            accuracy.LayerResult(
+                "reference_agreement", "fail", True, leaked_summary,
+                {"pass": 0, "fail": 1, "undetermined": 1},
+                [{
+                    "model": _PRIVATE_MODEL,
+                    "source_url": _PRIVATE_URL,
+                    "responsible_evidence": [{"record_ids": [_PRIVATE_EVIDENCE]}],
+                }],
+            ),
+            accuracy.LayerResult(
+                "freshness", "pass", True, leaked_summary,
+                {"lineup_models": 4, "live_readings": 1, "failures": 0},
+                [{"model": _PRIVATE_MODEL}],
+            ),
+        ),
+    )
+
+
+_PUBLIC_NIGHTLY = """\
+**Overall: FAIL**
+
+| Layer | Status | Gate | Summary |
+| --- | --- | --- | --- |
+| data_fidelity | FAIL | yes | failures 2; mismatches 1; unreachable 1; undetermined 2; over the undetermined limit: no. |
+| reference_agreement | FAIL | yes | failures 1; mismatches 0; unreachable 0; undetermined 1; over the undetermined limit: no. |
+| freshness | PASS | yes | failures 0; mismatches 0; unreachable 0; undetermined 0; over the undetermined limit: no. |
+"""
+
+
+def _assert_public_text(text: str) -> None:
+    import re
+
+    assert text == _PUBLIC_NIGHTLY
+    for secret in _PRIVATE_FIELDS:
+        assert secret not in text
+    assert not re.search(r"(?<![0-9A-Fa-f])[0-9A-Fa-f]{40}(?![0-9A-Fa-f])", text)
+    assert not re.search(r"(?<![0-9A-Fa-f])[0-9A-Fa-f]{64}(?![0-9A-Fa-f])", text)
+    assert "sha256:" not in text
+    assert "http" not in text.lower()
+    assert "fact:" not in text
+    assert "evidence:" not in text
+
+
+def test_an_undetermined_share_failure_names_the_limit() -> None:
+    report = accuracy.AccuracyReport(
+        generated_at="2026-11-12T06:23:00Z",
+        profile="nightly",
+        snapshot=None,
+        layers=(accuracy.LayerResult(
+            "data_fidelity", "fail", True, "private summary share-sentinel",
+            {"verified": 4, "mismatch": 0, "unreachable": 0, "undetermined": 20},
+            {
+                "undetermined_share": 0.8,
+                "max_undetermined_share": 0.6,
+                "sample": [{"target": "fact:share-sentinel"}],
+            },
+        ),),
+    )
+
+    for text in (
+        accuracy.public_nightly_report(report),
+        accuracy.public_nightly_report(report.to_dict()),
+    ):
+        assert "| data_fidelity | FAIL | yes |" in text
+        assert "failures 0;" in text
+        assert "undetermined 20;" in text
+        assert "over the undetermined limit: yes" in text
+        assert "0.8" not in text
+        assert "0.6" not in text
+        assert "fact:share-sentinel" not in text
+        assert "share-sentinel" not in text
+
+
+def test_a_fidelity_fail_with_no_failures_names_its_cause_in_counts() -> None:
+    """MODEL-553: shell pages, refused hops and a short sample fail the layer with
+    zero failures; the public line says which, in counts only."""
+    report = accuracy.AccuracyReport(
+        generated_at="2026-11-25T06:23:00Z",
+        profile="nightly",
+        snapshot=None,
+        layers=(accuracy.LayerResult(
+            "data_fidelity", "fail", True, "private summary cause-sentinel",
+            {"verified": 9, "mismatch": 0, "unreachable": 0, "undetermined": 8},
+            {
+                "undetermined_share": 0.4,
+                "max_undetermined_share": 0.6,
+                "shell_page": 4,
+                "redirect_unclassified": 2,
+                "actual_sample_size": 9,
+                "requested_sample_size": 12,
+                "sample": [{"target": "fact:cause-sentinel",
+                            "sources": [{"url": "https://cause.example/x"}]}],
+            },
+        ),),
+    )
+
+    for text in (
+        accuracy.public_nightly_report(report),
+        accuracy.public_nightly_report(report.to_dict()),
+    ):
+        assert (
+            "| data_fidelity | FAIL | yes | failures 0; mismatches 0; unreachable 0; "
+            "undetermined 8; over the undetermined limit: no; shell pages 4; "
+            "refused at the terms register 2; assessed 9 of 12. |"
+        ) in text
+        assert "cause-sentinel" not in text
+        assert "http" not in text
+
+
+def test_the_public_limit_word_follows_the_gate_not_the_rounded_share(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    """MODEL-553: a raw share of 0.60004 fails a 0.6 limit; the stored share rounds to
+    0.6, so the public line must take the gate's own comparison."""
+    public, private, _ = _public_and_private_fidelity(tmp_path, monkeypatch)
+    raw = 0.60004
+    monkeypatch.setattr(accuracy, "fidelity_verdict",
+                        lambda counts, **kwargs: ("fail", "boundary", raw))
+    layer = accuracy.data_fidelity(
+        public, as_of=date(2026, 10, 13), config=accuracy.load_config().data_fidelity,
+        seed="model335", private_data_root=private)
+
+    assert layer.status == "fail"
+    assert layer.details["undetermined_share"] == 0.6
+    assert layer.details["max_undetermined_share"] == 0.6
+    assert layer.details["over_undetermined_limit"] is True
+    report = accuracy.AccuracyReport(
+        generated_at="2026-11-25T06:23:00Z", profile="nightly", snapshot=None,
+        layers=(layer,),
+    )
+    for text in (accuracy.public_nightly_report(report),
+                 accuracy.public_nightly_report(report.to_dict())):
+        assert "over the undetermined limit: yes" in text
+
+
+@pytest.mark.parametrize("over,word", [(True, "yes"), (False, "no")])
+def test_the_gate_comparison_wins_at_the_limit(over: bool, word: str) -> None:
+    from scripts.accuracy_public import _public_summary
+
+    text = _public_summary(
+        "data_fidelity", "fail" if over else "pass", {"undetermined": 6},
+        {"undetermined_share": 0.6, "max_undetermined_share": 0.6,
+         "over_undetermined_limit": over},
+    )
+
+    assert f"over the undetermined limit: {word}." in text
+
+
+def test_a_fidelity_line_without_those_causes_is_unchanged() -> None:
+    from scripts.accuracy_public import _public_summary
+
+    text = _public_summary(
+        "data_fidelity", "pass",
+        {"verified": 12, "mismatch": 0, "unreachable": 0, "undetermined": 3},
+        {"shell_page": 0, "redirect_unclassified": 0,
+         "actual_sample_size": 12, "requested_sample_size": 12},
+    )
+
+    assert text == (
+        "failures 0; mismatches 0; unreachable 0; undetermined 3; "
+        "over the undetermined limit: no."
+    )
+
+
+def test_recall_fail_verdicts_are_not_called_failures() -> None:
+    passing = accuracy.AccuracyReport(
+        generated_at="2026-11-12T06:23:00Z",
+        profile="nightly",
+        snapshot=None,
+        layers=(accuracy.LayerResult(
+            "frozen_image_engine_recall", "pass", False, "All match the baseline",
+            {
+                "pass": 19, "partial": 0, "fail": 1,
+                "baseline_regressions": 0, "regressions": 0, "improvements": 0,
+            },
+            [{"id": "Q01", "private": "recall-sentinel"}],
+        ),),
+    )
+    differing = accuracy.AccuracyReport(
+        generated_at="2026-11-12T06:23:00Z",
+        profile="nightly",
+        snapshot=None,
+        layers=(accuracy.LayerResult(
+            "frozen_image_engine_recall", "report", False, "Two regressions",
+            {
+                "pass": 16, "partial": 1, "fail": 3,
+                "baseline_regressions": 0, "regressions": 2, "improvements": 1,
+            },
+            [{"id": "Q02"}],
+        ),),
+    )
+
+    passing_text = accuracy.public_nightly_report(passing)
+    differing_text = accuracy.public_nightly_report(differing.to_dict())
+
+    assert "| frozen_image_engine_recall | PASS | no |" in passing_text
+    assert "failures 1" not in passing_text
+    assert "verdicts that differ from the baseline: 0" in passing_text
+    assert "Q01" not in passing_text
+    assert "recall-sentinel" not in passing_text
+    assert "verdicts that differ from the baseline: 3" in differing_text
+    assert "failures 3" not in differing_text
+    assert "Q02" not in differing_text
+
+
+def test_a_hex_layer_name_is_printed_as_layer() -> None:
+    digest_40 = "ab" * 20
+    digest_64 = "cd" * 32
+    report = {
+        "status": "pass",
+        "layers": [
+            {"name": digest_40, "status": "pass", "gating": False, "counts": {}},
+            {"name": digest_64, "status": "pass", "gating": False, "counts": {}},
+            {"name": "data_fidelity", "status": "pass", "gating": True, "counts": {}},
+        ],
+    }
+
+    text = accuracy.public_nightly_report(report)
+
+    assert digest_40 not in text
+    assert digest_64 not in text
+    assert "| data_fidelity |" in text
+    assert text.count("| layer |") == 2
+
+
+def test_public_layer_names_are_the_names_the_code_defines() -> None:
+    from scripts import accuracy_public
+
+    defined = {name for names in accuracy.PROFILES.values() for name in names}
+    defined.update({"output_parity_web", "recall_approval", "staged_failure"})
+
+    assert accuracy_public.PUBLIC_LAYER_NAMES == defined
+
+
+def test_public_nightly_report_keeps_counts_and_drops_private_fields() -> None:
+    report = _private_nightly_report()
+
+    _assert_public_text(accuracy.public_nightly_report(report))
+    _assert_public_text(accuracy.public_nightly_report(report.to_dict()))
+
+
+def test_a_failing_private_nightly_exits_non_zero_with_a_failing_public_form(
+    tmp_path: Path, monkeypatch, capsys,
+) -> None:
+    report = _private_nightly_report()
+    monkeypatch.setattr(accuracy, "run_profile", lambda **kwargs: report)
+
+    code = accuracy.main([
+        "--profile", "nightly",
+        "--private-data-root", str(tmp_path / "private"),
+        "--output-dir", str(tmp_path / "out"),
+        "--date", "2026-11-12",
+    ])
+    captured = capsys.readouterr()
+
+    assert code == 1
+    location = (
+        "The full report is on the machine that ran it, in the output directory out.\n"
+    )
+    assert captured.out == _PUBLIC_NIGHTLY + location
+    _assert_public_text(_PUBLIC_NIGHTLY)
+    for secret in _PRIVATE_FIELDS:
+        assert secret not in captured.out
+    assert _PRIVATE_FACT in (tmp_path / "out" / "accuracy.json").read_text()
+
+
+def test_private_stdout_names_only_the_output_directory(
+    tmp_path: Path, monkeypatch, capsys,
+) -> None:
+    report = _private_nightly_report()
+    monkeypatch.setattr(accuracy, "run_profile", lambda **kwargs: report)
+    output = tmp_path / "private-path-sentinel" / "accuracy-report"
+
+    code = accuracy.main([
+        "--profile", "nightly",
+        "--private-data-root", str(tmp_path / "private"),
+        "--output-dir", str(output),
+        "--date", "2026-11-12",
+    ])
+    text = capsys.readouterr().out
+
+    assert code == 1
+    assert "private-path-sentinel" not in text
+    assert str(output.parent) not in text
+    assert text.endswith(
+        "The full report is on the machine that ran it, in the output directory "
+        "accuracy-report.\n"
+    )
+    _assert_public_text(text[: text.index("The full report is")])
+
+
+_TRACEBACK_SENTINEL = "private-traceback-sentinel-483"
+_FIXED_RUN_FAILURE = (
+    "accuracy: the run failed before a report was written; details are not published"
+)
+
+
+def _private_main_argv(tmp_path: Path, *, private: bool) -> list[str]:
+    argv = [
+        "--profile", "nightly",
+        "--output-dir", str(tmp_path / "out"),
+        "--date", "2026-11-12",
+    ]
+    if private:
+        argv[2:2] = ["--private-data-root", str(tmp_path / "private")]
+    return argv
+
+
+def test_a_private_layer_exception_prints_a_fixed_line(
+    tmp_path: Path, monkeypatch, capsys,
+) -> None:
+    def boom(**kwargs):
+        raise RuntimeError(_TRACEBACK_SENTINEL)
+
+    monkeypatch.setattr(accuracy, "run_profile", boom)
+
+    code = accuracy.main(_private_main_argv(tmp_path, private=True))
+    captured = capsys.readouterr()
+
+    assert code == 1
+    assert captured.out == ""
+    assert captured.err == f"{_FIXED_RUN_FAILURE} (RuntimeError)\n"
+    assert _TRACEBACK_SENTINEL not in captured.out
+    assert _TRACEBACK_SENTINEL not in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_a_private_public_form_exception_prints_a_fixed_line(
+    tmp_path: Path, monkeypatch, capsys,
+) -> None:
+    report = _private_nightly_report()
+    monkeypatch.setattr(accuracy, "run_profile", lambda **kwargs: report)
+
+    def boom(report):
+        raise ValueError(_TRACEBACK_SENTINEL)
+
+    monkeypatch.setattr(accuracy, "public_nightly_report", boom)
+
+    code = accuracy.main(_private_main_argv(tmp_path, private=True))
+    captured = capsys.readouterr()
+
+    assert code == 1
+    assert captured.out == ""
+    assert captured.err == f"{_FIXED_RUN_FAILURE} (ValueError)\n"
+    assert _TRACEBACK_SENTINEL not in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_without_the_private_flag_a_layer_exception_still_prints_a_traceback(
+    tmp_path: Path,
+) -> None:
+    import subprocess
+
+    driver = tmp_path / "driver.py"
+    driver.write_text(
+        "import scripts.accuracy as accuracy\n"
+        "def boom(**kwargs):\n"
+        f"    raise RuntimeError({_TRACEBACK_SENTINEL!r})\n"
+        "accuracy.run_profile = boom\n"
+        f"accuracy.main({_private_main_argv(tmp_path, private=False)!r})\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [sys.executable, str(driver)],
+        cwd=Path(__file__).resolve().parents[1],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    assert "Traceback (most recent call last):" in result.stderr
+    assert _TRACEBACK_SENTINEL in result.stderr
+
+
+@pytest.mark.parametrize("exc_type", [KeyboardInterrupt, SystemExit])
+def test_a_private_run_lets_interrupt_and_system_exit_through(
+    tmp_path: Path, monkeypatch, exc_type,
+) -> None:
+    def boom(**kwargs):
+        raise exc_type(7)
+
+    monkeypatch.setattr(accuracy, "run_profile", boom)
+
+    with pytest.raises(exc_type) as caught:
+        accuracy.main(_private_main_argv(tmp_path, private=True))
+    if exc_type is SystemExit:
+        assert caught.value.code == 7
+    else:
+        assert caught.value.args == (7,)
+
+
+def _approved_ids() -> list[str]:
+    return [f"Q{number:02d}" for number in range(1, 21)]
+
+
+def _approved_verdicts(**overrides: str) -> dict[str, str]:
+    verdicts = {question_id: "pass" for question_id in _approved_ids()}
+    verdicts.update(overrides)
+    return verdicts
+
+
+def _approved_fixture(
+    tmp_path: Path,
+    report: dict[str, str],
+    baseline: dict[str, str],
+    approved: dict[str, str],
+    *,
+    extra_report: bool = False,
+    drop_question: str | None = None,
+) -> tuple[Path, Path, Path, Path]:
+    report_dir = tmp_path / "report"
+    report_dir.mkdir()
+    rows = [
+        {"id": question_id, "verdict": verdict}
+        for question_id, verdict in report.items()
+        if question_id != drop_question
+    ]
+    (report_dir / "recall.json").write_text(
+        json.dumps({"questions": rows}), encoding="utf-8",
+    )
+    if extra_report:
+        (report_dir / "second.json").write_text("{}", encoding="utf-8")
+    baseline_path = tmp_path / "baseline.json"
+    approved_path = tmp_path / "approved.json"
+    baseline_path.write_text(
+        json.dumps({"schema_version": 1, "verdicts": baseline}), encoding="utf-8",
+    )
+    approved_path.write_text(
+        json.dumps({"schema_version": 1, "verdicts": approved}), encoding="utf-8",
+    )
+    return report_dir, baseline_path, approved_path, tmp_path / "summary.txt"
+
+
+def _compare_approved(paths: tuple[Path, Path, Path, Path]) -> int:
+    report_dir, baseline, approved, summary = paths
+    return accuracy.main([
+        "--compare-approved-answers",
+        "--report-dir", str(report_dir),
+        "--baseline", str(baseline),
+        "--approved-baseline", str(approved),
+        "--summary", str(summary),
+    ])
+
+
+def test_compare_approved_answers_reports_no_change(tmp_path: Path, capsys) -> None:
+    verdicts = _approved_verdicts()
+    paths = _approved_fixture(tmp_path, verdicts, verdicts, verdicts)
+
+    code = _compare_approved(paths)
+
+    assert code == 0
+    text = capsys.readouterr().out
+    assert text.splitlines() == [
+        "pass: 20; question ids: " + ", ".join(_approved_ids()),
+        "partial: 0; question ids: none",
+        "fail: 0; question ids: none",
+        "Regression question ids: none",
+    ]
+    assert paths[3].read_text(encoding="utf-8") == text
+
+
+def test_compare_approved_answers_allows_an_improvement(tmp_path: Path, capsys) -> None:
+    report = _approved_verdicts()
+    lower = _approved_verdicts(Q01="partial")
+    paths = _approved_fixture(tmp_path, report, lower, lower)
+
+    code = _compare_approved(paths)
+
+    assert code == 0
+    assert capsys.readouterr().out.splitlines()[-1] == "Regression question ids: none"
+
+
+def test_compare_approved_answers_regresses_when_pass_turns_partial(
+    tmp_path: Path, capsys,
+) -> None:
+    report = _approved_verdicts(Q01="partial")
+    approved = _approved_verdicts()
+    paths = _approved_fixture(tmp_path, report, approved, approved)
+
+    code = _compare_approved(paths)
+
+    assert code == 1
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[1] == "partial: 1; question ids: Q01"
+    assert lines[-1] == "Regression question ids: Q01"
+    assert paths[3].read_text(encoding="utf-8").splitlines()[-1] == lines[-1]
+
+
+def test_compare_approved_answers_regresses_when_partial_turns_fail(
+    tmp_path: Path, capsys,
+) -> None:
+    report = _approved_verdicts(Q05="fail")
+    minimum = _approved_verdicts(Q05="partial")
+    paths = _approved_fixture(tmp_path, report, minimum, minimum)
+
+    code = _compare_approved(paths)
+
+    assert code == 1
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[2] == "fail: 1; question ids: Q05"
+    assert lines[-1] == "Regression question ids: Q05"
+
+
+def test_compare_approved_answers_regresses_when_the_proposed_baseline_drops(
+    tmp_path: Path, capsys,
+) -> None:
+    passing = _approved_verdicts()
+    proposed = _approved_verdicts(Q03="partial")
+    paths = _approved_fixture(tmp_path, passing, proposed, passing)
+
+    code = _compare_approved(paths)
+
+    assert code == 1
+    assert capsys.readouterr().out.splitlines()[-1] == "Regression question ids: Q03"
+
+
+def test_compare_approved_answers_rejects_a_missing_question(
+    tmp_path: Path, capsys,
+) -> None:
+    verdicts = _approved_verdicts()
+    paths = _approved_fixture(tmp_path, verdicts, verdicts, verdicts, drop_question="Q12")
+
+    code = _compare_approved(paths)
+
+    assert code == 1
+    assert capsys.readouterr().out == "::error::Private recall inputs could not be validated.\n"
+    assert not paths[3].exists()
+
+
+def test_compare_approved_answers_exits_nonzero_without_a_step_output(
+    tmp_path: Path, capsys,
+) -> None:
+    report = _approved_verdicts(Q01="partial")
+    approved = _approved_verdicts()
+    paths = _approved_fixture(tmp_path, report, approved, approved)
+
+    code = _compare_approved(paths)
+
+    assert code == 1
+    assert capsys.readouterr().out.splitlines()[-1] == "Regression question ids: Q01"
+    assert not (tmp_path / "step-output").exists()
+
+
+def test_compare_approved_answers_records_a_regression_and_exits_zero(
+    tmp_path: Path, capsys,
+) -> None:
+    report = _approved_verdicts(Q01="partial", Q05="fail")
+    minimum = _approved_verdicts(Q05="partial")
+    report_dir, baseline, approved, summary = _approved_fixture(
+        tmp_path, report, minimum, minimum,
+    )
+    step_output = tmp_path / "step-output"
+
+    code = accuracy.main([
+        "--compare-approved-answers",
+        "--report-dir", str(report_dir),
+        "--baseline", str(baseline),
+        "--approved-baseline", str(approved),
+        "--summary", str(summary),
+        "--step-output", str(step_output),
+    ])
+
+    assert code == 0
+    assert capsys.readouterr().out.splitlines()[-1] == "Regression question ids: Q01, Q05"
+    assert step_output.read_text(encoding="utf-8") == (
+        "regressed=true\nregression_ids=Q01, Q05\n"
+    )
+
+
+def test_compare_approved_answers_rejects_two_report_files(tmp_path: Path, capsys) -> None:
+    verdicts = _approved_verdicts()
+    paths = _approved_fixture(tmp_path, verdicts, verdicts, verdicts, extra_report=True)
+
+    code = _compare_approved(paths)
+
+    assert len(list(paths[0].glob("*.json"))) == 2
+    assert code != 0
+    assert capsys.readouterr().out == (
+        "::error::Private recall inputs could not be validated: expected one report.\n"
+    )
+    assert not paths[3].exists()
+
+
+def test_m509_a_refused_hop_is_its_own_diagnostic_and_fails_the_layer(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    result, _unread, _queue, _log = _run_fidelity_fetch(
+        tmp_path, {"plain": _text_source("plain", "http")},
+        [_sourced("lab/refused#context", "plain")],
+        {"https://example.test/plain": FetchResult(
+            "unreachable", error="redirect_unclassified:unknown.example")},
+    )
+    assert result.details[0]["sources"][0]["error_category"] == "redirect_unclassified"
+
+    public, private, _lag = _public_and_private_fidelity(tmp_path / "layer", monkeypatch)
+    from decision import sources as source_module
+
+    monkeypatch.setattr(source_module, "Fetcher", lambda: _FetchResults({
+        "https://example.test/lag": FetchResult(
+            "unreachable", error="terms_register_unreadable"),
+        "https://example.test/plain": FetchResult(
+            "ok", 200, body=_PAGE, content_type="text/plain"),
+    }))
+    layer = accuracy.data_fidelity(
+        public, as_of=date(2026, 10, 13), config=accuracy.load_config().data_fidelity,
+        seed="model335", private_data_root=private)
+    assert layer.status == "fail"
+    assert layer.details["redirect_unclassified"] == 1
+    assert "refused at the terms register" in layer.summary

@@ -351,3 +351,20 @@ def test_priority_section_does_not_draft_standard_prices(tmp_path):
     packet.write(root)
     assert packet.offering is None
     assert not list(root.glob("offerings/**/*.yaml"))
+
+
+def test_redrafting_over_an_old_stateless_queued_claim_appends_nothing(tmp_path):
+    root = catalogue(tmp_path)
+    draft(root, tmp_path).write(root)
+    events = root / "verification/queue/events.jsonl"
+    log = root / "verification/log.jsonl"
+    stripped = []
+    for line in events.read_text().splitlines():
+        event = json.loads(line)
+        (event.get("claim") or {}).pop("state", None)
+        stripped.append(json.dumps(event, sort_keys=True, ensure_ascii=False))
+    events.write_text("\n".join(stripped) + "\n")
+    next(root.glob("offerings/*/*/*.yaml")).unlink()
+    before = (events.read_bytes(), log.read_bytes() if log.exists() else b"")
+    draft(root, tmp_path).write(root)
+    assert (events.read_bytes(), log.read_bytes() if log.exists() else b"") == before

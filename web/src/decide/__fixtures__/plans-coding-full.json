@@ -18,7 +18,8 @@
           "formula": null,
           "source_ids": [
             "src-lab-docs"
-          ]
+          ],
+          "verified_at": "2026-09-20"
         },
         {
           "facet": "model.weights_openness",
@@ -29,7 +30,8 @@
           "formula": null,
           "source_ids": [
             "src-lab-docs"
-          ]
+          ],
+          "verified_at": "2026-09-20"
         },
         {
           "facet": "offering.price.input",
@@ -40,7 +42,8 @@
           "formula": null,
           "source_ids": [
             "src-pricing"
-          ]
+          ],
+          "verified_at": "2026-09-20"
         },
         {
           "facet": "offering.price.output",
@@ -51,7 +54,8 @@
           "formula": null,
           "source_ids": [
             "src-pricing"
-          ]
+          ],
+          "verified_at": "2026-09-20"
         },
         {
           "facet": "offering.cost_per_task",
@@ -88,7 +92,8 @@
           "formula": null,
           "source_ids": [
             "src-lab-docs"
-          ]
+          ],
+          "verified_at": "2026-09-20"
         },
         {
           "facet": "model.weights_openness",
@@ -99,7 +104,8 @@
           "formula": null,
           "source_ids": [
             "src-lab-docs"
-          ]
+          ],
+          "verified_at": "2026-09-20"
         },
         {
           "facet": "offering.price.input",
@@ -110,7 +116,8 @@
           "formula": null,
           "source_ids": [
             "src-pricing"
-          ]
+          ],
+          "verified_at": "2026-09-20"
         },
         {
           "facet": "offering.price.output",
@@ -121,7 +128,8 @@
           "formula": null,
           "source_ids": [
             "src-pricing"
-          ]
+          ],
+          "verified_at": "2026-09-20"
         },
         {
           "facet": "offering.cost_per_task",
@@ -158,7 +166,8 @@
           "formula": null,
           "source_ids": [
             "src-lab-docs"
-          ]
+          ],
+          "verified_at": "2026-09-20"
         },
         {
           "facet": "model.weights_openness",
@@ -169,7 +178,8 @@
           "formula": null,
           "source_ids": [
             "src-lab-docs"
-          ]
+          ],
+          "verified_at": "2026-09-20"
         },
         {
           "facet": "offering.price.input",
@@ -180,7 +190,8 @@
           "formula": null,
           "source_ids": [
             "src-pricing"
-          ]
+          ],
+          "verified_at": "2026-09-20"
         },
         {
           "facet": "offering.price.output",
@@ -191,7 +202,8 @@
           "formula": null,
           "source_ids": [
             "src-pricing"
-          ]
+          ],
+          "verified_at": "2026-09-20"
         },
         {
           "facet": "offering.cost_per_task",
@@ -228,7 +240,8 @@
           "formula": null,
           "source_ids": [
             "src-lab-docs"
-          ]
+          ],
+          "verified_at": "2026-09-20"
         },
         {
           "facet": "model.weights_openness",
@@ -239,7 +252,8 @@
           "formula": null,
           "source_ids": [
             "src-lab-docs"
-          ]
+          ],
+          "verified_at": "2026-09-20"
         },
         {
           "facet": "offering.price.input",
@@ -250,7 +264,8 @@
           "formula": null,
           "source_ids": [
             "src-pricing"
-          ]
+          ],
+          "verified_at": "2026-09-20"
         },
         {
           "facet": "offering.price.output",
@@ -261,7 +276,8 @@
           "formula": null,
           "source_ids": [
             "src-pricing"
-          ]
+          ],
+          "verified_at": "2026-09-20"
         },
         {
           "facet": "offering.cost_per_task",
@@ -520,7 +536,7 @@
       "date": "2026-09-20"
     }
   ],
-  "contract_version": "2.20",
+  "contract_version": "2.21",
   "decision_id": "dec_eef4ca1e93cc4f7e40123208",
   "snapshot": "snap_d8a4553ece23d74f",
   "signature_verified": false,

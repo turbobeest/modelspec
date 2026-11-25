@@ -15,6 +15,16 @@ from tests.snapshot_records import SOURCES, evidence, fact
 
 TODAY = date(2026, 10, 4)
 BENCH = "terminal_bench_v4_0"
+ARENA_ROOT = "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset"
+ARENA_BENCH = "arena_elo_style_control"
+
+
+@pytest.fixture(autouse=True)
+def _fixtures_are_incomplete_cards(monkeypatch, request):
+    """Most fixtures here are bare cards; the MODEL-495 tests opt back in to the gate."""
+    if "completeness_gate" not in request.fixturenames:
+        monkeypatch.setenv("MODELSPEC_ALLOW_INCOMPLETE_CARDS", "1")
+        monkeypatch.setattr(premier_slice1, "SKIP_INCOMPLETE_CARDS", False)
 
 
 def write_yaml(path, value):
@@ -185,7 +195,9 @@ def test_live_cli_proposes_recent_lab_release_with_clause_2_and_noop(tmp_path):
     (root / "premier/slice-1.yaml").write_bytes(output.read_bytes())
     result = subprocess.run(command, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
-    assert json.loads(diff.read_text()) == {"added": [], "removed": [], "changed": False}
+    assert json.loads(diff.read_text()) == {
+        "added": [], "removed": [], "changed": False, "completeness_audit": "full",
+    }
 
 
 @pytest.mark.parametrize("flag", ["--output", "--diff"])
@@ -243,7 +255,7 @@ def test_live_retires_models_and_preserves_only_explicit_reviewer_additions(tmp_
     write_card(root, "lab/reviewed")
     write_card(root, "lab/packet")
     baseline = {"models": [
-        {"model_id": "lab/reviewed", "clauses": [{"clause": 4, "reason": "Jamie added it."}]},
+        {"model_id": "lab/reviewed", "clauses": [{"clause": 4, "reason": "Reviewer addition. Jamie added it."}]},
         {"model_id": "lab/packet", "clauses": [
             {"clause": 4, "reason": "Admission packet for human review"},
         ]},
@@ -674,3 +686,449 @@ def test_over_quota_count_skips_a_top10_another_clause_keeps(tmp_path, monkeypat
     assert cut["counts"]["over_quota_top10"] == 0
     reasons = {row["model_id"]: row["why"] for row in cut["near_misses"]}
     assert reasons["lab/old-extra"] == _QUOTA_WHY
+
+
+def arena_evidence(mid, score, day, *, bench=ARENA_BENCH):
+    """One Arena dataset-root reading on a slice-1 Arena board."""
+    return evidence(mid, bench, score, day=day, source_url=ARENA_ROOT)
+
+
+def _arena_board_row(model_id, score, day, *, name=None):
+    return {
+        "model_id": model_id,
+        "name": name or model_id,
+        "score": score,
+        "date": day,
+        "benchmark_id": ARENA_BENCH,
+        "source_url": ARENA_ROOT,
+    }
+
+
+def _propose(root, *extra):
+    output, diff = root.parent / "proposal.yaml", root.parent / "diff.json"
+    command = [
+        sys.executable, str(Path(premier_slice1.__file__)),
+        "--data-dir", str(root), "--as-of", TODAY.isoformat(),
+        "--output", str(output), "--diff", str(diff), *extra,
+    ]
+    result = subprocess.run(command, capture_output=True, text=True)
+    return result, output, diff
+
+
+def test_the_proposer_refuses_an_arena_mixed_top_10(tmp_path):
+    """Arena rows that mix in the top 10 exit 3 and name that board's counts."""
+    root = catalogue(tmp_path)
+    write_benchmark(root, ARENA_BENCH)
+    write_card(root, "lab/arena-a", rows=[arena_evidence("lab/arena-a", 90, "2026-09-13")])
+    write_card(root, "lab/arena-b", rows=[arena_evidence("lab/arena-b", 80, "2026-10-01")])
+    for number in range(10):
+        mid = f"lab/eval-{number:02d}"
+        write_card(
+            root, mid,
+            rows=[evidence(mid, BENCH, 70 - number, day=f"2026-01-{number + 1:02d}")],
+        )
+    result, output, diff = _propose(root)
+
+    assert result.returncode == 3
+    assert "refusing a mixed top 10" in result.stderr
+    assert "arena-text: 1 at 2026-09-13, 1 at 2026-10-01" in result.stderr
+    assert "terminal-bench-4.0" not in result.stderr
+    for board_id in (
+        "epoch-frontiermath-tiers-1-3-v2",
+        "epoch-gpqa-diamond",
+        "epoch-swe-bench-verified",
+        "scale-hle",
+        "swe-bench-pro",
+    ):
+        assert board_id not in result.stderr
+    assert "90" not in result.stderr
+    assert "80" not in result.stderr
+    assert not output.exists()
+    assert not diff.exists()
+
+
+def test_a_non_arena_board_with_ten_evaluation_dates_does_not_block(tmp_path):
+    root = catalogue(tmp_path)
+    for number in range(10):
+        mid = f"lab/eval-{number:02d}"
+        write_card(
+            root, mid,
+            rows=[evidence(mid, BENCH, 100 - number, day=f"2026-01-{number + 1:02d}")],
+        )
+
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+
+    assert "lab/eval-00" in {row["model_id"] for row in document["models"]}
+    result, output, diff = _propose(root)
+    assert result.returncode == 0, result.stderr
+    assert "refusing" not in result.stderr
+    assert "terminal-bench-4.0" not in result.stderr
+    assert output.exists()
+    assert diff.exists()
+
+
+def test_a_changed_membership_check_still_exits_1(tmp_path):
+    """``--check`` keeps exit 1 for a membership change. Mixed boards use 3."""
+    root = catalogue(tmp_path)
+    write_card(root, "lab/leader", rows=[evidence("lab/leader", BENCH, 90, day="2026-09-13")])
+    result, _output, _diff = _propose(root, "--check")
+
+    assert result.returncode == 1
+    assert "refusing" not in result.stderr
+
+
+def test_the_proposer_accepts_a_uniform_top_10(tmp_path):
+    root = catalogue(tmp_path)
+    write_card(root, "lab/leader", rows=[evidence("lab/leader", BENCH, 90, day="2026-09-13")])
+    write_card(root, "lab/other", rows=[evidence("lab/other", BENCH, 80, day="2026-09-13")])
+
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+
+    assert {row["model_id"] for row in document["models"]} >= {"lab/leader", "lab/other"}
+
+
+def test_allow_mixed_boards_still_proposes(tmp_path):
+    root = catalogue(tmp_path)
+    write_benchmark(root, ARENA_BENCH)
+    write_card(root, "lab/arena-a", rows=[arena_evidence("lab/arena-a", 90, "2026-09-13")])
+    write_card(root, "lab/arena-b", rows=[arena_evidence("lab/arena-b", 80, "2026-10-01")])
+    result, output, diff = _propose(root, "--allow-mixed-boards")
+
+    assert result.returncode == 0, result.stderr
+    assert output.exists()
+    assert diff.exists()
+    assert "90" not in result.stderr
+    assert "80" not in result.stderr
+
+
+def test_an_arena_board_with_older_dates_only_below_the_top_10_does_not_block(tmp_path):
+    root = catalogue(tmp_path)
+    write_benchmark(root, ARENA_BENCH)
+    for number in range(10):
+        mid = f"lab/top-{number:02d}"
+        write_card(root, mid, rows=[arena_evidence(mid, 100 - number, "2026-09-13")])
+    for number in range(2):
+        mid = f"lab/tail-{number:02d}"
+        write_card(root, mid, rows=[arena_evidence(mid, number, "2026-10-01")])
+
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+
+    assert "lab/top-00" in {row["model_id"] for row in document["models"]}
+    assert "lab/tail-00" not in {row["model_id"] for row in document["models"]}
+
+
+def test_a_mixed_date_inside_the_top_10_refuses(tmp_path):
+    root = catalogue(tmp_path)
+    write_benchmark(root, ARENA_BENCH)
+    for number in range(10):
+        mid = f"lab/top-{number:02d}"
+        day = "2026-10-01" if number == 0 else "2026-09-13"
+        write_card(root, mid, rows=[arena_evidence(mid, 100 - number, day)])
+    write_card(root, "lab/tail", rows=[arena_evidence("lab/tail", 1, "2026-09-13")])
+
+    with pytest.raises(premier_slice1.MixedBoards, match="arena-text"):
+        premier_slice1.build(data_dir=root, as_of=TODAY)
+
+
+def test_a_lower_is_better_top_10_uses_the_low_scores(tmp_path):
+    """The ten highest scores share a date. The ten lowest do not."""
+    root = catalogue(tmp_path)
+    write_benchmark(root, ARENA_BENCH, direction="lower_is_better")
+    for number in range(10):
+        mid = f"lab/high-{number:02d}"
+        write_card(root, mid, rows=[arena_evidence(mid, 100 - number, "2026-09-13")])
+    write_card(root, "lab/low-a", rows=[arena_evidence("lab/low-a", 1, "2026-09-13")])
+    write_card(root, "lab/low-b", rows=[arena_evidence("lab/low-b", 2, "2026-10-01")])
+
+    with pytest.raises(premier_slice1.MixedBoards, match="arena-text"):
+        premier_slice1.build(data_dir=root, as_of=TODAY)
+
+
+def test_a_dateless_seat_does_not_count_as_a_second_publish_date():
+    rows = [
+        _arena_board_row(f"lab/{number:02d}", 100 - number, "2026-09-13")
+        for number in range(9)
+    ]
+    rows.append(_arena_board_row("lab/blank", 50, ""))
+    rows.append(_arena_board_row("lab/tail", 1, "2026-10-01"))
+    board = {"id": "arena-text", "direction": "higher_is_better", "rows": rows}
+
+    assert premier_slice1.mixed_publish_dates(board) is None
+
+
+def test_mixed_publish_dates_names_the_arena_board_and_the_counts():
+    board = {
+        "id": "arena-text",
+        "direction": "higher_is_better",
+        "rows": [
+            _arena_board_row("lab/a", 3, "2026-09-13"),
+            _arena_board_row("lab/b", 2, "2026-09-13"),
+            _arena_board_row("lab/c", 1, "2026-10-01"),
+        ],
+    }
+    other = {
+        "id": "terminal-bench-4.0",
+        "direction": "higher_is_better",
+        "rows": [
+            {"model_id": "lab/a", "score": 3, "date": "2026-09-13"},
+            {"model_id": "lab/b", "score": 2, "date": "2026-09-13"},
+            {"model_id": "lab/c", "score": 1, "date": "2026-10-01"},
+        ],
+    }
+
+    assert premier_slice1.mixed_publish_dates(board) == (
+        "arena-text: 2 at 2026-09-13, 1 at 2026-10-01"
+    )
+    assert premier_slice1.mixed_publish_dates(other) is None
+
+
+# MODEL-488: a reviewer's clause-4 note keeps a member past a full group quota.
+_REVIEWER_NOTE = "Reviewer addition. Decided on 2026-11-14: named in an approved answer."
+
+
+def _with_reviewer_note(root, model_id, note=_REVIEWER_NOTE):
+    write_yaml(root / "premier/slice-1.yaml", {"models": [
+        {"model_id": model_id, "clauses": [{"clause": 4, "note": note}]},
+    ]})
+
+
+def _overfull_with_reviewed(tmp_path, note=_REVIEWER_NOTE, **card):
+    root = _overfull_frontier(tmp_path)
+    write_card(root, "lab/reviewed", release="2026-08-10", **card)
+    if note is not None:
+        _with_reviewer_note(root, "lab/reviewed", note)
+    return root
+
+
+def test_a_reviewer_addition_is_kept_past_a_full_quota(tmp_path):
+    document = premier_slice1.build(data_dir=_overfull_with_reviewed(tmp_path), as_of=TODAY)
+    assert _ids(document) == _TOP10 | {"lab/reviewed"}
+    row = next(r for r in document["models"] if r["model_id"] == "lab/reviewed")
+    assert row["slice1_group"] == "frontier-generation"
+    assert {"clause": 4, "note": _REVIEWER_NOTE} in row["clauses"]
+    assert document["counts"]["reviewer_additions_past_quota"] == 1
+    assert document["counts"]["reviewer_additions_past_quota_by_group"] == {
+        "frontier-generation": 1}
+    assert document["counts"]["over_quota_top10"] == 3
+    assert "lab/reviewed" not in {r["model_id"] for r in document["near_misses"]}
+    changes = premier_slice1.membership_diff(document, {"models": []})
+    reviewed = next(r for r in changes["added"] if r["model_id"] == "lab/reviewed")
+    assert any(c["clause"] == 4 and c["note"] == _REVIEWER_NOTE for c in reviewed["clauses"])
+
+
+def test_a_reviewer_addition_takes_no_seat_from_another_model(tmp_path, monkeypatch):
+    monkeypatch.setattr(premier_slice1, "KEEP_EVERY_CURRENT_TOP10", False)
+    without = premier_slice1.build(
+        data_dir=_overfull_with_reviewed(tmp_path / "a", note=None), as_of=TODAY)
+    with_note = premier_slice1.build(
+        data_dir=_overfull_with_reviewed(tmp_path / "b"), as_of=TODAY)
+    assert _ids(with_note) == _ids(without) | {"lab/reviewed"}
+    assert with_note["counts"]["reviewer_additions_past_quota"] == 1
+
+
+def test_the_same_model_without_the_note_is_cut(tmp_path):
+    document = premier_slice1.build(
+        data_dir=_overfull_with_reviewed(tmp_path, note=None), as_of=TODAY)
+    assert "lab/reviewed" not in _ids(document)
+    assert document["counts"]["reviewer_additions_past_quota"] == 0
+    reasons = {r["model_id"]: r["why"] for r in document["near_misses"]}
+    assert "not needed to fill a quota" in reasons["lab/reviewed"]
+
+
+@pytest.mark.parametrize("note", ["", "   ", "Admission packet for human review"])
+def test_an_empty_or_placeholder_note_does_not_protect(tmp_path, note):
+    document = premier_slice1.build(
+        data_dir=_overfull_with_reviewed(tmp_path, note=note), as_of=TODAY)
+    assert "lab/reviewed" not in _ids(document)
+    assert document["counts"]["reviewer_additions_past_quota"] == 0
+
+
+def test_a_retired_model_with_a_note_stays_retired(tmp_path):
+    root = _overfull_with_reviewed(tmp_path, status="sunset")
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert "lab/reviewed" not in _ids(document)
+    assert document["counts"]["reviewer_additions_past_quota"] == 0
+
+
+def test_a_reviewer_addition_under_quota_is_not_counted_past_quota(tmp_path):
+    root = catalogue(tmp_path)
+    write_card(root, "lab/reviewed")
+    _with_reviewer_note(root, "lab/reviewed")
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert _ids(document) == {"lab/reviewed"}
+    assert document["counts"]["reviewer_additions_past_quota"] == 0
+
+
+def test_the_regenerated_proposal_carries_the_note_forward(tmp_path):
+    root = _overfull_with_reviewed(tmp_path)
+    result, output, diff = _propose(root)
+    assert result.returncode in (0, 1), result.stderr
+    proposed = yaml.safe_load(output.read_text())
+    row = next(r for r in proposed["models"] if r["model_id"] == "lab/reviewed")
+    assert {"clause": 4, "note": _REVIEWER_NOTE} in row["clauses"]
+    assert proposed["counts"]["reviewer_additions_past_quota"] == 1
+    write_yaml(root / "premier/slice-1.yaml", proposed)
+    again = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert "lab/reviewed" in _ids(again)
+
+
+# MODEL-488 fix round: a positive marker, and seats counted as before.
+@pytest.mark.parametrize("note,kept", [
+    ("Reviewer addition. Decided on 2026-11-14.", True),
+    ("   Reviewer addition. Decided on 2026-11-14.", True),
+    ("Admission packet for human review", False),
+    ("Kept by reviewer", False),
+    ("Decided on 2026-11-14. Reviewer addition. Kept.", False),
+    ("reviewer addition. lower case", False),
+])
+def test_only_a_note_starting_with_the_marker_protects(tmp_path, note, kept):
+    document = premier_slice1.build(
+        data_dir=_overfull_with_reviewed(tmp_path, note=note), as_of=TODAY)
+    assert ("lab/reviewed" in _ids(document)) is kept
+    assert document["counts"]["reviewer_additions_past_quota"] == int(kept)
+
+
+def test_the_marker_is_read_from_a_reason_too(tmp_path):
+    root = _overfull_with_reviewed(tmp_path, note=None)
+    write_yaml(root / "premier/slice-1.yaml", {"models": [{
+        "model_id": "lab/reviewed",
+        "clauses": [{"clause": 4, "reason": "Reviewer addition. By reason field."}]}]})
+    assert "lab/reviewed" in _ids(premier_slice1.build(data_dir=root, as_of=TODAY))
+
+
+def _under_quota_with_competitor(tmp_path, monkeypatch, note):
+    monkeypatch.setitem(premier_slice1.QUOTA, "frontier-generation", 2)
+    root = catalogue(tmp_path)
+    write_card(root, "lab/top", rows=[evidence("lab/top", BENCH, 90)])
+    write_card(root, "lab/reviewed", release="2026-08-10")
+    write_card(root, "lab/recent", release="2026-08-15")
+    if note:
+        _with_reviewer_note(root, "lab/reviewed", note)
+    return root
+
+
+def test_a_noted_model_still_takes_its_seat_inside_the_quota(tmp_path, monkeypatch):
+    # Hand-built expectation, checked once against origin/main's script: a
+    # noted model competes for the last seat as before, so the newer clause 2
+    # model does not get one more seat than before.
+    root = _under_quota_with_competitor(tmp_path, monkeypatch, _REVIEWER_NOTE)
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert _ids(document) == {"lab/top", "lab/reviewed"}
+    assert document["counts"]["reviewer_additions_past_quota"] == 0
+    assert document["counts"]["reviewer_additions_past_quota_by_group"] == {}
+
+
+def test_without_a_note_the_same_group_is_unchanged(tmp_path, monkeypatch):
+    root = _under_quota_with_competitor(tmp_path / "x", monkeypatch, None)
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert _ids(document) == {"lab/top", "lab/recent"}
+
+
+# MODEL-495: incomplete cards are not proposed, and a proposal says how to approve it.
+
+@pytest.fixture
+def completeness_gate():
+    """Naming this fixture keeps the MODEL-495 gate on for a test."""
+
+
+def test_an_incomplete_card_is_listed_apart_and_not_proposed(tmp_path, completeness_gate):
+    root = catalogue(tmp_path)
+    write_card(root, "lab/leader", rows=[evidence("lab/leader", BENCH, 90)],
+               facts=guaranteed_facts("lab/leader"))
+    log_guaranteed(root, "lab/leader")
+    pad_board(root)
+    write_card(root, "lab/complete", release="2026-09-29",
+               facts=guaranteed_facts("lab/complete"))
+    log_guaranteed(root, "lab/complete")
+    write_card(root, "lab/incomplete", release="2026-09-29")
+    result, output, diff = _propose(root)
+    assert result.returncode == 0, result.stderr
+    changes = json.loads(diff.read_text())
+    added = {row["model_id"] for row in changes["added"]}
+    assert added == {"lab/complete", "lab/leader"}
+    (row,) = changes["not_proposed"]
+    assert row["model_id"] == "lab/incomplete"
+    assert "model.context_window" in row["facets"]
+    line = f"not proposed: card incomplete ({', '.join(row['facets'])}): lab/incomplete"
+    assert line in result.stderr
+    proposal = yaml.safe_load(output.read_text())
+    assert "not_proposed" not in proposal
+    assert "lab/incomplete" not in {m["model_id"] for m in proposal["models"]}
+
+
+def test_a_reviewed_seat_is_not_dropped_by_the_gate(tmp_path, completeness_gate):
+    root = catalogue(tmp_path)
+    write_card(root, "lab/incumbent", rows=[evidence("lab/incumbent", BENCH, 90)])
+    pad_board(root)
+    write_yaml(root / "premier/slice-1.yaml",
+               {"models": [{"model_id": "lab/incumbent", "clauses": []}]})
+    result, output, diff = _propose(root)
+    assert result.returncode == 0, result.stderr
+    changes = json.loads(diff.read_text())
+    assert changes["changed"] is False and "not_proposed" not in changes
+    assert "lab/incumbent" in {m["model_id"] for m in yaml.safe_load(output.read_text())["models"]}
+
+
+def test_a_changed_proposal_carries_the_owner_stamp_line_and_a_noop_does_not(tmp_path):
+    root = catalogue(tmp_path)
+    write_card(root, "lab/leader", rows=[evidence("lab/leader", BENCH, 90)])
+    pad_board(root)
+    write_card(root, "lab/new-release", release="2026-09-29")
+    result, output, diff = _propose(root)
+    assert result.returncode == 0, result.stderr
+    document = yaml.safe_load(output.read_text())
+    assert (document["status"], document["approved_date"]) == ("proposed", None)
+    stamp = json.loads(diff.read_text())["approval_stamp"]
+    assert "status: proposed" in stamp and "status: approved" in stamp
+    assert "approved_date: null" in stamp and "2026-10-04" in stamp
+    (root / "premier/slice-1.yaml").write_bytes(output.read_bytes())
+    result, output, diff = _propose(root)
+    assert "approval_stamp" not in json.loads(diff.read_text())
+
+
+def test_the_gate_audits_the_unfiltered_inputs(tmp_path, monkeypatch):
+    """MODEL-520: the completeness audit sees the same inputs as production."""
+    root = catalogue(tmp_path)
+    write_card(root, "lab/one", release="2026-09-29")
+    seen = []
+    real = premier_live.audit_build
+
+    def spy(inputs, **kwargs):
+        seen.append(inputs)
+        return real(inputs, **kwargs)
+
+    monkeypatch.setattr(premier_live, "audit_build", spy)
+    premier_live.load_inputs(root, TODAY)
+    full = premier_live.collect_repo(root)
+    assert len(seen) == 1
+    assert seen[0].offerings == full.offerings
+    assert seen[0].subscriptions == full.subscriptions
+    assert seen[0].hardware == full.hardware
+    assert seen[0].hardware_fit_records == full.hardware_fit_records
+
+
+def test_the_fallback_audit_is_flagged_with_its_offerings(tmp_path, monkeypatch):
+    """MODEL-520: a fallback to filtered inputs reaches the diff, with the causes."""
+    root = catalogue(tmp_path)
+    write_card(root, "lab/one", release="2026-09-29")
+    real = premier_live.audit_build
+    calls = []
+
+    def spy(inputs, **kwargs):
+        calls.append(inputs)
+        if len(calls) == 1:
+            raise premier_live.SnapshotBuildError("unregistered identity")
+        return real(inputs, **kwargs)
+
+    bad = {"model": "lab/one", "provider": "nowhere", "region": "US", "tier": "t"}
+    real_collect = premier_live.collect_repo
+    monkeypatch.setattr(premier_live, "audit_build", spy)
+    monkeypatch.setattr(
+        premier_live, "collect_repo",
+        lambda r: (lambda i: premier_live.replace(i, offerings=[*i.offerings, bad]))(real_collect(r)),
+    )
+    live = premier_live.load_inputs(root, TODAY)
+    assert live["completeness_audit"] == "filtered-fallback"
+    assert live["unregistered_offerings"] == [bad]
+    document = premier_slice1.build(data_dir=root, as_of=TODAY)
+    assert document["audit_note"]["completeness_audit"] == "filtered-fallback"
