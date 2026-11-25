@@ -1170,7 +1170,9 @@ def cited_change(*, subject: str, facet: str, source_id: str, readers: Sequence[
 # same board, or one that changed outside the cited region, stays in the epoch where the split
 # blocks; a changed cited region opens a new epoch, where two agreeing readers may settle it.
 # It fails closed: a complete attempt in the settings epoch with no recorded region hash (logged
-# before region hashes, or through a caller's transport) keeps the row in its settings epoch.
+# before region hashes, or through a caller's transport) keeps the row in its settings epoch, and
+# a region that cannot be selected (a renamed table, a placeholder) or a cited source that is not
+# eligible now refuses, so the row stays in its epoch. The region is the rows' cell contents only.
 
 BENCHMARK_PREFIX = "benchmark:"
 BENCHMARK_AUTHOR = "benchmark_author"
@@ -1305,13 +1307,8 @@ def _drop_board_volatile(node: Any) -> None:
             _drop_board_volatile(child)
 
 
-def _board_rows(doc: Any) -> str | None:
-    """A board's rows: the text of every outermost table, or the page text when it has none."""
-    from decision.normalise import _nodes_text
-
-    tables = [n for n in doc.root.elements() if n.tag == "table"
-              and not any(a.tag == "table" for a in _ancestors(n))]
-    return _nodes_text(tables or [doc.root], doc.rules) or None
+_ROW_ROLES = frozenset({"row"})
+_CELL_ROLES = frozenset({"cell", "gridcell", "columnheader", "rowheader"})
 
 
 def _ancestors(node: Any):
@@ -1321,24 +1318,58 @@ def _ancestors(node: Any):
         up = up.parent
 
 
+def _outermost(nodes: Sequence[Any]) -> list[Any]:
+    ids = {id(n) for n in nodes}
+    return [n for n in nodes if not any(id(a) in ids for a in _ancestors(n))]
+
+
+def _board_cells(nodes: Sequence[Any], rules: Any) -> list[list[str]] | None:
+    """The cell contents of every table row in ``nodes`` (header and body cells, ``<tr>`` with
+    ``<th>``/``<td>``, or ARIA rows and cells), cleaned and folded, row by row. Captions and the
+    copy around a table are never read. ``None`` when ``nodes`` hold no table, or only empty
+    cells (a placeholder)."""
+    from decision.normalise import _clean_line, _inline
+
+    def cells_of(row: Any) -> list[Any]:
+        return [c for c in row.elements()
+                if (c.tag in ("td", "th") or c.attrs.get("role", "").lower() in _CELL_ROLES)
+                and next((a for a in _ancestors(c) if a.tag == "tr"
+                          or a.attrs.get("role", "").lower() in _ROW_ROLES), None) is row]
+
+    found = [e for n in nodes for e in (n, *n.elements())
+             if e.tag in ("table", "tr") or e.attrs.get("role", "").lower() in
+             _ROW_ROLES | {"table", "grid"}]
+    rows = [e for e in dict.fromkeys(found)
+            if e.tag == "tr" or e.attrs.get("role", "").lower() in _ROW_ROLES]
+    out = []
+    for row in rows:
+        texts = [_fold(_BOARD_CLOCK.sub(" ", _clean_line(_inline(c), rules)))
+                 for c in cells_of(row)]
+        if any(texts):
+            out.append(texts)
+    return out or None
+
+
 def board_region_sha256(row: Mapping[str, Any], source_id: str, source: Mapping[str, Any],
                         page_bytes: bytes) -> str | None:
-    """The hash of the regions of ``source_id`` the board row cites, or ``None`` when they
-    cannot be selected (no registered region, an unknown normaliser or locator, content the
-    normaliser refuses). The hash is shaped as the cited-region hash of engine#1171 (MODEL-562,
+    """The hash of the regions of ``source_id`` the board row cites, or ``None`` when any of
+    them cannot be selected: no registered region, an unknown normaliser or locator, content the
+    normaliser refuses, a locator that matches nothing (a renamed table id), or a region with no
+    board rows (a placeholder). ``None`` never opens an epoch: the gate refuses and the row stays
+    in its epoch. The hash is shaped as the cited-region hash of engine#1171 (MODEL-562,
     ``decision.ruling_reread.region_sha256``): each region the row's source reference names (or
-    every registered one), selected by the source's own locator and folded as rule 15 folds
-    visible text.
+    every registered one), selected by the source's own locator, folded as rule 15 folds text.
 
-    A board is hashed by its rows, never by what rotates around them (MODEL-555 review). An
-    HTML page is parsed as HTML even under a text recipe (its markup is never hashed), page
-    furniture is dropped (``decision.normalise``), and so is anything that announces or rotates
-    (banner, alert, status and live regions, carousels, tickers, clocks). A whole-page region is
-    the page's tables, when it has any. Volatile text (update times) and clock times, with or
-    without a zone, are stripped. A region that matches nothing hashes as absent, a change."""
+    A board is hashed by its rows' cell contents only (MODEL-555 review): the header and body
+    cells of every table row in the region (``<th>``/``<td>``, or ARIA rows and cells), never a
+    caption or the copy around the table. An HTML page is parsed as HTML even under a text
+    recipe; page furniture and anything that announces or rotates (banner, alert, status and
+    live regions, carousels, tickers) is dropped; update times and clock times, with or without
+    a zone, are stripped. An HTML region with no table has no rows: ``None``. A plain-text page
+    (no markup) is hashed by its cleaned text."""
     from decision.normalise import (
         NORMALISERS, Document, Locator, UnsupportedContentError, _nodes_text, normalise_document,
-        select_region,
+        select_region, select_region_tables,
     )
 
     ref = next((r for r in row.get("sources") or () if isinstance(r, Mapping)
@@ -1361,33 +1392,52 @@ def board_region_sha256(row: Mapping[str, Any], source_id: str, source: Mapping[
             locator = registered[region_id].get("locator") or {}
             kind = str(locator.get("kind") or "page")
             kind = "heading" if kind == "heading_anchor" else kind
-            value = str(locator.get("value") or "")
-            if kind == "page" and not value and doc.root is not None:
-                text = _board_rows(doc)
+            where = Locator(kind, str(locator.get("value") or ""))
+            if doc.root is not None:
+                region: Any = _board_cells(_outermost(select_region_tables(doc, where)), doc.rules)
+                if region is None and kind == "css":
+                    # a CSS region on ARIA rows (no <table>): its matched nodes' rows
+                    from decision.normalise import _matches, _parse_selector
+
+                    steps = _parse_selector(where.value)
+                    matched = [n for n in doc.root.elements() if _matches(n, steps)]
+                    region = _board_cells(_outermost(matched), doc.rules) if matched else None
             else:
-                text = select_region(doc, Locator(kind, value))
-            if text is not None:
-                text = _fold(_BOARD_CLOCK.sub(" ", text)) or None
-            parts.append([region_id, text])
+                text = select_region(doc, where)
+                region = _fold(_BOARD_CLOCK.sub(" ", text)) if text is not None else None
+            if not region:
+                return None
+            parts.append([region_id, region])
     except (UnsupportedContentError, ValueError, TypeError):
         return None
     return sha256(json.dumps(parts, ensure_ascii=False, separators=(",", ":")))
 
 
+def _row_sources(found: ReadingLookup, now: datetime) -> tuple[list[str], CitedChange | None]:
+    """The row's registered cited sources, in source-id order: the stable set its board region
+    is built on. A refusal when any of them is not registered or not eligible (the board
+    owner's page on a cite-only host, ``_check_board_source``) at read time."""
+    ids = sorted({str(s.get("source_id")) for s in found.row.get("sources") or ()
+                  if isinstance(s, Mapping) and s.get("source_id")})
+    for source_id in ids:
+        refusal = _check_board_source(found, source_id, now)
+        if refusal is not None:
+            return ids, refusal
+    return ids, None
+
+
 def row_region_sha256(found: ReadingLookup, now: datetime, *, chosen: str,
                       page_bytes: bytes) -> str | None:
     """The board region of the row, not of one source (MODEL-555 review): the hash of every
-    eligible source the row cites (each the board owner's page on a cite-only host,
-    ``_check_board_source``), in source-id order, with its cited-region hash. The chosen
-    source's page is the one just fetched; every other is fetched here, by the gate, with its
-    own transport. ``None`` when any of them cannot be read or hashed: no epoch can open."""
-    eligible = sorted({str(s.get("source_id")) for s in found.row.get("sources") or ()
-                       if isinstance(s, Mapping) and s.get("source_id")
-                       and _check_board_source(found, str(s["source_id"]), now) is None})
-    if chosen not in eligible:
+    source the row cites (``_row_sources``, a stable set), in source-id order, with its
+    cited-region hash. The chosen source's page is the one just fetched; every other is fetched
+    here, by the gate, with its own transport. ``None`` when any of them is not eligible, cannot
+    be read or cannot be hashed: no epoch can open, and the gate refuses."""
+    ids, refusal = _row_sources(found, now)
+    if refusal is not None or chosen not in ids:
         return None
     parts = []
-    for source_id in eligible:
+    for source_id in ids:
         body = page_bytes
         if source_id != chosen:
             fetched = _fetch(found.sources[source_id]["url"], _http_once)
@@ -1682,10 +1732,19 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
         # MODEL-555: an unchanged row's epoch names the row's board region, so the gate fetches
         # the page first, itself, with its own transport, and every other eligible source the
         # row cites (``row_region_sha256``). Only these bytes can name a board epoch.
+        # The epoch rests on the row's registered cited sources, a stable set: one that is not
+        # eligible now, or a region that cannot be selected (a renamed table, a placeholder),
+        # refuses, and the row stays in its epoch. It never opens one.
+        _ids, refusal = _row_sources(found, now)
+        if refusal is not None:
+            return refusal
         fetched = _fetch(url, _http_once)
         if isinstance(fetched, CitedChange):
             return fetched
         region = row_region_sha256(found, now, chosen=source_id, page_bytes=fetched[0])
+        if region is None:
+            return _refuse("page_unreadable", "the board's cited region cannot be selected on "
+                           "every page the row cites; the row stays in its epoch")
         current = board_epoch(base=base, lines=lines, region=region)
     # Outside a board epoch the gate named itself (a caller's transport, or a row its settings
     # epoch holds), every board epoch's attempts count for disagreement too.

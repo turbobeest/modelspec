@@ -195,15 +195,10 @@ def test_a_whole_page_text_recipe_hashes_the_board_rows_only(data, own, churn):
     assert len(data.log()) == 1
 
 
-@pytest.mark.parametrize("churn", [dict(rotating="Meet the new model"), dict(clock="17:42"),
-                                   dict(clock="5:42"), dict(rotating="x", clock="00:00")])
-def test_a_tableless_board_strips_rotating_copy_and_unzoned_clocks(data, own, churn):
+def test_a_tableless_html_board_is_refused_never_opened(data, own):
     own.page = bare()
-    split()
-    own.page = bare(**churn)
-    refused("prior_attempt_disagreed")
-    own.page = bare(score="53.0")
-    assert read(readers=pair(53.0)).changed
+    refused("page_unreadable")
+    assert data.log() == []
 
 
 def test_a_plain_text_board_strips_unzoned_clocks(data, own):
@@ -238,23 +233,65 @@ def test_a_disagreement_still_blocks_inside_its_epoch_and_on_return(html_data, o
     assert len(html_data.log()) == 2
 
 
-def test_an_unreadable_region_opens_no_epoch(data, own):
-    data.sources[0].pop("cited_regions")
+def _miss(data, own, change):
+    split()
+    change()
+    refused("page_unreadable")                      # no region: refused, nothing opens
+    refused("page_unreadable", readers=pair(53.0))
+    assert len(data.log()) == 1
+
+
+def test_a_source_with_no_registered_region_is_refused(html_data, own):
+    def change():
+        html_data.sources[0].pop("cited_regions")
+        html_data.write()
+        own.page = board(score="53.0")
+    _miss(html_data, own, change)
+
+
+def test_a_renamed_table_id_is_refused_not_hashed_into_an_epoch(html_data, own):
+    def change():
+        own.page = board(score="53.0").replace(b"id='rows'", b"id='rows-v2'")
+    _miss(html_data, own, change)
+
+
+@pytest.mark.parametrize("placeholder", [
+    b"<html><body><table id='rows'><tr><td></td><td></td></tr></table></body></html>",
+    b"<html><body><table id='rows'></table><p>Loading 53.0%</p></body></html>",
+    b"<html><body><div id='app'>Loading the board</div></body></html>",
+])
+def test_a_placeholder_is_refused_not_hashed_into_an_epoch(html_data, own, placeholder):
+    def change():
+        own.page = placeholder
+    _miss(html_data, own, change)
+
+
+def _framed(caption="Week 47", note="Scores are percentages", score="51.2"):
+    return (f"<html><body><div id='board'><p>{note}</p><table id='rows'>"
+            f"<caption>{caption}</caption><thead><tr><th>Model</th><th>Score</th></tr></thead>"
+            f"<tbody><tr><td>Orbit 9 Max</td><td>{score}%</td></tr></tbody></table>"
+            f"<p>{note}</p></div></body></html>").encode()
+
+
+@pytest.mark.parametrize("locator", ["table#rows", "div#board"])
+def test_only_cell_contents_are_hashed_not_captions_or_surrounding_copy(data, own, locator):
+    data.sources[0].update(normaliser="html-default", cited_regions=[
+        dict(id="rows", locator=dict(kind="css", value=locator))])
     data.write()
+    own.page = _framed()
     split()
-    assert epochs(data) == [BASE]
-    own.page = board(score="53.0")
+    own.page = _framed(caption="Week 48", note="All runs at max effort")
     refused("prior_attempt_disagreed")
+    assert len(data.log()) == 1
+    own.page = _framed(score="53.0")              # a body cell
+    assert read(readers=pair(53.0)).changed
 
 
-def test_a_board_epochs_split_still_blocks_when_the_row_falls_back_to_its_settings_epoch(
-        html_data, own):
+def test_a_changed_header_cell_opens_an_epoch(data, own):
+    own.page = _framed()
     split()
-    html_data.sources[0].pop("cited_regions")       # no region can be selected any more
-    html_data.write()
-    own.page = board(score="53.0")
-    refused("prior_attempt_disagreed")
-    assert len(html_data.log()) == 1
+    own.page = _framed().replace(b"<th>Score</th>", b"<th>Score (v2)</th>")
+    assert read().changed
 
 
 # --- caller-supplied bytes ------------------------------------------------------------------------
@@ -310,7 +347,27 @@ def test_an_unreadable_second_source_holds_the_row(two, own):
     split()
     del own.pages[URL2]                            # the other cited page cannot be read
     own.page = board(score="53.0")
-    refused("prior_attempt_disagreed")
+    refused("page_unreadable")
+    assert len(two.log()) == 1
+
+
+@pytest.mark.parametrize("change", ["ineligible", "unregistered"])
+def test_a_source_whose_eligibility_changes_holds_the_row(two, own, change):
+    split()
+    if change == "ineligible":
+        two.sources[-1]["publisher"] = "acme"         # no longer the board owner's page
+    else:
+        two.sources.pop()                           # no longer in the source registry
+    two.write()
+    own.page = board(score="53.0")
+    out = read(readers=pair(53.0))
+    assert out.outcome == "refused" and out.reason in {"not_first_party", "registry_lookup_failed"}
+    assert len(two.log()) == 1
+    if change == "ineligible":
+        two.sources[-1]["publisher"] = "cursor"       # eligible again: the same epoch as before
+        two.write()
+        own.page = board()
+        refused("prior_attempt_disagreed")
 
 
 # --- attempts logged before region hashes fail closed --------------------------------------------
