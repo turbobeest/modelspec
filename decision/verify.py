@@ -595,13 +595,46 @@ _STRUCTURED_NAME_EFFORT = re.compile(
 )
 
 
-def structured_name_effort(name: str) -> str | None:
+def structured_name_effort(name: str, names: Sequence[str] = ()) -> str | None:
     """Effort the structured reader finds in a subject, or None.
 
     ``Example Model (High)`` names ``High``. ``example-model-high`` names none.
+    ``names`` are the card's registered names: a last word that belongs to one
+    of them is the name, not an effort (``effort_word_is_name``, MODEL-568).
     """
     match = _STRUCTURED_NAME_EFFORT.search(str(name))
-    return match.group(1) if match else None
+    if match is None or effort_word_is_name(str(name), names):
+        return None
+    return match.group(1)
+
+
+#: An effort word that ends a subject after a space. A parenthesis, an
+#: underscore or a hyphen is a qualifier spelling, never part of this test.
+_SPACED_LAST_WORD = re.compile(r"\s(minimal|low|medium|high|xhigh|max)\s*$", re.IGNORECASE)
+
+
+def effort_word_is_name(subject: str, names: Sequence[str]) -> bool:
+    """True when the effort word that ends ``subject`` is part of a registered name.
+
+    "Mistral Medium" is a model, not Mistral at medium effort (MODEL-568). The
+    word belongs to the name when ``subject`` spells one of ``names`` (or the
+    first words of one, "Mistral Medium" of "Mistral Medium (latest)") and the
+    subject without the word is none of them. "Example Model high" for a card
+    named "Example Model" still names ``high``. Only a word after a space counts:
+    "(High)", "_high" and "-high" are read as before.
+    """
+    match = _SPACED_LAST_WORD.search(subject)
+    if match is None or not names:
+        return False
+
+    def tokens(text: str) -> tuple[str, ...]:
+        return tuple(normalise_name(text.replace("+", " plus ")).split())
+
+    whole, stem = tokens(subject), tokens(subject[:match.start()])
+    registered = {tokens(name) for name in names} - {()}
+    if not stem or stem in registered:
+        return False
+    return any(name[:len(whole)] == whole for name in registered)
 
 
 _DATE_FORMATS = ("%B %d, %Y", "%b %d, %Y", "%d %B %Y", "%d %b %Y", "%Y/%m/%d")
@@ -4916,7 +4949,7 @@ class StructuredDataExtractor:
                 continue
             effort = normal.get("reasoning effort") or normal.get("effort")
             if effort is None:
-                effort = structured_name_effort(str(subject))
+                effort = structured_name_effort(str(subject), claim.names)
             date_ = next((normal.get(key) for key in (
                 "date", "leaderboard publish date", "started at", "snapshot read date",
                 "release date",
