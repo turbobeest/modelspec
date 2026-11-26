@@ -684,6 +684,11 @@ def test_rendered_requires_playwright_without_a_silent_fallback(monkeypatch, cap
 
 
 class FakeRenderer(ReplayFetcher):
+    def fetch(self, url, **kwargs):
+        # A rendered read names the chain it was read through (MODEL-570).
+        result = super().fetch(url, **kwargs)
+        return replace(result, resolved_urls=(url,)) if result.outcome == "ok" else result
+
     def __enter__(self):
         return self
 
@@ -985,7 +990,8 @@ def test_missing_and_failed_rendered_entries_become_unreachable_alerts(estate, t
 
 
 def _rendered_artifact(tmp_path, **changes):
-    entry = {"file": "page.html", "outcome": "ok", "status": 200, "error": None, **changes}
+    entry = {"file": "page.html", "outcome": "ok", "status": 200, "error": None,
+             "resolved_urls": [RENDERED_URL], **changes}
     (tmp_path / "page.html").write_bytes(page("plans.html"))
     (tmp_path / "manifest.json").write_text(json.dumps({RENDERED_URL: entry}))
     return tmp_path
