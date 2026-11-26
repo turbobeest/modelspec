@@ -234,6 +234,30 @@ def test_private_weekly_workflow_uses_guard_token_and_audit_artifact() -> None:
     assert "draft: true" not in workflow
 
 
+def test_weekly_workflow_files_first_rows_and_labels_them() -> None:
+    """MODEL-567: the weekly job files first rows, guards them, counts them, labels them."""
+    workflow = yaml.safe_load(
+        (Path(__file__).parents[1] / ".github" / "private-writers" /
+         "leaderboard-refresh.yml").read_text(encoding="utf-8")
+    )
+    steps = {step.get("name"): step for step in workflow["jobs"]["refresh"]["steps"]}
+
+    assert "--first-rows" in steps["Re-read every covered board once"]["run"]
+    guard = steps["Prove the generated diff is score-only"]["run"]
+    assert "first_rows=True" in guard
+    assert "result.labels" in guard
+    result = steps["Count changes and verification failures"]
+    assert "+ added + written}" in result["run"]
+    assert 'report.get("labels", [])' in result["run"]
+    assert result["env"]["GUARD_LABELS"] == "${{ steps.guard.outputs.labels }}"
+    opened = steps["Open the score-only pull request"]["with"]
+    assert opened["labels"] == "${{ steps.result.outputs.labels }}"
+    for name in ("Prepare the pull-request body", "Fill the pull request URL into the body"):
+        body = steps[name]["run"]
+        assert "first-row label: a person reviews and merges it" in body
+        assert "if added:" in body
+
+
 def test_changed_row_goes_through_the_two_key_verifier(monkeypatch, tmp_path: Path) -> None:
     root = tmp_path / "repo"
     cache = tmp_path / "copies"
