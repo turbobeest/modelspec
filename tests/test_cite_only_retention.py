@@ -18,8 +18,8 @@ PAGE = b"<html><p>Synthetic page text never retained for restricted hosts.</p></
 AT = datetime(2026, 10, 19, 12, tzinfo=UTC)
 #: Jamie, 2026-11-25 (S8, MODEL-473): read in memory and cite, never keep a copy.
 JAMIE_2026_11_25 = ("aistudio.google.com", "thinkingmachines.ai", "arena.ai", "gemma.ai", "grok.com")
-#: Jamie, 2026-11-26 (S8, MODEL-473): cite-only like the other Google hosts.
-JAMIE_2026_11_26 = ("deepmind.google",)
+#: Further cite-only hosts.
+MORE_CITE_ONLY_HOSTS = ("deepmind.google",)
 
 
 def test_cite_only_policy_contains_exactly_the_approved_hosts():
@@ -27,11 +27,11 @@ def test_cite_only_policy_contains_exactly_the_approved_hosts():
         "x.ai", "docs.x.ai", "perplexity.ai", "www.anthropic.com",
         "developers.openai.com", "help.openai.com", "chatgpt.com", "cursor.com",
         "platform.claude.com", "privacy.claude.com",
-        *JAMIE_2026_11_25, *JAMIE_2026_11_26,
+        *JAMIE_2026_11_25, *MORE_CITE_ONLY_HOSTS,
     }
 
 
-@pytest.mark.parametrize("host", (*JAMIE_2026_11_25, *JAMIE_2026_11_26))
+@pytest.mark.parametrize("host", (*JAMIE_2026_11_25, *MORE_CITE_ONLY_HOSTS))
 def test_jamie_2026_11_25_hosts_are_cite_only_without_a_data_dir(monkeypatch, tmp_path, host):
     """MODEL-473: Jamie's 2026-11-25 rulings hold these hosts cite-only in the public list."""
     monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)
@@ -71,7 +71,7 @@ def test_copy_store_cite_only_keeps_only_citation(tmp_path, url):
 
 @pytest.mark.parametrize("host", [
     "www.anthropic.com", "developers.openai.com", "help.openai.com", "chatgpt.com", "cursor.com",
-    "platform.claude.com", "privacy.claude.com", *JAMIE_2026_11_25, *JAMIE_2026_11_26,
+    "platform.claude.com", "privacy.claude.com", *JAMIE_2026_11_25, *MORE_CITE_ONLY_HOSTS,
 ])
 def test_new_cite_only_hosts_require_a_label_boundary(host):
     assert cite_only_status(f"https://not{host}/models") is False
