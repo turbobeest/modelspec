@@ -487,10 +487,13 @@ def test_a_cleared_fact_is_re_read_in_the_epoch_its_own_block_names(tmp_path, mo
     assert moved.cited_change_rereads == [FACT_ID]
     assert moved.to_dict()["cleared_facts_changed"] == 1
     assert "Quarantine-cleared facts re-read: 1; page changed: 1." in script.render(moved)
-    # the cleared verdict stays logged, so the gate still holds a re-read for the owner
+    # MODEL-566: the cleared verdict stays logged, but the valid clearing line released it, so
+    # two readers read the changed page in the epoch after the clearing's
     again = reread(fact | {"subject": SUBJECT}, source_id="data", readers=pair(46),
                    request=serve({URL: offering.PAGE + b" new"}))
-    assert again.outcome == "flagged" and again.reason == "quarantined"
+    assert again.outcome == "changed", (again.reason, again.detail)
+    assert again.record["value"] == 46
+    assert "clearing_epoch" not in again.record["derivation"]["cited_change"]
 
 
 def test_the_offering_file_keeps_its_header(ruled, web):

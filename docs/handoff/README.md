@@ -216,6 +216,21 @@ Learned expensively during 2026-09-09/10.
     fact is served exactly as a plain cited fact (no `derivation`) and no contract field widens. Card facts have no engine writer; a data PR writes the fact,
     its claim and the line (`quarantine_clearing.append`).
 
+    **A cleared fact is re-read in the epochs after its clearing (MODEL-566).** The cleared
+    verdict stays logged, but a valid line releases it: it no longer holds the fact or row in
+    the epochs after the clearing epoch, in the gate and in the build alike
+    (`quarantine_clearing.fact_released`, `reading_released`, reusing the line checks above).
+    The cleared record sits in the re-read epoch its block's text hash names; a changed page is
+    read there by two readers, and their agreement opens the next re-read epoch. The build
+    admits a later block only when it is the one an agreement in such an epoch made
+    (`later_agreements`: a complete agreed harness attempt by two distinct known families,
+    logged after the agreement that opened its epoch, in an epoch with no recorded
+    disagreement). The gate refuses (`quarantined`) a read of the page the record already rests
+    on: a clearing is never re-litigated in its own epoch. A verdict newer than the clearing (on
+    any value, `mismatch` or `unreachable`) is not the one the line names, so it holds the fact
+    again; a forged or byte-mismatched line, a line for another value or subject, and an
+    owner-ruled fact release nothing.
+
     **The owner's ruling past a disagreement (MODEL-551).** A complete `readers_disagree`
     attempt blocks its subject, facet and epoch for good. Only the owner can settle it, with
     one line of the append-only `verification/owner-rulings.jsonl` (`decision.owner_ruling`):
