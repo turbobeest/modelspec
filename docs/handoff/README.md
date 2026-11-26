@@ -306,13 +306,15 @@ Learned expensively during 2026-09-09/10.
     one row (the score, dated by the resolved read, a fresh evidence id,
     `derivation.owner_ruling`); no claim is filed, as the board gate files none. A ruled row's
     old id keeps any verdict it had, so `held_row_missing` still refuses a build that drops it.
-    On the re-read the gate reads a ruled row in its ruled epoch unless it fetched every page
-    the row cites itself and the row's board region (`row_region_sha256`) is not the one the
-    resolved attempts logged: then in `<ruled epoch>:reopen:<region>`, where two agreeing
-    readers supersede the ruling with a cited change. As for an unchanged row's board epoch
-    (MODEL-555), only the gate's own fetch names it; no record line is needed.
-    `reread_reading` and the sweep (`ruled_reading_rereads`, counts only) list a ruled row
-    whose region changed.
+    The board owner's page check (`owner_problem`) is part of the shared test. On the re-read
+    (MODEL-562's rule for facts) the sweep (`ruled_reading_rereads`) records one `reopen` line
+    when the row's board region (`row_region_sha256`, the gate's own fetch) is not the one the
+    resolved attempts logged; only then, and only from its own fetch, does the gate read the
+    row in `<ruled epoch>:reopen:<region>`. A ruling stops standing only through an agreement
+    on another score in such a recorded epoch whose logged region is the one it names; any
+    other attempt is ignored, so a forged line cannot withhold the row. A row whose ruling
+    stopped standing is read only in that epoch, never from caller bytes; one whose ruling does
+    not stand at all is not read.
 
 16. **A confirmed fact no engine reader can read** (MODEL-558, Jamie 2026-11-25, queue 16f).
     Extend the engine's readers first; the two readers come second, and no new verification

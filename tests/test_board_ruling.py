@@ -226,6 +226,13 @@ def test_a_source_the_row_does_not_cite_or_another_owners_is_refused(split_row, 
             source_ids=["hf"])
 
 
+def test_the_filer_enforces_the_board_owner(split_row, own):
+    """Fix 4 (#1185 review): a source whose publisher is not the board's owner is refused."""
+    split_row.bench["owner_id"] = "someone-else"
+    split_row.write()
+    refuses(split_row, "not_cited", epoch=board_epoch_of(split_row, own))
+
+
 # --- the gate and the re-read ---------------------------------------------------------------------
 
 
@@ -236,37 +243,98 @@ def test_after_a_ruling_the_same_board_still_blocks(split_row, own):
     assert len(split_row.log()) == 1 and card_row(split_row)["score"] == 49.0
 
 
+def sweep(d, terms=None, *, dry_run=False):
+    """The rolling re-read over the ruled readings; outside a dry run it records reopenings."""
+    from scripts import evidence_reread as rereads
+
+    report = rereads.Report(observed_at=TODAY, dry_run=dry_run, cap=0)
+    rereads.ruled_reading_rereads(d.root, terms or {"cursor.com": "cite-only"}, report,
+                                  pacer=rereads.Pacer(0), dry_run=dry_run)
+    return report
+
+
+def reopen_records(d):
+    from decision.ruling_reread import RECORD_FILE
+
+    path = d.root / RECORD_FILE
+    return [json.loads(x) for x in path.read_text().splitlines()] if path.is_file() else []
+
+
 def test_a_caller_transport_never_reopens_a_ruled_row(split_row, own):
     ruled(split_row, own)
+    own.page = board(score="53.0")
+    sweep(split_row)
     page = board(score="53.0")
     refused("prior_attempt_disagreed", readers=pair(53.0), request=lambda url: (200, None, page))
 
 
-def test_a_changed_board_region_reopens_the_ruled_row(split_row, own):
+def test_a_changed_region_reopens_only_once_the_sweep_recorded_it(split_row, own):
     epoch = ruled(split_row, own)
     own.page = board(score="53.0")
+    # Fix 2 (#1185 review): the gate's own fetch of a changed region is not enough.
+    refused("prior_attempt_disagreed", readers=pair(53.0))
+    assert len(split_row.log()) == 1
+    sweep(split_row)
+    [record] = reopen_records(split_row)
+    region = row_region(split_row, own.pages)
+    assert record["epoch"] == f"{epoch}:reopen:{region}" and record["ruled_region_sha256"] != region
     out = read(readers=pair(53.0))
     assert out.changed and out.record["value"] == 53.0
     last = split_row.log()[-1]
-    region = row_region(split_row, own.pages)
-    assert last["epoch"] == f"{epoch}:reopen:{region}" and last["board_region_sha256"] == region
+    assert last["epoch"] == record["epoch"] and last["board_region_sha256"] == region
+    sweep(split_row)
+    assert len(reopen_records(split_row)) == 1                  # never recorded twice
 
 
 def test_a_split_in_the_reopened_epoch_blocks_and_may_be_ruled_again(split_row, own):
     epoch = ruled(split_row, own)
     own.page = board(score="53.0")
+    sweep(split_row)
     split()
     reopened = split_row.log()[-1]["epoch"]
     assert reopened.startswith(epoch + ":reopen:")
     refused("prior_attempt_disagreed", readers=pair(53.0))
-    # The first ruling still stands while the reopened split waits: the row is admitted.
-    assert board_ruling.stale_problem(card_row(split_row)["derivation"]["owner_ruling"],
-                                      row=card_row(split_row), subject=SUBJECT,
-                                      attempts=split_row.log()) is None
     file(split_row, epoch=reopened, value=53.0)
     assert card_row(split_row)["derivation"]["owner_ruling"]["epoch"] == reopened
     own.page = board(score="53.0", clock="23:59")
     refused("prior_attempt_disagreed", readers=pair(53.0))
+
+
+def test_an_unrecorded_reopened_epoch_cannot_be_ruled(split_row, own, monkeypatch):
+    epoch = ruled(split_row, own)
+    own.page = board(score="53.0")
+    sweep(split_row)
+    split()
+    reopened = split_row.log()[-1]["epoch"]
+    from decision.ruling_reread import RECORD_FILE
+
+    (split_row.root / RECORD_FILE).unlink()
+    refuses(split_row, "epoch_not_current", epoch=reopened, value=53.0)
+    assert reopened.startswith(epoch)
+
+
+def test_a_superseded_ruling_is_read_only_in_its_reopened_epoch(split_row, own):
+    """Fix 3 (#1185 review): once an agreement in the recorded reopened epoch superseded the
+    ruling (the card not yet rewritten), the gate reads only there: never its board or settings
+    epoch, never from caller bytes, and a split there blocks."""
+    ruled(split_row, own)
+    own.page = board(score="53.0")
+    sweep(split_row)
+    assert read(readers=pair(53.0)).changed            # the gate agrees; no card is written here
+    reopened = split_row.log()[-1]["epoch"]
+    page = board(score="53.0")
+    refused("epoch_not_current", readers=pair(53.0), request=lambda url: (200, None, page))
+    own.page = board(score="54.0")                     # even a newer region stays in that epoch
+    split()
+    assert split_row.log()[-1]["epoch"] == reopened
+    refused("prior_attempt_disagreed", readers=pair(54.0))
+
+
+def test_a_ruled_row_whose_ruling_does_not_stand_is_not_read(split_row, own):
+    ruled(split_row, own)
+    (split_row.root / RULINGS_FILE).write_text("")     # its line is gone: no fallback epoch
+    refused("epoch_not_current", readers=pair(53.0))
+    assert len(split_row.log()) == 1
 
 
 def test_a_ruled_row_cannot_be_cleared(split_row, own):
@@ -279,7 +347,7 @@ def test_a_ruled_row_cannot_be_cleared(split_row, own):
     assert refusal.reason == "quarantined" and target is None
 
 
-def test_reread_reading_keeps_the_ruled_value_until_the_region_changes(split_row, own):
+def test_reread_reading_keeps_the_ruled_value_until_a_recorded_reopen(split_row, own):
     from decision.cited_change import reread_reading
 
     ruled(split_row, own)
@@ -287,24 +355,41 @@ def test_reread_reading_keeps_the_ruled_value_until_the_region_changes(split_row
                   source_id="board")
     assert reread_reading(readers=pair(49.0), **common).outcome == "current"
     own.page = board(score="53.0")
+    assert reread_reading(readers=pair(53.0), **common).reason == "changed"
+    sweep(split_row)
     out = reread_reading(readers=pair(53.0), **common)
     assert out.outcome == "changed" and out.record["value"] == 53.0
 
 
-def test_the_sweep_lists_a_ruled_reading_whose_region_changed(split_row, own):
-    from scripts import evidence_reread as sweep
-
+def test_the_sweep_records_a_ruled_reading_whose_region_changed(split_row, own):
     ruled(split_row, own)
-    terms = {"cursor.com": "cite-only"}
-    report = sweep.Report(observed_at=TODAY, dry_run=True, cap=0)
-    sweep.ruled_reading_rereads(split_row.root, terms, report, pacer=sweep.Pacer(0))
+    report = sweep(split_row, dry_run=True)
     assert report.ruled_readings == {"current": 1} and report.cited_change_rereads == []
     own.page = board(score="53.0")
-    report = sweep.Report(observed_at=TODAY, dry_run=True, cap=0)
-    sweep.ruled_reading_rereads(split_row.root, terms, report, pacer=sweep.Pacer(0))
-    assert report.ruled_readings == {"changed": 1} and len(report.cited_change_rereads) == 1
-    assert report.to_dict()["ruled_readings"]["changed"] == 1
+    report = sweep(split_row, dry_run=True)
+    assert report.ruled_readings == {"reopened": 1} and len(report.cited_change_rereads) == 1
+    assert reopen_records(split_row) == []                      # a dry run records nothing
+    assert report.to_dict()["ruled_readings"]["reopened"] == 1
+    sweep(split_row)
+    assert sweep(split_row, dry_run=True).ruled_readings == {"open": 1}
     assert card_row(split_row)["score"] == 49.0      # the sweep changes no card
+
+
+def test_the_gate_enforces_the_board_owner_on_a_ruled_row(split_row, own):
+    """Fix 4 (#1185 review): the owner check is in the shared test, so a ruling whose source's
+    publisher is no longer the board's owner does not stand for the gate either."""
+    from decision.cited_change import reading_lookup, standing_row_ruling
+
+    ruled(split_row, own)
+    found = reading_lookup(SUBJECT, FACET.split(":", 1)[1], READING)
+    assert standing_row_ruling(found, SUBJECT) is not None
+    split_row.row.update(card_row(split_row))   # keep the ruled row when rewriting the fixture
+    split_row.bench["owner_id"] = "someone-else"
+    split_row.write()
+    found = reading_lookup(SUBJECT, FACET.split(":", 1)[1], READING)
+    assert card_row(split_row)["derivation"]["owner_ruling"]
+    assert standing_row_ruling(found, SUBJECT) is None
+    refused("not_first_party", readers=pair(53.0))
 
 
 # --- the build ------------------------------------------------------------------------------------
@@ -315,8 +400,20 @@ BOARD = "https://www.perplexity.ai/pro"
 SETTINGS = {"model_id_as_evaluated": MID, "effort": None, "harness": None}
 REGION, PAGE, TEXT, PROMPT = "c" * 64, "3" * 64, "a" * 64, "4" * 64
 AT = "2026-10-10T09:00:00+00:00"
+LATER = "2026-10-12T09:00:00+00:00"
 EPOCH = f"{reading_epoch(SETTINGS)}{BOARD_MARK}{REGION}"
+REOPENED = f"{EPOCH}:reopen:{'d' * 64}"
 BUILD_DAY = datetime(2026, 10, 19).date()
+TARGET = f"{MID}#{BFACET}"
+
+
+def registry(**kw):
+    rows = {"src-cite": {"id": "src-cite", "url": BOARD, "kind": "benchmark_author",
+                         "publisher": "perplexity"}}
+    out = dict(sources=rows, publishers={"perplexity": "https://www.perplexity.ai/"},
+               owners={BENCH: "perplexity"})
+    out.update(kw)
+    return board_ruling.BoardRegistry(**out)
 
 
 def attempt(epoch=EPOCH, *, values=(51.2, 49.0), at=AT, region=REGION, subject=MID):
@@ -352,7 +449,8 @@ def ruled_evidence(line, *, score=None, eid=f"{MID}#{BENCH}#ruled", at=AT):
     return row
 
 
-def build(row, lines, attempts, log=(), as_of=BUILD_DAY):
+def build(row, lines, attempts, log=(), as_of=BUILD_DAY, *, reopened=frozenset(),
+          board=None):
     from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
 
     from tests.snapshot_records import SOURCES, model
@@ -360,9 +458,18 @@ def build(row, lines, attempts, log=(), as_of=BUILD_DAY):
     built = build_snapshot(SnapshotInputs(
         models=[model(MID)], evidence=[row], sources={**SOURCES, "src-cite": BOARD},
         verifications=list(log), owner_rulings=list(lines), cited_attempts=list(attempts),
+        owner_ruling_reopened=frozenset(reopened),
+        board_registry=registry() if board is None else board,
         benchmark_metadata={BENCH: {"min_score": 0, "max_score": 100, "unit": "percent"}}),
         as_of=as_of)
     return load_built_snapshot(built).evidence(MID, BENCH)
+
+
+def problem(row, lines, attempts, *, reopened=frozenset(), board=None, **kw):
+    return board_ruling.row_problem(row, MID, rulings=lines, attempts=attempts,
+                                    sources={"src-cite": BOARD}, max_score=100,
+                                    today=BUILD_DAY, reopened=reopened,
+                                    registry=registry() if board is None else board, **kw)
 
 
 def scores(index):
@@ -380,46 +487,102 @@ def bypasses():
     line = ruling(split_attempt)
     row = ruled_evidence(line)
     other_split = attempt(subject="lab/beta")
-    yield "no line", row, [], [split_attempt]
-    yield "forged line", row, [{**line, "ruled_by": "claude"}], [split_attempt]
+    yield "no line", row, [], [split_attempt], frozenset()
+    yield "forged line", row, [{**line, "ruled_by": "claude"}], [split_attempt], frozenset()
     forged = ruled_evidence({**line, "value": 60.0})
-    yield "block not the line", forged, [line], [split_attempt]
-    yield "another value", ruled_evidence(line, score=60.0), [line], [split_attempt]
+    yield "block not the line", forged, [line], [split_attempt], frozenset()
+    yield "another value", ruled_evidence(line, score=60.0), [line], [split_attempt], frozenset()
     other = ruling(other_split, subject="lab/beta")
-    yield "another row's line", ruled_evidence(other), [other], [other_split]
+    yield "another row's line", ruled_evidence(other), [other], [other_split], frozenset()
     agreed = attempt(values=(49.0, 49.0))
-    yield "no disagreement", ruled_evidence(ruling(agreed)), [ruling(agreed)], [agreed]
-    yield "unlogged attempt", row, [line], []
+    yield "no disagreement", ruled_evidence(ruling(agreed)), [ruling(agreed)], [agreed], \
+        frozenset()
+    yield "unlogged attempt", row, [line], [], frozenset()
     settings_split = attempt(reading_epoch(SETTINGS), region=None)
-    yield "another epoch", row, [line], [settings_split]
-    later = attempt(f"{reading_epoch(SETTINGS)}{BOARD_MARK}{'d' * 64}", values=(53.0, 53.0),
-                    at="2026-10-12T09:00:00+00:00", region="d" * 64)
-    yield "stale epoch", row, [line], [split_attempt, later]
+    yield "another epoch", row, [line], [settings_split], frozenset()
     wrong_region = attempt(region="d" * 64)
     yield "region not the epoch's", ruled_evidence(ruling(wrong_region)), \
-        [ruling(wrong_region)], [wrong_region]
+        [ruling(wrong_region)], [wrong_region], frozenset()
     yield "future ruling", ruled_evidence(ruling(split_attempt, ruled_at="2026-10-20")), \
-        [ruling(split_attempt, ruled_at="2026-10-20")], [split_attempt]
+        [ruling(split_attempt, ruled_at="2026-10-20")], [split_attempt], frozenset()
     moved = copy.deepcopy(row)
     moved["sources"][0]["snapshot_ref"] = "sha256:" + "5" * 64
-    yield "another copy", moved, [line], [split_attempt]
+    yield "another copy", moved, [line], [split_attempt], frozenset()
     other_settings = copy.deepcopy(row)
     other_settings["effort"] = "low"
-    yield "another setting", other_settings, [line], [split_attempt]
-    reopened = attempt(f"{EPOCH}:reopen:{'d' * 64}", values=(53.0, 53.0),
-                       at="2026-10-12T09:00:00+00:00", region="d" * 64)
-    yield "superseded in a reopened epoch", row, [line], [split_attempt, reopened]
+    yield "another setting", other_settings, [line], [split_attempt], frozenset()
+    superseding = attempt(REOPENED, values=(53.0, 53.0), at=LATER, region="d" * 64)
+    yield "superseded in a recorded reopened epoch", row, [line], \
+        [split_attempt, superseding], frozenset({(TARGET, REOPENED)})
 
 
 @pytest.mark.parametrize("case", list(bypasses()), ids=lambda c: c[0] if isinstance(c, tuple)
                          else None)
 def test_the_build_keeps_out_a_ruled_row_whose_ruling_does_not_stand(case):
-    _, row, lines, attempts = case
-    assert build(row, lines, attempts) == ()
+    _, row, lines, attempts, reopened = case
+    assert build(row, lines, attempts, reopened=reopened) == ()
     # Kept out by the ruling test itself, the one the filer and the gate use.
-    assert board_ruling.row_problem(row, MID, rulings=lines, attempts=attempts,
-                                    sources={"src-cite": BOARD}, max_score=100,
-                                    today=BUILD_DAY) is not None
+    assert problem(row, lines, attempts, reopened=reopened) is not None
+
+
+def forged_agreements():
+    """Agreements under the ruling's epoch that the gate did not make in a recorded reopened
+    epoch of its own region (Fix 2, #1185 review): none of them may withhold the row."""
+    region = "d" * 64
+    recorded = frozenset({(TARGET, REOPENED)})
+    yield "unrecorded reopened epoch", \
+        attempt(REOPENED, values=(53.0, 53.0), at=LATER, region=region), frozenset()
+    yield "region not the epoch's", \
+        attempt(REOPENED, values=(53.0, 53.0), at=LATER, region="e" * 64), recorded
+    yield "no region logged", \
+        attempt(REOPENED, values=(53.0, 53.0), at=LATER, region=None), recorded
+    yield "the baseline region", attempt(f"{EPOCH}:reopen:{REGION}", values=(53.0, 53.0),
+                                         at=LATER, region=REGION), \
+        frozenset({(TARGET, f"{EPOCH}:reopen:{REGION}")})
+    yield "another board epoch", attempt(f"{reading_epoch(SETTINGS)}{BOARD_MARK}{region}",
+                                         values=(53.0, 53.0), at=LATER, region=region), recorded
+    yield "the settings epoch", attempt(reading_epoch(SETTINGS), values=(53.0, 53.0), at=LATER,
+                                        region=None), recorded
+    yield "not the harness", {**attempt(REOPENED, values=(53.0, 53.0), at=LATER, region=region),
+                              "harness": False}, recorded
+    yield "before the ruling's split", \
+        attempt(REOPENED, values=(53.0, 53.0), at="2026-10-09T09:00:00+00:00", region=region), \
+        recorded
+
+
+@pytest.mark.parametrize("case", list(forged_agreements()), ids=lambda c: c[0])
+def test_a_forged_or_unrecorded_agreement_does_not_withhold_the_row(case):
+    _, forged, reopened = case
+    split_attempt = attempt()
+    line = ruling(split_attempt)
+    row = ruled_evidence(line)
+    assert scores(build(row, [line], [split_attempt, forged], reopened=reopened)) == [49.0]
+    assert problem(row, [line], [split_attempt, forged], reopened=reopened) is None
+
+
+@pytest.mark.parametrize("change", [
+    dict(owners={BENCH: "someone-else"}), dict(owners={}),
+    dict(publishers={}), dict(publishers={"perplexity": "https://other.example/"}),
+    dict(sources={"src-cite": {"id": "src-cite", "url": BOARD, "kind": "lab_documentation",
+                               "publisher": "perplexity"}}),
+    dict(sources={"src-cite": {"id": "src-cite", "url": BOARD, "kind": "benchmark_author"}}),
+    dict(sources={}),
+])
+def test_the_build_enforces_the_board_owner_on_a_ruled_row(change):
+    """Fix 4 (#1185 review): the owner and publisher checks are in the shared test."""
+    split_attempt = attempt()
+    line = ruling(split_attempt)
+    row = ruled_evidence(line)
+    assert build(row, [line], [split_attempt], board=registry(**change)) == ()
+    assert problem(row, [line], [split_attempt], board=registry(**change))[0] == "not_cited"
+
+
+def test_with_no_board_registry_no_ruled_row_is_admitted():
+    split_attempt = attempt()
+    line = ruling(split_attempt)
+    row = ruled_evidence(line)
+    assert board_ruling.row_problem(row, MID, rulings=[line], attempts=[split_attempt],
+                                    sources={"src-cite": BOARD})[0] == "not_cited"
 
 
 def test_a_ruled_row_never_silently_drops_a_hold_on_its_earlier_id():
@@ -438,7 +601,7 @@ def test_a_ruled_row_never_silently_drops_a_hold_on_its_earlier_id():
     inputs = SnapshotInputs(
         models=[model(MID)], evidence=[ruled_evidence(line)],
         sources={**SOURCES, "src-cite": BOARD}, verifications=[verdict], owner_rulings=[line],
-        cited_attempts=[split_attempt], check_held_rows=True,
+        cited_attempts=[split_attempt], check_held_rows=True, board_registry=registry(),
         benchmark_metadata={BENCH: {"min_score": 0, "max_score": 100, "unit": "percent"}})
     with pytest.raises(SnapshotBuildError, match="held_row_missing"):
         build_snapshot(inputs, as_of=BUILD_DAY)
@@ -466,39 +629,38 @@ def test_the_build_keeps_out_a_held_ruled_row_and_never_drops_the_hold():
     assert build(row, [line], [split_attempt], log=[verdict]) == ()
 
 
-def test_the_build_admits_a_second_ruling_only_in_a_reopened_epoch_of_a_valid_one():
+def test_the_build_admits_a_second_ruling_only_in_a_recorded_reopened_epoch():
     split_attempt = attempt()
     first = ruling(split_attempt)
-    reopened_split = attempt(f"{EPOCH}:reopen:{'d' * 64}", values=(53.0, 52.0),
-                             at="2026-10-12T09:00:00+00:00", region="d" * 64)
+    reopened_split = attempt(REOPENED, values=(53.0, 52.0), at=LATER, region="d" * 64)
     second = ruling(reopened_split, value=53.0, ruled_at="2026-10-13")
     attempts = [split_attempt, reopened_split]
-    later = "2026-10-12T09:00:00+00:00"
-    assert scores(build(ruled_evidence(second, at=later), [first, second], attempts)) == [53.0]
-    assert build(ruled_evidence(second, at=later), [second], attempts) == ()  # extends no ruling
-    same = attempt(f"{EPOCH}:reopen:{REGION}", values=(53.0, 52.0),
-                   at="2026-10-12T09:00:00+00:00", region=REGION)
+    recorded = frozenset({(TARGET, REOPENED)})
+    row = ruled_evidence(second, at=LATER)
+    assert scores(build(row, [first, second], attempts, reopened=recorded)) == [53.0]
+    assert build(row, [first, second], attempts) == ()                      # not recorded
+    assert build(row, [second], attempts, reopened=recorded) == ()          # extends no ruling
+    same_epoch = f"{EPOCH}:reopen:{REGION}"
+    same = attempt(same_epoch, values=(53.0, 52.0), at=LATER, region=REGION)
     back = ruling(same, value=53.0, ruled_at="2026-10-13")
-    assert build(ruled_evidence(back, at=later), [first, back],
-                 [split_attempt, same]) == ()                                  # no change
+    assert build(ruled_evidence(back, at=LATER), [first, back], [split_attempt, same],
+                 reopened={(TARGET, same_epoch)}) == ()                     # no change
     # Meanwhile the first ruling still stands: a split in its reopened epoch supersedes nothing.
-    assert scores(build(ruled_evidence(first), [first], attempts)) == [49.0]
+    assert scores(build(ruled_evidence(first), [first], attempts, reopened=recorded)) == [49.0]
 
 
 def test_the_build_and_the_filer_decide_with_one_helper():
     split_attempt = attempt()
     line = ruling(split_attempt)
     row = ruled_evidence(line)
-    sources = {"src-cite": BOARD}
+    assert problem(row, [line], [split_attempt]) is None
     assert board_ruling.row_problem(row, MID, rulings=[line], attempts=[split_attempt],
-                                    sources=sources, max_score=100) is None
-    assert board_ruling.row_problem(row, MID, rulings=[line], attempts=[split_attempt],
-                                    sources=sources, max_score=40)[0] == "value_invalid"
-    assert board_ruling.row_problem(row, MID, rulings=[line], attempts=[split_attempt],
-                                    sources=sources, held=[object()])[0] == "quarantined"
+                                    sources={"src-cite": BOARD}, max_score=40,
+                                    registry=registry())[0] == "value_invalid"
+    assert problem(row, [line], [split_attempt], held=[object()])[0] == "quarantined"
 
 
-def test_the_site_withholds_a_ruled_row_that_does_not_stand(split_row, own, monkeypatch):
+def test_the_site_withholds_a_ruled_row_that_does_not_stand(split_row, own):
     from decision.owner_ruling import read_ruling_inputs
     from pipeline.load import _ruled_row_withheld
 
@@ -509,3 +671,8 @@ def test_the_site_withholds_a_ruled_row_that_does_not_stand(split_row, own, monk
     assert not _ruled_row_withheld(split_row.root, row, SUBJECT, inputs, sources, None, None)
     forged = {**row, "score": 60.0}
     assert _ruled_row_withheld(split_row.root, forged, SUBJECT, inputs, sources, None, None)
+    split_row.row.update(row)
+    split_row.bench["owner_id"] = "someone-else"
+    split_row.write()
+    assert card_row(split_row)["derivation"]["owner_ruling"]
+    assert _ruled_row_withheld(split_row.root, row, SUBJECT, inputs, sources, None, None)

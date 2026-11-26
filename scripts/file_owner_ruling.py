@@ -456,8 +456,10 @@ def plan_board(*, data_dir: Path, subject: str, facet: str, reading: Any, value:
         CitedChange,
         _check_board_source,
         _reading_held,
+        board_registry,
         reading_lookup,
     )
+    from decision.ruling_reread import Records
     from scripts import refresh_leaderboards as refresh
     from scripts.model_143_evidence import evidence_key
 
@@ -522,9 +524,13 @@ def plan_board(*, data_dir: Path, subject: str, facet: str, reading: Any, value:
         raise Refused("duplicate_ruling", f"{len(same_key)} ruling(s) are filed for this "
                       "reading and epoch already")
     lines = filed if resuming else [*filed, ruling]
+    try:
+        reopened = frozenset(Records.read(root).reopened)
+    except ValueError:
+        raise Refused("malformed", "the ruled-reopenings record does not parse") from None
     problem = epoch_problem(ruling, row=found.row, subject=subject, rulings=lines,
                             attempts=attempts, sources=urls, max_score=max_score,
-                            today=now.date()) \
+                            today=now.date(), reopened=reopened) \
         or stale_problem(ruling, row=found.row, subject=subject, attempts=attempts)
     if problem is not None:
         raise Refused(*problem)
@@ -541,7 +547,7 @@ def plan_board(*, data_dir: Path, subject: str, facet: str, reading: Any, value:
             new = refresh.rewritten_card_text(card, text, [(evidence_key(found.row), row)])
         except ValueError as error:
             raise Refused("registry_lookup_failed", "the card's row cannot be rewritten: "
-                          f"{type(error).__name__}: {str(error)[:200]}") from None
+                          f"{type(error).__name__}") from None
         result.new_text = new.encode("utf-8")
         written = _row_in(new, reading, benchmark_id)
     else:
@@ -550,7 +556,8 @@ def plan_board(*, data_dir: Path, subject: str, facet: str, reading: Any, value:
         raise Refused("duplicate_ruling", "this ruling is filed and applied already")
     if written is None or row_problem(_plain(written), subject, rulings=lines, attempts=attempts,
                                       sources=urls, max_score=max_score, held=held,
-                                      today=now.date()) is not None:
+                                      today=now.date(), registry=board_registry(found),
+                                      reopened=reopened) is not None:
         raise Refused("malformed", "the row as planned would not stand on its ruling")
     return result
 

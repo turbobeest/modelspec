@@ -341,7 +341,7 @@ def _ruled_row_withheld(root: Path, row: dict[str, Any], model_id: str, rulings:
                         sources: dict[str, str], store: Any, as_of: date | None) -> bool:
     """Whether a board row that claims an owner ruling is withheld (MODEL-569): the snapshot's
     test (``decision.board_ruling.row_refused``), with the verdicts ``reading_held`` finds."""
-    from decision.board_ruling import row_refused
+    from decision.board_ruling import BoardRegistry, row_refused
     from decision.citation import fact_citation
     from decision.quarantine_clearing import (
         QUEUE_FILE,
@@ -360,6 +360,7 @@ def _ruled_row_withheld(root: Path, row: dict[str, Any], model_id: str, rulings:
                                                            model_id=model_id) if key[1] != own}
         history = queue_history(root / QUEUE_FILE, earlier) if earlier else {}
         held = reading_held(rulings.verdicts, row, model_id=model_id, history=history)
+        registry = BoardRegistry.read(root)
         page = root / "benchmarks" / f"{row.get('benchmark_id')}.md"
         metric = {}
         if page.is_file():
@@ -369,7 +370,8 @@ def _ruled_row_withheld(root: Path, row: dict[str, Any], model_id: str, rulings:
         return True
     return row_refused(row, model_id, cited=citation is not None, rulings=rulings.rulings,
                        attempts=rulings.attempts, sources=sources,
-                       max_score=metric.get("max_score"), held=held, as_of=as_of)
+                       max_score=metric.get("max_score"), held=held, as_of=as_of,
+                       registry=registry, reopened=rulings.reopened)
 
 
 def load_benchmarks(root: Path | None = None) -> list[Benchmark]:
