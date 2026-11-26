@@ -27,6 +27,7 @@ import math
 import os
 import re
 import tempfile
+import unicodedata
 import urllib.parse
 import urllib.request
 import zipfile
@@ -2579,7 +2580,7 @@ def first_row_fold(name: str) -> str:
     "Instruct" and dates stay in the key. Unlike ``slug`` it keeps a letter outside
     ASCII: "Foo β" folds to ``foo-β``, never to ``foo``.
     """
-    text = (name or "").lower().strip()
+    text = unicodedata.normalize("NFKC", name or "").lower().strip()
     if "/" in text and "://" not in text:
         text = text.rsplit("/", 1)[-1]
     text = text.replace("+", " plus ").replace(".", " ")
@@ -2587,9 +2588,15 @@ def first_row_fold(name: str) -> str:
 
 
 def _folds_outside_ascii(name: str) -> bool:
-    """True when the name has a letter or digit outside ASCII, which the verifier's
-    name matcher (``normalise_name``) would drop."""
-    return any(not char.isascii() and char.isalnum() for char in name or "")
+    """True when the name, after NFKC normalisation, has a combining mark or a letter
+    or digit outside ASCII, which the verifier's name matcher (``normalise_name``)
+    would drop. A decomposed "Foó" (``o`` and U+0301) composes to "ó" and is caught,
+    and so is a combining mark with no composed form."""
+    text = unicodedata.normalize("NFKC", name or "")
+    return any(
+        unicodedata.combining(char) or (not char.isascii() and char.isalnum())
+        for char in text
+    )
 
 
 def _date_tokens(key: str) -> set[str]:

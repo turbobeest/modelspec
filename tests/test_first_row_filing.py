@@ -519,6 +519,34 @@ def test_a_letter_outside_ascii_is_never_folded_away(monkeypatch, tmp_path: Path
     assert names == ("foo-beta",)
 
 
+def test_a_decomposed_or_combining_name_never_routes_to_the_plain_card(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    decomposed = "Fo" + "o\u0301"       # "Foó" as o + COMBINING ACUTE ACCENT
+    underlined = "Foo\u0332"            # a combining mark with no composed form
+    assert refresh._folds_outside_ascii(decomposed)
+    assert refresh._folds_outside_ascii(underlined)
+    assert refresh._folds_outside_ascii("Fo\u00f3")  # precomposed
+    assert not refresh._folds_outside_ascii("\uff26\uff4f\uff4f")  # fullwidth: NFKC is "Foo"
+    assert refresh.first_row_fold(decomposed) != refresh.first_row_fold("Foo")
+    root = _repo(tmp_path)
+    plain = _card(root, "foo", "Foo")
+
+    report = _run(monkeypatch, tmp_path, root, [
+        _dataset_row(decomposed, 1200.0), _dataset_row(underlined, 1190.0),
+    ])
+
+    assert _rows(plain) == []
+    reason = "the board name has letters outside ASCII the matcher would drop"
+    assert {entry.board_name: entry.reason for entry in report.first_rows_refused} == {
+        decomposed: reason, underlined: reason}
+    board = _board(tmp_path, [])
+    names = refresh._claim("lab/foo", {"display_name": decomposed}, {
+        "id": "x", "benchmark_id": "arena_elo_overall", "score": 1.0}, board,
+        card_identity=True).names
+    assert names == ("foo",)
+
+
 def test_an_effort_word_in_a_cards_own_name_is_identity(monkeypatch, tmp_path: Path) -> None:
     """MODEL-568's ``verify.effort_word_is_name`` decides: "Qwen3 Max" and "Mistral
     Medium" are models, and the verifier (reading the card's registered names) owns them."""
