@@ -1,6 +1,6 @@
 # The ModelSpec CLI contract
 
-MODEL-307. `modelspec-dev` 1.0.0 is a thin keyed client for the hosted API.
+MODEL-307. `modelspec-dev` 1.1.0 is a thin keyed client for the hosted API.
 The command is `modelspec`. Version 0.2.0 was yanked. Release publication is
 an operator step after review; this repository does not publish to PyPI.
 
@@ -184,7 +184,7 @@ shows lifecycle and explicit unknown values, labels absent response records
 "not shown", keeps evidence with different measurement conditions on separate
 rows, and lists source URLs and omitted record counts.
 JSON output preserves the server body unchanged. This form is present in the
-repository; its package metadata is 1.0.0. Release publication requires operator
+repository; its package metadata is 1.1.0. Release publication requires operator
 review and is not established by the repository version.
 
 The snapshot form of `compare` requires exactly one of `--spec` and
@@ -364,6 +364,16 @@ error contract stays at 2.0. The decision API contract is unchanged. The
 server already returned this representation when a request set `fields`.
 
 ## Release notes
+
+### 1.1.0
+
+A minor release: new router-config output from `decide`, and hardening. The CLI error contract stays at 2.0, and no default output shape changes.
+
+- `modelspec decide --emit-router-config litellm|openrouter|json` returns the best band as a router configuration rendered by the service. `--out PATH` writes it to a file; `--json` needs `--out`. `--include-rest` adds the other models that passed every Must, and `--include-thin` adds models with too little evidence yet, labelled thin (MODEL-381, #738).
+- `modelspec compare` labels a cited benchmark score "Cited, not machine-verified" in human output (MODEL-437, #889).
+- `modelspec setup mcp --write` shows only the ModelSpec server entry in its review diff, with credential values masked (MODEL-458, #1009).
+- Output and credential handling are hardened, and a request over the 64 KB limit is refused before it is sent (MODEL-458, #1009).
+- The agent bundle carries the revised description (MODEL-470, #1054), the free board link `https://modelspec.dev/decide/details/` (MODEL-404, #814), catalogue counts labelled as the frozen public catalogue (MODEL-397, #766), and the router-config help and messages.
 
 ### 1.0.0
 
