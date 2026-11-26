@@ -243,12 +243,21 @@ def test_live_http_adapter_hashes_cite_only_and_blocks_cross_party_redirects():
     assert seen == ["https://docs.x.ai/docs/models", "https://docs.x.ai/redirect"]
 
 
-def test_chromium_refuses_redirect_before_restricted_response(monkeypatch):
+def test_chromium_refuses_redirect_before_restricted_response(monkeypatch, tmp_path):
     pytest.importorskip("playwright.sync_api")
+    import json
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
     from threading import Thread
 
+    from decision.retention import cite_only_hosts
     from scripts import offering_fetch
+
+    # The rendered path fetches nothing without a terms register (MODEL-565).
+    (tmp_path / "registry").mkdir()
+    (tmp_path / "registry" / "source-terms.json").write_text(json.dumps({"127.0.0.1": "permits"}))
+    (tmp_path / "registry" / "sources.yaml").write_text('{"schema_version": 1, "sources": []}')
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))
+    cite_only_hosts.cache_clear()
 
     seen = []
 
