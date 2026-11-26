@@ -2385,13 +2385,13 @@ def _dispatch_run(workflow: str, job: str) -> str:
     ("release-signals-gate.yml", "pending"), ("release-watch.yml", "dispatch"),
 ])
 @pytest.mark.parametrize("state,dispatched", [
-    ("active", True), ("disabled_manually", False), ("disabled_inactivity", False), ("", False),
+    ("active", True), ("disabled_manually", False), ("disabled_inactivity", False),
 ])
-def test_dispatch_skips_with_a_notice_while_the_target_is_not_active(
+def test_dispatch_skips_with_a_notice_while_the_target_is_disabled(
     tmp_path, workflow, job, state, dispatched,
 ):
     """MODEL-572: a disabled target refuses the dispatch with HTTP 422, so the step
-    reads the target's state first and exits 0 with a notice while it is not active."""
+    reads the target's state first and exits 0 with a generic notice while it is disabled."""
     import os
     import subprocess
 
@@ -2408,7 +2408,30 @@ def test_dispatch_skips_with_a_notice_while_the_target_is_not_active(
                         "release-signals.yml -q .state")
     run = "workflow run release-signals.yml --repo turbobeest/modelspec-data --ref main"
     assert (run in calls) is dispatched
-    assert ("::notice::" in result.stdout) is (not dispatched)
+    assert ("::notice::target workflow not active; dispatch skipped" in result.stdout) is (
+        not dispatched)
+    assert "release-signals" not in result.stdout
+
+
+@pytest.mark.parametrize("workflow,job", [
+    ("release-signals-gate.yml", "pending"), ("release-watch.yml", "dispatch"),
+])
+@pytest.mark.parametrize("state", ["", "deleted", "Active", "disabled_fork"])
+def test_dispatch_fails_on_an_empty_or_unrecognised_state(tmp_path, workflow, job, state):
+    """Only the two GitHub disabled states skip; anything but ``active`` otherwise fails."""
+    import os
+    import subprocess
+
+    stub = (f'gh() {{ printf "%s\\n" "$*" >> calls; '
+            f'if [ "$1" = api ]; then printf "%s\\n" "{state}"; fi; }}\n')
+    result = subprocess.run(
+        ["bash", "-e", "-c", stub + _dispatch_run(workflow, job)],
+        cwd=tmp_path, capture_output=True, text=True,
+        env=os.environ | {"GH_TOKEN": "offline-fixture"},
+    )
+    assert result.returncode == 1
+    assert "::error::" in result.stdout
+    assert "workflow run" not in (tmp_path / "calls").read_text()
 
 
 @pytest.mark.parametrize("workflow,job", [
