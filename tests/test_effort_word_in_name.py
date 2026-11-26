@@ -32,9 +32,10 @@ _COLLECTOR = VerificationActor(agent="fixture-collector", model_family="fixture"
 
 
 def _claim(names: tuple[str, ...], effort: str | None = None, value: float = 1200.0,
-           registered: tuple[str, ...] | None = None):
+           registered: tuple[str, ...] | None = None, legacy: bool = False):
+    """``registered`` defaults to ``names``; ``legacy`` is a queue line without them."""
     return verify.Claim(
-        registered_names=registered,
+        registered_names=None if legacy else (names if registered is None else registered),
         target=TargetRef(kind="evidence", id="lab/fixture#arena_elo_overall#x"),
         subject="lab/fixture",
         names=names,
@@ -302,6 +303,18 @@ def test_registered_names_survive_the_queue() -> None:
     """The refresh verifies claims through the queue: the card's own names go with them."""
     claim = _claim(("Foo Max", "Foo v2"), registered=("Foo v2", "foo-v2"))
     assert verify.Claim.from_dict(claim.to_dict()) == claim
-    legacy = _claim(("Foo v2",))
+    legacy = _claim(("Foo v2",), legacy=True)
     assert "registered_names" not in legacy.to_dict()
     assert verify.Claim.from_dict(legacy.to_dict()).registered_names is None
+
+
+def test_a_legacy_claim_keeps_the_old_effort_reading() -> None:
+    """A queued claim without ``registered_names`` reads as before MODEL-568: its
+    ``names`` hold the board label, so they never decide the name test."""
+    region = _region(("Foo Max", 1200.0))
+    legacy = verify.Claim.from_dict(
+        _claim(("Foo Max", "Foo v2"), effort="max", legacy=True).to_dict())
+    assert legacy.registered_names is None
+    assert _compare(legacy, region) == []
+    diffs = _compare(_claim(("Foo Max", "Foo v2"), legacy=True), region)
+    assert [(d.field, d.found) for d in diffs] == [("effort", "max")]

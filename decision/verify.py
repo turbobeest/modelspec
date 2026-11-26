@@ -173,7 +173,7 @@ class Claim:
     state: str | None = None
     #: The card's own registered names and aliases, for the effort-word test
     #: (``effort_word_is_name``, MODEL-568). Never the board label being read.
-    #: ``None`` means ``names`` are all the card's own.
+    #: ``None`` (a legacy queue line) keeps the old effort reading.
     registered_names: tuple[str, ...] | None = None
 
     def __post_init__(self) -> None:
@@ -4959,9 +4959,9 @@ class StructuredDataExtractor:
                 continue
             effort = normal.get("reasoning effort") or normal.get("effort")
             if effort is None:
-                effort = structured_name_effort(
-                    str(subject),
-                    claim.names if claim.registered_names is None else claim.registered_names)
+                # Only the card's own names decide; a claim without them (a legacy
+                # queue line) reads the subject exactly as before MODEL-568.
+                effort = structured_name_effort(str(subject), claim.registered_names or ())
             date_ = next((normal.get(key) for key in (
                 "date", "leaderboard publish date", "started at", "snapshot read date",
                 "release date",
