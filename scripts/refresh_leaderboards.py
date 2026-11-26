@@ -233,6 +233,8 @@ class RowObservation:
     reading_name: str | None = None
     #: The card stored an Arena float with more than two decimals that rounds to this reading.
     score_repair: bool = False
+    #: The effort word that ends the stored name is part of the card's name (MODEL-568).
+    name_word: bool = False
 
     @property
     def changed(self) -> bool:
@@ -1126,7 +1128,8 @@ def _copy_matched_reading(
             new["configuration"] = _retell_read_day(old["configuration"], _iso_day(observed_at))
         return new, None
     stored_effort = old.get("effort")
-    named_effort = _verifier_named_effort(old.get("model_id_as_evaluated"))
+    named_effort = None if observation.name_word \
+        else _verifier_named_effort(old.get("model_id_as_evaluated"))
     # Null effort may become the level the stored name already spells.
     # A stored effort stays. The dry run refuses a level the dataset does not show.
     if stored_effort in (None, "") and observation.reading_effort:
@@ -1188,8 +1191,12 @@ def _plan_observations(
     *,
     revision: str = "",
     tracked: Sequence[TrackedRow] | None = None,
+    front: Mapping[str, Any] | None = None,
 ) -> tuple[list[RowObservation], list[RowFailure], list[PublicationMark]]:
     """Plan observations of existing rows; never add one.
+
+    ``front`` is the card's front matter. With it, an effort word that is part of
+    the card's own name ("Mistral Medium") is not read as an effort (MODEL-568).
 
     An empty cell is a publication mark only when this same read passes
     ``_empty_cell_refusal``. ``tracked`` is every card row planned for this board
@@ -1213,9 +1220,10 @@ def _plan_observations(
         pinned: Mapping[str, Any] | None = None
         exact_pick: Mapping[str, Any] | None = None
         renamed_to: str | None = None
+        name_word = _effort_word_is_card_name(stored_name, model_id, front)
         if arena_board:
             hits = _normalised_name_hits(board, stored_name)
-            spelled_effort = _effort_spelled_by_stored_name(stored_name)
+            spelled_effort = None if name_word else _effort_spelled_by_stored_name(stored_name)
             if not hits:
                 alias_row = _renamed_arena_row(board, stored_name)
                 if alias_row is not None:
@@ -1295,9 +1303,10 @@ def _plan_observations(
             match = _match(board, evidence)
         if pinned is None and arena_board and len(hits) == 1 and match is hits[0]:
             subject = _subject(hits[0])
-            dataset_effort = _canonical_structured_effort(subject)
+            dataset_effort = None if name_word else _canonical_structured_effort(subject)
             card_effort = evidence.get("effort")
-            spelled_match = _parenthetical_effort_for_stored_name(stored_name, subject)
+            spelled_match = None if name_word \
+                else _parenthetical_effort_for_stored_name(stored_name, subject)
             if dataset_effort and spelled_match is None:
                 failures.append(RowFailure(
                     model_id, str(evidence.get("benchmark_id")), board.source_url,
@@ -1317,7 +1326,8 @@ def _plan_observations(
             if card_effort in (None, "") and spelled_match:
                 adopted = spelled_match
         elif pinned is None and arena_board and not hits and match is not None:
-            found = _canonical_structured_effort(_subject(match))
+            found = None if _effort_word_is_card_name(_subject(match), model_id, front) \
+                else _canonical_structured_effort(_subject(match))
             if found and spelled_effort != found:
                 failures.append(RowFailure(
                     model_id, str(evidence.get("benchmark_id")), board.source_url,
@@ -1387,6 +1397,7 @@ def _plan_observations(
             reading_rank=_matched_rank(match) if arena_board else None,
             reading_name=renamed_to,
             score_repair=score_repair,
+            name_word=name_word,
         ))
         if not arena_board and _publication_marked(evidence):
             marks.append(PublicationMark(
@@ -1602,6 +1613,8 @@ def _claim(model_id: str, front: Mapping[str, Any], row: Mapping[str, Any],
         target=TargetRef(kind="evidence", id=str(row["id"])),
         subject=model_id,
         names=names,
+        # The effort-word test reads the card's own names, never the board label.
+        registered_names=_card_names(front, model_id),
         field=str(row["benchmark_id"]),
         label=board.value_field,
         # The value the snapshot checks: with interval, n or quality flags, all of them.
@@ -1691,8 +1704,9 @@ def _stored_efforts(front: Mapping[str, Any], board: BoardReading) -> set[str]:
         if row.get("benchmark_id") != board.effort_basis \
                 or urllib.parse.urlparse(str(row.get("source_url") or "")).netloc != host:
             continue
+        name = str(row.get("model_id_as_evaluated") or "")
         effort = row.get("effort") or readers.structured_name_effort(
-            str(row.get("model_id_as_evaluated") or ""))
+            name, _card_names(front))
         if effort:
             efforts.add(str(effort).casefold())
     return efforts
@@ -2373,6 +2387,7 @@ def _refresh_arena_boards(
                     models_read.add(model_id)
             observations, failures, _marks = _plan_observations(
                 model_id, path.relative_to(root).as_posix(), relevant, board, revision=revision,
+                front=fronts[model_id],
             )
             for failure in failures:
                 skips.append((failure.model_id, failure.benchmark, failure.reason, (), ""))
@@ -2586,15 +2601,27 @@ def _effort_variant_card(model_id: str, front: Mapping[str, Any]) -> bool:
     """True when the card's own display name or model id ends in an effort label.
 
     The labels are ``_NAME_EFFORT``'s ("xhigh", "max", ...). "Thinking" and "Instruct"
-    are identity, not effort: a card named for them is its own base.
+    are identity, not effort: a card named for them is its own base. A plain last word
+    that ``verify.effort_word_is_name`` finds part of the card's own registered names
+    (``_card_names``) is identity too: "Qwen3 Max" and "Mistral Medium" are models
+    (MODEL-568). A parenthesised label, "(xHigh)", is always an effort, and so is a
+    word whose stem is itself one of the card's names ("Bar xHigh" on ``lab/bar``).
+    The model id's last word counts only where it is not the display name's own.
     """
     display = str(front.get("display_name") or "")
     if _name_effort(display) is not None:
         return True
-    return any(
-        (first_row_fold(name).rsplit("-", 1)[-1] or "") in _NAME_EFFORT
-        for name in (display, model_id)
-    )
+    names = _card_names(front, model_id)
+
+    def ends_in_label(name: str) -> bool:
+        return (first_row_fold(name).rsplit("-", 1)[-1] or "") in _NAME_EFFORT
+
+    if ends_in_label(display) and not verify.effort_word_is_name(display, names):
+        return True
+    stem = model_id.rsplit("/", 1)[-1]
+    if first_row_fold(stem) == first_row_fold(display):
+        return False  # the id spells the display name: the display decided it
+    return ends_in_label(stem)
 
 
 def first_row_index(fronts: Mapping[str, Mapping[str, Any]]) -> dict[str, set[str]]:
@@ -2659,8 +2686,9 @@ def first_row_match(
     never read as its base card at that effort; with a base card too the name is
     ambiguous, and either way it is refused. Otherwise the name is matched on its base
     name, and ``effort`` is the label; the row lands on that base card at that effort
-    or nowhere. A card whose own name ends in an effort label is refused on every
-    path for now (MODEL-568 decides when such a word is identity).
+    or nowhere. A card whose own name ends in an effort label is a variant and is
+    refused on every path, unless ``verify.effort_word_is_name`` finds the word part of
+    the card's own registered names ("Qwen3 Max" is its own card, MODEL-568).
     A name with a letter outside ASCII is refused: the verifier would drop it.
 
     A card whose display name, ``version`` or model id carries a date or snapshot
@@ -2697,9 +2725,8 @@ def first_row_match(
         return None, key, f"{len(hits)} cards share this name", "", effort
     model_id = nearest
     front = fronts[model_id]
-    # A card whose own name ends in an effort label takes no row on this path yet.
-    # Whether such a word is identity ("Qwen3 Max") is MODEL-568's
-    # ``verify.effort_word_is_name``; the matcher will call it once that lands.
+    # A card whose own name ends in an effort label is a variant, unless MODEL-568's
+    # ``verify.effort_word_is_name`` finds the word part of its own names ("Qwen3 Max").
     if _effort_variant_card(model_id, front):
         return None, key, _FIRST_ROW_VARIANT_CARD, model_id, effort
     stamps = set().union(*(
@@ -3089,7 +3116,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                         models_read.add(model_id)
                 observations, failures, marks = _plan_observations(
                     model_id, path.relative_to(root).as_posix(), relevant, board,
-                    revision=effective, tracked=tracked,
+                    revision=effective, tracked=tracked, front=fronts[model_id],
                 )
                 report.failures.extend(failures)
                 summary["failures"].extend(failure.reason for failure in failures)
@@ -4016,6 +4043,27 @@ def _changed_figures_are_the_reading(
         if new not in allowed:
             return False
     return True
+
+
+def _card_names(front: Mapping[str, Any], model_id: str | None = None) -> tuple[str, ...]:
+    """The card's own names: display name, version and model ID stem."""
+    model_id = model_id or str(front.get("model_id") or "")
+    return tuple(dict.fromkeys(filter(None, (
+        front.get("display_name"), front.get("version"),
+        model_id.rsplit("/", 1)[-1] if model_id else None,
+    ))))
+
+
+def _effort_word_is_card_name(name: str, model_id: str, front: Mapping[str, Any] | None) -> bool:
+    """True when the effort word ending ``name`` is part of the card's name (MODEL-568).
+
+    The test is the verifier's (``verify.effort_word_is_name``) over the card's
+    own names, never the label being read, so the writer and the verifier agree.
+    With no front matter nothing is decided here and the old reading stands.
+    """
+    if front is None:
+        return False
+    return verify.effort_word_is_name(name, _card_names(front, model_id))
 
 
 def _verifier_named_effort(model_id_as_evaluated: object) -> str | None:

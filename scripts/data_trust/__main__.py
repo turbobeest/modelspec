@@ -67,7 +67,12 @@ def _audit(args, seed) -> int:
         except Exception as error:  # a count must never stop the audit
             line = {"unavailable": f"{type(error).__name__}: {error}"}
         sampled = (
-            sample.run(c, registry, n=args.n, seed=seed, as_of=args.date)
+            sample.run(
+                c, registry, n=args.n, seed=seed, as_of=args.date,
+                final_hosts=(args.output_dir or args.data_dir / "reports/data-trust")
+                / sample.FINAL_HOSTS_FILE,
+                write=args.output_dir is not None,
+            )
             if args.command != "data"
             else {
                 "requested": 0,

@@ -519,19 +519,43 @@ def test_a_letter_outside_ascii_is_never_folded_away(monkeypatch, tmp_path: Path
     assert names == ("foo-beta",)
 
 
-def test_a_card_named_with_an_effort_word_takes_no_row_until_model_568(
-    monkeypatch, tmp_path: Path,
-) -> None:
-    """Whether "Max" in "Qwen3 Max" is identity is MODEL-568's helper; until the matcher
-    calls it, such a card is refused as a variant, never filed at an effort."""
+def test_an_effort_word_in_a_cards_own_name_is_identity(monkeypatch, tmp_path: Path) -> None:
+    """MODEL-568's ``verify.effort_word_is_name`` decides: "Qwen3 Max" and "Mistral
+    Medium" are models, and the verifier (reading the card's registered names) owns them."""
     root = _repo(tmp_path)
     qwen = _card(root, "qwen3-max", "Qwen3 Max", lab="qwen")
+    mistral = _card(root, "mistral-medium-latest", "Mistral Medium", lab="mistral")
 
-    report = _run(monkeypatch, tmp_path, root, [_dataset_row("Qwen3 Max", 1200.0)])
+    report = _run(monkeypatch, tmp_path, root, [
+        _dataset_row("Qwen3 Max", 1200.0), _dataset_row("Mistral Medium", 1190.0),
+    ])
 
-    assert _rows(qwen) == []
-    assert _refusals(report)["Qwen3 Max"] == (
-        "qwen/qwen3-max", "the card is itself an effort variant, not a base card")
+    assert report.first_rows_refused == [], report.first_rows_refused
+    assert report.quarantined == [], report.quarantined
+    for card, name in ((qwen, "Qwen3 Max"), (mistral, "Mistral Medium")):
+        [row] = _rows(card)
+        assert (row["model_id_as_evaluated"], row.get("effort")) == (name, None)
+    log = [json.loads(line) for line in
+           (root / "verification" / "log.jsonl").read_text().splitlines()]
+    assert {line["outcome"] for line in log} == {"verified"}
+
+
+def test_a_real_effort_label_on_a_card_name_is_still_a_variant(monkeypatch, tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    # "Bar" is this card's own id stem, so "xHigh" after it is an effort, not a name.
+    bar = _card(root, "bar", "Bar xHigh")
+    # The id's "-max" is not the display name's word: a variant by its id.
+    baz = _card(root, "baz-max", "Baz")
+
+    report = _run(monkeypatch, tmp_path, root, [
+        _dataset_row("Bar xHigh", 1200.0), _dataset_row("Baz", 1190.0),
+    ])
+
+    assert _rows(bar) == [] and _rows(baz) == []
+    variant = "the card is itself an effort variant, not a base card"
+    refused = _refusals(report)
+    assert refused["Bar xHigh"] == ("lab/bar", variant)
+    assert refused["Baz"] == ("lab/baz-max", variant)
 
 
 def test_a_sole_dated_snapshot_card_never_takes_a_base_row(monkeypatch, tmp_path: Path) -> None:

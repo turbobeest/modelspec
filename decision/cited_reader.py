@@ -208,13 +208,17 @@ def log_attempt(entry: dict, *, data_dir: str | Path | None = None) -> None:
 def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_bytes: bytes,
               readers: Sequence[Reader], epoch: str = "initial",
               data_dir: str | Path | None = None,
-              definition: str | None = None) -> list[ReaderAnswer]:
+              definition: str | None = None,
+              region_sha256: str | None = None,
+              board_region_sha256: str | None = None) -> list[ReaderAnswer]:
     """Ask each reader the same prompt; record the hash of what was sent and the manifest.
 
     Every attempt, complete or not, is appended to the attempt log (``ATTEMPTS_FILE``)
     keyed by subject, facet and epoch (across every page), with both raw values, the readers' ids,
     families and versions, the prompt and page sha256 and the time. ``cited_change``
-    refuses when any counted attempt for its key disagreed.
+    refuses when any counted attempt for its key disagreed. A board reading also logs its row's
+    board region (``board_region_sha256``, MODEL-555), so a later read can show whether the
+    board it read has changed.
     """
     prompt = build_prompt(url=url, facet_id=facet_id, subject_name=subject_name,
                           page_bytes=page_bytes, definition=definition)
@@ -227,6 +231,13 @@ def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_
              "at": datetime.now(UTC).replace(microsecond=0).isoformat(), "complete": False,
              "harness": True,
              "agreed": None, "readers": []}
+    if region_sha256 is not None:
+        # MODEL-562: the hash of the source's cited regions on this page, so a ruling on this
+        # attempt names its ruled region (``decision.ruling_reread.resolved_region``).
+        entry["region_sha256"] = region_sha256
+    if board_region_sha256 is not None:
+        # MODEL-555: the row's board region (``cited_change.row_region_sha256``), its own field.
+        entry["board_region_sha256"] = board_region_sha256
     try:
         for reader in readers:
             try:
