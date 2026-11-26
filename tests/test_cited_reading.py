@@ -1,5 +1,6 @@
 """A cite-only board reading is changed by two readers of different families (rule 15, readings)."""
 
+import inspect
 import json
 import socket
 from datetime import UTC, datetime, timedelta
@@ -7,12 +8,14 @@ from pathlib import Path
 
 import pytest
 import yaml
-
-import inspect
-
 from decision import cited_change as gate
 from decision.cited_change import (
-    ABSENCE_GAP, REFUSALS, cited_change_readings, cited_reading, pending_absences, reading_epoch,
+    ABSENCE_GAP,
+    REFUSALS,
+    cited_change_readings,
+    cited_reading,
+    pending_absences,
+    reading_epoch,
 )
 from decision.cited_reader import ATTEMPTS_FILE, Reader, attempts
 
@@ -459,7 +462,12 @@ ROW_ID = f"{SUBJECT}#{BENCH}#aaaaaaaaaaaa"
 
 
 def plant(data, eid, outcome="mismatch", *, value=46.6, day="2026-10-14", escaped=False,
-          families=("family-a", "family-b")):
+          families=("family-a", "family-b"), reading=None, source="board"):
+    """A verdict in the log and, in the queue, the claim it checked and its check: by default a
+    claim for this test's reading (its settings and source), as the queue shows which reading a
+    verdict on an earlier id was on (MODEL-552 follow-up)."""
+    from datetime import timedelta
+
     from tests.snapshot_records import verification
 
     row = verification("evidence", eid, outcome, day=day, value=value)
@@ -469,6 +477,22 @@ def plant(data, eid, outcome="mismatch", *, value=46.6, day="2026-10-14", escape
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a") as fh:
         fh.write((line.replace("/", "\\/") if escaped else line) + "\n")
+    settings = reading or READING
+    target = {"kind": "evidence", "id": eid}
+    when = datetime.fromisoformat(f"{day}T21:00:00+00:00")
+    claim = {"target": target, "value": value, "field": BENCH, "subject": SUBJECT,
+             "names": [settings["model_id_as_evaluated"]],
+             "conditions": {"date": day, "effort": settings["effort"],
+                            "harness": settings["harness"]},
+             "sources": [{"source_id": source}],
+             "collector": {"agent": "collector-a", "model_family": "family-a", "method": "read"}}
+    queue = data.root / "verification/queue/events.jsonl"
+    queue.parent.mkdir(parents=True, exist_ok=True)
+    with queue.open("a") as fh:
+        fh.write(json.dumps({"event": "collected", "claim": claim,
+                             "at": (when - timedelta(days=1)).isoformat()}) + "\n")
+        fh.write(json.dumps({"event": "checked", "target": target, "outcome": outcome,
+                             "at": when.isoformat()}) + "\n")
 
 
 def files(data):
@@ -523,16 +547,16 @@ def test_a_verdict_under_the_cards_model_id_holds_the_reading(data):
     quarantined(data)
 
 
-def test_a_sibling_rows_verdict_holds_the_reading_too(data):
-    """MODEL-552 review: no row of the benchmark takes a verdict over. A verdict on any id of the
-    subject and benchmark holds every row of it until a clearing releases that exact verdict."""
+def test_another_readings_verdict_does_not_hold_this_one(data):
+    """MODEL-552 follow-up: a verdict holds a row through the row's own id, or an earlier id its
+    queue claim shows was the same reading. Another setting's verdict is that reading's."""
     sibling = dict(data.row, id=f"{SUBJECT}#{BENCH}#bbbbbbbbbbbb", effort="low",
                    model_id_as_evaluated="Orbit 9 (low)")
     card = yaml.safe_dump({"display_name": "Orbit 9", "benchmarks": {"scores": {}, "evidence": [
         dict(data.row, id=ROW_ID), sibling]}}, sort_keys=False)
     (data.root / "models/acme/orbit-9.md").write_text(f"---\n{card}---\n")
-    plant(data, sibling["id"])
-    quarantined(data)
+    plant(data, sibling["id"], reading={k: sibling[k] for k in READING})
+    assert run().changed  # the other setting's mismatch does not hold this reading
 
 
 def test_a_cleared_reading_still_files_but_a_same_family_verified_does_not_clear(data):
@@ -561,16 +585,28 @@ def test_the_snapshot_still_excludes_a_quarantined_reading_the_gate_refused():
 
     from decision.model import evidence_verification_value
     from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+
     from tests.snapshot_records import SOURCES, evidence, model, verification
 
     url = "https://www.perplexity.ai/pro"
 
-    def readings(score, eid, log):
+    def trail(eid, *, source="src-cite", day="2026-10-14"):
+        """The verdict's queue trail: the claim it checked (this reading, from ``source``)."""
+        target = {"kind": "evidence", "id": eid}
+        claim = {"target": target, "value": 46.6, "field": "bench_x", "names": ["lab/alpha"],
+                 "conditions": {"date": day, "effort": None, "harness": None},
+                 "sources": [{"source_id": source}]}
+        return {eid: [{"event": "collected", "at": "2026-10-13T09:00:00+00:00", "claim": claim},
+                      {"event": "checked", "at": f"{day}T21:00:00+00:00", "target": target,
+                       "outcome": "mismatch"}]}
+
+    def readings(score, eid, log, history=None, *, check=False):
         row = evidence("lab/alpha", "bench_x", score, eid=eid, outcome=None, source="src-cite",
                        source_url=url)
         built = build_snapshot(SnapshotInputs(
             models=[model("lab/alpha")], evidence=[row], sources={**SOURCES, "src-cite": url},
-            verifications=log,
+            verifications=log, clearing_history=history if history is not None else {},
+            check_held_rows=check,
             benchmark_metadata={"bench_x": {"min_score": 0, "max_score": 100, "unit": "percent"}}),
             as_of=date(2026, 10, 19))
         return load_built_snapshot(built).evidence("lab/alpha", "bench_x")
@@ -580,7 +616,18 @@ def test_the_snapshot_still_excludes_a_quarantined_reading_the_gate_refused():
     log = [verification("evidence", "lab/alpha#bench_x#old", "mismatch", day="2026-10-14",
                         value=evidence_verification_value(filed))]
     assert readings(46.6, "lab/alpha#bench_x#old", log) == ()  # as filed: excluded
-    assert readings(51.2, "lab/alpha#bench_x#new", log) == ()  # held by its earlier id's verdict
+    held = trail("lab/alpha#bench_x#old")
+    assert readings(51.2, "lab/alpha#bench_x#new", log, held) == ()  # its earlier id's verdict
+    # An earlier id holds only when its verdict's claim shows the same reading (MODEL-552
+    # follow-up). When nothing shows it (a claim from another source, or none at all), the hold
+    # is not dropped silently: the old id is gone from the data, so the build fails
+    # (``held_row_missing``) until a clearing line or the grandfather list accounts for it.
+    from decision.snapshot import SnapshotBuildError
+
+    for history in (trail("lab/alpha#bench_x#old", source="src-board"), {}):
+        with pytest.raises(SnapshotBuildError, match="held_row_missing: 1 failed verdict"):
+            readings(51.2, "lab/alpha#bench_x#new", log, history, check=True)
+    assert readings(51.2, "lab/alpha#bench_x#new", log, held, check=True) == ()  # still held
     other = [verification("evidence", "lab/beta#bench_x#old", "mismatch", day="2026-10-14",
                           value=evidence_verification_value(filed))]
     assert readings(51.2, "lab/alpha#bench_x#new", other)  # another model's verdict is not its

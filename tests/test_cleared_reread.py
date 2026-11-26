@@ -254,7 +254,8 @@ def test_a_cleared_reading_is_re_read_on_a_changed_board(tmp_path, monkeypatch):
     row = verification("evidence", reading_gate.ROW_ID, "mismatch", day="2026-10-14", value=46.6)
     plant(board.root, row, effort=reading_gate.READING["effort"],
           harness=reading_gate.READING["harness"],
-          names=[reading_gate.READING["model_id_as_evaluated"]])
+          names=[reading_gate.READING["model_id_as_evaluated"]],
+          sources=[{"source_id": "board"}])  # the claim shows this reading (MODEL-552 follow-up)
     kw = dict(subject=reading_gate.SUBJECT, benchmark_id=reading_gate.BENCH,
               reading=reading_gate.READING, source_id="board")
     out = cited_reading(**kw, readers=reading_gate.pair(), request=reading_gate.serve(),
@@ -705,7 +706,8 @@ def test_a_conflicting_incomplete_answer_blocks_a_readings_re_read(tmp_path, mon
     plant(board.root, verification("evidence", reading_gate.ROW_ID, "mismatch",
                                    day="2026-10-14", value=46.6),
           effort=reading_gate.READING["effort"], harness=reading_gate.READING["harness"],
-          names=[reading_gate.READING["model_id_as_evaluated"]])
+          names=[reading_gate.READING["model_id_as_evaluated"]],
+          sources=[{"source_id": "board"}])  # the claim shows this reading (MODEL-552 follow-up)
     kw = dict(subject=reading_gate.SUBJECT, benchmark_id=reading_gate.BENCH,
               reading=reading_gate.READING, source_id="board")
     out = cited_reading(**kw, readers=reading_gate.pair(), request=reading_gate.serve(),
@@ -843,7 +845,8 @@ def test_an_absence_then_a_score_refuses_a_readings_re_read(tmp_path, monkeypatc
     plant(board.root, verification("evidence", reading_gate.ROW_ID, "mismatch",
                                    day="2026-10-14", value=46.6),
           effort=reading_gate.READING["effort"], harness=reading_gate.READING["harness"],
-          names=[reading_gate.READING["model_id_as_evaluated"]])
+          names=[reading_gate.READING["model_id_as_evaluated"]],
+          sources=[{"source_id": "board"}])  # the claim shows this reading (MODEL-552 follow-up)
     kw = dict(subject=reading_gate.SUBJECT, benchmark_id=reading_gate.BENCH,
               reading=reading_gate.READING, source_id="board")
     out = cited_reading(**kw, readers=reading_gate.pair(), request=reading_gate.serve(),

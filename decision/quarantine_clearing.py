@@ -263,12 +263,13 @@ def queue_history(path: Path, ids: set[str]) -> dict[str, list[dict[str, Any]]]:
     rows: dict[str, list[tuple[datetime, int, dict[str, Any]]]] = {}
     if not ids or not path.is_file():
         return {}
+    few = len(ids) <= 64
     with path.open(encoding="utf-8") as handle:
         for index, raw in enumerate(handle):
-            if ('"collected"' not in raw and '"checked"' not in raw
-                    and '"retired"' not in raw) \
-                    or not any(i in raw for i in ids):
+            if '"collected"' not in raw and '"checked"' not in raw and '"retired"' not in raw:
                 continue
+            if few and not any(i in raw for i in ids):
+                continue  # a quick text test first, for a handful of ids; the parse decides
             event = loads(raw)  # a repeated key refuses (MODEL-554)
             target = _event_target(event)
             at = _event_at(event)
@@ -350,32 +351,7 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
     reading's settings epoch or one under it, never another setting's), and an attempt in a
     clearing epoch only when a line in ``clearings`` names exactly that attempt line and epoch
     (``epoch_after`` then names the epoch under that clearing)."""
-    target = (verdict.get("target") or {}).get("id")
-    day = _day(verdict.get("date"))
-    pair = None
-    # Only the newest matching check of the day may supply the epoch: if it cannot be bound to
-    # the verdict's value, nothing clears (an older same-day check is never a fallback).
-    matching = [i for i, event in enumerate(history)
-                if event.get("event") == "checked" and _event_target(event) == target
-                and event.get("outcome") == verdict.get("outcome") and day is not None
-                and (at := _event_at(event)) is not None and at.astimezone(UTC).date() == day]
-    if matching:
-        index = matching[-1]
-        event = history[index]
-        filed = [e for e in history[:index]
-                 if e.get("event") == "collected" and _event_target(e) == target]
-        covers = check_binds(event, verdict, (filed[-1].get("claim") or {}).get("field")) \
-            if filed else False
-        if covers is None:
-            filed = filed[-1:]  # the claim it follows, nothing for another value in between
-        binding = [e for e in filed if claim_binds(e.get("claim") or {}, verdict)] \
-            if covers is not False else []
-        # A claim retired before the check (``Queue.retire``, MODEL-557) was not what it covered.
-        start = max((i for i, e in enumerate(history[:index]) if binding and e is binding[-1]),
-                    default=index)
-        if binding and not any(e.get("event") == "retired" and _event_target(e) == target
-                               for e in history[start + 1:index]):
-            pair = (binding[-1], event)
+    pair = verdict_pair(verdict, history)
     if pair is None:
         return None
     filed_event, checked = pair
@@ -407,6 +383,39 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
                 and (not _CLEARED.search(epoch) or (line_hash(raw), epoch) in named):
             return epoch_after(first, entry)
     return None
+
+
+def verdict_pair(verdict: Mapping[str, Any], history: Sequence[Mapping[str, Any]]
+                 ) -> tuple[Mapping[str, Any], Mapping[str, Any]] | None:
+    """``(claim event, check event)``: the claim the verdict checked and the check that made it,
+    or ``None`` when that cannot be shown (``verdict_epoch`` gives the rule)."""
+    target = (verdict.get("target") or {}).get("id")
+    day = _day(verdict.get("date"))
+    pair = None
+    # Only the newest matching check of the day may supply the epoch: if it cannot be bound to
+    # the verdict's value, nothing clears (an older same-day check is never a fallback).
+    matching = [i for i, event in enumerate(history)
+                if event.get("event") == "checked" and _event_target(event) == target
+                and event.get("outcome") == verdict.get("outcome") and day is not None
+                and (at := _event_at(event)) is not None and at.astimezone(UTC).date() == day]
+    if matching:
+        index = matching[-1]
+        event = history[index]
+        filed = [e for e in history[:index]
+                 if e.get("event") == "collected" and _event_target(e) == target]
+        covers = check_binds(event, verdict, (filed[-1].get("claim") or {}).get("field")) \
+            if filed else False
+        if covers is None:
+            filed = filed[-1:]  # the claim it follows, nothing for another value in between
+        binding = [e for e in filed if claim_binds(e.get("claim") or {}, verdict)] \
+            if covers is not False else []
+        # A claim retired before the check (``Queue.retire``, MODEL-557) was not what it covered.
+        start = max((i for i, e in enumerate(history[:index]) if binding and e is binding[-1]),
+                    default=index)
+        if binding and not any(e.get("event") == "retired" and _event_target(e) == target
+                               for e in history[start + 1:index]):
+            pair = (binding[-1], event)
+    return pair
 
 
 def _of(first: str, epoch: str) -> bool:
@@ -445,6 +454,69 @@ def reading_settings(row: Mapping[str, Any]) -> Settings:
             and conditions.get("harness") == row.get("harness") \
             and row.get("model_id_as_evaluated") in (claim.get("names") or ())
     return same
+
+
+def same_reading(claim: Mapping[str, Any], row: Mapping[str, Any]) -> bool:
+    """Whether a claim was filed for the same reading as ``row``: the same settings
+    (``reading_settings``), at least one of the row's own registered sources, and, when the
+    claim records who measured it, the same measurer. A provider's self-report and a board's
+    own row of one model and benchmark are two readings: their sources differ."""
+    if not reading_settings(row)(claim):
+        return False
+    mine = {str(ref.get("source_id")) for ref in row.get("sources") or ()
+            if isinstance(ref, Mapping) and ref.get("source_id")}
+    theirs = {str(ref.get("source_id")) for ref in claim.get("sources") or ()
+              if isinstance(ref, Mapping) and ref.get("source_id")}
+    if not mine & theirs:
+        return False
+    conditions = claim.get("conditions") if isinstance(claim.get("conditions"), Mapping) else {}
+    measured = claim.get("measured_by", conditions.get("measured_by"))
+    return measured is None or measured == row.get("measured_by")
+
+
+def reading_candidates(latest: Mapping[Key, Any], row: Mapping[str, Any], *, model_id: str
+                       ) -> list[tuple[Key, dict[str, Any]]]:
+    """The failed verdicts that may hold a board reading, for the gate and the build alike: on
+    its own id (any value, its inline verification ranked in) or any id under
+    ``<model_id>#<benchmark>#``, where ``model_id`` is the card's model id (the id the build
+    files the row under). ``latest`` is the ranked log (``_Compiler._verification_log``)."""
+    from decision.cited_change import held_rows
+
+    own = str(row.get("id") or "")
+    prefix = f"{model_id}#{row.get('benchmark_id')}#"
+    return held_rows(latest, (own,) if own else (), row, kind="evidence",
+                     owns=lambda logged: logged == own or logged.startswith(prefix))
+
+
+def reading_held(latest: Mapping[Key, Any], row: Mapping[str, Any], *, model_id: str,
+                 history: Mapping[str, Sequence[Mapping[str, Any]]]
+                 ) -> list[tuple[Key, dict[str, Any]]]:
+    """The verdicts that hold a board reading (``reading_candidates`` then ``reading_holds``):
+    the one predicate the gate (``cited_change.cited_reading``) and the build
+    (``snapshot._Compiler._reading_hold``) both apply."""
+    own = str(row.get("id") or "")
+    return reading_holds(reading_candidates(latest, row, model_id=model_id), row,
+                         own_ids={own} - {""}, history=history)
+
+
+def reading_holds(held: Sequence[tuple[Key, Mapping[str, Any]]], row: Mapping[str, Any], *,
+                  own_ids: set[str], history: Mapping[str, Sequence[Mapping[str, Any]]]
+                  ) -> list[tuple[Key, Mapping[str, Any]]]:
+    """The held verdicts that hold this board reading: one on the row's own id (any value), or on
+    an earlier id whose verdict's queue claim (``verdict_pair``) shows it was the same reading
+    (``same_reading``). Whether some current sibling row carries that earlier id is beside the
+    point: no row takes a verdict over or diverts it, and a verdict on another reading (another
+    setting, source or measurer) never holds this one. A verdict whose claim cannot be shown
+    holds only its own row."""
+    out = []
+    for key, verdict in held:
+        if key[1] in own_ids:
+            out.append((key, verdict))
+            continue
+        pair = verdict_pair(verdict, history.get(key[1], ()))
+        if pair is not None and same_reading(pair[0].get("claim") or {}, row):
+            out.append((key, verdict))
+    return out
 
 
 def line_problem(entry: Any, *, verdict: Mapping[str, Any], subject: str, facet: str,
@@ -874,3 +946,88 @@ def append(lines: Sequence[Mapping[str, Any]], data_dir: str | Path) -> None:
             if set(entry) != set(FIELDS):
                 raise ValueError("a clearing line has exactly its fields")
             handle.write(json.dumps(dict(entry), sort_keys=True, ensure_ascii=False) + "\n")
+
+
+# --- the held-row grandfather list (MODEL-552 follow-up) -----------------------------------------
+
+#: The reviewed list, under the data directory, of failed verdicts on row ids that were already gone
+#: when the build began refusing a vanished hold (``held_row_missing``).
+GRANDFATHER_FILE = "verification/held-row-grandfather.json"
+GRANDFATHER_KINDS = ("fact", "evidence")
+#: The list as seeded, fixed in the engine (MODEL-552 review): per kind, the number of verdict
+#: hashes and the sha256 of the sorted hashes joined by newlines. The data file's ``seeded`` lists
+#: must match it exactly, so no entry outside the seeded set can be added, and deleting the file
+#: and adding it back resets nothing. The list shrinks only by ``released`` entries.
+GRANDFATHER_SEEDED = {
+    "fact": (127, "sha256:00d0922cee36b5d3d07eccc96bdfde5bc9601c5428905020d574ed114e9e580a"),
+    "evidence": (12, "sha256:016e09c8720d68649da728b79de7d4b84dd404f0c2871a488a41127a1eed206d"),
+}
+
+
+def set_digest(hashes: Sequence[str]) -> str:
+    """The sha256 of a set of hashes: sorted, joined by newlines."""
+    return "sha256:" + hashlib.sha256("\n".join(sorted(set(hashes))).encode("utf-8")).hexdigest()
+
+
+def _hash_lists(value: Any, name: str) -> dict[str, list[str]]:
+    if not isinstance(value, Mapping) or set(value) - set(GRANDFATHER_KINDS):
+        raise ValueError(f"{name} names only the target kinds fact and evidence")
+    for kind, hashes in value.items():
+        if not isinstance(hashes, list) or len(set(hashes)) != len(hashes) \
+                or not all(isinstance(h, str) and _REF.fullmatch(h) for h in hashes):
+            raise ValueError(f"{name}.{kind} lists unique sha256 verdict hashes")
+    return dict(value)
+
+
+def parse_grandfather(data: Any, seeded: Mapping[str, tuple[int, str]] | None = None
+                      ) -> dict[str, frozenset[str]]:
+    """The active hashes by kind (``seeded`` minus ``released``), checked: ``schema_version`` 1;
+    each kind's ``seeded`` list is exactly the engine's seeded set (its count and digest); every
+    ``released`` hash is a seeded one. Raises ``ValueError`` with field names only."""
+    if not isinstance(data, Mapping) or set(data) != {"schema_version", "seeded", "released"} \
+            or data["schema_version"] != 1:
+        raise ValueError("the grandfather list has exactly schema_version 1, seeded and released")
+    seeded = GRANDFATHER_SEEDED if seeded is None else seeded
+    listed, released = _hash_lists(data["seeded"], "seeded"), _hash_lists(data["released"],
+                                                                          "released")
+    if set(listed) != set(seeded):
+        raise ValueError("seeded names exactly the kinds the engine seeded")
+    out = {}
+    for kind, (count, digest) in seeded.items():
+        if len(listed[kind]) != count or set_digest(listed[kind]) != digest:
+            raise ValueError(f"seeded.{kind} is not the set the engine seeded")
+        gone = set(released.get(kind, ()))
+        if gone - set(listed[kind]):
+            raise ValueError(f"released.{kind} names a hash that was never seeded")
+        out[kind] = frozenset(listed[kind]) - gone
+    return out
+
+
+def read_grandfather(path: Path) -> dict[str, frozenset[str]]:
+    """The active list in the data directory; an absent file grandfathers nothing (every vanished
+    hold then fails the build)."""
+    from decision.owner_ruling import loads
+
+    if not path.is_file():
+        return {}
+    return parse_grandfather(loads(path.read_text(encoding="utf-8")))
+
+
+def grandfather_document(seeded: Mapping[str, Sequence[str]],
+                         released: Mapping[str, Sequence[str]] | None = None) -> dict[str, Any]:
+    """The data file for these seeded and released hashes by kind, sorted: hashes only."""
+    released = released or {}
+    return {"schema_version": 1,
+            "seeded": {kind: sorted(set(seeded.get(kind, ()))) for kind in GRANDFATHER_KINDS
+                       if seeded.get(kind)},
+            "released": {kind: sorted(set(released[kind])) for kind in GRANDFATHER_KINDS
+                         if released.get(kind)}}
+
+
+def grandfather_added(head: Mapping[str, frozenset[str]],
+                      base: Mapping[str, frozenset[str]] | None) -> int:
+    """How many active hashes ``head`` has that ``base`` (the merge base's active list) does not:
+    a released entry may not come back. With no list at the base, it is being seeded."""
+    if base is None:
+        return 0
+    return sum(len(hashes - base.get(kind, frozenset())) for kind, hashes in head.items())

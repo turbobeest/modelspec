@@ -516,6 +516,10 @@ def board_rows(score=51.2, eid=NEW_ID):
                     source_url=BOARD)
 
 
+#: A board-reading claim's source: the board row's own registered source.
+BOARD_SOURCE = [{"source_id": "src-cite"}]
+
+
 def reading_build(row, log, clearings=(), attempts=(), history=None):
     from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
 
@@ -524,7 +528,7 @@ def reading_build(row, log, clearings=(), attempts=(), history=None):
     built = build_snapshot(SnapshotInputs(
         models=[model(MID)], evidence=[row], sources={**SOURCES, "src-cite": BOARD},
         verifications=list(log), cited_attempt_lines=[raw(a) for a in attempts],
-        clearing_history=history_of(log) if history is None else history,
+        clearing_history=history_of(log, sources=BOARD_SOURCE) if history is None else history,
         quarantine_clearings=list(clearings),
         benchmark_metadata={"bench_x": {"min_score": 0, "max_score": 100, "unit": "percent"}}),
         as_of=TODAY)
@@ -548,10 +552,11 @@ def test_a_cleared_reading_enters_only_through_its_line():
     assert reading_build(row, [verdict]) == ()
     entry = clearing(attempt, verdict)
     assert reading_build(row, [verdict], [entry], [attempt])
-    # The same line does not clear another setting of the reading.
+    # Another setting of the reading is another reading: this verdict does not hold it at all
+    # (MODEL-552 follow-up), so it enters without a line, and the line is not its.
     other = copy.deepcopy(row)
     other["effort"] = "low"
-    assert reading_build(other, [verdict], [entry], [attempt]) == ()
+    assert reading_build(other, [verdict])
 
 
 def test_the_clearing_file_is_read_by_collect_repo(tmp_path):
@@ -696,9 +701,12 @@ def test_a_decoy_sibling_does_not_divert_a_readings_verdict():
         return load_built_snapshot(build_snapshot(SnapshotInputs(
             models=[model(MID)], evidence=[row, *others],
             sources={**SOURCES, "src-cite": BOARD}, verifications=list(log),
+            clearing_history=history_of([verdict], sources=BOARD_SOURCE),
             benchmark_metadata={"bench_x": {"min_score": 0, "max_score": 100,
                                             "unit": "percent"}}),
             as_of=TODAY)).evidence(MID, "bench_x")
+
+    assert all(e.value != 51.2 for e in built())  # the earlier id's claim was this reading
 
     decoy = board_rows(10.0, OLD_ID)  # a cited row under the held id, other settings
     decoy["effort"] = "low"
@@ -892,3 +900,290 @@ def test_queue_history_reads_retired_events_and_refuses_a_repeated_key(tmp_path)
                     f'"target": {{"kind": "fact", "id": "{FID}"}}}}\n')
     with pytest.raises(ValueError):
         queue_history(path, {FID})
+
+
+# --- MODEL-552 follow-up: a verdict holds only its own reading ------------------------------------
+
+
+def test_an_author_measured_row_is_not_held_by_the_providers_self_report_verdict():
+    """Data#549 regression: a mismatch on a provider's self-reported row of a model and
+    benchmark held the board author's own row of the same model and benchmark (another source and
+    measurer). A verdict holds a row only through the row's own id, or an earlier id its queue
+    claim shows was the same reading."""
+    from decision.model import evidence_verification_value
+    from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+
+    from tests.snapshot_records import SOURCES, evidence, model
+
+    self_id, board_id = f"{MID}#bench_x#selfreport01", f"{MID}#bench_x#boardrow0001"
+    self_report = evidence(MID, "bench_x", 40.0, eid=self_id, outcome=None,
+                           source="src-lab-docs", measured_by="provider_self_report")
+    board = board_rows(51.2, board_id)
+    board["measured_by"] = "benchmark_author"
+    verdict = verification("evidence", self_id, "mismatch", day="2026-10-01",
+                           value=evidence_verification_value(self_report))
+    trail = {self_id: events(verdict, value=40.0, sources=[{"source_id": "src-lab-docs"}])}
+
+    def shown(history):
+        built = build_snapshot(SnapshotInputs(
+            models=[model(MID)], evidence=[self_report, board],
+            sources={**SOURCES, "src-cite": BOARD}, verifications=[verdict],
+            clearing_history=history,
+            benchmark_metadata={"bench_x": {"min_score": 0, "max_score": 100,
+                                            "unit": "percent"}}),
+            as_of=TODAY)
+        return sorted(e.value for e in load_built_snapshot(built).evidence(MID, "bench_x"))
+
+    assert shown(trail) == [51.2]  # the board's own row enters; the self-report stays out
+    assert shown({}) == [51.2]  # with no trail at all, the verdict holds only its own row
+
+
+def test_a_decoy_sibling_cannot_take_a_verdict():
+    """A decoy row carrying the held earlier id (another setting) takes nothing over: the
+    verdict's claim shows which reading it was on, and that reading stays held. The decoy itself
+    is held by the verdict on its own id."""
+    from decision.cited_change import held_rows
+    from decision.model import evidence_verification_value
+    from decision.quarantine_clearing import reading_holds
+    from decision.snapshot import _Compiler
+
+    filed = board_rows(46.6, OLD_ID)
+    verdict = verification("evidence", OLD_ID, "mismatch", day="2026-10-01",
+                           value=evidence_verification_value(filed))
+    log = _Compiler._verification_log([verdict])
+    history = history_of([verdict], sources=BOARD_SOURCE)
+    row, decoy = board_rows(), board_rows(10.0, OLD_ID)
+    decoy["effort"] = "low"
+    prefix = f"{MID}#bench_x#"
+    for target, own in ((row, NEW_ID), (decoy, OLD_ID)):
+        candidates = held_rows(log, (own,), target, kind="evidence",
+                               owns=lambda i: i.startswith(prefix))
+        held = reading_holds(candidates, target, own_ids={own}, history=history)
+        assert [key[1] for key, _ in held] == [OLD_ID], own
+    other_reading = {**board_rows(), "effort": "low"}
+    candidates = held_rows(log, (NEW_ID,), other_reading, kind="evidence",
+                           owns=lambda i: i.startswith(prefix))
+    assert reading_holds(candidates, other_reading, own_ids={NEW_ID}, history=history) == []
+
+
+# --- a hold cannot disappear silently: held_row_missing (MODEL-552 follow-up) --------------------
+
+
+def _checked(row, log, *, grandfather=None, clearings=(), attempts=(), history=None, kind="fact"):
+    from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+
+    from tests.snapshot_records import SOURCES, model
+
+    if kind == "fact":
+        models, evidence = [model(MID, facts=[row])], []
+        sources = {**SOURCES, "src-cite": CITE}
+    else:
+        models, evidence = [model(MID)], [row]
+        sources = {**SOURCES, "src-cite": BOARD}
+    inputs = SnapshotInputs(
+        models=models, evidence=evidence, sources=sources, verifications=list(log),
+        cited_attempt_lines=[raw(a) for a in attempts], quarantine_clearings=list(clearings),
+        clearing_history=history if history is not None else history_of(log, sources=BOARD_SOURCE),
+        held_row_grandfather=grandfather or {}, check_held_rows=True,
+        benchmark_metadata={"bench_x": {"min_score": 0, "max_score": 100, "unit": "percent"}})
+    return load_built_snapshot(build_snapshot(inputs, as_of=TODAY))
+
+
+def test_a_failed_verdict_on_a_vanished_row_id_fails_the_build():
+    from decision.snapshot import SnapshotBuildError
+
+    from tests.snapshot_records import fact
+
+    gone = mismatch(f"{MID}#model.weights_openness_old")  # a fact id the data no longer has
+    plain = fact("model", MID, FACET, VALUE, source="src-cite", outcome=None)
+    with pytest.raises(SnapshotBuildError) as caught:
+        _checked(plain, [gone])
+    message = str(caught.value)
+    assert message.startswith("held_row_missing: 1 failed verdict") and "fact 1" in message
+    assert MID not in message and gone["target"]["value_hash"] not in message  # counts only
+    # The reviewed list names its exact hash: accounted for. Another kind's entry is not.
+    assert admitted(_checked(plain, [gone], grandfather={"fact": frozenset({
+        verdict_sha256(gone)})}))
+    with pytest.raises(SnapshotBuildError):
+        _checked(plain, [gone], grandfather={"evidence": frozenset({verdict_sha256(gone)})})
+    # A newer verdict on the same vanished id is a new hash: the list does not cover it.
+    newer = mismatch(f"{MID}#model.weights_openness_old", day="2026-10-05")
+    with pytest.raises(SnapshotBuildError):
+        _checked(plain, [gone, newer], grandfather={"fact": frozenset({verdict_sha256(gone)})})
+    # A verified latest verdict, or a row the data still has, is no vanished hold.
+    fixed = verification("fact", f"{MID}#model.weights_openness_old", "verified",
+                         day="2026-10-06", value=VALUE)
+    assert admitted(_checked(plain, [gone, fixed]))
+
+
+def test_a_cleared_or_carried_verdict_on_a_vanished_id_is_accounted_for():
+    from decision.cited_change import reading_epoch
+    from decision.model import evidence_verification_value
+
+    filed = board_rows(46.6, OLD_ID)
+    verdict = verification("evidence", OLD_ID, "mismatch", day="2026-10-01",
+                           value=evidence_verification_value(filed))
+    settings = {"model_id_as_evaluated": MID, "effort": None, "harness": None}
+    epoch = clearing_epoch(reading_epoch(settings), verdict_sha256(verdict))
+    attempt = agreement(epoch, values=(51.2, 51.2), facet="benchmark:bench_x")
+    attempt["url"] = BOARD
+    row = board_rows()
+    row["sources"][0].update(snapshot_ref=f"sha256:{PAGE}", retrieved_at=AT)
+    row["derivation"] = cleared_row(attempt, base=reading_epoch(settings))["derivation"]
+    # Carried: the queue proves the current row is the same reading, so it holds it (no failure).
+    assert _checked(row, [verdict], kind="evidence").evidence(MID, "bench_x") == ()
+    # Not carried: the claim shows another reading (another source), so by the shared predicate
+    # (``reading_held``) it holds no current row, and the vanished hold fails the build.
+    from decision.snapshot import SnapshotBuildError
+
+    other = history_of([verdict], sources=[{"source_id": "src-lab-docs"}])
+    with pytest.raises(SnapshotBuildError, match="held_row_missing: 1 failed verdict"):
+        _checked(row, [verdict], kind="evidence", history=other)
+    # Cleared: a valid line admits the row through that verdict.
+    index = _checked(row, [verdict], clearings=[clearing(attempt, verdict)], attempts=[attempt],
+                     kind="evidence")
+    assert index.evidence(MID, "bench_x")
+
+
+A_HASH, B_HASH, C_HASH = ("sha256:" + c * 64 for c in "abc")
+
+
+@pytest.fixture
+def seeded(monkeypatch):
+    """A synthetic seeded set in place of the engine's: fact {a, b}."""
+    from decision import quarantine_clearing as qc
+
+    monkeypatch.setattr(qc, "GRANDFATHER_SEEDED", {"fact": (2, qc.set_digest([A_HASH, B_HASH]))})
+
+
+def test_the_grandfather_list_must_be_the_engines_seeded_set(seeded):
+    from decision.quarantine_clearing import (
+        grandfather_added,
+        grandfather_document,
+        parse_grandfather,
+    )
+
+    document = grandfather_document({"fact": [B_HASH, A_HASH]})
+    assert document == {"schema_version": 1, "seeded": {"fact": [A_HASH, B_HASH]},
+                        "released": {}}
+    assert parse_grandfather(document) == {"fact": frozenset({A_HASH, B_HASH})}
+    # It shrinks only by released entries, each a seeded one.
+    shrunk = grandfather_document({"fact": [A_HASH, B_HASH]}, {"fact": [B_HASH]})
+    assert parse_grandfather(shrunk) == {"fact": frozenset({A_HASH})}
+    for broken in (
+            grandfather_document({"fact": [A_HASH, B_HASH, C_HASH]}),  # an entry outside the set
+            grandfather_document({"fact": [A_HASH, C_HASH]}),  # a swap keeps the count only
+            grandfather_document({"fact": [A_HASH]}),  # seeded is the whole set, always
+            grandfather_document({"fact": [A_HASH, B_HASH], "evidence": [C_HASH]}),
+            grandfather_document({"fact": [A_HASH, B_HASH]}, {"fact": [C_HASH]}),
+            {**document, "schema_version": 2}, {**document, "note": "x"},
+            {**document, "seeded": {"fact": [A_HASH, A_HASH]}},
+            {**document, "seeded": {"fact": ["not-a-hash", B_HASH]}}):
+        with pytest.raises(ValueError):
+            parse_grandfather(broken)
+    base = {"fact": frozenset({A_HASH, B_HASH})}
+    assert grandfather_added({"fact": frozenset({A_HASH})}, base) == 0  # shrinking is fine
+    assert grandfather_added(base, {"fact": frozenset({A_HASH})}) == 1  # a release undone
+    assert grandfather_added({"fact": frozenset({A_HASH})}, None) == 0  # seeded in its own PR
+
+
+def test_the_engine_seeded_set_is_the_one_measured_on_the_data():
+    from decision.quarantine_clearing import GRANDFATHER_SEEDED
+
+    assert {kind: count for kind, (count, _) in GRANDFATHER_SEEDED.items()} == {
+        "fact": 127, "evidence": 12}
+    assert all(digest.startswith("sha256:") and len(digest) == 71
+               for _, digest in GRANDFATHER_SEEDED.values())
+
+
+def test_the_shrink_check_compares_with_the_merge_base(tmp_path, seeded):
+    import subprocess
+
+    from scripts.held_row_grandfather import main
+
+    root = tmp_path / "data"
+    (root / "verification").mkdir(parents=True)
+
+    def git(*args):
+        subprocess.run(["git", "-C", str(root), *args], check=True, capture_output=True)
+
+    def write(released):
+        from decision.quarantine_clearing import grandfather_document
+
+        path = root / "verification/held-row-grandfather.json"
+        path.write_text(json.dumps(grandfather_document({"fact": [A_HASH, B_HASH]},
+                                                        {"fact": released})))
+
+    git("init", "-q", "-b", "main")
+    git("-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-q", "--allow-empty",
+        "-m", "base")
+    write([B_HASH])
+    assert main(["check", "--data-dir", str(root), "--base", "main"]) == 0  # seeding
+    git("add", "-A")
+    git("-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-q", "-m", "seed")
+    git("checkout", "-q", "-b", "next")
+    write([A_HASH, B_HASH])
+    assert main(["check", "--data-dir", str(root), "--base", "main"]) == 0  # shrinks
+    write([])
+    assert main(["check", "--data-dir", str(root), "--base", "main"]) == 1  # a release undone
+    # Deleting the file and adding it back resets nothing: the engine's set still decides.
+    (root / "verification/held-row-grandfather.json").unlink()
+    git("add", "-A")
+    git("-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-q", "-m", "drop")
+    path = root / "verification/held-row-grandfather.json"
+    path.write_text(json.dumps({"schema_version": 1, "seeded": {"fact": [A_HASH, C_HASH]},
+                                "released": {}}))
+    with pytest.raises(ValueError, match="seeded"):
+        main(["check", "--data-dir", str(root), "--base", "next"])
+
+
+def test_collect_repo_reads_the_list_and_checks_the_private_checkout(tmp_path, seeded):
+    from decision.quarantine_clearing import grandfather_document
+    from decision.snapshot import SnapshotBuildError, collect_repo
+
+    root = tmp_path / "data"
+    for d in ("models", "registry", "verification", "benchmarks"):
+        (root / d).mkdir(parents=True)
+    (root / "registry/sources.yaml").write_text(yaml.safe_dump({"schema_version": 1,
+                                                               "sources": []}))
+    assert collect_repo(root).check_held_rows is False  # no pin: not the private checkout
+    (root / ".engine-pin").write_text("0" * 40 + "\n")
+    inputs = collect_repo(root)
+    assert inputs.check_held_rows is True and inputs.held_row_grandfather == {}
+    (root / "verification/held-row-grandfather.json").write_text(
+        json.dumps(grandfather_document({"fact": [A_HASH, B_HASH]}, {"fact": [B_HASH]})))
+    assert collect_repo(root).held_row_grandfather == {"fact": frozenset({A_HASH})}
+    (root / "verification/held-row-grandfather.json").write_text(
+        json.dumps(grandfather_document({"fact": [A_HASH, C_HASH]})))
+    with pytest.raises(SnapshotBuildError, match="held-row-grandfather"):
+        collect_repo(root)
+
+
+def test_the_gate_and_the_build_search_the_same_scope(board):
+    """One helper (``reading_held``) decides for both: a verdict under the card file's path but
+    not under its model id is outside both; one under the model id is inside both."""
+    from decision.cited_change import _reading_held, reading_lookup
+    from decision.owner_ruling import read_json_lines
+    from decision.quarantine_clearing import QUEUE_FILE, queue_history, reading_held
+    from decision.snapshot import _Compiler
+
+    card = yaml.safe_dump({"display_name": "Orbit 9", "model_id": "acme/orbit-9-real",
+                           "benchmarks": {"scores": {}, "evidence": [board.row]}}, sort_keys=False)
+    (board.root / "models/acme/orbit-9.md").write_text(f"---\n{card}---\n")
+    for eid in (f"{reading_gate.SUBJECT}#{reading_gate.BENCH}#0123456789ab",
+                f"acme/orbit-9-real#{reading_gate.BENCH}#0123456789ab"):
+        settings = dict(effort=reading_gate.READING["effort"],
+                        harness=reading_gate.READING["harness"],
+                        names=[reading_gate.READING["model_id_as_evaluated"]],
+                        sources=[{"source_id": "board"}])
+        plant(board.root, verification("evidence", eid, "mismatch", day="2026-10-14",
+                                       value=46.6), **settings)
+    found = reading_lookup(reading_gate.SUBJECT, reading_gate.BENCH, reading_gate.READING)
+    gate = {key[1] for key, _ in _reading_held(found)}
+    latest = _Compiler._verification_log(read_json_lines(board.root / "verification/log.jsonl"))
+    history = queue_history(board.root / QUEUE_FILE, {
+        f"{p}#{reading_gate.BENCH}#0123456789ab" for p in (reading_gate.SUBJECT,
+                                                          "acme/orbit-9-real")})
+    build = {key[1] for key, _ in reading_held(latest, found.row, model_id="acme/orbit-9-real",
+                                               history=history)}
+    assert gate == build == {f"acme/orbit-9-real#{reading_gate.BENCH}#0123456789ab"}

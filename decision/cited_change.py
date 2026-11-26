@@ -1380,14 +1380,18 @@ class ReadingLookup:
     #: ``<model>#<benchmark>#``, for the subject and the card's ``model_id``: a logged id under
     #: one of these is the reading's earlier id unless another current row of the benchmark has it.
     id_prefixes: tuple[str, ...] = ()
-    #: The ids of the benchmark's other current rows on the card: their verdicts are theirs.
+    #: The ids of the benchmark's other current rows on the card (kept for callers; they no
+    #: longer decide whose a verdict is: ``quarantine_clearing.reading_holds`` does).
     sibling_ids: frozenset[str] = frozenset()
+    #: The card's model id: the id the build files the reading under, and the one prefix the
+    #: gate and the build both search (``quarantine_clearing.reading_candidates``).
+    model_id: str = ""
 
     def owns(self, logged_id: str) -> bool:
-        """A logged evidence id that holds this reading: its own, or any id under the reading's
-        ``<model>#<benchmark>#`` prefix. No other row of the benchmark takes a verdict over
-        (MODEL-552 review): a verdict holds every row of its subject and benchmark until a
-        clearing line releases that exact verdict."""
+        """A logged evidence id that may hold this reading: its own, or any id under the
+        reading's ``<model>#<benchmark>#`` prefix. Only a candidate: an id other than the row's
+        own holds it only when its verdict's queue claim shows the same reading
+        (``quarantine_clearing.reading_holds``, MODEL-552 follow-up)."""
         return logged_id in self.evidence_ids \
             or any(logged_id.startswith(prefix) for prefix in self.id_prefixes)
 
@@ -1864,9 +1868,42 @@ def reading_lookup(subject: str, benchmark_id: str, reading: Mapping[str, Any],
                                  if isinstance(m, str) and m))
     siblings = frozenset(str(r["id"]) for r in rows if r is not hits[0] and r.get("id"))
     own_id = (str(hits[0]["id"]),) if hits[0].get("id") else ()
+    model_id = front.get("model_id") if isinstance(front.get("model_id"), str) \
+        and front.get("model_id") else subject
     return ReadingLookup(name, hits[0], benchmark, sources, redirects, publishers,
                          tuple(dict.fromkeys(ids)), page, own_id,
-                         tuple(f"{m}#{benchmark_id}#" for m in models), siblings - set(own_id))
+                         tuple(f"{m}#{benchmark_id}#" for m in models), siblings - set(own_id),
+                         model_id)
+
+
+def _reading_held(found: ReadingLookup) -> list[tuple[tuple[str, str, str], dict[str, Any]]]:
+    """The verdicts that hold the reading, by the one predicate the build applies too
+    (``quarantine_clearing.reading_held``): on its own id (any value), or on an earlier id under
+    the card's model id whose verdict's queue claim shows the same reading. A sibling row never
+    takes a verdict over, nor is it held by another reading's verdict. Raises ``LookupFailed``
+    when the log or the queue cannot be read."""
+    import os
+
+    from decision.owner_ruling import read_json_lines
+    from decision.quarantine_clearing import (
+        QUEUE_FILE,
+        queue_history,
+        reading_candidates,
+        reading_held,
+    )
+    from decision.snapshot import _Compiler
+
+    root = Path(os.environ.get(DATA_DIR_ENV, "").strip() or ".")
+    try:
+        latest = _Compiler._verification_log(read_json_lines(root / VERIFICATION_LOG))
+        own = str(found.row.get("id") or "")
+        earlier = {key[1] for key, _ in reading_candidates(latest, found.row,
+                                                           model_id=found.model_id)
+                   if key[1] != own}
+        history = queue_history(root / QUEUE_FILE, earlier) if earlier else {}
+        return reading_held(latest, found.row, model_id=found.model_id, history=history)
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+        raise LookupFailed(f"verification log or queue: {type(error).__name__}") from None
 
 
 def _host(url: Any) -> str | None:
@@ -1979,13 +2016,15 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     facet_id = BENCHMARK_PREFIX + benchmark_id
     # Up front, before any read or attempt (MODEL-547): the fact gate's predicate, for evidence.
     try:
-        held = quarantine_rows(found.evidence_ids, found.row, kind="evidence", owns=found.owns)
+        held = _reading_held(found)
     except LookupFailed as error:
         return _refuse("registry_lookup_failed", str(error))
     released, chains = False, []
     if held:  # as for a fact (MODEL-566): a released verdict holds the row no more
+        # A clearing line's target must be one of the ids that hold this row, as in the build.
+        holding = frozenset(key[1] for key, _ in held)
         got = _unreleased(held, found.row, subject, now=now, sources=found.sources,
-                          owns=found.owns)
+                          owns=holding.__contains__)
         if isinstance(got, CitedChange):
             return got
         held, chains = got
