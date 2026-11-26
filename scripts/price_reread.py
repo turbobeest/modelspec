@@ -363,8 +363,11 @@ def render_to(*, root: Path, directory: Path, rendered: RenderedFetcher) -> None
         if result.outcome == "ok" and not restricted:
             # Where the browser ended, so the replay can record the final host (MODEL-525).
             manifest[url]["resolved_urls"] = list(result.resolved_urls)
-        if result.outcome == "ok" and restricted:
-            manifest[url]["error"] = None
+        if result.outcome == "ok" and restricted and result.error is not None:
+            # Partial (a preparation error): a failed read, never ``ok`` with an error.
+            manifest[url]["outcome"] = "unreachable"
+            manifest[url]["error"] = f"cite-only read failed: {result.error}"
+        elif result.outcome == "ok" and restricted:
             manifest[url]["citation"] = citation_metadata(
                 url, fingerprint_bytes(result.body), retrieved_at=result.retrieved_at or datetime.now(UTC),
                 resolved_urls=result.resolved_urls)
@@ -402,7 +405,8 @@ def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 class RenderedReplayFetcher:
     """Read untrusted rendering artifacts as bytes; HTML parsing stays in Python."""
 
-    def __init__(self, directory: Path, *, manifest: dict | None = None) -> None:
+    def __init__(self, directory: Path, *, manifest: dict | None = None,
+                 require_chain: bool = True) -> None:
         if directory.is_symlink() or not directory.is_dir():
             raise ValueError("rendered artifact directory must be a directory, not a symlink")
         self.directory = directory
@@ -438,10 +442,19 @@ class RenderedReplayFetcher:
                         or cite_only_origin_status(url, redirect_urls(entry["resolved_urls"])) is not False):
                     raise ValueError(f"invalid rendered redirect chain for {url}")
             citation = entry.get("citation")
+            if entry["outcome"] == "ok" and require_chain:
+                # Every replayable entry names the chain it was read through (MODEL-570):
+                # refused here, never a KeyError at replay.
+                chain = (citation.get("resolved_urls") if isinstance(citation, dict)
+                         else entry.get("resolved_urls"))
+                if (not isinstance(chain, list) or not chain
+                        or any(not isinstance(hop, str) or not hop for hop in chain)):
+                    raise ValueError(f"rendered entry for {url} needs its redirect chain")
             if citation is not None:
                 if (not isinstance(citation, dict) or citation.get("url") != url
                         or not isinstance(citation.get("snapshot_ref"), str)
                         or not re.fullmatch(r"sha256:[0-9a-f]{64}", citation["snapshot_ref"])
+                        or not isinstance(citation.get("retrieved_at"), str)
                         or cite_only_origin_status(url, citation.get("resolved_urls", ()))
                         is not True):
                     raise ValueError("invalid cite-only rendered citation")
@@ -462,6 +475,11 @@ class RenderedReplayFetcher:
             return FetchResult("unreachable", entry["status"],
                                error=f"not rendered: {entry['error'] or entry['outcome']}")
         if citation := entry.get("citation"):
+            if entry["error"] is not None:
+                # A cite-only read with a preparation error is partial: a failed read, never
+                # a citation, so no citation date advances (MODEL-570).
+                return FetchResult("unreachable", entry["status"],
+                                   error=f"not rendered: cite-only read failed: {entry['error']}")
             return FetchResult("ok", entry["status"], snapshot_ref=citation["snapshot_ref"],
                                retrieved_at=datetime.fromisoformat(citation["retrieved_at"]),
                                resolved_urls=tuple(citation["resolved_urls"]))

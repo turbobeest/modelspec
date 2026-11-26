@@ -111,7 +111,8 @@ STOP_REASONS = {
 class FallbackReplayFetcher(RenderedReplayFetcher):
     def __init__(self, directory: Path, *, pages: dict, fake: bool, spend_line: str,
                  legacy: bool = False, skipped: dict | None = None) -> None:
-        super().__init__(directory, manifest=pages)
+        # A legacy page is never replayed, so it needs no chain to count in the ledger.
+        super().__init__(directory, manifest=pages, require_chain=not legacy)
         self.fake = fake
         self.spend_line = spend_line
         # A Firecrawl artifact (schema 1 or 2) still counts in the month ledger, but its
@@ -159,8 +160,8 @@ def _read_playwright(directory: Path, manifest: dict) -> tuple[FallbackReplayFet
     pages, skipped, fake = manifest["pages"], manifest["skipped"], manifest["fake"]
     if type(fake) is not bool or not isinstance(skipped, dict):
         raise ValueError("invalid fallback pages, skips or spend")
-    replay = _replay(directory, pages, fake=fake, skipped=skipped,
-                     spend_line=_playwright_line(pages, skipped, fake))
+    # Every entry's shape first; the summary line indexes them only afterwards.
+    replay = _replay(directory, pages, fake=fake, skipped=skipped, spend_line="")
     if (
         type(manifest["credits_spent"]) is not int
         or manifest["credits_spent"] != 0
@@ -185,6 +186,7 @@ def _read_playwright(directory: Path, manifest: dict) -> tuple[FallbackReplayFet
     # Nothing ships but the manifest and the kept pages: no stale or refused bytes.
     if any(child.name not in kept | {"manifest.json"} for child in directory.iterdir()):
         raise ValueError("fallback artifact holds a file no kept page names")
+    replay.spend_line = _playwright_line(pages, skipped, fake)
     return replay, 0
 
 
@@ -502,7 +504,12 @@ def fallback_to(
         name = hashlib.sha256(url.encode("utf-8")).hexdigest() + ".html"
         entry = {"file": name, "outcome": result.outcome, "status": result.status,
                  "error": result.error}
-        if result.outcome == "ok":
+        if result.outcome == "ok" and result.error is not None:
+            # A partial read (a preparation error) is a failed read: never ``ok`` with an
+            # error, no bytes and no hash.
+            entry = {"file": name, "outcome": "unreachable", "status": result.status,
+                     "error": f"partial read: {result.error}"}
+        elif result.outcome == "ok":
             verdict, why = _hop_verdict(url, result.resolved_urls)
             if verdict == "skip":
                 skipped[url] = why
@@ -517,7 +524,7 @@ def fallback_to(
                 # A partial read (preparation error) or a shell is a failed read: its error
                 # is recorded, no hash is kept and no citation date can advance.
                 normaliser = sources[min(sids)].normaliser
-                failure = result.error or _shell_verdict(result.body, normaliser)
+                failure = _shell_verdict(result.body, normaliser)
                 if failure is not None:
                     entry = {"file": name, "outcome": "unreachable", "status": result.status,
                              "error": f"cite-only read failed: {failure}"}

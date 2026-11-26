@@ -406,6 +406,9 @@ def artifact(directory, urls=None, *, ok=False, fallback_manifest=False, spent=N
             "error": None if ok else "HTTP 403",
         }
     if not fallback_manifest:
+        for url, entry in pages.items():
+            if entry["outcome"] == "ok":
+                entry["resolved_urls"] = [url]
         manifest = pages
     elif version == fallback.SCHEMA_VERSION:
         for url, entry in pages.items():
@@ -1302,7 +1305,8 @@ def test_a_fallback_around_a_replay_never_passes_a_preparation(tmp_path, retaina
     rendered.mkdir()
     (rendered / "aws.html").write_bytes(b"<html><body>captured</body></html>")
     (rendered / "manifest.json").write_text(json.dumps({AWS_PRICING: {
-        "file": "aws.html", "outcome": "ok", "status": 200, "error": None}}))
+        "file": "aws.html", "outcome": "ok", "status": 200, "error": None,
+        "resolved_urls": [AWS_PRICING]}}))
     replay, _ = fallback.read_fallback(
         artifact(tmp_path / "fallback", fallback_manifest=True, ok=True, version=3))
     wrapped = fallback.FallbackFetcher(price_reread.RenderedReplayFetcher(rendered), replay)
@@ -1385,7 +1389,7 @@ def test_only_an_explicit_retaining_class_keeps_bytes(
 
 @pytest.mark.parametrize("body,error,listed", [
     (FIXTURE_HTML, "rendered preparation failed: timeout",
-     "cite-only read failed: rendered preparation failed: timeout"),
+     "partial read: rendered preparation failed: timeout"),
     (b"<html><body>Loading</body></html>", None,
      "cite-only read failed: shell_page:text_below_40_chars"),
     (b"   ", None, "cite-only read failed: shell_page:empty_body"),
@@ -1496,3 +1500,111 @@ def test_a_malformed_entry_makes_the_artifact_unreadable_and_never_raises(
         fallback.read_fallback(directory)
     # Counted unreadable: the full 12-credit reservation, never an exception.
     assert fallback.monthly_budget(ledger, MONTH) == fallback.MonthlyBudget(12, 0, 1)
+
+
+# --- MODEL-570 review round 2: entry shapes, partial cite-only reads, required chains --------
+
+CITATION = {"url": HELP, "snapshot_ref": "sha256:" + "0" * 64,
+            "retrieved_at": "2026-10-06T07:41:00+00:00", "resolved_urls": [HELP]}
+
+
+@pytest.mark.parametrize("version", [1, 3])
+@pytest.mark.parametrize("entry", [None, [], "ok", {"file": "page-0.html"},
+                                   {"file": "page-0.html", "status": 200, "error": None}])
+def test_a_malformed_entry_shape_is_an_unreadable_artifact(tmp_path, version, entry):
+    ledger = tmp_path / "ledger"
+    directory = artifact(ledger / "bad", urls=(PLAN,), fallback_manifest=True, version=version)
+    path = directory / "manifest.json"
+    manifest = json.loads(path.read_text())
+    manifest["pages"][PLAN] = entry
+    path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError):
+        fallback.read_fallback(directory)
+    assert fallback.monthly_budget(ledger, MONTH) == fallback.MonthlyBudget(12, 0, 1)
+
+
+def _cite_only_render(tmp_path, entry):
+    directory = tmp_path / "render"
+    directory.mkdir()
+    (directory / "manifest.json").write_text(json.dumps({HELP: entry}))
+    return directory
+
+
+def test_a_cite_only_entry_with_a_preparation_error_is_never_replayed_as_a_citation(tmp_path):
+    entry = {"file": "x.html", "outcome": "ok", "status": 200,
+             "error": "rendered preparation failed: timeout", "citation": CITATION}
+    replay = price_reread.RenderedReplayFetcher(_cite_only_render(tmp_path, entry))
+    result = replay.fetch(HELP)
+    assert result.outcome == "unreachable" and result.snapshot_ref is None
+    assert result.retrieved_at is None and "cite-only read failed" in result.error
+
+
+def test_a_cite_only_fallback_entry_with_an_error_never_replaces_a_failed_primary(tmp_path):
+    directory = tmp_path / "fallback"
+    directory.mkdir()
+    (directory / "manifest.json").write_text(json.dumps({
+        "schema_version": 3, "month": MONTH, "credits_spent": 0, "reader": "playwright",
+        "fake": False, "skipped": {},
+        "pages": {HELP: {"file": "x.html", "outcome": "ok", "status": 200,
+                         "error": "rendered preparation failed: timeout",
+                         "citation": CITATION}}}))
+    replay, _ = fallback.read_fallback(directory)
+    result = fallback.FallbackFetcher(ReplayFetcher({HELP: [None]}), replay).fetch(HELP)
+    assert result.outcome == "unreachable" and result.snapshot_ref is None
+
+
+def test_render_to_never_writes_ok_with_an_error_for_a_cite_only_page(estate, tmp_path):
+    root, _ = estate
+    registry = root / "registry" / "sources.yaml"
+    registry.write_text(registry.read_text().replace(RENDERED_URL, HELP))
+    reader = StubReader({HELP: FetchResult("ok", 200, body=FIXTURE_HTML, content_type="text/html",
+                                           error="rendered preparation failed: timeout",
+                                           resolved_urls=(HELP,))})
+    output = tmp_path / "render"
+    price_reread.render_to(root=root, directory=output, rendered=reader)
+    entry = json.loads((output / "manifest.json").read_text())[HELP]
+    assert entry["outcome"] == "unreachable" and "citation" not in entry
+    assert entry["error"] == "cite-only read failed: rendered preparation failed: timeout"
+    assert list(output.iterdir()) == [output / "manifest.json"]
+
+
+def test_the_fallback_never_writes_ok_with_an_error(allowed_estate, tmp_path):
+    root, _ = allowed_estate
+    reader = StubReader({HELP: FetchResult("ok", 200, body=FIXTURE_HTML, content_type="text/html",
+                                           error="rendered preparation failed: timeout",
+                                           resolved_urls=(HELP,))})
+    output = run_fallback(root, tmp_path, reader=reader)
+    manifest = json.loads((output / "manifest.json").read_text())
+    assert all(e["outcome"] != "ok" or e["error"] is None for e in manifest["pages"].values())
+    assert manifest["pages"][HELP]["outcome"] == "unreachable"
+    assert list(output.iterdir()) == [output / "manifest.json"]
+
+
+@pytest.mark.parametrize("kind", ["retained-missing", "retained-empty", "citation-missing",
+                                  "citation-empty", "citation-bad-hop"])
+def test_a_replayable_entry_without_a_chain_is_refused_at_admission(
+        tmp_path, retainable_sources, kind):
+    if kind.startswith("retained"):
+        url = RENDERED_URL
+        entry = {"file": "page.html", "outcome": "ok", "status": 200, "error": None}
+        if kind == "retained-empty":
+            entry["resolved_urls"] = []
+        directory = tmp_path / "render"
+        directory.mkdir()
+        (directory / "page.html").write_bytes(FIXTURE_HTML)
+    else:
+        url = "https://help.openai.com/en/articles/1"
+        citation = {**CITATION, "url": url, "resolved_urls": [url]}
+        if kind == "citation-missing":
+            del citation["resolved_urls"]
+        elif kind == "citation-empty":
+            citation["resolved_urls"] = []
+        else:
+            citation["resolved_urls"] = [7]
+        entry = {"file": "x.html", "outcome": "ok", "status": 200, "error": None,
+                 "citation": citation}
+        directory = tmp_path / "render"
+        directory.mkdir()
+    (directory / "manifest.json").write_text(json.dumps({url: entry}))
+    with pytest.raises(ValueError):
+        price_reread.RenderedReplayFetcher(directory)
