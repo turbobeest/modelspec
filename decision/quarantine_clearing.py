@@ -37,6 +37,16 @@ fact: ``verification`` null, its ``citation``, and no ``derivation`` (``owner_ru
 An agreement on the filed value clears too: it is the agreement, not a change, that clears.
 Nothing here writes but ``append``; the gate's callers (``scripts/cited_offering.py``,
 ``scripts/cited_reading.py``) append the lines the gate returns.
+
+After the clearing (MODEL-566). The cleared verdict stays logged, but a valid line releases it:
+it no longer holds the record in the epochs after the clearing epoch (``fact_released``,
+``reading_released``). Both the gate and the build ask exactly this: the line is checked as above,
+and the record carries the block the clearing made, or one a later two-reader agreement made in a
+re-read epoch after it (``later_agreements``), a later valid clearing of a newer verdict
+included, so the latest clearing is followed. A cleared record is re-read in an epoch named
+under its clearing epoch (``epoch_after``). The gate reads only a page that changed since the
+read the record rests on: a clearing is not re-litigated in its own epoch. A verdict newer than
+the latest clearing is not the one a line names, so it holds the record again.
 """
 
 from __future__ import annotations
@@ -317,7 +327,8 @@ def check_binds(check: Mapping[str, Any], verdict: Mapping[str, Any],
 
 def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, Any]],
                   log: AttemptLog, subject: str, facet: str, first: str,
-                  settings: Settings | None = None) -> str | None:
+                  settings: Settings | None = None,
+                  clearings: Sequence[Mapping[str, Any]] = ()) -> str | None:
     """The epoch rule 15 derives for the quarantined record as it was filed when ``verdict`` was
     made, or ``None`` when that cannot be shown. ``history`` is the verdict target's queue events
     (``queue_history``). The check the verdict records is its ``checked`` event (same target,
@@ -334,7 +345,12 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
     (``<first>:reread:<text hash>``; a fact's is ``reread:<text hash>``, as ``fact_epoch``); any
     other claim left it in its first epoch (``initial``, or a reading's settings epoch). A claim
     under an owner's ruling, a claim ``settings`` rejects (a reading's settings are not shown to
-    be this row's), no matching check or no such claim before it cannot be shown."""
+    be this row's), no matching check or no such claim before it cannot be shown.
+    The attempt must be the record's own (MODEL-566 review): agreed on the claim's value, in
+    an epoch of ``first`` (a
+    reading's settings epoch or one under it, never another setting's), and an attempt in a
+    clearing epoch only when a line in ``clearings`` names exactly that attempt line and epoch
+    (``epoch_after`` then names the epoch under that clearing)."""
     pair = verdict_pair(verdict, history)
     if pair is None:
         return None
@@ -350,16 +366,22 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
     copies = {str(ref.get("snapshot_ref")) for ref in claim.get("sources") or ()
               if isinstance(ref, Mapping)}
     filed_at, checked_at = _event_at(filed_event), _event_at(checked)
-    for entry in reversed(log.entries):
+    named = {(str(c.get("agreement")), str(c.get("epoch"))) for c in clearings
+             if isinstance(c, Mapping) and (c.get("subject"), c.get("facet")) == (subject, facet)}
+    for raw, entry in zip(reversed(log.lines), reversed(log.entries), strict=True):
         at = _at(entry.get("at"))
+        epoch = str(entry.get("epoch") or "")
         if (entry.get("subject"), entry.get("facet")) == (subject, facet) \
                 and entry.get("complete") is True and entry.get("agreed") is True \
                 and entry.get("harness") is True and at is not None and filed_at is not None \
                 and checked_at is not None and at <= filed_at and at < checked_at \
                 and f"sha256:{entry.get('page_sha256')}" in copies \
-                and _HEX.fullmatch(str(entry.get("text_sha256") or "")):
-            prefix = "" if first == "initial" else first + ":"
-            return f"{prefix}reread:{entry['text_sha256']}"
+                and _HEX.fullmatch(str(entry.get("text_sha256") or "")) \
+                and "value" in claim and "agreed_value" in entry \
+                and _canonical(entry["agreed_value"], facet) == _canonical(claim["value"], facet) \
+                and _of(first, epoch) \
+                and (not _CLEARED.search(epoch) or (line_hash(raw), epoch) in named):
+            return epoch_after(first, entry)
     return None
 
 
@@ -394,6 +416,31 @@ def verdict_pair(verdict: Mapping[str, Any], history: Sequence[Mapping[str, Any]
                                for e in history[start + 1:index]):
             pair = (binding[-1], event)
     return pair
+
+
+def _of(first: str, epoch: str) -> bool:
+    """Whether ``epoch`` is one of the record's own: any of a fact's (it has one key), or a
+    reading's settings epoch or one under it (never another setting's of the same board)."""
+    return first == "initial" or epoch == first or epoch.startswith(first + ":")
+
+
+_CLEARED = re.compile(re.escape(CLEAR_MARK) + r"[0-9a-f]{64}$")
+
+
+def epoch_after(first: str, agreement: Mapping[str, Any]) -> str:
+    """The epoch the record a rule-15 agreement made is re-read in: the re-read epoch of the page
+    it read (``reread_epoch``), or for a clearing's agreement (MODEL-566) that epoch under its
+    clearing epoch, as ``cited_change.fact_epoch`` and ``reading_epoch`` name it."""
+    epoch, text = str(agreement.get("epoch") or ""), str(agreement.get("text_sha256"))
+    return f"{epoch}:reread:{text}" if _CLEARED.search(epoch) else reread_epoch(first, text)
+
+
+def reread_epoch(first: str, text: str) -> str:
+    """The rule-15 re-read epoch a cited change on page text ``text`` puts the record in: a
+    fact's is ``reread:<text hash>`` (``cited_change.fact_epoch``), a reading's
+    ``<settings epoch>:reread:<text hash>`` (``cited_change.reading_epoch``)."""
+    prefix = "" if first == "initial" else first + ":"
+    return f"{prefix}reread:{text}"
 
 
 def reading_settings(row: Mapping[str, Any]) -> Settings:
@@ -475,7 +522,9 @@ def reading_holds(held: Sequence[tuple[Key, Mapping[str, Any]]], row: Mapping[st
 def line_problem(entry: Any, *, verdict: Mapping[str, Any], subject: str, facet: str,
                  ids: Callable[[str], bool], log: AttemptLog, first: str,
                  history: Sequence[Mapping[str, Any]], cutoff: date,
-                 settings: Settings | None = None) -> tuple[str, Mapping[str, Any] | None]:
+                 settings: Settings | None = None,
+                 clearings: Sequence[Mapping[str, Any]] = ()
+                 ) -> tuple[str, Mapping[str, Any] | None]:
     """``(problem, attempt)``: why ``entry`` does not clear ``verdict`` for this subject and facet
     (empty when it does), and the agreement it names when its exact line is logged. ``ids`` says
     whether a target id is the subject's own; ``first`` is the subject's first epoch and
@@ -520,7 +569,7 @@ def line_problem(entry: Any, *, verdict: Mapping[str, Any], subject: str, facet:
     if cleared is None or cleared < at or cleared.astimezone(UTC).date() > cutoff:
         return "the clearing time is before its agreement or after the build's day", None
     derived = verdict_epoch(verdict, history=history, log=log, subject=subject, facet=facet,
-                            first=first, settings=settings)
+                            first=first, settings=settings, clearings=clearings)
     if derived is None:
         return "the record's epoch at the verdict cannot be shown", None
     if base != derived and not _board_base(base, derived, first, settings, attempt):
@@ -568,6 +617,13 @@ def made_by(record: Mapping[str, Any], attempt: Mapping[str, Any], *, epoch: str
     if block is None or block.get("clearing_epoch") != epoch \
             or block.get("previous_epoch") != base:
         return False
+    return _block_is(record, block, attempt, sources=sources)
+
+
+def _block_is(record: Mapping[str, Any], block: Mapping[str, Any], attempt: Mapping[str, Any], *,
+              sources: Mapping[str, str]) -> bool:
+    """Whether ``block`` is the one ``attempt`` made, and ``record`` cites that copy under the
+    registered source whose URL the attempt read (``made_by``, without the epochs)."""
     readers = block.get("readers")
     if not isinstance(readers, list) or len(readers) != 2 \
             or not all(isinstance(r, Mapping) for r in readers):
@@ -586,64 +642,289 @@ def made_by(record: Mapping[str, Any], attempt: Mapping[str, Any], *, epoch: str
                     for ref in record.get("sources") or ()))
 
 
-def _clears(record: Mapping[str, Any], *, verdict: Mapping[str, Any], subject: str, facet: str,
-            ids: Callable[[str], bool], value: Any, clearings: Sequence[Mapping[str, Any]],
-            log: AttemptLog, first: str, sources: Mapping[str, str],
-            history: Mapping[str, Sequence[Mapping[str, Any]]], cutoff: date,
-            settings: Settings | None = None) -> bool:
-    events = history.get(str((verdict.get("target") or {}).get("id")), ())
-    for entry in clearings:
-        problem, attempt = line_problem(entry, verdict=verdict, subject=subject, facet=facet,
-                                        ids=ids, log=log, first=first, history=events,
-                                        cutoff=cutoff, settings=settings)
-        if problem or attempt is None:
-            continue
+Cleared = tuple[Mapping[str, Any], Mapping[str, Any]]
+
+
+def _moved(opener: Mapping[str, Any], read: Mapping[str, Any]) -> bool:
+    """Whether ``read`` read another page than ``opener``: its visible text hash differs, and so
+    does its cited-region hash when both logged one (MODEL-566 review; the gate's
+    ``_relitigates``). The same page re-read in a later epoch re-litigates nothing."""
+    if read.get("text_sha256") == opener.get("text_sha256"):
+        return False
+    regions = (opener.get("region_sha256"), read.get("region_sha256"))
+    return None in regions or regions[0] != regions[1]
+
+
+Opener = tuple[Mapping[str, Any], datetime]
+
+
+def openers_before(pairs: Sequence[Opener], read: Mapping[str, Any],
+                   after: Callable[[Mapping[str, Any]], bool]) -> list[Mapping[str, Any]]:
+    """The openers of an epoch (``(agreement, opened)``: a clearing's agreement with its line's
+    ``cleared_at``, or a link with its own time) that ``read`` comes after: at or after the full
+    timestamp it was opened at, never only on the same UTC day, and logged after it
+    (``after``). The gate and the build both filter so (MODEL-566 review)."""
+    at = _at(read.get("at"))
+    return [o for o, opened in pairs if at is not None and at >= opened and after(o)]
+
+
+def link_problem(entries: Sequence[Mapping[str, Any]], read: Mapping[str, Any],
+                 openers: Sequence[Opener], facet: str,
+                 after: Callable[[Mapping[str, Any]], bool] = lambda _: True) -> str | None:
+    """Why ``read``, logged in an epoch after a clearing, is no link of the chain there
+    (MODEL-566), or ``None``: it must be a complete agreed harness attempt by two distinct known
+    families with its hashes (``agreement_problem``), in an epoch where no answer recorded
+    (``entries``: every attempt logged in it, ``read`` included), complete or not, is another
+    value (``epoch_problem``: an agreement on silence or absence and a later value is a
+    disagreement), after one of the agreements that opened the epoch (``openers_before``: in
+    time and in the log; ``after`` says the latter, and the gate's read just logged is last), on
+    another page than it (``_moved``). The gate asks exactly this of the read it has just logged,
+    and the build of each read it walks (``later_agreements``)."""
+    if "agreed_value" not in read:
+        return "the read is not an agreement"
+    before = openers_before(openers, read, after)
+    if not before:
+        return "the read is not after the clearing or read that opened its epoch"
+    value = read["agreed_value"]
+    problem = agreement_problem(read, value, facet) or epoch_problem(entries, value, facet)
+    if problem is not None:
+        return problem
+    if not any(_moved(opener, read) for opener in before):
+        return "the read is of the page the record already rests on"
+    return None
+
+
+def later_agreements(log: AttemptLog, line_entry: Mapping[str, Any], attempt: Mapping[str, Any],
+                     *, subject: str, facet: str, first: str, cutoff: date,
+                     cleared: Sequence[Cleared] = ()
+                     ) -> list[tuple[dict[str, Any], Mapping[str, Any] | None]]:
+    """Every agreement made in an epoch after the clearing ``line_entry`` (whose agreement is
+    ``attempt``, an entry of ``log``) (MODEL-566), each with the clearing line it made, or
+    ``None`` for a plain two-reader agreement.
+
+    The cleared record sits in the re-read epoch its block names (``epoch_after``: the clearing
+    epoch with the clearing agreement's text hash); a page change there is read in that epoch,
+    and an agreement in it opens the re-read epoch of the page it read, and so on. A plain
+    agreement is a link when ``link_problem`` finds nothing against the agreements that opened
+    its epoch, and it is logged after one of them, at or after the time that opener was made (a
+    clearing line's ``cleared_at``, or a link's own time), and not after ``cutoff``, the last day
+    the build may know. Every opener of an epoch is kept: a read any of them makes valid is a
+    link. A later clearing is followed too: ``cleared`` holds the latest valid
+    ``(line, agreement)`` of each other verdict that holds the record; one whose base epoch is an
+    epoch of this chain is a link on the same terms but ``link_problem`` (a clearing may read the
+    same page; its own line was checked), and the epochs after it follow from its own
+    ``cleared_at``. The clearing epoch itself is never one of these: a clearing is not
+    re-litigated in its own epoch."""
+    position = {id(entry): index for index, entry in enumerate(log.entries)}
+    start = _at(line_entry.get("cleared_at"))
+    if start is None or id(attempt) not in position \
+            or not _HEX.fullmatch(str(attempt.get("text_sha256") or "")):
+        return []
+    by_base: dict[str, list[Cleared]] = {}
+    for entry, agreed in cleared:
+        base = base_epoch(entry.get("epoch"), str(entry.get("verdict_sha256")))
+        if base is not None and id(agreed) in position and agreed is not attempt:
+            by_base.setdefault(base, []).append((entry, agreed))
+    out: list[tuple[dict[str, Any], Mapping[str, Any] | None]] = []
+    found: set[int] = {id(attempt)}
+    openers: dict[str, list[tuple[Mapping[str, Any], datetime]]] = {}
+    frontier = [(attempt, start)]
+    while frontier:
+        opener, opened = frontier.pop(0)
+        epoch = epoch_after(first, opener)
+        openers.setdefault(epoch, []).append((opener, opened))
+        entries = log.keyed(subject, facet, epoch)
+        candidates = [(e, None) for e in entries] \
+            + [(agreed, made) for made, agreed in by_base.get(epoch, ())]
+        for agreed, made in candidates:
+            if id(agreed) in found:
+                continue
+            at = _at(agreed.get("at"))
+            if at is None or at.astimezone(UTC).date() > cutoff \
+                    or not _HEX.fullmatch(str(agreed.get("text_sha256") or "")):
+                continue
+            def later(o: Mapping[str, Any], agreed: Mapping[str, Any] = agreed) -> bool:
+                return position[id(agreed)] > position[id(o)]
+
+            if made is None:
+                if link_problem(entries, agreed, openers[epoch], facet, later) is not None:
+                    continue
+            elif not openers_before(openers[epoch], agreed, later):
+                continue
+            then = at if made is None else _at(made.get("cleared_at"))
+            if then is None or then < at:
+                continue
+            found.add(id(agreed))
+            out.append((dict(agreed), made))
+            frontier.append((agreed, then))
+    return out
+
+
+def _chain(record: Mapping[str, Any], *, verdict: Mapping[str, Any], subject: str, facet: str,
+           ids: Callable[[str], bool], value: Any, clearings: Sequence[Mapping[str, Any]],
+           log: AttemptLog, first: str, sources: Mapping[str, str],
+           history: Mapping[str, Sequence[Mapping[str, Any]]], cutoff: date,
+           settings: Settings | None = None, later: bool = False,
+           held: Sequence[Mapping[str, Any]] = ()) -> list[Opener] | None:
+    """The chain that releases ``verdict`` for ``record``, or ``None``, as ``(agreement,
+    opened)`` pairs (``openers_before``): the agreement of the
+    latest valid line for it (``line_problem``; by ``cleared_at``, then line order), and with
+    ``later`` (MODEL-566) every agreement after the clearing epoch (``later_agreements``), when
+    one of them made the record's block with the record's value: the clearing's own agreement,
+    a plain two-reader agreement, or the agreement of the latest valid clearing of another of
+    the record's ``held`` verdicts, so the latest clearing is followed. An older clearing's
+    block, and what descends from it, is not admitted once a later one exists. A verdict no
+    valid line names, a newer one included, holds."""
+    def latest(row: Mapping[str, Any]) -> Cleared | None:
+        events = history.get(str((row.get("target") or {}).get("id")), ())
+        found: list[tuple[datetime, int, Cleared]] = []
+        for index, entry in enumerate(clearings):
+            problem, attempt = line_problem(entry, verdict=row, subject=subject, facet=facet,
+                                            ids=ids, log=log, first=first, history=events,
+                                            cutoff=cutoff, settings=settings,
+                                            clearings=clearings)
+            at = _at(entry.get("cleared_at")) if isinstance(entry, Mapping) else None
+            if not problem and attempt is not None and at is not None:
+                found.append((at, index, (entry, attempt)))
+        return max(found, key=lambda f: f[:2])[2] if found else None
+
+    def made(entry: Mapping[str, Any], attempt: Mapping[str, Any]) -> bool:
         base = base_epoch(entry["epoch"], entry["verdict_sha256"])
-        if _canonical(value, facet) == _canonical(entry["value"], facet) \
-                and made_by(record, attempt, epoch=entry["epoch"], base=base, sources=sources):
-            return True
-    return False
+        return base is not None \
+            and _canonical(value, facet) == _canonical(entry["value"], facet) \
+            and made_by(record, attempt, epoch=entry["epoch"], base=base, sources=sources)
+
+    own = latest(verdict)
+    if own is None:
+        return None
+    root = _at(own[0].get("cleared_at"))
+    if root is None:
+        return None
+    if made(*own):
+        return [(own[1], root)]
+    block = _block(record)
+    if not later or block is None:
+        return None
+    others = [pair for row in held if verdict_sha256(row) != verdict_sha256(verdict)
+              if (pair := latest(row)) is not None]
+    nodes = later_agreements(log, own[0], own[1], subject=subject, facet=facet, first=first,
+                             cutoff=cutoff, cleared=others)
+    chain: list[Opener] = [(own[1], root)]
+    for agreed, line_entry in nodes:
+        opened = _at(agreed.get("at")) if line_entry is None else _at(line_entry.get("cleared_at"))
+        if opened is not None:
+            chain.append((agreed, opened))
+    for agreed, line_entry in nodes:
+        if line_entry is not None:
+            if made(line_entry, agreed):
+                return chain
+        elif "clearing_epoch" not in block \
+                and _canonical(value, facet) == _canonical(agreed["agreed_value"], facet) \
+                and _block_is(record, block, agreed, sources=sources):
+            return chain
+    return None
+
+
+def openers(chain: Sequence[Opener], first: str, epoch: str) -> list[Opener]:
+    """The ``(agreement, opened)`` pairs of a releasing chain (``_chain``) that open ``epoch``:
+    a read there is a link against these (``link_problem``). The gate takes them from the same
+    chain the build walks, never from another source or epoch."""
+    return [(a, t) for a, t in chain if epoch_after(first, a) == epoch]
 
 
 def fact_cleared(fact: Mapping[str, Any], subject: str, *, verdict: Mapping[str, Any],
                  clearings: Sequence[Mapping[str, Any]], log: AttemptLog,
                  sources: Mapping[str, str], history: Mapping[str, Sequence[Mapping[str, Any]]],
-                 cutoff: date) -> bool:
+                 cutoff: date, later: bool = False,
+                 held: Sequence[Mapping[str, Any]] = ()) -> bool:
     """Whether a cited fact whose winning verdict is ``verdict`` (a mismatch) is admitted on a
     clearing line. ``subject`` is the fact's owner as the build places it. The fact's stored id,
     when any, is its location id; it carries no owner's ruling; its value and state are the
-    cleared value's; and it carries the block its clearing agreement made."""
+    cleared value's; and it carries the block its clearing agreement made. With ``later``
+    (``fact_released``), a block an agreement made after the clearing epoch counts too."""
+    return fact_chain(fact, subject, verdict=verdict, clearings=clearings, log=log,
+                      sources=sources, history=history, cutoff=cutoff, later=later,
+                      held=held) is not None
+
+
+def fact_chain(fact: Mapping[str, Any], subject: str, *, verdict: Mapping[str, Any],
+               clearings: Sequence[Mapping[str, Any]], log: AttemptLog,
+               sources: Mapping[str, str], history: Mapping[str, Sequence[Mapping[str, Any]]],
+               cutoff: date, later: bool = True,
+               held: Sequence[Mapping[str, Any]] = ()) -> list[Opener] | None:
+    """The chain that releases ``verdict`` for the fact (``_chain``), or ``None``, under
+    ``fact_cleared``'s terms for the fact itself."""
     from decision.owner_ruling import has_ruling
 
     facet = str(fact.get("facet"))
     location = f"{subject}#{facet}"
     stored = fact.get("id")
     if has_ruling(fact) or (stored is not None and stored != location):
-        return False
+        return None
     value = fact.get("value")
     if fact.get("state") != ("not_disclosed" if value is None else "known"):
-        return False
-    return _clears(fact, verdict=verdict, subject=subject, facet=facet,
-                   ids=lambda rid: rid == location, value=value, clearings=clearings,
-                   log=log, first="initial", sources=sources, history=history, cutoff=cutoff)
+        return None
+    return _chain(fact, verdict=verdict, subject=subject, facet=facet,
+                  ids=lambda rid: rid == location, value=value, clearings=clearings,
+                  log=log, first="initial", sources=sources, history=history, cutoff=cutoff,
+                  later=later, held=held)
+
+
+def fact_released(fact: Mapping[str, Any], subject: str, *, verdict: Mapping[str, Any],
+                  clearings: Sequence[Mapping[str, Any]], log: AttemptLog,
+                  sources: Mapping[str, str], history: Mapping[str, Sequence[Mapping[str, Any]]],
+                  cutoff: date, held: Sequence[Mapping[str, Any]] = ()) -> bool:
+    """Whether ``verdict`` no longer holds the fact (MODEL-566): a valid clearing line released
+    it (``line_problem``, checked as for ``fact_cleared``), and the fact carries the block that
+    clearing made, or one an agreement made in an epoch after the clearing epoch
+    (``later_agreements``), a later valid clearing of another of its ``held`` verdicts included.
+    A verdict newer than the latest clearing is a winning row no line names, so it holds the fact
+    again. The gate and the build both ask this, with every verdict that holds the fact."""
+    return fact_cleared(fact, subject, verdict=verdict, clearings=clearings, log=log,
+                        sources=sources, history=history, cutoff=cutoff, later=True, held=held)
 
 
 def reading_cleared(row: Mapping[str, Any], subject: str, *, verdict: Mapping[str, Any],
                     owns: Callable[[str], bool], clearings: Sequence[Mapping[str, Any]],
                     log: AttemptLog, sources: Mapping[str, str],
-                    history: Mapping[str, Sequence[Mapping[str, Any]]], cutoff: date) -> bool:
+                    history: Mapping[str, Sequence[Mapping[str, Any]]], cutoff: date,
+                    later: bool = False, held: Sequence[Mapping[str, Any]] = ()) -> bool:
     """Whether a cited board reading's held ``verdict`` (a mismatch on one of its ids, ``owns``)
     is cleared for this row: the line's base epoch is the one rule 15 derives for the record the
     verdict checked, which must be shown to have this row's settings (``verdict_epoch``), and the
-    row carries the block the agreement made, with its score."""
+    row carries the block the agreement made, with its score. With ``later``
+    (``reading_released``), a block an agreement made after the clearing epoch counts too."""
+    return reading_chain(row, subject, verdict=verdict, owns=owns, clearings=clearings,
+                         log=log, sources=sources, history=history, cutoff=cutoff,
+                         later=later, held=held) is not None
+
+
+def reading_chain(row: Mapping[str, Any], subject: str, *, verdict: Mapping[str, Any],
+                  owns: Callable[[str], bool], clearings: Sequence[Mapping[str, Any]],
+                  log: AttemptLog, sources: Mapping[str, str],
+                  history: Mapping[str, Sequence[Mapping[str, Any]]], cutoff: date,
+                  later: bool = True,
+                  held: Sequence[Mapping[str, Any]] = ()) -> list[Opener] | None:
+    """``fact_chain`` for a cited board reading (``reading_cleared``'s terms)."""
     from decision.cited_change import BENCHMARK_PREFIX, READING_KEYS, reading_epoch
 
     facet = BENCHMARK_PREFIX + str(row.get("benchmark_id"))
     first = reading_epoch({k: row.get(k) for k in READING_KEYS})
-    return _clears(row, verdict=verdict, subject=subject, facet=facet, ids=owns,
-                   value=row.get("score"), clearings=clearings, log=log, first=first,
-                   sources=sources, history=history, cutoff=cutoff,
-                   settings=reading_settings(row))
+    return _chain(row, verdict=verdict, subject=subject, facet=facet, ids=owns,
+                  value=row.get("score"), clearings=clearings, log=log, first=first,
+                  sources=sources, history=history, cutoff=cutoff,
+                  settings=reading_settings(row), later=later, held=held)
+
+
+def reading_released(row: Mapping[str, Any], subject: str, *, verdict: Mapping[str, Any],
+                     owns: Callable[[str], bool], clearings: Sequence[Mapping[str, Any]],
+                     log: AttemptLog, sources: Mapping[str, str],
+                     history: Mapping[str, Sequence[Mapping[str, Any]]], cutoff: date,
+                     held: Sequence[Mapping[str, Any]] = ()) -> bool:
+    """``fact_released`` for a cited board reading (``reading_cleared``, with ``later``)."""
+    return reading_cleared(row, subject, verdict=verdict, owns=owns, clearings=clearings,
+                           log=log, sources=sources, history=history, cutoff=cutoff,
+                           later=True, held=held)
 
 
 def read_clearings(path: Path) -> list[dict[str, Any]]:
