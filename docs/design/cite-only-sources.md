@@ -17,6 +17,7 @@ file. MODEL-436 added `www.anthropic.com`, `developers.openai.com`,
 `support.claude.com` stay off the list. MODEL-473 adds Jamie's 2026-11-25
 rulings: `aistudio.google.com`, `thinkingmachines.ai`, `arena.ai`, `gemma.ai`
 and `grok.com`. `lmarena.ai` is not under `arena.ai` and stays off the list.
+`deepmind.google` is cite-only.
 
 A shared, standard-library retention module loads this file. Hosts are
 case-insensitive, ignore a terminal dot and port, and match the named host or
