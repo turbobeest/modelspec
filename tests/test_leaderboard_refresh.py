@@ -227,6 +227,7 @@ def test_private_weekly_workflow_uses_guard_token_and_audit_artifact() -> None:
     # MODEL-564: re-read record lines alone also open the PR, and are staged.
     assert "steps.records.outputs.changed == 'true'" in workflow
     assert "verification/cited-reread-requests.jsonl" in workflow
+    assert workflow.count("reread-records.md") == 3 and "git diff --numstat" in workflow
     assert "len(report['changes']) + len(report['reconfirmed'])" in workflow
     assert "gh pr merge" not in workflow
     assert "signoff: true" in workflow
