@@ -218,6 +218,42 @@ jobs:
           fi
           python -I -m scripts.evidence_reread "${args[@]}" > "$RUNNER_TEMP/evidence-reread.md"
           cat "$RUNNER_TEMP/evidence-reread.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Check for new reopening and re-read request lines
+        id: records
+        # MODEL-564: the re-read appends reopenings and two-reader re-read requests. They are
+        # record lines, not score updates, so a week with only these lines still opens the PR;
+        # otherwise the next run would count the same fact as reopened again.
+        if: inputs.dry_run != true
+        run: |
+          set -euo pipefail
+          # The body names each changed record file and the lines it gained (counts only), so
+          # it is honest even when the re-read crashed before writing its report.
+          lines=()
+          for f in verification/cited-reread-requests.jsonl \
+                   reports/evidence-reread/ruled-reopenings.jsonl; do
+            state="$(git status --porcelain --untracked-files=all -- "$f")"
+            added=""
+            if [[ "$state" == '?? '* ]]; then
+              added="$(git diff --no-index --numstat -- /dev/null "$f" | cut -f1 || true)"
+            elif [ -n "$state" ]; then
+              added="$(git diff --numstat -- "$f" | cut -f1)"
+            fi
+            if [ -n "$added" ]; then
+              lines+=("- \`$f\`: $added lines added")
+            fi
+          done
+          if [ "${#lines[@]}" -gt 0 ]; then
+            {
+              echo "### Re-read record lines"
+              echo
+              echo "The evidence re-read wrote record lines; this pull request opens for them even with no score update."
+              echo
+              printf '%s\n' "${lines[@]}"
+            } > "$RUNNER_TEMP/reread-records.md"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Count changes and verification failures
         id: result
         env:
@@ -253,10 +289,10 @@ jobs:
               print(f"left_stale={len(report.get('left_stale', []))}", file=out)
           PY
       - name: Prepare the pull-request body
-        if: inputs.dry_run != true && steps.result.outputs.updates != '0'
+        if: inputs.dry_run != true && (steps.result.outputs.updates != '0' || steps.records.outputs.changed == 'true')
         run: |
           python -I - "$RUNNER_TEMP/report.md" "$RUNNER_TEMP/pr-body.md" "$RUNNER_TEMP/evidence-reread.md" "$RUNNER_TEMP/report.json" <<'PY'
-          import json, sys
+          import json, os, sys
           from pathlib import Path
           from scripts.refresh_leaderboards import fit_pull_request_body
 
@@ -264,6 +300,9 @@ jobs:
           report = Path(report_path).read_text(encoding="utf-8")
           if Path(reread_path).is_file():
               report += "\n" + Path(reread_path).read_text(encoding="utf-8")
+          records_path = Path(os.environ["RUNNER_TEMP"]) / "reread-records.md"
+          if records_path.is_file():
+              report += "\n" + records_path.read_text(encoding="utf-8")
           opening = (
               "This weekly job re-read the registered live boards for existing models "
               "in the premier set.\n\n"
@@ -290,7 +329,7 @@ jobs:
           PY
       - name: Open the score-only pull request
         id: pr
-        if: inputs.dry_run != true && steps.result.outputs.updates != '0'
+        if: inputs.dry_run != true && (steps.result.outputs.updates != '0' || steps.records.outputs.changed == 'true')
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -298,7 +337,9 @@ jobs:
           delete-branch: true
           add-paths: |
             models/**
+            registry/source-redirects.json
             reports/evidence-reread/**
+            verification/cited-reread-requests.jsonl
             verification/log.jsonl
             verification/queue/events.jsonl
           signoff: true
@@ -347,6 +388,9 @@ jobs:
           report = Path(report_path).read_text(encoding="utf-8")
           if Path(reread_path).is_file():
               report += "\n" + Path(reread_path).read_text(encoding="utf-8")
+          records_path = Path(os.environ["RUNNER_TEMP"]) / "reread-records.md"
+          if records_path.is_file():
+              report += "\n" + records_path.read_text(encoding="utf-8")
           opening = (
               "This weekly job re-read the registered live boards for existing models "
               "in the premier set.\n\n"
