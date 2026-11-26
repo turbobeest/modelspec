@@ -1264,7 +1264,7 @@ def _plan_observations(
             if card_effort in (None, "") and spelled_match:
                 adopted = spelled_match
         elif pinned is None and arena_board and not hits and match is not None:
-            found = None if _effort_word_is_card_name(_subject(match), model_id, front, stored_name) \
+            found = None if _effort_word_is_card_name(_subject(match), model_id, front) \
                 else _canonical_structured_effort(_subject(match))
             if found and spelled_effort != found:
                 failures.append(RowFailure(
@@ -1536,6 +1536,8 @@ def _claim(model_id: str, front: Mapping[str, Any], row: Mapping[str, Any],
         target=TargetRef(kind="evidence", id=str(row["id"])),
         subject=model_id,
         names=names,
+        # The effort-word test reads the card's own names, never the board label.
+        registered_names=_card_names(front, model_id),
         field=str(row["benchmark_id"]),
         label=board.value_field,
         # The value the snapshot checks: with interval, n or quality flags, all of them.
@@ -1624,7 +1626,7 @@ def _stored_efforts(front: Mapping[str, Any], board: BoardReading) -> set[str]:
             continue
         name = str(row.get("model_id_as_evaluated") or "")
         effort = row.get("effort") or readers.structured_name_effort(
-            name, (name, *_card_names(front)))
+            name, _card_names(front))
         if effort:
             efforts.add(str(effort).casefold())
     return efforts
@@ -3331,19 +3333,16 @@ def _card_names(front: Mapping[str, Any], model_id: str | None = None) -> tuple[
     ))))
 
 
-def _effort_word_is_card_name(
-    name: str, model_id: str, front: Mapping[str, Any] | None, stored_name: str | None = None,
-) -> bool:
+def _effort_word_is_card_name(name: str, model_id: str, front: Mapping[str, Any] | None) -> bool:
     """True when the effort word ending ``name`` is part of the card's name (MODEL-568).
 
-    The test is the verifier's (``verify.effort_word_is_name``) over the stored
-    name and the card's own names, so the writer and the verifier agree. With
-    no front matter nothing is decided here and the old reading stands.
+    The test is the verifier's (``verify.effort_word_is_name``) over the card's
+    own names, never the label being read, so the writer and the verifier agree.
+    With no front matter nothing is decided here and the old reading stands.
     """
     if front is None:
         return False
-    stored = stored_name if stored_name is not None else name
-    return verify.effort_word_is_name(name, (stored, *_card_names(front, model_id)))
+    return verify.effort_word_is_name(name, _card_names(front, model_id))
 
 
 def _verifier_named_effort(model_id_as_evaluated: object) -> str | None:

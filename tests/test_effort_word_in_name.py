@@ -31,8 +31,10 @@ _COLLECTOR = VerificationActor(agent="fixture-collector", model_family="fixture"
                                method="fixture@1")
 
 
-def _claim(names: tuple[str, ...], effort: str | None = None, value: float = 1200.0):
+def _claim(names: tuple[str, ...], effort: str | None = None, value: float = 1200.0,
+           registered: tuple[str, ...] | None = None):
     return verify.Claim(
+        registered_names=registered,
         target=TargetRef(kind="evidence", id="lab/fixture#arena_elo_overall#x"),
         subject="lab/fixture",
         names=names,
@@ -97,11 +99,18 @@ def test_max_and_high_in_the_card_name_are_the_name(name: str) -> None:
     ("Example Max (High)", ("Example Max",), "High"),
     ("Example Model high", ("Example Model high", "Example Model", "example-model"), "high"),
     ("Example Model - Max", ("Example Model - Max", "Example Model"), "Max"),
+    # A separator form is an effort label even when only the full label is registered.
+    ("Foo - Max", ("Foo - Max",), "Max"),
+    ("Foo-Max", ("Foo Max",), None),
+    # A card registered only under another name: "Max" is not part of "Foo v2".
+    ("Foo Max", ("Foo v2", "foo-v2"), "Max"),
     ("example-model_max", ("example-model_max", "example-model"), "max"),
     ("example-model-2026-01-01_high", ("example-model-2026-01-01_high",), "high"),
     ("Other Model low", ("Example Model",), "low"),
 ])
-def test_real_effort_labels_still_parse(subject: str, names: tuple[str, ...], effort: str) -> None:
+def test_real_effort_labels_still_parse(
+    subject: str, names: tuple[str, ...], effort: str | None,
+) -> None:
     assert verify.structured_name_effort(subject, names) == effort
     assert verify.structured_name_effort(subject) == effort
 
@@ -139,6 +148,28 @@ def test_the_verifier_still_reads_a_spaced_effort_on_the_cards_name() -> None:
     assert _compare(_claim(names, effort="high"), region) == []
     diffs = _compare(_claim(names), region)
     assert [(d.field, d.found) for d in diffs] == [("effort", "high")]
+
+
+def test_the_board_label_is_never_a_registered_name_for_the_word_test() -> None:
+    """Review regression 1: the claim names the label it copied ("Foo Max"), but the
+    card is registered only as "Foo v2". Max is the row's effort, not its name."""
+    names = ("Foo Max", "Foo v2", "foo-v2")
+    region = _region(("Foo Max", 1200.0))
+    registered = ("Foo v2", "foo-v2")
+    assert _compare(_claim(names, effort="max", registered=registered), region) == []
+    diffs = _compare(_claim(names, registered=registered), region)
+    assert [(d.field, d.found) for d in diffs] == [("effort", "max")]
+
+
+def test_a_separator_form_is_always_an_effort_label() -> None:
+    """Review regression 2: "Foo - Max" names max even when only the full label is
+    registered and the bare stem is not."""
+    names = ("Foo - Max",)
+    region = _region(("Foo - Max", 1200.0))
+    assert _compare(_claim(names, effort="max"), region) == []
+    assert [d.field for d in _compare(_claim(names), region)] == ["effort"]
+    assert verify.effort_word_is_name("Foo - Max", names) is False
+    assert verify.effort_word_is_name("Foo_Max", ("Foo_Max",)) is False
 
 
 def test_the_verifier_still_reads_a_parenthesised_effort() -> None:
@@ -237,6 +268,23 @@ def test_the_refresh_does_not_adopt_a_name_word_as_effort(monkeypatch, tmp_path:
 
 
 @pytest.mark.usefixtures("terms_register_present")
+def test_the_refresh_keeps_a_real_effort_on_a_card_registered_under_another_name(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """Review regression 1 through the refresh: the stored label "Foo Max" is not one
+    of the card's own names ("Foo v2"), so its max stays an effort and still verifies."""
+    report, card, root, _before = _run(
+        monkeypatch, tmp_path, display="Foo v2", evaluated="Foo Max", version="foo-v2",
+        effort="max",
+    )
+    assert report.failures == [], report.failures
+    row = _evidence_row(card)
+    assert row["score"] == 1210.0
+    assert row["effort"] == "max"
+    assert _verification_log(root)["outcome"] == "verified"
+
+
+@pytest.mark.usefixtures("terms_register_present")
 def test_the_refresh_still_adopts_a_spaced_effort(monkeypatch, tmp_path: Path) -> None:
     """ "Example Model high" for the card "Example Model" is still read at high."""
     report, card, root, _before = _run(
@@ -248,3 +296,12 @@ def test_the_refresh_still_adopts_a_spaced_effort(monkeypatch, tmp_path: Path) -
     assert row["score"] == 1210.0
     assert row["effort"] == "high"
     assert _verification_log(root)["outcome"] == "verified"
+
+
+def test_registered_names_survive_the_queue() -> None:
+    """The refresh verifies claims through the queue: the card's own names go with them."""
+    claim = _claim(("Foo Max", "Foo v2"), registered=("Foo v2", "foo-v2"))
+    assert verify.Claim.from_dict(claim.to_dict()) == claim
+    legacy = _claim(("Foo v2",))
+    assert "registered_names" not in legacy.to_dict()
+    assert verify.Claim.from_dict(legacy.to_dict()).registered_names is None
