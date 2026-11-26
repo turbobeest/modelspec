@@ -1095,7 +1095,7 @@ def test_the_shrink_check_compares_with_the_merge_base(tmp_path):
     assert main(["check", "--data-dir", str(root), "--base", "main"]) == 1  # gains one
 
 
-def test_collect_repo_reads_the_grandfather_list_and_turns_the_check_on(tmp_path):
+def test_collect_repo_reads_the_list_and_checks_the_private_checkout(tmp_path):
     from decision.quarantine_clearing import grandfather_document
     from decision.snapshot import SnapshotBuildError, collect_repo
 
@@ -1104,6 +1104,8 @@ def test_collect_repo_reads_the_grandfather_list_and_turns_the_check_on(tmp_path
         (root / d).mkdir(parents=True)
     (root / "registry/sources.yaml").write_text(yaml.safe_dump({"schema_version": 1,
                                                                "sources": []}))
+    assert collect_repo(root).check_held_rows is False  # no pin: not the private checkout
+    (root / ".engine-pin").write_text("0" * 40 + "\n")
     inputs = collect_repo(root)
     assert inputs.check_held_rows is True and inputs.held_row_grandfather == {}
     a = "sha256:" + "a" * 64

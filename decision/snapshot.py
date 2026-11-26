@@ -408,7 +408,8 @@ class SnapshotInputs:
     #: already gone when the ``held_row_missing`` check began. The list may only shrink.
     held_row_grandfather: Mapping[str, frozenset[str]] = field(default_factory=dict)
     #: Whether the build refuses a failed verdict on a vanished row id (``held_row_missing``).
-    #: ``collect_repo`` turns it on for every build from the data; hand-built test inputs that
+    #: ``collect_repo`` turns it on for every build from the private data checkout (the one that
+    #: carries ``.engine-pin``); the engine's frozen public image and hand-built test inputs that
     #: name only a few records leave it off.
     check_held_rows: bool = False
     #: Lab id -> ``decision.labs.Lab``. Empty when the checkout has no lab registry.
@@ -2423,7 +2424,11 @@ def collect_repo(root: Path) -> SnapshotInputs:
                           quarantine_clearings=quarantine_clearings,
                           cited_attempt_lines=attempt_lines,
                           clearing_history=clearing_history,
-                          held_row_grandfather=held_row_grandfather, check_held_rows=True,
+                          held_row_grandfather=held_row_grandfather,
+                          # The private data checkout (it carries ``.engine-pin``, which its CI
+                          # requires): every build from it refuses a vanished hold. The engine's
+                          # frozen public image has no pin and is not re-checked here.
+                          check_held_rows=(root / ".engine-pin").is_file(),
                           labs=load_labs(root), hardware_fit_records=fit_records,
                           hardware=[yaml.safe_load(path.read_text(encoding="utf-8"))
                                     for path in sorted((root / "hardware").glob("*.yaml"))
