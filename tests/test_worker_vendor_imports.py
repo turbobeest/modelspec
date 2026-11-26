@@ -38,6 +38,9 @@ BUILD_TIME = {
     # same attempt log; the Worker never compiles a snapshot.
     ("decision/snapshot.py", "decision.quarantine_clearing"),
     ("decision/snapshot.py", "decision.cited_change"),
+    # Retained-page corrections (MODEL-573) are checked while the snapshot is compiled, against
+    # the same attempt log; the Worker never compiles a snapshot.
+    ("decision/snapshot.py", "decision.retained_correction"),
     # Board-reading rulings (MODEL-569) are checked while the snapshot is compiled, as facts' are.
     ("decision/snapshot.py", "decision.board_ruling"),
     # The v1 graph export and a type annotation; see the comment at the import.

@@ -48,6 +48,10 @@ one held verdict, and a fact that carries an owner's ruling stay refused. A verd
 released no longer holds the record in the epochs after the clearing epoch (MODEL-566,
 ``_unreleased``), so the rolling re-read reads a changed page with two readers again.
 
+A retaining page may also correct a served value (MODEL-573): ``retained_agreement(correct=True)``
+files an agreed other value within the limits in ``decision.retained_correction``, whose test the
+build and the site loader ask of the filed record too.
+
 ``cited_change`` is the only gate. It checks every condition in code and either
 returns the whole record or refuses with one named reason. It never writes a partial
 change. The gate itself fetches the page in memory with redirects off (every hop must be
@@ -148,6 +152,7 @@ REFUSALS = (
     "attempts_exhausted",
     "epoch_not_current",
     "clearing_not_later",
+    "correction_not_admitted",
 )
 #: The most attempts, complete or not, at one subject, facet and epoch (MODEL-558 review): a
 #: re-run cannot reset the retry budget to read again until two readers happen to agree.
@@ -1024,12 +1029,15 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
           page: tuple[bytes, tuple[str, ...]] | None = None,
           now: datetime | None = None, accept_not_disclosed: bool = False,
           retaining: bool = False, epoch: str | None = None,
-          clear_quarantine: bool = False, own_page: bool = False) -> CitedChange:
+          clear_quarantine: bool = False, own_page: bool = False,
+          correct: bool = False) -> CitedChange:
     """The rule-15 gate. ``epoch``, when given, only states which epoch the caller means: the gate
     reads in the filed fact's own epoch (``fact_epoch``) and refuses (``epoch_not_current``) if
     the two differ. A caller never chooses the epoch the gate reads in. ``clear_quarantine`` lets
     a fresh agreement clear a held mismatch within Jamie's limits
-    (``decision.quarantine_clearing``); the fact is then read in that verdict's clearing epoch."""
+    (``decision.quarantine_clearing``); the fact is then read in that verdict's clearing epoch.
+    ``correct`` lets an agreement on a retaining page correct the filed value
+    (``decision.retained_correction``, MODEL-573)."""
     now = now or datetime.now(UTC)
     facet_def = _facet(facet)
     if facet_def is None:
@@ -1200,7 +1208,8 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
 
     if retaining:
         return _retained_outcome(subject, facet_def, value, filed, found, row, source_id, now,
-                                 page_bytes, answers, resolved, history)
+                                 page_bytes, answers, resolved, history, epoch=epoch,
+                                 correct=correct, released=released)
     if value is None:
         if not accept_not_disclosed:
             return _refuse("no_value",
@@ -1242,8 +1251,12 @@ def _retained_outcome(subject: str, facet_def: Any, value: JsonValue, filed: Jso
                       found: Lookup, row: Mapping[str, Any], source_id: str, now: datetime,
                       page_bytes: bytes, answers: Sequence[ReaderAnswer],
                       resolved: Sequence[str],
-                      history: Sequence[Mapping[str, Any]]) -> CitedChange:
-    """A retaining page only confirms: the agreed value must be the filed, known value."""
+                      history: Sequence[Mapping[str, Any]], *, epoch: str,
+                      correct: bool = False, released: bool = False) -> CitedChange:
+    """A retaining page confirms: the agreed value must be the filed, known value. With
+    ``correct``, or for a fact a correction filed, an agreed other value corrects it within
+    ``decision.retained_correction``'s limits (MODEL-573); anything else is ``value_differs``."""
+    from decision.retained_correction import is_correction
     if value is None:
         return _refuse("no_value", "the readers agree the page states nothing; a retaining page "
                        "confirms a value and files no absence")
@@ -1254,18 +1267,87 @@ def _retained_outcome(subject: str, facet_def: Any, value: JsonValue, filed: Jso
     problem = _value_fits(value, facet_def)
     if problem is not None:
         return _refuse("value_invalid", problem)
-    if found.fact.get("state") != "known" \
-            or _canonical(value, facet_def) != _canonical(filed, facet_def):
+    same = found.fact.get("state") == "known" \
+        and _canonical(value, facet_def) == _canonical(filed, facet_def)
+    corrected = is_correction(found.fact)
+    if same and not corrected:
+        # The filed value is kept as filed (a set's order too): a confirmation changes nothing.
+        return CitedChange("cited_change", None, "", _record(
+            subject, facet_def.id, filed, row, source_id, now, sha256(page_bytes),
+            text_sha256(page_bytes), answers, filed, found.registered_ids, resolved,
+            retaining=True))
+    if not (correct or corrected):
         return _refuse("value_differs", "the agreed value is not the filed value; a retaining "
                        "page changes nothing, and the fact is listed for the owner")
-    # The filed value is kept as filed (a set's order too): a confirmation changes nothing.
-    return CitedChange("cited_change", None, "", _record(
-        subject, facet_def.id, filed, row, source_id, now, sha256(page_bytes),
-        text_sha256(page_bytes), answers, filed, found.registered_ids, resolved, retaining=True))
+    return _corrected(subject, facet_def, filed if same else value, filed, found, row, source_id,
+                      now, page_bytes, answers, resolved, epoch=epoch, released=released)
+
+
+def _corrected(subject: str, facet_def: Any, value: JsonValue, filed: JsonValue, found: Lookup,
+               row: Mapping[str, Any], source_id: str, now: datetime, page_bytes: bytes,
+               answers: Sequence[ReaderAnswer], resolved: Sequence[str], *, epoch: str,
+               released: bool) -> CitedChange:
+    """The correction record (MODEL-573), or a refusal. The block names the epoch it was read in
+    and the agreement just logged by its exact line; the record, as a writer files it, must pass
+    the build's own test (``retained_correction.correction_problem``)."""
+    from decision.owner_ruling import has_ruling, loads
+    from decision.quarantine_clearing import AttemptLog, line_hash
+    from decision.retained_correction import DECIDED_BY as CORRECTION_DECIDED_BY
+    from decision.retained_correction import RULE as CORRECTION_RULE
+    from decision.retained_correction import correction_problem, filed_fact, owner_only
+
+    if owner_only(facet_def.id) or has_ruling(found.fact) or released:
+        return _refuse("value_differs", "the agreed value is not the filed value; a licence fact, "
+                       "an identity field, a ruled fact and a fact a clearing released are not "
+                       "corrected here, and the fact is listed for the owner")
+    record = _record(subject, facet_def.id, value, row, source_id, now, sha256(page_bytes),
+                     text_sha256(page_bytes), answers, filed, found.registered_ids, resolved,
+                     retaining=True)
+    block = record["derivation"]["cited_change"]
+    block["rule"], block["decided_by"] = CORRECTION_RULE, CORRECTION_DECIDED_BY
+    from decision.cited_reader import _attempts_path
+
+    try:
+        raws = [raw for raw in _attempts_path(None).read_text(encoding="utf-8").split("\n")
+                if raw.strip()]
+        logged = attempts(subject, facet_def.id, epoch)
+        if not raws or not logged or loads(raws[-1]) != logged[-1] \
+                or logged[-1].get("prompt_sha256") != answers[0].prompt_sha256:
+            return _refuse("registry_lookup_failed",
+                           "the agreement just logged is not the attempt log's last line")
+        block["epoch"], block["agreement"] = epoch, line_hash(raws[-1])
+        verdicts = _ranked_verdicts()
+        log = AttemptLog(raws)
+    except (OSError, ValueError, LookupFailed) as error:
+        return _refuse("registry_lookup_failed", f"the logs cannot be read: {type(error).__name__}")
+    urls = {str(k): str(v.get("url")) for k, v in found.sources.items()
+            if isinstance(v, Mapping) and v.get("url")}
+    problem = correction_problem(filed_fact(found.fact, record), subject, log=log,
+                                 verdicts=verdicts, sources=urls, cutoff=now.astimezone(UTC).date(),
+                                 ids=found.fact_ids)
+    if problem is not None:
+        return _refuse("correction_not_admitted", problem)
+    return CitedChange("cited_change", None, "", record)
+
+
+def _ranked_verdicts() -> Mapping[tuple[str, str, str], Any]:
+    """The verification log ranked by the build's own rule, as ``quarantine_rows`` reads it."""
+    import os
+
+    from decision.owner_ruling import read_json_lines
+    from decision.snapshot import _Compiler
+
+    root = os.environ.get(DATA_DIR_ENV, "").strip()
+    if not root:
+        raise LookupFailed("no data directory is named")
+    try:
+        return _Compiler._verification_log(read_json_lines(Path(root) / VERIFICATION_LOG))
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+        raise LookupFailed(f"verification log: {type(error).__name__}") from None
 
 
 def retained_agreement(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader],
-                       request: Request | None = None) -> CitedChange:
+                       request: Request | None = None, correct: bool = False) -> CitedChange:
     """Two readers confirm a filed value on a page whose host retains copies (MODEL-558).
 
     Jamie, 2026-11-25 (queue 16f): a fact a person confirmed on a structured page that no engine
@@ -1280,9 +1362,17 @@ def retained_agreement(*, subject: str, facet: str, source_id: str, readers: Seq
     value other than the filed one is refused (``value_differs``) and changes nothing, and an
     agreed absence files nothing (``no_value``). The record is the ``cited_change`` block with
     rule ``RETAINED_RULE``; no ``Verification`` is written.
+
+    ``correct`` (MODEL-573): an agreed value other than the filed one corrects it, within
+    ``decision.retained_correction``'s limits: the agreement is in the fact's current epoch, by
+    two distinct known families, with no disagreement logged there; the fact is no licence fact
+    or identity field, carries no owner's ruling and holds no verdict. The record then carries
+    rule ``retained_correction.RULE``, the epoch it was read in and the agreement's line hash,
+    and the build serves the value as cited, never as verified, only through the same test.
+    Outside the limits it is ``value_differs`` (or ``correction_not_admitted``), as before.
     """
     return _gate(subject=subject, facet=facet, source_id=source_id, readers=readers,
-                 request=request, allow_unchanged=True, retaining=True)
+                 request=request, allow_unchanged=True, retaining=True, correct=correct)
 
 
 def cited_change(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader],
@@ -2430,7 +2520,11 @@ def reread(fact: Mapping[str, Any], *, source_id: str, readers: Sequence[Reader]
     block = cited_change_block(found.fact)
     if block is None:
         return Reread("flagged", "not_a_cited_change", None, "the filed fact carries no block")
-    retaining = block.get("rule") == RETAINED_RULE
+    from decision.retained_correction import RULE as CORRECTION_RULE
+
+    # A correction's block (MODEL-573) is re-read on the retaining gate too, and re-filed as a
+    # correction: its value rests on an agreement, not on a verification.
+    retaining = block.get("rule") in {RETAINED_RULE, CORRECTION_RULE}
     fetched = _fetch(row["url"], request or _http_once, retaining=retaining)
     if isinstance(fetched, CitedChange):
         return Reread("flagged", fetched.reason, None, fetched.detail)
@@ -2438,7 +2532,7 @@ def reread(fact: Mapping[str, Any], *, source_id: str, readers: Sequence[Reader]
         return Reread("current")
     outcome = _gate(subject=subject, facet=facet, source_id=source_id, readers=readers,
                     request=request, allow_unchanged=True, page=fetched, retaining=retaining,
-                    own_page=request is None,
+                    own_page=request is None, correct=block.get("rule") == CORRECTION_RULE,
                     accept_not_disclosed=not retaining
                     and found.fact.get("state") == "not_disclosed")
     if not outcome.changed:

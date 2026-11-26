@@ -266,6 +266,7 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
         ruling_refused,
         served_fact,
     )
+    from decision.retained_correction import is_correction
     from decision.sources import configured_copy_store, load_sources
 
     root = root or REPO_ROOT
@@ -273,6 +274,7 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
     sources = {sid: str(source.url) for sid, source in
                load_sources(root / "registry" / "sources.yaml").items()}
     rulings = None  # read once, and only when a card claims a ruling
+    corrections = None  # read once, and only when a card carries a retained-page correction
     #: The snapshot build's copy store (``build_from_repo``), so a ruled fact's citation is
     #: decided here exactly as there; other facts keep the registry-only citation.
     store = configured_copy_store()
@@ -311,6 +313,17 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
                     logger.warning("%s: a fact's owner ruling does not stand; withheld", model_id)
                     withheld.append(str(fact.get("facet")))
                     continue
+            if not citation and valid and is_correction(fact):
+                # A retained-page correction (MODEL-573) is shown, as cited, only when the
+                # snapshot's own test admits it; otherwise it is withheld.
+                if corrections is None:
+                    corrections = _correction_inputs(root, as_of)
+                citation = _corrected_citation(fact, str(model_id), corrections, sources)
+                if citation is None:
+                    logger.warning("%s: a fact's retained-page correction does not stand; "
+                                   "withheld", model_id)
+                    withheld.append(str(fact.get("facet")))
+                    continue
             if citation:
                 cited.append({**served_fact(fact), "verification": None, "citation": citation})
         block = front.get("benchmarks")
@@ -335,6 +348,40 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
                 front = {**front, "benchmarks": {**block, "evidence": kept}}
         out.append(Model(str(model_id), path, front, body, cited, tuple(withheld)))
     return out
+
+
+def _correction_inputs(root: Path, as_of: date | None) -> tuple[Any, Any, date]:
+    """The attempt log, the ranked verification log and the cutoff the snapshot build reads a
+    retained-page correction against (MODEL-573)."""
+    from decision.cited_change import VERIFICATION_LOG
+    from decision.cited_reader import ATTEMPTS_FILE
+    from decision.owner_ruling import RepeatedKeyError, read_json_lines, ruling_cutoff
+    from decision.quarantine_clearing import AttemptLog
+    from decision.snapshot import _Compiler
+
+    try:
+        log = AttemptLog.read(root / ATTEMPTS_FILE)
+        verdicts = _Compiler._verification_log(read_json_lines(root / VERIFICATION_LOG))
+    except RepeatedKeyError as error:
+        raise LoadError(str(error)) from None
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        raise LoadError(f"retained-page corrections: {type(error).__name__}") from None
+    return log, verdicts, ruling_cutoff(as_of)
+
+
+def _corrected_citation(fact: dict[str, Any], model_id: str, inputs: tuple[Any, Any, date],
+                        sources: dict[str, str]) -> dict[str, Any] | None:
+    """The snapshot's citation for a correction its test admits, or ``None``."""
+    from decision.retained_correction import correction_citation, correction_problem
+
+    log, verdicts, cutoff = inputs
+    if correction_problem(fact, model_id, log=log, verdicts=verdicts, sources=sources,
+                          cutoff=cutoff) is not None:
+        return None
+    try:
+        return correction_citation(fact, sources)
+    except ValueError:
+        return None
 
 
 def _ruled_row_withheld(root: Path, row: dict[str, Any], model_id: str, rulings: Any,

@@ -51,6 +51,7 @@ from decision.cited_change import (
 from decision.cited_reader import text_sha256
 from decision.final_hosts import FINAL_HOST_CHANGED, observe
 from decision.quarantine_clearing import is_cleared
+from decision.retained_correction import RULE as CORRECTION_RULE
 from decision.retention import cite_only_origin_restrictive
 
 METHOD = "structured-row-match@1"
@@ -610,7 +611,7 @@ def cited_change_rereads(root: Path, terms: dict[str, str], report: "Report", *,
         # a now cite-only origin is not fetched here, and is listed for the cite-only path. Any
         # other block is re-read only on a cite-only origin.
         current = host_class(url, terms)
-        if block.get("rule") == RETAINED_RULE:
+        if block.get("rule") in {RETAINED_RULE, CORRECTION_RULE}:
             if current in {"forbids", "cite-only"}:
                 report.note("retained_agreement_now_cite_only", host_of(url))
                 report.retained_now_cite_only.append(

@@ -517,10 +517,14 @@ def has_ruling(fact: Mapping[str, Any]) -> bool:
 
 def has_internal(fact: Mapping[str, Any]) -> bool:
     """The fact claims an owner ruling, or carries a cited-change block a quarantine clearing
-    made (MODEL-552: the block names its ``clearing_epoch``). Either is served without it."""
+    made (MODEL-552: the block names its ``clearing_epoch``) or a retained-page correction made
+    (MODEL-573, ``decision.retained_correction.RULE``). Each is served without it."""
+    from decision.retained_correction import is_correction
+
     derivation = fact.get("derivation") if isinstance(fact, Mapping) else None
     block = derivation.get("cited_change") if isinstance(derivation, Mapping) else None
-    return has_ruling(fact) or (isinstance(block, Mapping) and "clearing_epoch" in block)
+    return has_ruling(fact) or (isinstance(block, Mapping) and "clearing_epoch" in block) \
+        or is_correction(fact)
 
 
 def served_fact(fact: Mapping[str, Any]) -> dict[str, Any]:
