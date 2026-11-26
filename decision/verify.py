@@ -171,6 +171,10 @@ class Claim:
     base_model: str | None = None
     #: The filed fact's state (``not_disclosed``, ``requires_contract``...); ``None`` when unknown.
     state: str | None = None
+    #: The card's own registered names and aliases, for the effort-word test
+    #: (``effort_word_is_name``, MODEL-568). Never the board label being read.
+    #: ``None`` (a legacy queue line) keeps the old effort reading.
+    registered_names: tuple[str, ...] | None = None
 
     def __post_init__(self) -> None:
         if not self.names:
@@ -247,6 +251,8 @@ class Claim:
             data["base_model"] = self.base_model
         if self.state:
             data["state"] = self.state
+        if self.registered_names is not None:
+            data["registered_names"] = list(self.registered_names)
         return data
 
     def same_as(self, other: Claim | None) -> bool:
@@ -268,6 +274,8 @@ class Claim:
             sources=tuple(SourceRef.model_validate(s) for s in data["sources"]),
             base_model=data.get("base_model") or None,
             state=data.get("state") or None,
+            registered_names=(None if data.get("registered_names") is None
+                              else tuple(data["registered_names"])),
         )
 
 
@@ -595,13 +603,48 @@ _STRUCTURED_NAME_EFFORT = re.compile(
 )
 
 
-def structured_name_effort(name: str) -> str | None:
+def structured_name_effort(name: str, names: Sequence[str] = ()) -> str | None:
     """Effort the structured reader finds in a subject, or None.
 
     ``Example Model (High)`` names ``High``. ``example-model-high`` names none.
+    ``names`` are the card's registered names: a last word that belongs to one
+    of them is the name, not an effort (``effort_word_is_name``, MODEL-568).
     """
     match = _STRUCTURED_NAME_EFFORT.search(str(name))
-    return match.group(1) if match else None
+    if match is None or effort_word_is_name(str(name), names):
+        return None
+    return match.group(1)
+
+
+#: A plain trailing effort word: a space after a letter or digit. A separator
+#: form, " - Max", "_max", "-max" or "(Max)", is always an effort label.
+_SPACED_LAST_WORD = re.compile(
+    r"(?<=[^\W_])\s+(minimal|low|medium|high|xhigh|max)\s*$", re.IGNORECASE)
+
+
+def effort_word_is_name(subject: str, names: Sequence[str]) -> bool:
+    """True when the effort word that ends ``subject`` is part of a registered name.
+
+    "Mistral Medium" is a model, not Mistral at medium effort (MODEL-568). The
+    word belongs to the name when ``subject`` spells one of ``names`` (or the
+    first words of one, "Mistral Medium" of "Mistral Medium (latest)") and the
+    subject without the word is none of them. "Example Model high" for a card
+    named "Example Model" still names ``high``. Only a plain trailing word counts:
+    "(High)", "_high", "-high" and " - High" are read as before. ``names`` are
+    the card's own registered names and aliases, never the label being read.
+    """
+    match = _SPACED_LAST_WORD.search(subject)
+    if match is None or not names:
+        return False
+
+    def tokens(text: str) -> tuple[str, ...]:
+        return tuple(normalise_name(text.replace("+", " plus ")).split())
+
+    whole, stem = tokens(subject), tokens(subject[:match.start()])
+    registered = {tokens(name) for name in names} - {()}
+    if not stem or stem in registered:
+        return False
+    return any(name[:len(whole)] == whole for name in registered)
 
 
 _DATE_FORMATS = ("%B %d, %Y", "%b %d, %Y", "%d %B %Y", "%d %b %Y", "%Y/%m/%d")
@@ -4916,7 +4959,9 @@ class StructuredDataExtractor:
                 continue
             effort = normal.get("reasoning effort") or normal.get("effort")
             if effort is None:
-                effort = structured_name_effort(str(subject))
+                # Only the card's own names decide; a claim without them (a legacy
+                # queue line) reads the subject exactly as before MODEL-568.
+                effort = structured_name_effort(str(subject), claim.registered_names or ())
             date_ = next((normal.get(key) for key in (
                 "date", "leaderboard publish date", "started at", "snapshot read date",
                 "release date",

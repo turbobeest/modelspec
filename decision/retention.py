@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 import logging
 import os
 from contextlib import contextmanager
@@ -291,13 +291,34 @@ def cite_only_origin_restrictive(url: object, resolved_urls=()) -> bool:
     return any(is_cite_only_restrictive(origin) for origin in (url, *resolved_urls))
 
 
+def ending_at_final(urls: Iterable[str]) -> tuple[str, ...]:
+    """Each URL once, in first-seen order, with the last URL kept last (MODEL-525).
+
+    A fetch can come back to a URL it passed earlier (a page script that returns to
+    the start). De-duplicating by first sighting would then end the chain on a URL
+    the fetch left, and ``observe`` takes the last URL as where the fetch ended.
+    """
+    chain = tuple(str(url) for url in urls)
+    if not chain:
+        return ()
+    final = chain[-1]
+    return (*dict.fromkeys(url for url in chain[:-1] if url != final), final)
+
+
 def metadata_origins(metadata: dict) -> tuple[str, ...]:
-    urls = [metadata[key] for key in ("sourceURL", "url", "final_url")
+    """Every origin a fetch's metadata names, ending on the URL the fetch ended at.
+
+    The requested URL (``sourceURL``, ``url``) comes first, then the redirect chain,
+    then ``final_url`` when the metadata names one, so the last origin is the final
+    URL (MODEL-525).
+    """
+    urls = [metadata[key] for key in ("sourceURL", "url")
             if isinstance(metadata.get(key), str) and metadata[key]]
+    final = metadata.get("final_url")
     resolved = metadata.get("resolved_urls", ())
     if not isinstance(resolved, (list, tuple)) or any(not isinstance(url, str) for url in resolved):
         raise ValueError("invalid redirect URL metadata")
-    return tuple(dict.fromkeys((*urls, *resolved)))
+    return ending_at_final((*urls, *resolved, *((final,) if isinstance(final, str) and final else ())))
 
 
 def record_origin_status(record: object) -> bool | None:
@@ -347,7 +368,8 @@ def citation_metadata(url: object, snapshot_ref: str, *, retrieved_at=None,
         "url": require_source_url(url),
         "retrieved_at": when.isoformat() if hasattr(when, "isoformat") else when,
         "snapshot_ref": snapshot_ref,
-        # Exactly as fetched, a hop asked twice included (MODEL-565).
+        # Exactly as fetched, a hop asked twice included (MODEL-565); the last is where
+        # the fetch ended (MODEL-525).
         "resolved_urls": [str(item) for item in resolved_urls],
     }
 

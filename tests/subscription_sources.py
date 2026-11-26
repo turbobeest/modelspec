@@ -117,7 +117,8 @@ def admitted_subscription_facts(root, subscriptions, as_of, registry=None, store
     (docs/design/cite-only-sources.md), unless its citation or record is
     invalid (the fact must validate against ``registry`` as the snapshot
     validates it), it names an identifier facet, or its latest counting
-    outcome is a mismatch or unreachable. Mixed references enter as cited,
+    outcome is a mismatch or unreachable, or (MODEL-552) a failed latest verdict on another
+    value of its id holds it while its own value is not verified. Mixed references enter as cited,
     with every ref preserved. Every other fact still needs a latest counting
     outcome of verified.
 
@@ -190,6 +191,21 @@ def admitted_subscription_facts(root, subscriptions, as_of, registry=None, store
                 except ValueError:
                     continue
                 if latest in {"mismatch", "unreachable"}:
+                    continue
+                # MODEL-552: a cited fact is held by a failed latest verdict on any other value
+                # of its id, unless its own value is independently verified (a quarantine
+                # clearing line, not modelled here, is the only other way in). The linked
+                # data has such facts: a plan's models_covered whose older values hold an
+                # unreachable and a mismatch verdict on a cite-only page, while its own value
+                # was never verified. They are expected withheld.
+                per_hash = {}
+                for row in rows:
+                    key = row[2]["target"].get("value_hash")
+                    if key not in per_hash or row[:2] >= per_hash[key][:2]:
+                        per_hash[key] = row
+                if latest != "verified" and any(
+                        key not in bound and row[2]["outcome"] != "verified"
+                        for key, row in per_hash.items()):
                     continue
             elif latest != "verified":
                 continue

@@ -958,7 +958,7 @@ class SignalKV:
         self.calls.append(("get", key))
         return self.rows.get(key)
 
-    async def put(self, key: str, value: str) -> None:
+    async def put(self, key: str, value: str, **_options: object) -> None:
         self.calls.append(("put", key))
         self.rows[key] = value
 
@@ -1277,7 +1277,7 @@ def test_worker_intake_authenticates_deduplicates_and_lists_pending() -> None:
         async def get(self, key: str) -> str | None:
             return self.rows.get(key)
 
-        async def put(self, key: str, value: str) -> None:
+        async def put(self, key: str, value: str, **_options: object) -> None:
             self.rows[key] = value
 
         async def delete(self, key: str) -> None:

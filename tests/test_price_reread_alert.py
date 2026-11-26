@@ -505,6 +505,62 @@ def test_final_host_is_recorded_and_a_move_is_reported(tmp_path: Path) -> None:
     assert json.loads(path.read_text())["s-b"]["final_host"] == "c.example"
 
 
+
+def test_a_chain_that_comes_back_still_ends_on_its_last_url() -> None:
+    """MODEL-525: de-duplication keeps the URL the fetch ended at last."""
+    from decision.final_hosts import ending_at_final
+
+    a, b, c = "https://a.example/x", "https://b.example/x", "https://c.example/x"
+    assert ending_at_final([]) == ()
+    assert ending_at_final([a, b, b]) == (a, b)
+    assert ending_at_final([a, b, a]) == (b, a)
+    assert ending_at_final([a, b, c, b]) == (a, c, b)
+
+
+def test_metadata_origins_end_on_the_final_url() -> None:
+    """MODEL-525: ``final_url`` comes after the redirect chain, not before it."""
+    from decision.retention import citation_metadata, metadata_origins
+
+    a, b, c = "https://a.example/x", "https://b.example/x", "https://c.example/x"
+    assert metadata_origins({"url": a, "final_url": c, "resolved_urls": [a, b, c]}) == (a, b, c)
+    assert metadata_origins({"url": a, "final_url": b, "resolved_urls": [a, b, c]})[-1] == b
+    assert metadata_origins({"sourceURL": a, "url": c}) == (a, c)  # Firecrawl: requested, final
+    assert metadata_origins({"url": a, "resolved_urls": [a, b, a]})[-1] == a
+    # Exactly as fetched, repeats kept (MODEL-565); it still ends on the final URL.
+    assert citation_metadata(a, "sha256:" + "0" * 64, resolved_urls=[a, b, a])["resolved_urls"] == [a, b, a]
+
+
+def test_a_rendered_page_that_moves_back_ends_on_its_own_url(monkeypatch, tmp_path) -> None:
+    """MODEL-525: when a page script returns to an earlier hop, that URL is the final one."""
+    from types import ModuleType, SimpleNamespace
+
+    from decision.retention import cite_only_hosts
+    from decision.sources import RenderedFetcher
+
+    # The rendered path fetches nothing without a terms register (MODEL-565).
+    (tmp_path / "registry").mkdir()
+    (tmp_path / "registry" / "source-terms.json").write_text(
+        json.dumps({"a.example": "permits", "b.example": "permits"}))
+    (tmp_path / "registry" / "sources.yaml").write_text('{"schema_version": 1, "sources": []}')
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))
+    cite_only_hosts.cache_clear()
+
+    sync_api = ModuleType("playwright.sync_api")
+    sync_api.Error = type("PageError", (Exception,), {})
+    sync_api.TimeoutError = type("PageTimeout", (sync_api.Error,), {})
+    monkeypatch.setitem(sys.modules, "playwright", ModuleType("playwright"))
+    monkeypatch.setitem(sys.modules, "playwright.sync_api", sync_api)
+    start, landed = "https://a.example/start", "https://b.example/landed"
+    first = SimpleNamespace(url=start, redirected_from=None)
+    last = SimpleNamespace(url=landed, redirected_from=first)
+    response = SimpleNamespace(status=200, url=landed, request=last)
+    page = SimpleNamespace(url=start, goto=lambda *a, **kw: response,
+                           wait_for_load_state=lambda *a, **kw: None,
+                           content=lambda: "<html></html>", close=lambda: None)
+    renderer = RenderedFetcher()
+    renderer._context = SimpleNamespace(new_page=lambda: page)
+    assert renderer.fetch(start).resolved_urls == (landed, start)
+
 def test_a_moved_host_reaches_the_report_and_the_alert_count(tmp_path: Path) -> None:
     payload = price_reread.Report(TODAY, final_host_changed=[
         {"source": "s-b", "status": "final_host_changed", "old_host": "b.example",

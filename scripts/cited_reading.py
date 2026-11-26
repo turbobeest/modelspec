@@ -1,12 +1,15 @@
 """Run the board-reading gate (rule 15, readings) over every reading of one benchmark.
 
-``python -m scripts.cited_reading --data-dir <data checkout> --benchmark <id> --source <source id>``
+``python -m scripts.cited_reading --data-dir <data checkout> --benchmark <id> --source <source id>
+[--clear-quarantine]``
 
 Each reading (an evidence row of the benchmark that cites the source) goes through
 ``decision.cited_change.cited_reading`` with two subscription or local readers. Only a
 ``cited_change`` or a ``not_published`` outcome writes a card, through the refresh writer; the
-card is never edited by hand. The board is read in memory and no page is kept. The output is
-counts by outcome and reason: no model names, no values.
+card is never edited by hand. With ``--clear-quarantine`` a fresh agreement may clear a reading's
+one held mismatch (MODEL-552): the clearing line the gate returns is appended to
+``verification/quarantine-clearings.jsonl`` after the card is written. The board is read in memory
+and no page is kept. The output is counts by outcome and reason: no model names, no values.
 """
 
 from __future__ import annotations
@@ -119,7 +122,8 @@ def _needs_derivation(row: dict) -> bool:
 
 def run(root: Path, benchmark: str, source_id: str, readers: list[Reader], *,
         apply: bool = True, request=None, reconfirm: bool = False,
-        cost_day: str | None = None, subject_only: str | None = None) -> Counter:
+        cost_day: str | None = None, subject_only: str | None = None,
+        clear_quarantine: bool = False) -> Counter:
     os.environ["MODELSPEC_DATA_DIR"] = str(root)
     counts: Counter = Counter()
     for subject, path, row in card_paths(root, benchmark, source_id):
@@ -130,10 +134,14 @@ def run(root: Path, benchmark: str, source_id: str, readers: list[Reader], *,
         reading = {k: row.get(k) for k in READING_KEYS}
         outcome = cited_reading(subject=subject, benchmark_id=benchmark, reading=reading,
                                 source_id=source_id, readers=readers, request=request,
-                                allow_unchanged=reconfirm or subject_only is not None)
+                                allow_unchanged=reconfirm or subject_only is not None,
+                                clear_quarantine=clear_quarantine)
         counts[outcome.outcome + (f":{outcome.reason}" if outcome.reason else "")] += 1
         if apply and (outcome.changed or outcome.marked):
             refresh._rewrite_card(path, [(evidence_key(row), rewritten_row(subject, row, outcome, cost_day))])
+            from decision.quarantine_clearing import append
+
+            append((outcome.record or {}).get("clearings") or (), root)
     return counts
 
 
@@ -150,12 +158,16 @@ def main(argv: list[str] | None = None) -> int:
                     "an undated cost is marked with it")
     ap.add_argument("--subject", help="run the gate for this one model's reading only; an agreed "
                     "score equal to the filed one is a record, not a refusal")
+    ap.add_argument("--clear-quarantine", action="store_true",
+                    help="let a fresh agreement clear a reading's one held mismatch, within the "
+                         "MODEL-552 limits, and append the clearing line")
     ap.add_argument("--no-write", action="store_true",
                     help="run the gate (it still logs its attempts) but write no card")
     args = ap.parse_args(argv)
     counts = run(args.data_dir, args.benchmark, args.source, default_readers(args.local_model),
                  apply=not args.no_write, reconfirm=args.reconfirm,
-                 cost_day=args.cost_day, subject_only=args.subject)
+                 cost_day=args.cost_day, subject_only=args.subject,
+                 clear_quarantine=args.clear_quarantine)
     print(json.dumps({"at": datetime.now(UTC).replace(microsecond=0).isoformat(),
                       "outcomes": dict(sorted(counts.items()))}, indent=1))
     return 0

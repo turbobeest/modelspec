@@ -45,7 +45,7 @@ from decision.excluded import excluded_sources
 from decision.model import CitedRegion as CitedRegion
 from decision.model import RenderedInteraction, Source, SourceSnapshot
 from decision.retention import (
-    TermsRegisterUnreadable, canonical_host, citation_metadata, classified_hosts,
+    TermsRegisterUnreadable, canonical_host, citation_metadata, classified_hosts, ending_at_final,
     cite_only_origin_restrictive, is_cite_only_restrictive, is_classified,
     registered_source_hosts, cite_only_origin_status,
     record_origin_status, require_source_url,
@@ -1059,16 +1059,16 @@ class RenderedFetcher:
                     return FetchResult("unreachable", error="final URL is cite-only")
                 if guard.hops:
                     # Every main-frame request in order, repeats kept: each was admitted
-                    # before it was sent.
-                    resolved = tuple(guard.hops)
+                    # before it was sent. The page's own URL last (MODEL-525): a script
+                    # can move it without a request.
+                    resolved = (*guard.hops, *((final,) if final != guard.hops[-1] else ()))
                 else:  # a page that was not routed (a test double)
                     redirects = []
                     request = response.request
                     while request is not None:
                         redirects.append(str(request.url))
                         request = request.redirected_from
-                    resolved = tuple(dict.fromkeys((*reversed(redirects), str(response.url),
-                                                    str(page.url))))
+                    resolved = ending_at_final((*reversed(redirects), str(response.url), final))
                 return FetchResult("ok", response.status, body=body,
                                    content_type="text/html", charset="utf-8",
                                    error=preparation_error, resolved_urls=resolved,
@@ -1620,8 +1620,10 @@ def _check_one(
         # grants the cite-only path (MODEL-420).
         if previous_citation is not None and record_origin_status(previous_citation) is None:
             raise ValueError("invalid previous citation record")
-        resolved_urls = tuple(dict.fromkeys((*result.resolved_urls,
-                              *((previous_citation or {}).get("resolved_urls", ())))))
+        # The previous record's origins first, so this fetch's own chain ends the
+        # tuple and its last URL stays the final one (MODEL-525).
+        resolved_urls = ending_at_final((*((previous_citation or {}).get("resolved_urls", ())),
+                                         *result.resolved_urls))
         cite_only = cite_only_origin_status(source.url, resolved_urls)
         if cite_only is None:
             raise ValueError("invalid redirect URL")

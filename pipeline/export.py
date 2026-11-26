@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from decision.credit import credit_for
-from decision.owner_ruling import has_ruling, served_fact
+from decision.owner_ruling import has_internal, served_fact
 from pipeline.load import REPO_ROOT, Benchmark, Catalogue, Model
 from schema.benchmark import INTERNAL_PAGE_KEYS
 from schema.card import applicability_block
@@ -242,9 +242,10 @@ def write(out_dir: Path, models: list[Model], benchmarks: list[Benchmark],
             cited_by_identity = {_fact_identity(fact): fact for fact in model.cited_facts}
             card = {**card, "facts": [cited_by_identity.get(_fact_identity(fact), fact)
                                      for fact in card.get("facts") or []]}
-        if model.withheld_facets or any(has_ruling(f) for f in card.get("facts") or []):
+        if model.withheld_facets or any(has_internal(f) for f in card.get("facts") or []):
             # MODEL-551: a fact whose owner ruling does not stand is kept out, and a ruled
-            # fact is published in the snapshot's served form (``served_fact``).
+            # fact (or one a quarantine clearing made, MODEL-552) is published in the
+            # snapshot's served form (``served_fact``).
             cited_by_identity = {_fact_identity(fact): fact for fact in model.cited_facts}
             facts = [f for f in card.get("facts") or []
                      if f.get("facet") not in model.withheld_facets]
