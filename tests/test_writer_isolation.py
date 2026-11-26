@@ -89,18 +89,6 @@ mkdir -p "$purelib"
 printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
 """,
 }
-RENDERED_FIRECRAWL_STEP = {
-    "name": "Re-verify the rotating rendered slice",
-    "id": "verify",
-    "continue-on-error": True,
-    "env": {"FIRECRAWL_API_KEY": FIRECRAWL_ENV, "RUN_ID": "${{ github.run_id }}"},
-    "run": r"""set -euo pipefail
-python -I .github/scripts/rendered_reread.py --root . \
-  --state registry/rendered-reread-state.json \
-  --report docs/evidence/g2-ios/MODEL-336-reread.json \
-  --run-id "$RUN_ID" --ledger-dir "$RUNNER_TEMP/rendered-ledger" --write
-""",
-}
 PRICE_RECONFIRM_GUARD = {
     "name": "Prove a no-change run wrote only reconfirmations and dated citations",
     "id": "reconfirm",
@@ -311,20 +299,6 @@ def firecrawl_secret_problems(document: dict, *, workflow_file: str | None = Non
         curation = (workflow_file == "curation-benchmarks.yml"
                     and document.get("name") == "Curation watcher" and job_name == "watch"
                     and job.get("permissions") == {"contents": "read", "actions": "read"})
-        rendered = (
-            workflow_file == "rendered-reread.yml"
-            and document.get("name") == "Weekly rendered source re-read"
-            and document.get("on") == {"schedule": [{"cron": "17 6 * * 1"}]}
-            and job_name == "reread"
-            and job.get("if") == (
-                "github.event_name == 'schedule' && github.ref == 'refs/heads/main' && "
-                "github.run_attempt == 1"
-            )
-            and job.get("defaults") == {"run": {"working-directory": "data"}}
-            and job.get("permissions") == {
-                "contents": "write", "pull-requests": "write", "issues": "write", "actions": "read",
-            }
-        )
         if _has_firecrawl_secret({k: v for k, v in job.items() if k != "steps"}):
             problems.append(f"{job_name}: Firecrawl secret outside the fallback step env")
         for step in job.get("steps") or []:
@@ -332,8 +306,7 @@ def firecrawl_secret_problems(document: dict, *, workflow_file: str | None = Non
             env = dict(step.get("env") or {})
             curation_step = (curation and step.get("name") == CURATION_FIRECRAWL_STEP
                              and step.get("run", "").strip() == CURATION_FIRECRAWL_RUN)
-            rendered_step = rendered and step == RENDERED_FIRECRAWL_STEP
-            if ((curation_step or rendered_step) and not step.get("uses")
+            if (curation_step and not step.get("uses")
                     and env.get("FIRECRAWL_API_KEY") == FIRECRAWL_ENV):
                 env.pop("FIRECRAWL_API_KEY")
                 copy["env"] = env
@@ -1815,44 +1788,22 @@ def test_existing_curation_watch_step_may_keep_its_firecrawl_key() -> None:
     assert firecrawl_secret_problems(document, workflow_file="curation-benchmarks.yml") == []
 
 
-@pytest.mark.parametrize("change", [
-    "workflow", "job", "permissions", "trigger", "main", "attempt", "schedule",
-    "step", "command", "job-env", "working-directory", "action",
-])
-def test_rendered_secret_requires_the_existing_scheduled_bounded_step(change) -> None:
+@pytest.mark.parametrize("where", ["step", "job-env", "workflow-env"])
+def test_the_rendered_re_read_gets_no_scraper_key(where) -> None:
+    # MODEL-565: the rendered re-read reads through the class-checked Playwright path only.
     document = _document(_text("rendered-reread"))
+    assert "FIRECRAWL" not in _text("rendered-reread")
     assert firecrawl_secret_problems(document, workflow_file="rendered-reread.yml") == []
     job = document["jobs"]["reread"]
     step = next(step for step in job["steps"]
                 if step.get("name") == "Re-verify the rotating rendered slice")
-    if change == "workflow":
-        document["name"] = "Other writer"
-    elif change == "job":
-        document["jobs"]["other"] = document["jobs"].pop("reread")
-    elif change == "permissions":
-        job["permissions"]["id-token"] = "write"
-    elif change == "trigger":
-        document["on"]["workflow_dispatch"] = None
-    elif change == "main":
-        job["if"] = job["if"].replace("github.ref == 'refs/heads/main'", "true")
-    elif change == "attempt":
-        job["if"] = job["if"].replace("github.run_attempt == 1", "true")
-    elif change == "schedule":
-        job["if"] = job["if"].replace("github.event_name == 'schedule'", "true")
-    elif change == "step":
-        step["name"] = "Other step"
-    elif change == "command":
-        step["run"] += '\necho "$FIRECRAWL_API_KEY"\n'
-    elif change == "job-env":
-        job["env"]["FIRECRAWL_API_KEY"] = step["env"].pop("FIRECRAWL_API_KEY")
-    elif change == "working-directory":
-        step["working-directory"] = "engine"
-    elif change == "action":
-        step["uses"] = "./data/.github/actions/other"
+    target = {"step": step.setdefault("env", {}), "job-env": job.setdefault("env", {}),
+              "workflow-env": document.setdefault("env", {})}[where]
+    target["FIRECRAWL_API_KEY"] = FIRECRAWL_ENV
     assert firecrawl_secret_problems(document, workflow_file="rendered-reread.yml")
 
 
-@pytest.mark.parametrize("name", ["curation-benchmarks", "rendered-reread"])
+@pytest.mark.parametrize("name", ["curation-benchmarks"])
 def test_the_same_scraper_step_in_a_different_workflow_file_is_rejected(name) -> None:
     document = _document(_text(name))
     assert firecrawl_secret_problems(document, workflow_file="daily-research.yml")

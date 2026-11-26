@@ -124,7 +124,7 @@ def source(url="https://x.ai/pricing", *, rendered=False):
 
 class Replay:
     def fetch(self, url, **kwargs):
-        return FetchResult("ok", 200, body=PAGE, content_type="text/html")
+        return FetchResult("ok", 200, body=PAGE, content_type="text/html", resolved_urls=(url,))
 
 
 def test_recheck_hash_does_not_reconfirm_a_cited_fact(tmp_path):

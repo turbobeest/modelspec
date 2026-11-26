@@ -155,7 +155,10 @@ jobs:
           # The mode comes from the repository variable; unset means pinned.
           MODELSPEC_ARENA_REVISION: ${{ vars.MODELSPEC_ARENA_REVISION || 'pinned' }}
         run: |
-          args=(--observed-at "$(date -u +%F)" --audit-json "$RUNNER_TEMP/audit.json" --report-json "$RUNNER_TEMP/report.json")
+          # MODEL-567: also file first rows on the Arena boards (MODEL-478), at most the
+          # script's per-run cap. A run that files one is labelled first-row and a person
+          # merges its pull request.
+          args=(--observed-at "$(date -u +%F)" --audit-json "$RUNNER_TEMP/audit.json" --report-json "$RUNNER_TEMP/report.json" --first-rows)
           if [ "$DRY_RUN" = "true" ]; then
             args+=(--dry-run)
           fi
@@ -179,16 +182,22 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/after"
           cp -R models verification "$RUNNER_TEMP/after/"
-          python -I - "$RUNNER_TEMP/before" "$RUNNER_TEMP/after" <<'PY'
+          python -I - "$RUNNER_TEMP/before" "$RUNNER_TEMP/after" "$GITHUB_OUTPUT" <<'PY'
           import sys
           from pathlib import Path
           from scripts.refresh_leaderboards import check_score_only
 
-          result = check_score_only(Path(sys.argv[1]), Path(sys.argv[2]))
+          # MODEL-567: first rows the filer accepts are allowed, and counted as their own
+          # class; every other added row is still refused.
+          result = check_score_only(Path(sys.argv[1]), Path(sys.argv[2]), first_rows=True)
           if not result.ok:
               print("::error::refresh produced a non-score diff")
               print("\n".join(result.errors))
               raise SystemExit(1)
+          with open(sys.argv[3], "a") as out:
+              print(f"first_rows={result.classes.get('first_row', 0)}", file=out)
+              print(f"merge_class={result.merge_class}", file=out)
+              print(f"labels={','.join(result.labels)}", file=out)
           PY
           echo "score_only=true" >> "$GITHUB_OUTPUT"
       - name: Re-read the evidence rows no live board covers
@@ -211,10 +220,21 @@ jobs:
           cat "$RUNNER_TEMP/evidence-reread.md" >> "$GITHUB_STEP_SUMMARY"
       - name: Count changes and verification failures
         id: result
+        env:
+          GUARD_OUTCOME: ${{ steps.guard.outcome }}
+          GUARD_LABELS: ${{ steps.guard.outputs.labels }}
         run: |
           python -I - "$RUNNER_TEMP/report.json" "$RUNNER_TEMP/evidence-reread.json" "$GITHUB_OUTPUT" <<'PY'
-          import json, sys
+          import json, os, sys
           report = json.load(open(sys.argv[1]))
+          # MODEL-567: rows the run added (first rows) are updates too, so a run that only
+          # adds rows still opens a pull request. Its labels are the report's and the
+          # guard's together, so neither can drop the first-row label.
+          added = int(report.get("added", 0))
+          guard_labels = [x for x in os.environ.get("GUARD_LABELS", "").split(",") if x]
+          labels = sorted(set(report.get("labels", [])) | set(guard_labels))
+          if os.environ.get("GUARD_OUTCOME") == "success" and set(report.get("labels", [])) != set(guard_labels):
+              print("::warning::The report's labels and the diff guard's labels differ; both are applied.")
           try:
               reread = json.load(open(sys.argv[2]))["counts"]
           except OSError:
@@ -225,7 +245,9 @@ jobs:
               print(f"reconfirmed={len(report['reconfirmed'])}", file=out)
               print(f"reread={written}", file=out)
               print(f"reread_mismatch={reread['mismatch']}", file=out)
-              print(f"updates={len(report['changes']) + len(report['reconfirmed']) + written}", file=out)
+              print(f"added={added}", file=out)
+              print(f"updates={len(report['changes']) + len(report['reconfirmed']) + added + written}", file=out)
+              print(f"labels={','.join(labels)}", file=out)
               print(f"failures={len(report['failures'])}", file=out)
               print(f"quarantined={len(report['quarantined'])}", file=out)
               print(f"left_stale={len(report.get('left_stale', []))}", file=out)
@@ -233,12 +255,12 @@ jobs:
       - name: Prepare the pull-request body
         if: inputs.dry_run != true && steps.result.outputs.updates != '0'
         run: |
-          python -I - "$RUNNER_TEMP/report.md" "$RUNNER_TEMP/pr-body.md" "$RUNNER_TEMP/evidence-reread.md" <<'PY'
-          import sys
+          python -I - "$RUNNER_TEMP/report.md" "$RUNNER_TEMP/pr-body.md" "$RUNNER_TEMP/evidence-reread.md" "$RUNNER_TEMP/report.json" <<'PY'
+          import json, sys
           from pathlib import Path
           from scripts.refresh_leaderboards import fit_pull_request_body
 
-          report_path, body_path, reread_path = sys.argv[1:]
+          report_path, body_path, reread_path, json_path = sys.argv[1:]
           report = Path(report_path).read_text(encoding="utf-8")
           if Path(reread_path).is_file():
               report += "\n" + Path(reread_path).read_text(encoding="utf-8")
@@ -246,11 +268,22 @@ jobs:
               "This weekly job re-read the registered live boards for existing models "
               "in the premier set.\n\n"
           )
-          closing = (
-              "\nThe diff guard proved that no card, evidence row, identity fact, "
-              "or licence fact was added or removed.\n\n"
-              "Written by GPT-5 Codex.\n"
-          )
+          added = int(json.loads(Path(json_path).read_text(encoding="utf-8")).get("added", 0))
+          if added:
+              closing = (
+                  f"\nThis run filed {added} first evidence row(s) on the Arena boards. "
+                  "The diff guard proved that every added evidence row is a first row the "
+                  "filer accepts, within the per-run cap, and that no card, identity fact, "
+                  "or licence fact was added or removed. This pull request carries the "
+                  "first-row label: a person reviews and merges it.\n\n"
+                  "Written by GPT-5 Codex.\n"
+              )
+          else:
+              closing = (
+                  "\nThe diff guard proved that no card, evidence row, identity fact, "
+                  "or licence fact was added or removed.\n\n"
+                  "Written by GPT-5 Codex.\n"
+              )
           Path(body_path).write_text(
               fit_pull_request_body(opening + report + closing), encoding="utf-8",
           )
@@ -275,6 +308,8 @@ jobs:
             Co-Authored-By: Codex (GPT-6.1 Sol) <noreply@openai.com>
           title: 'data: refresh live-board observations (MODEL-124)'
           body-path: ${{ runner.temp }}/pr-body.md
+          # MODEL-567: first-row when the run filed a first row; such a PR is human-merged.
+          labels: ${{ steps.result.outputs.labels }}
           path: data
       - name: Put the PR URL in the audit records
         if: steps.pr.outputs.pull-request-number
@@ -303,12 +338,12 @@ jobs:
         env:
           PR_URL: ${{ steps.pr.outputs.pull-request-url }}
         run: |
-          python -I - "$RUNNER_TEMP/report.md" "$RUNNER_TEMP/pr-body.md" "$RUNNER_TEMP/evidence-reread.md" <<'PY'
-          import os, sys
+          python -I - "$RUNNER_TEMP/report.md" "$RUNNER_TEMP/pr-body.md" "$RUNNER_TEMP/evidence-reread.md" "$RUNNER_TEMP/report.json" <<'PY'
+          import json, os, sys
           from pathlib import Path
           from scripts.refresh_leaderboards import fit_pull_request_body
 
-          report_path, body_path, reread_path = sys.argv[1:]
+          report_path, body_path, reread_path, json_path = sys.argv[1:]
           report = Path(report_path).read_text(encoding="utf-8")
           if Path(reread_path).is_file():
               report += "\n" + Path(reread_path).read_text(encoding="utf-8")
@@ -316,11 +351,22 @@ jobs:
               "This weekly job re-read the registered live boards for existing models "
               "in the premier set.\n\n"
           )
-          closing = (
-              "\nThe diff guard proved that no card, evidence row, identity fact, "
-              "or licence fact was added or removed.\n\n"
-              "Written by GPT-5 Codex.\n"
-          )
+          added = int(json.loads(Path(json_path).read_text(encoding="utf-8")).get("added", 0))
+          if added:
+              closing = (
+                  f"\nThis run filed {added} first evidence row(s) on the Arena boards. "
+                  "The diff guard proved that every added evidence row is a first row the "
+                  "filer accepts, within the per-run cap, and that no card, identity fact, "
+                  "or licence fact was added or removed. This pull request carries the "
+                  "first-row label: a person reviews and merges it.\n\n"
+                  "Written by GPT-5 Codex.\n"
+              )
+          else:
+              closing = (
+                  "\nThe diff guard proved that no card, evidence row, identity fact, "
+                  "or licence fact was added or removed.\n\n"
+                  "Written by GPT-5 Codex.\n"
+              )
           body = (opening + report + closing).replace("${PR_URL}", os.environ["PR_URL"])
           Path(body_path).write_text(fit_pull_request_body(body), encoding="utf-8")
           PY

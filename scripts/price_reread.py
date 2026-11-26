@@ -39,8 +39,9 @@ guesses a value for them; a person re-collects.
 With ``--write`` the job records only reconfirmations of unchanged values, and
 the dated citations of cite-only sources; it never edits a value.
 
-The optional, read-only Firecrawl fallback has its own credit limits. Replays
-and ordinary re-reads never call a model or a paid scraper.
+The optional, read-only fallback reads failed pages through the class-checked
+Playwright path, never Firecrawl (MODEL-570). Replays and ordinary re-reads never
+call a model or a paid scraper.
 """
 
 from __future__ import annotations
@@ -362,8 +363,11 @@ def render_to(*, root: Path, directory: Path, rendered: RenderedFetcher) -> None
         if result.outcome == "ok" and not restricted:
             # Where the browser ended, so the replay can record the final host (MODEL-525).
             manifest[url]["resolved_urls"] = list(result.resolved_urls)
-        if result.outcome == "ok" and restricted:
-            manifest[url]["error"] = None
+        if result.outcome == "ok" and restricted and result.error is not None:
+            # Partial (a preparation error): a failed read, never ``ok`` with an error.
+            manifest[url]["outcome"] = "unreachable"
+            manifest[url]["error"] = f"cite-only read failed: {result.error}"
+        elif result.outcome == "ok" and restricted:
             manifest[url]["citation"] = citation_metadata(
                 url, fingerprint_bytes(result.body), retrieved_at=result.retrieved_at or datetime.now(UTC),
                 resolved_urls=result.resolved_urls)
@@ -401,7 +405,8 @@ def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 class RenderedReplayFetcher:
     """Read untrusted rendering artifacts as bytes; HTML parsing stays in Python."""
 
-    def __init__(self, directory: Path, *, manifest: dict | None = None) -> None:
+    def __init__(self, directory: Path, *, manifest: dict | None = None,
+                 require_chain: bool = True) -> None:
         if directory.is_symlink() or not directory.is_dir():
             raise ValueError("rendered artifact directory must be a directory, not a symlink")
         self.directory = directory
@@ -437,10 +442,19 @@ class RenderedReplayFetcher:
                         or cite_only_origin_status(url, redirect_urls(entry["resolved_urls"])) is not False):
                     raise ValueError(f"invalid rendered redirect chain for {url}")
             citation = entry.get("citation")
+            if entry["outcome"] == "ok" and require_chain:
+                # Every replayable entry names the chain it was read through (MODEL-570):
+                # refused here, never a KeyError at replay.
+                chain = (citation.get("resolved_urls") if isinstance(citation, dict)
+                         else entry.get("resolved_urls"))
+                if (not isinstance(chain, list) or not chain
+                        or any(not isinstance(hop, str) or not hop for hop in chain)):
+                    raise ValueError(f"rendered entry for {url} needs its redirect chain")
             if citation is not None:
                 if (not isinstance(citation, dict) or citation.get("url") != url
                         or not isinstance(citation.get("snapshot_ref"), str)
                         or not re.fullmatch(r"sha256:[0-9a-f]{64}", citation["snapshot_ref"])
+                        or not isinstance(citation.get("retrieved_at"), str)
                         or cite_only_origin_status(url, citation.get("resolved_urls", ()))
                         is not True):
                     raise ValueError("invalid cite-only rendered citation")
@@ -461,6 +475,11 @@ class RenderedReplayFetcher:
             return FetchResult("unreachable", entry["status"],
                                error=f"not rendered: {entry['error'] or entry['outcome']}")
         if citation := entry.get("citation"):
+            if entry["error"] is not None:
+                # A cite-only read with a preparation error is partial: a failed read, never
+                # a citation, so no citation date advances (MODEL-570).
+                return FetchResult("unreachable", entry["status"],
+                                   error=f"not rendered: cite-only read failed: {entry['error']}")
             return FetchResult("ok", entry["status"], snapshot_ref=citation["snapshot_ref"],
                                retrieved_at=datetime.fromisoformat(citation["retrieved_at"]),
                                resolved_urls=tuple(citation["resolved_urls"]))
@@ -1391,13 +1410,15 @@ def main(argv: list[str] | None = None) -> int:
     rendering.add_argument("--rendered-from", type=Path,
                            help="re-read rendered HTML from a validated artifact, without a browser")
     rendering.add_argument("--fallback-from-render", type=Path,
-                           help="fetch failed eligible pages with the capped Firecrawl fallback")
+                           help="read failed eligible pages through the class-checked "
+                           "Playwright fallback (no Firecrawl)")
     parser.add_argument("--fallback-to", type=Path)
-    parser.add_argument("--fallback-ledger", type=Path)
+    parser.add_argument("--fallback-ledger", type=Path,
+                        help="the month's earlier fallback artifacts; accepted, nothing is spent")
     parser.add_argument("--fallback-fake", action="store_true",
-                        help="demo fallback artifacts with fake HTML, no key or network")
+                        help="demo fallback artifacts with fake HTML, no browser or network")
     parser.add_argument("--fallback-from", type=Path,
-                        help="replay a validated fallback artifact, without a Firecrawl key")
+                        help="replay a validated fallback artifact, without a browser")
     parser.add_argument("--report-json", type=Path)
     parser.add_argument("--report-md", type=Path)
     parser.add_argument("--retain-only-cited", action="store_true",
@@ -1436,25 +1457,33 @@ def main(argv: list[str] | None = None) -> int:
             except (OSError, ValueError) as exc:
                 parser.error(f"invalid rendered artifact: {exc}")
         if args.fallback_from_render is not None:
-            from decision.firecrawl import (
-                DisabledFirecrawlFetcher, FakeFirecrawlFetcher, FirecrawlFetcher, firecrawl_opted_in,
+            # MODEL-570: the fallback reads through the class-checked Playwright path and
+            # never constructs a Firecrawl client or reads its key. The ledger argument is
+            # still accepted so the workflow's argv is unchanged; nothing is spent.
+            from scripts.price_reread_fallback import (
+                PLAYWRIGHT_UNAVAILABLE,
+                FakeReader,
+                fallback_to,
+                read_fallback,
             )
-            from scripts.price_reread_fallback import fallback_to, monthly_budget, read_fallback
 
             try:
                 rendered = RenderedReplayFetcher(args.fallback_from_render)
                 month = datetime.now(UTC).strftime("%Y-%m")
-                budget = monthly_budget(args.fallback_ledger, month)
-                # Default OFF: only an explicit opt-in constructs the paid client.
-                paid = (FakeFirecrawlFetcher() if args.fallback_fake else
-                        FirecrawlFetcher(allowance=budget.allowance) if firecrawl_opted_in()
-                        else DisabledFirecrawlFetcher())
+                reader, unavailable = None, None
+                if args.fallback_fake:
+                    reader = FakeReader()
+                else:
+                    try:
+                        reader = stack.enter_context(RenderedFetcher())
+                    except Exception as exc:  # no Playwright, or no browser to launch
+                        unavailable = f"{PLAYWRIGHT_UNAVAILABLE} ({type(exc).__name__})"
                 fallback_to(root=ROOT, rendered=rendered, directory=args.fallback_to, month=month,
                             # Missing plain entries are unavailable in a fake run.
                             # Demo eligibility never makes a primary HTTP request.
                             plain=(rendered if args.fallback_fake else
                                    Fetcher(user_agent=USER_AGENT)),
-                            firecrawl=paid, budget=budget)
+                            reader=reader, fake=args.fallback_fake, unavailable=unavailable)
                 replay, _ = read_fallback(args.fallback_to)
                 print(replay.spend_line)
                 if summary := os.environ.get("GITHUB_STEP_SUMMARY"):

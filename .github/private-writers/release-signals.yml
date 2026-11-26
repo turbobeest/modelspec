@@ -337,11 +337,119 @@ jobs:
         with:
           name: release-signals-pending
           path: ${{ runner.temp }}
+      - name: Attach a different signal to the open card PR for its model
+        # MODEL-563: a signal that resolves to a new model whose add-or-identify PR
+        # is already open is acknowledged onto that PR instead of drafting a second
+        # card. Its later re-checks then run on that PR's branch (MODEL-475).
+        id: attach
+        if: steps.recheck.outputs.mode == 'initial' || steps.recheck.outputs.mode == 'unlinked'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          SIGNAL_ID: ${{ matrix.work.signal_id }}
+          RECHECK_DAY: ${{ matrix.work.recheck_day }}
+        run: |
+          set -euo pipefail
+          model_id="$(python -I - "$GITHUB_WORKSPACE/engine" "$RUNNER_TEMP/pending.json" <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          from release_signals.pipeline import resolve_signal
+          from scripts.process_release_signals import _select_signal
+
+          root, pending = map(Path, sys.argv[1:])
+          signal, _ = _select_signal(
+              json.loads(pending.read_text(encoding="utf-8")),
+              signal_id=os.environ["SIGNAL_ID"],
+              recheck_day=int(os.environ.get("RECHECK_DAY") or 0),
+          )
+          if signal is not None and not signal.signal_id.startswith("test-"):
+              resolution = resolve_signal(signal, root)
+              if resolution.status == "new" and resolution.model_id:
+                  print(resolution.model_id)
+          PY
+          )"
+          # The full resolved id, lab prefix included: another lab's model of the
+          # same name is a different model and never attaches.
+          if ! [[ "$model_id" =~ ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$ ]] \
+            || [[ "$model_id" == *..* ]]; then
+            exit 0
+          fi
+          card="models/${model_id}.md"
+          # Filenames are compared as JSON strings, one per line: a filename with a
+          # newline in it can never pass for the card path.
+          card_json="$(jq -cn --arg card "$card" '$card')"
+          # Every page of open PRs into main. Any API failure processes the signal normally.
+          if ! gh api --paginate \
+            "repos/$GH_REPO/pulls?state=open&base=main&sort=created&direction=asc&per_page=100" \
+            --jq '.[] | {number, url: .html_url, title, base: .base.ref, head: .head.ref, repo: (.head.repo.full_name // "")}' \
+            > "$RUNNER_TEMP/open-prs.jsonl"; then
+            echo "::warning::Open pull requests could not be listed, so the signal is processed normally."
+            exit 0
+          fi
+          jq -r -s --arg model "$model_id" --arg repo "$GH_REPO" '
+            ["data: add or identify \($model) (MODEL-113)",
+             "ANSWERS REGRESS: data: add or identify \($model) (MODEL-113)"] as $titles
+            | map(select(
+                (.title | IN($titles[]))
+                and .base == "main"
+                and .repo == $repo
+                and (.head | test("^data/release-signal-[A-Za-z0-9._-]{1,150}-(initial|[0-9]{1,3})$"))
+                and (.head | contains("..") | not)
+                and (.url | startswith("https://github.com/\($repo)/pull/"))
+              ))
+            | sort_by(.number) | .[] | "\(.number) \(.url)"
+          ' "$RUNNER_TEMP/open-prs.jsonl" > "$RUNNER_TEMP/attach-candidates.txt"
+          # A title and branch are not enough: the PR must change this model's card.
+          pr_url=
+          while read -r number url; do
+            if ! files="$(gh api --paginate "repos/$GH_REPO/pulls/$number/files?per_page=100" \
+              --jq '.[].filename | tojson')"; then
+              echo "::warning::The files of ${url} could not be listed, so the signal is processed normally."
+              exit 0
+            fi
+            if grep -Fxq -- "$card_json" <<<"$files"; then
+              pr_url="$url"
+              break
+            fi
+          done < "$RUNNER_TEMP/attach-candidates.txt"
+          if [[ "$pr_url" != "https://github.com/$GH_REPO/pull/"* ]]; then
+            exit 0
+          fi
+          python -I - "$RUNNER_TEMP/pending.json" "$RUNNER_TEMP/result.json" "$model_id" "$pr_url" <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          from scripts.process_release_signals import _select_signal
+
+          pending, result_path = map(Path, sys.argv[1:3])
+          model_id, pr_url = sys.argv[3:5]
+          signal, recheck = _select_signal(
+              json.loads(pending.read_text(encoding="utf-8")),
+              signal_id=os.environ["SIGNAL_ID"],
+              recheck_day=int(os.environ.get("RECHECK_DAY") or 0),
+          )
+          result = {
+              "status": "attached",
+              "signal_id": signal.signal_id,
+              "model_id": model_id,
+              "candidates": [],
+              "recheck_day": recheck.get("day") if recheck else None,
+              "recheck_due": recheck.get("due") if recheck else None,
+              "pr_url": pr_url,
+              "reason": "the model's card pull request is open; this signal is re-checked on it",
+          }
+          result_path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+          PY
+          cat "$RUNNER_TEMP/result.json" >> "$GITHUB_STEP_SUMMARY"
+          gh pr comment "$pr_url" \
+            --body "Release signal ${SIGNAL_ID} also names ${model_id}. It is attached to this pull request: its re-checks run on this branch, and no second card is drafted." \
+            || echo "::warning::The signal is attached, but the comment on ${pr_url} could not be posted."
+          echo "pr_url=$pr_url" >> "$GITHUB_OUTPUT"
       - name: Preserve the mechanically checked baseline
         run: |
           mkdir -p "$RUNNER_TEMP/before"
           cp -R models offerings registry verification "$RUNNER_TEMP/before/"
       - name: Process one isolated work item
+        if: steps.attach.outputs.pr_url == ''
         env:
           MODELSPEC_SOURCE_CACHE: ${{ runner.temp }}/source-copies
           PR_MODE: ${{ steps.recheck.outputs.mode }}
@@ -586,7 +694,7 @@ jobs:
       - name: Acknowledge the signal and schedule its 1, 7, and 30 day re-checks
         if: steps.classify.outputs.resolution != 'empty'
         env:
-          RESULT_URL: ${{ steps.pr.outputs.url || steps.closed_pr.outputs.url || matrix.work.pr_url || '' }}
+          RESULT_URL: ${{ steps.pr.outputs.url || steps.closed_pr.outputs.url || steps.attach.outputs.pr_url || matrix.work.pr_url || '' }}
           MODELSPEC_SIGNALS_READ_KEY: ${{ secrets.MODELSPEC_SIGNALS_READ_KEY }}
         run: |
           python -I - "$RUNNER_TEMP/ack.json" <<'PY'
