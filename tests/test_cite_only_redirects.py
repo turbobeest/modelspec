@@ -76,6 +76,15 @@ def test_firecrawl_preserves_both_reported_origin_fields(tmp_path, monkeypatch):
 
 
 def test_rendered_fetch_preserves_intermediate_redirect_origin(tmp_path, monkeypatch):
+    from decision.retention import cite_only_hosts
+
+    (tmp_path / "terms" / "registry").mkdir(parents=True)
+    (tmp_path / "terms" / "registry" / "source-terms.json").write_text(
+        json.dumps({"example.test": "permits"}))
+    (tmp_path / "terms" / "registry" / "sources.yaml").write_text(
+        '{"schema_version": 1, "sources": []}')
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path / "terms"))
+    cite_only_hosts.cache_clear()
     sync_api = ModuleType("playwright.sync_api")
     sync_api.Error = type("PageError", (Exception,), {})
     sync_api.TimeoutError = type("PageTimeout", (sync_api.Error,), {})

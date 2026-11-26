@@ -8,7 +8,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from decision.sources import RenderedFetcher, load_sources, rendered_preparation
+from decision.sources import (
+    MAX_RENDERED_REDIRECTS, RenderedFetcher, load_sources, rendered_preparation,
+)
 
 
 RECIPE = [
@@ -126,10 +128,22 @@ def test_registry_rejects_unsafe_or_incomplete_recipes(tmp_path, recipe, overrid
 
 
 @pytest.fixture
-def browser():
+def browser(tmp_path, monkeypatch):
     pytest.importorskip("playwright.sync_api")
+    from decision.retention import cite_only_hosts
+
+    # The rendered path fetches nothing without a terms register (MODEL-565). These
+    # fixtures fulfil every request in a test route, which runs before the guard's.
+    (tmp_path / "terms" / "registry").mkdir(parents=True)
+    (tmp_path / "terms" / "registry" / "source-terms.json").write_text(
+        json.dumps({"fixture.example": "permits"}))
+    (tmp_path / "terms" / "registry" / "sources.yaml").write_text(
+        '{"schema_version": 1, "sources": []}')
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path / "terms"))
+    cite_only_hosts.cache_clear()
     with RenderedFetcher(timeout=1, idle_timeout=0.01) as renderer:
         yield renderer
+    cite_only_hosts.cache_clear()
 
 
 HTML = """<!doctype html>
@@ -499,7 +513,10 @@ def hosts(tmp_path, monkeypatch):
         "/to-other": (OTHER, "/page"), "/to-unclassed": (UNCLASSED, "/page"),
         "/to-other-then-unclassed": (OTHER, "/to-unclassed"),
         "/script-to-unclassed": (UNCLASSED, "/s.js"),
+        "/loop-a": (OTHER, "/loop-b"), "/loop-b": (CLASSED, "/loop-a"),
+        "/back": (CLASSED, "/again"),
     }
+    served = {}
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -508,6 +525,12 @@ def hosts(tmp_path, monkeypatch):
         def do_GET(self):
             host = self.server.server_address[0]
             hits.append(host + self.path)
+            served[self.path] = served.get(self.path, 0) + 1
+            if self.path == "/again" and served[self.path] == 1:
+                self.path = "/again-first"
+                redirects[self.path] = (OTHER, "/back")
+            if self.path == "/slow.png":
+                time.sleep(1)  # holds the load event while a popup opens
             if self.path in redirects:
                 self.send_response(302)
                 self.send_header("Location", url(*redirects[self.path]))
@@ -538,8 +561,9 @@ def hosts(tmp_path, monkeypatch):
     registry_dir.mkdir(parents=True)
     (registry_dir / "source-terms.json").write_text(
         json.dumps({CLASSED: "permits", OTHER: "restricts"}))
+    # The unclassed host is no registered source's: its start must be refused anyway.
     (registry_dir / "sources.yaml").write_text(json.dumps({"schema_version": 1, "sources": [
-        {"url": url(CLASSED, "/page")}, {"url": url(UNCLASSED, "/page")}]}))
+        {"url": url(CLASSED, "/page")}]}))
     monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path / "data"))
     cite_only_hosts.cache_clear()
     try:
@@ -607,3 +631,41 @@ def test_a_navigation_after_load_to_an_unclassed_host_refuses_the_capture(hosts,
     assert (result.outcome, result.body) == ("unreachable", b"")
     assert result.error == f"redirect_unclassified:{UNCLASSED}"
     assert unclassed_hits(hosts) == []
+
+
+def test_with_no_terms_register_nothing_is_fetched(hosts, guarded, monkeypatch):
+    monkeypatch.delenv("MODELSPEC_DATA_DIR")
+    result = guarded.fetch(hosts.url(CLASSED, "/page"))
+    assert (result.outcome, result.error) == ("unreachable", "terms_register_unreadable")
+    assert hosts.hits == []
+
+
+def test_a_redirect_loop_stops_at_the_limit_without_leaving_classed_hosts(hosts, guarded):
+    result = guarded.fetch(hosts.url(CLASSED, "/loop-a"))
+    assert (result.outcome, result.body) == ("unreachable", b"")
+    assert "redirect limit" in result.error
+    assert unclassed_hits(hosts) == []
+    assert len(hosts.hits) == MAX_RENDERED_REDIRECTS + 1
+
+
+def test_the_hop_chain_keeps_a_url_requested_twice(hosts, guarded):
+    result = guarded.fetch(hosts.url(CLASSED, "/again"))
+    assert result.outcome == "ok", result.error
+    assert result.resolved_urls == (hosts.url(CLASSED, "/again"), hosts.url(OTHER, "/back"),
+                                    hosts.url(CLASSED, "/again"))
+
+
+def test_a_popup_and_its_websocket_are_checked_and_the_popup_closes_with_the_fetch(
+        hosts, guarded):
+    hosts.pages["/page"] = (
+        f'<div id="prices">$4.00</div><script>window.open("{hosts.url(OTHER, "/popup")}")</script>'
+        f'<img src="{hosts.url(CLASSED, "/slow.png")}">')
+    hosts.pages["/popup"] = (
+        f'<img src="{hosts.url(UNCLASSED, "/pixel.png")}">'
+        f'<script>new WebSocket("ws://{UNCLASSED}:{hosts.url(UNCLASSED, "").rsplit(":", 1)[1]}/ws")'
+        '</script>')
+    result = guarded.fetch(hosts.url(CLASSED, "/page"))
+    assert result.outcome == "ok", result.error
+    assert OTHER + "/popup" in hosts.hits  # the popup ran, through the guard
+    assert unclassed_hits(hosts) == []  # neither its image nor its WebSocket was sent
+    assert guarded._context.pages == []

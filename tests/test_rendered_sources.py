@@ -15,6 +15,20 @@ from decision.sources import (
 )
 
 
+def name_terms_register(directory, monkeypatch, terms):
+    """A synthetic private register in ``directory``, named for this test (MODEL-565)."""
+    import json as _json
+
+    from decision.retention import cite_only_hosts
+
+    (directory / "registry").mkdir(parents=True, exist_ok=True)
+    (directory / "registry" / "source-terms.json").write_text(_json.dumps(terms))
+    (directory / "registry" / "sources.yaml").write_text(
+        '{"schema_version": 1, "sources": []}')
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(directory))
+    cite_only_hosts.cache_clear()
+
+
 class PageError(Exception):
     pass
 
@@ -92,6 +106,16 @@ def fake_playwright(monkeypatch):
     sync_api.TimeoutError = PageTimeout
     monkeypatch.setitem(sys.modules, "playwright", package)
     monkeypatch.setitem(sys.modules, "playwright.sync_api", sync_api)
+
+
+@pytest.fixture(autouse=True)
+def terms_register(tmp_path, monkeypatch):
+    # The rendered path fetches nothing without a terms register (MODEL-565).
+    name_terms_register(tmp_path / "terms", monkeypatch,
+                        {"aws.amazon.com": "restricts", "app.example": "permits"})
+    yield
+    from decision.retention import cite_only_hosts
+    cite_only_hosts.cache_clear()
 
 
 def fetch(page, *, prepare=True, timeout=20):
@@ -243,16 +267,20 @@ def test_a_named_preparation_wins_and_page_regions_need_no_wait():
 @pytest.mark.parametrize(("terms", "expected"), [
     ('{"other.example": "permits"}', "redirect_unclassified:aws.amazon.com"),
     ("not json", "terms_register_unreadable"),
+    (None, "terms_register_unreadable"),  # no register named: fail closed
 ])
 def test_rendered_fetch_refuses_the_start_host_before_opening_a_page(tmp_path, monkeypatch,
                                                                       terms, expected):
     from decision.retention import cite_only_hosts
 
     (tmp_path / "registry").mkdir()
-    (tmp_path / "registry" / "source-terms.json").write_text(terms)
-    (tmp_path / "registry" / "sources.yaml").write_text(
-        '{"schema_version": 1, "sources": [{"url": "https://aws.amazon.com/bedrock/pricing/"}]}')
-    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))
+    if terms is None:
+        monkeypatch.delenv("MODELSPEC_DATA_DIR")
+    else:
+        (tmp_path / "registry" / "source-terms.json").write_text(terms)
+        monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))
+    # No registered source here: an unregistered start host still needs a class.
+    (tmp_path / "registry" / "sources.yaml").write_text('{"schema_version": 1, "sources": []}')
     cite_only_hosts.cache_clear()
     renderer = RenderedFetcher()
     renderer._context = SimpleNamespace(new_page=lambda: pytest.fail("a page was opened"))

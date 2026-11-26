@@ -253,13 +253,18 @@ def named_refusal(reason: str, source_id: str) -> str:
     return f"{REDIRECT_UNCLASSIFIED}:{source_id}:{reason.partition(':')[2]}"
 
 
-def _require_classified_request(start: str | None, url: str, *, first: bool) -> None:
+def _require_classified_request(start: str | None, url: str, *, first: bool,
+                                strict: bool = False) -> None:
     """Refuse, before the request, a host the terms register does not class.
 
     With no data directory nothing is refused. A redirect within the start host
     passes; every other host needs a class (the host or a parent domain), and so does
     the first request when its host is the host of a registered source. With an unreadable
     register (terms or sources) every other host is refused.
+
+    ``strict`` (the rendered path, MODEL-565) drops both exemptions: every host, the first
+    included and whether or not a registered source lives there, needs a class, and no
+    data directory refuses every request.
     """
     try:
         classes = classified_hosts()
@@ -267,11 +272,17 @@ def _require_classified_request(start: str | None, url: str, *, first: bool) -> 
     except TermsRegisterUnreadable:
         classes, unreadable = frozenset(), True
     if classes is None:
-        return
+        if not strict:
+            return
+        classes, unreadable = frozenset(), True
     try:
         host = canonical_host(url)
     except ValueError:
         host = None
+    if strict:
+        if not unreadable and is_classified(host, classes):
+            return
+        raise UnclassifiedRedirectError(host or "unparseable", unreadable=unreadable)
     if host is not None and not first and host == start:
         return
     if first:
@@ -779,7 +790,7 @@ class _RenderedRequestGuard:
     def refusal(self, url: str) -> str | None:
         try:
             require_allowed_source_urls(url)
-            _require_classified_request(self.start, url, first=False)
+            _require_classified_request(self.start, url, first=False, strict=True)
         except ExcludedSource:
             return "excluded source"
         except UnclassifiedRedirectError as stop:
@@ -844,11 +855,11 @@ class _RenderedRequestGuard:
                 pass
 
     def web_socket(self, socket: Any) -> None:
+        # A refused socket is never connected: Playwright then answers it itself and nothing
+        # reaches the host. (Closing it from the handler can hang the dispatcher.)
         url = re.sub(r"^ws", "http", socket.url)
         if self.refusal(url) is None:
             socket.connect_to_server()
-        else:
-            socket.close()
 
 
 class RenderedFetcher:
@@ -858,13 +869,27 @@ class RenderedFetcher:
     effort: pages with persistent connections still yield their rendered HTML.
     An optional preparation runs before capture, within one timeout budget.
     Registry recipe failures return no HTML. Legacy preparations retain their
-    partial HTML with an error for the caller to report. With a terms register named,
-    every request and redirect hop is admitted before it is sent (``_RenderedRequestGuard``).
+    partial HTML with an error for the caller to report. Every request and redirect hop,
+    from any page of the context, is admitted before it is sent (``_RenderedRequestGuard``),
+    and with no terms register named nothing is fetched (MODEL-565).
     """
 
     def __init__(self, *, timeout: float = 20.0, idle_timeout: float = 5.0) -> None:
         self.timeout = timeout
         self.idle_timeout = idle_timeout
+        self._guard: _RenderedRequestGuard | None = None
+
+    def _route(self, route: Any) -> None:
+        # One route for the context's whole life, so popups are covered too. Outside a
+        # fetch no page has a reason to ask anything: refuse.
+        if self._guard is None:
+            route.abort()
+        else:
+            self._guard(route)
+
+    def _web_socket(self, socket: Any) -> None:
+        if self._guard is not None:  # outside a fetch a socket is never connected
+            self._guard.web_socket(socket)
 
     def __enter__(self) -> RenderedFetcher:
         from playwright.sync_api import sync_playwright
@@ -873,13 +898,23 @@ class RenderedFetcher:
         try:
             # Keep Playwright's sandbox default. CI isolation comes from the
             # separate read-only render job, which has no repository write token.
-            self._browser = self._playwright.chromium.launch(headless=True)
+            # DNS prefetch and preconnect reach a host without a request, so no route sees
+            # them (MODEL-565): switch both off. A host the guard refuses then gets neither a
+            # request nor, as far as these switches reach, a lookup or a connection.
+            self._browser = self._playwright.chromium.launch(headless=True, args=[
+                "--dns-prefetch-disable",
+                "--disable-features=PreconnectToSearch,NetworkPrediction,"
+                "LoadingPredictorUseLocalPredictions,SpeculationRulesPrefetchFuture",
+            ])
             self._context = self._browser.new_context(
                 user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
                 viewport={"width": 1280, "height": 800},
                 service_workers="block",
             )
+            # Registered first, so a recipe's read-only route (added later) runs before it.
+            self._context.route("**/*", self._route)
+            self._context.route_web_socket("**/*", self._web_socket)
         except Exception:
             self._playwright.stop()
             raise
@@ -895,18 +930,21 @@ class RenderedFetcher:
         """Navigate, following main-frame redirects one checked request at a time."""
         from playwright.sync_api import Error
 
-        deadline = time.monotonic() + self.timeout
+        deadline = None  # set at the first redirect: the hops share one timeout
         for _ in range(MAX_RENDERED_REDIRECTS + 1):
             guard.pending = None
+            timeout = (self.timeout * 1000 if deadline is None
+                       else max(1.0, (deadline - time.monotonic()) * 1000))
             try:
-                response = page.goto(url, wait_until="load",
-                                     timeout=max(1.0, (deadline - time.monotonic()) * 1000))
+                response = page.goto(url, wait_until="load", timeout=timeout)
             except Error:
                 if guard.refused is None and guard.pending is None:
                     raise
                 response = None
             if guard.refused is not None or guard.pending is None:
                 return response
+            if deadline is None:
+                deadline = time.monotonic() + self.timeout
             url = guard.pending
         raise Error("source redirect limit reached")
 
@@ -914,35 +952,23 @@ class RenderedFetcher:
         from playwright.sync_api import Error, TimeoutError
 
         page = None
-        requests_guard = None
         try:
             require_allowed_source_urls(url)
         except ExcludedSource:
             return FetchResult("unreachable", error="excluded source")
         try:
-            # The first host is checked before any navigation, as on the plain path (MODEL-565).
-            _require_classified_request(None, url, first=True)
-            guarded = classified_hosts() is not None
+            # Every host, the first included, needs a class; no register refuses (MODEL-565).
+            _require_classified_request(None, url, first=True, strict=True)
         except UnclassifiedRedirectError as stop:
             return FetchResult("unreachable", error=_refusal_error(stop))
-        except TermsRegisterUnreadable:
-            return FetchResult("unreachable", error=TERMS_REGISTER_UNREADABLE)
+        context = self._context
+        before = list(getattr(context, "pages", ()))
         try:
-            page = self._context.new_page()
-            if guarded:
-                try:
-                    start = canonical_host(url)
-                except ValueError:
-                    start = None
-                requests_guard = _RenderedRequestGuard(page, start, self.timeout)
-                # Context routes also see popups; routes added later (a recipe's) run first.
-                self._context.route("**/*", requests_guard)
-                page.route_web_socket("**/*", requests_guard.web_socket)
-                response = self._guarded_goto(page, url, requests_guard)
-            else:
-                response = page.goto(url, wait_until="load", timeout=self.timeout * 1000)
-            if requests_guard is not None and requests_guard.refused is not None:
-                return FetchResult("unreachable", error=requests_guard.refused)
+            page = context.new_page()
+            guard = self._guard = _RenderedRequestGuard(page, canonical_host(url), self.timeout)
+            response = self._guarded_goto(page, url, guard)
+            if guard.refused is not None:
+                return FetchResult("unreachable", error=guard.refused)
             if response is None:
                 return FetchResult("unreachable", error="no HTTP response")
             if not 200 <= response.status < 300:
@@ -952,47 +978,50 @@ class RenderedFetcher:
                 page.wait_for_load_state("networkidle", timeout=self.idle_timeout * 1000)
             except TimeoutError:
                 pass
-            guard = (_read_only_interactions(page, prepare, self.timeout) if isinstance(prepare, RenderedInteractions)
-                     else nullcontext())
-            with guard:
+            interactions = (_read_only_interactions(page, prepare, self.timeout)
+                            if isinstance(prepare, RenderedInteractions) else nullcontext())
+            with interactions:
                 preparation_error = None
                 if prepare is not None:
                     try:
                         prepare(page, self.timeout)
                     except Error as exc:
                         preparation_error = f"rendered preparation failed: {exc}"
-                if requests_guard is not None:
-                    # Every main-frame request in order, each admitted before it was sent.
-                    if requests_guard.refused is not None:
-                        return FetchResult("unreachable", error=requests_guard.refused)
-                    if requests_guard.pending is not None:
-                        return FetchResult("unreachable", error="redirect after load not followed")
-                    redirects = list(reversed(requests_guard.hops))
-                else:
+                if guard.refused is not None:
+                    return FetchResult("unreachable", error=guard.refused)
+                if guard.pending is not None:
+                    return FetchResult("unreachable", error="redirect after load not followed")
+                if guard.hops:
+                    # Every main-frame request in order, repeats kept: each was admitted
+                    # before it was sent.
+                    resolved = tuple(guard.hops)
+                else:  # a page that was not routed (a test double)
                     redirects = []
                     request = response.request
                     while request is not None:
                         redirects.append(str(request.url))
                         request = request.redirected_from
+                    resolved = tuple(dict.fromkeys((*reversed(redirects), str(response.url),
+                                                    str(page.url))))
                 return FetchResult("ok", response.status, body=page.content().encode("utf-8"),
                                    content_type="text/html", charset="utf-8",
-                                   error=preparation_error,
-                                   resolved_urls=tuple(dict.fromkeys((*reversed(redirects),
-                                                        str(response.url), str(page.url)))),
+                                   error=preparation_error, resolved_urls=resolved,
                                    retrieved_at=datetime.now(UTC))
         except RenderedInteractionError as exc:
             return FetchResult("unreachable", response.status, error=str(exc))
         except Error as exc:
-            if requests_guard is not None and requests_guard.refused is not None:
-                return FetchResult("unreachable", error=requests_guard.refused)
+            if self._guard is not None and self._guard.refused is not None:
+                return FetchResult("unreachable", error=self._guard.refused)
             return FetchResult("unreachable", error=str(exc))
         finally:
             try:
-                if page is not None:
-                    page.close()
+                # Close this page and every popup it opened before the guard is lifted.
+                for opened in [page, *(other for other in getattr(context, "pages", ())
+                                       if other is not page and other not in before)]:
+                    if opened is not None:
+                        opened.close()
             finally:
-                if requests_guard is not None:
-                    self._context.unroute("**/*", requests_guard)
+                self._guard = None
 
 
 # --- shell pages ---------------------------------------------------------------------------------
