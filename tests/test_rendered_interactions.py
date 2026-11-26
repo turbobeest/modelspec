@@ -493,7 +493,7 @@ def test_azure_recipe_refuses_wrong_table_selection(tmp_path, browser, overrides
 
 # --- MODEL-565: every rendered request and redirect hop is admitted before it is sent ---------
 
-CLASSED, OTHER, UNCLASSED = "127.0.0.1", "127.0.0.2", "127.0.0.3"
+CLASSED, OTHER, UNCLASSED, CITE_ONLY = "127.0.0.1", "127.0.0.2", "127.0.0.3", "127.0.0.4"
 
 
 @pytest.fixture
@@ -549,7 +549,7 @@ def hosts(tmp_path, monkeypatch):
             self.wfile.write(data)
 
     pages = {}
-    for host in (CLASSED, OTHER, UNCLASSED):
+    for host in (CLASSED, OTHER, UNCLASSED, CITE_ONLY):
         try:
             server = ThreadingHTTPServer((host, 0), Handler)
         except OSError:
@@ -560,7 +560,7 @@ def hosts(tmp_path, monkeypatch):
     registry_dir = tmp_path / "data" / "registry"
     registry_dir.mkdir(parents=True)
     (registry_dir / "source-terms.json").write_text(
-        json.dumps({CLASSED: "permits", OTHER: "restricts"}))
+        json.dumps({CLASSED: "permits", OTHER: "restricts", CITE_ONLY: "cite-only"}))
     # The unclassed host is no registered source's: its start must be refused anyway.
     (registry_dir / "sources.yaml").write_text(json.dumps({"schema_version": 1, "sources": [
         {"url": url(CLASSED, "/page")}]}))
@@ -661,11 +661,43 @@ def test_a_popup_and_its_websocket_are_checked_and_the_popup_closes_with_the_fet
         f'<div id="prices">$4.00</div><script>window.open("{hosts.url(OTHER, "/popup")}")</script>'
         f'<img src="{hosts.url(CLASSED, "/slow.png")}">')
     hosts.pages["/popup"] = (
+        f'<script>window.open("{hosts.url(OTHER, "/popup-2")}")</script>'
         f'<img src="{hosts.url(UNCLASSED, "/pixel.png")}">'
         f'<script>new WebSocket("ws://{UNCLASSED}:{hosts.url(UNCLASSED, "").rsplit(":", 1)[1]}/ws")'
         '</script>')
     result = guarded.fetch(hosts.url(CLASSED, "/page"))
     assert result.outcome == "ok", result.error
     assert OTHER + "/popup" in hosts.hits  # the popup ran, through the guard
+    assert OTHER + "/popup-2" in hosts.hits  # and opened one of its own
     assert unclassed_hits(hosts) == []  # neither its image nor its WebSocket was sent
     assert guarded._context.pages == []
+
+
+def test_a_retained_page_takes_no_frame_or_fetch_from_a_cite_only_host(hosts, guarded):
+    hosts.pages["/page"] = (
+        '<div id="prices">$4.00</div>'
+        f'<iframe src="{hosts.url(CITE_ONLY, "/frame")}"></iframe>'
+        f'<script>fetch("{hosts.url(CITE_ONLY, "/data")}").then(r => r.text())'
+        '.then(t => document.body.append(t)).catch(() => {})</script>'
+        f'<img src="{hosts.url(CLASSED, "/slow.png")}">')
+    result = guarded.fetch(hosts.url(CLASSED, "/page"))
+    assert result.outcome == "ok", result.error
+    assert [hit for hit in hosts.hits if hit.startswith(CITE_ONLY)] == []
+
+
+def test_a_cite_only_page_keeps_no_bytes_so_its_own_host_serves_its_parts(hosts, guarded):
+    hosts.pages["/page"] = (f'<div id="prices">$4.00</div><img src="{hosts.url(CITE_ONLY, "/a.png")}">'
+                            f'<img src="{hosts.url(UNCLASSED, "/b.png")}">')
+    result = guarded.fetch(hosts.url(CITE_ONLY, "/page"))
+    assert result.outcome == "ok", result.error
+    assert CITE_ONLY + "/a.png" in hosts.hits
+    assert unclassed_hits(hosts) == []
+
+
+def test_pages_get_no_webrtc(hosts, guarded):
+    hosts.pages["/page"] = (
+        '<div id="rtc"></div><script>document.querySelector("#rtc").textContent ='
+        ' [typeof RTCPeerConnection, typeof webkitRTCPeerConnection].join("/")</script>')
+    result = guarded.fetch(hosts.url(CLASSED, "/page"))
+    assert result.outcome == "ok", result.error
+    assert b'<div id="rtc">undefined/undefined</div>' in result.body

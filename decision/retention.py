@@ -347,7 +347,8 @@ def citation_metadata(url: object, snapshot_ref: str, *, retrieved_at=None,
         "url": require_source_url(url),
         "retrieved_at": when.isoformat() if hasattr(when, "isoformat") else when,
         "snapshot_ref": snapshot_ref,
-        "resolved_urls": list(dict.fromkeys(str(item) for item in resolved_urls)),
+        # Exactly as fetched, a hop asked twice included (MODEL-565).
+        "resolved_urls": [str(item) for item in resolved_urls],
     }
 
 

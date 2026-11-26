@@ -46,7 +46,8 @@ from decision.model import CitedRegion as CitedRegion
 from decision.model import RenderedInteraction, Source, SourceSnapshot
 from decision.retention import (
     TermsRegisterUnreadable, canonical_host, citation_metadata, classified_hosts,
-    cite_only_origin_restrictive, is_classified, registered_source_hosts, cite_only_origin_status,
+    cite_only_origin_restrictive, is_cite_only_restrictive, is_classified,
+    registered_source_hosts, cite_only_origin_status,
     record_origin_status, require_source_url,
 )
 from decision.normalise import (
@@ -797,6 +798,19 @@ class _RenderedRequestGuard:
             return _refusal_error(stop)
         return None
 
+    def retaining(self) -> bool:
+        """Whether the capture may be kept as bytes: no main-frame hop is cite-only. Before
+        the first hop it counts as kept, the stricter reading."""
+        return not self.hops or not cite_only_origin_restrictive(self.hops[0], self.hops[1:])
+
+    def subresource_refusal(self, url: str) -> str | None:
+        """A page whose bytes are kept takes nothing from a cite-only host, so no text from
+        one can reach its capture (MODEL-565). A cite-only page keeps no bytes at all."""
+        refused = self.refusal(url)
+        if refused is None and self.retaining() and is_cite_only_restrictive(url):
+            return "cite-only subresource of a retained page"
+        return refused
+
     def _main_frame(self, request: Any) -> bool:
         from playwright.sync_api import Error
 
@@ -816,8 +830,9 @@ class _RenderedRequestGuard:
             route.fallback()  # data:, blob: and the like reach no host
             return
         main = self._main_frame(request)
+        check = self.refusal if main else self.subresource_refusal
         try:
-            if (refused := self.refusal(url)) is not None:
+            if (refused := check(url)) is not None:
                 if main:
                     self.refused = self.refused or refused
                     _stop_navigation(route)
@@ -837,7 +852,7 @@ class _RenderedRequestGuard:
                     self.pending = target
                     _stop_navigation(route)
                     return
-                if self.refusal(target) is not None:
+                if self.subresource_refusal(target) is not None:
                     route.abort()
                     return
                 if response.status == 303 or (response.status in {301, 302} and method == "POST"):
@@ -858,8 +873,16 @@ class _RenderedRequestGuard:
         # A refused socket is never connected: Playwright then answers it itself and nothing
         # reaches the host. (Closing it from the handler can hang the dispatcher.)
         url = re.sub(r"^ws", "http", socket.url)
-        if self.refusal(url) is None:
+        if self.subresource_refusal(url) is None:
             socket.connect_to_server()
+
+
+#: Runs in every frame before the page's own scripts: no peer connection can be made.
+_NO_WEBRTC = """for (const name of ['RTCPeerConnection', 'webkitRTCPeerConnection',
+                    'RTCDataChannel', 'RTCIceCandidate', 'RTCSessionDescription']) {
+    try { Object.defineProperty(globalThis, name, {value: undefined, writable: false,
+                                                   configurable: false}); } catch (e) {}
+}"""
 
 
 class RenderedFetcher:
@@ -901,10 +924,14 @@ class RenderedFetcher:
             # DNS prefetch and preconnect reach a host without a request, so no route sees
             # them (MODEL-565): switch both off. A host the guard refuses then gets neither a
             # request nor, as far as these switches reach, a lookup or a connection.
+            # WebRTC can send STUN or TURN traffic that no route sees: UDP that is not
+            # proxied is refused, and the page never gets RTCPeerConnection (init script).
             self._browser = self._playwright.chromium.launch(headless=True, args=[
                 "--dns-prefetch-disable",
                 "--disable-features=PreconnectToSearch,NetworkPrediction,"
                 "LoadingPredictorUseLocalPredictions,SpeculationRulesPrefetchFuture",
+                "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
+                "--webrtc-ip-handling-policy=disable_non_proxied_udp",
             ])
             self._context = self._browser.new_context(
                 user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -912,6 +939,7 @@ class RenderedFetcher:
                 viewport={"width": 1280, "height": 800},
                 service_workers="block",
             )
+            self._context.add_init_script(_NO_WEBRTC)
             # Registered first, so a recipe's read-only route (added later) runs before it.
             self._context.route("**/*", self._route)
             self._context.route_web_socket("**/*", self._web_socket)
@@ -1015,11 +1043,20 @@ class RenderedFetcher:
             return FetchResult("unreachable", error=str(exc))
         finally:
             try:
-                # Close this page and every popup it opened before the guard is lifted.
-                for opened in [page, *(other for other in getattr(context, "pages", ())
-                                       if other is not page and other not in before)]:
-                    if opened is not None:
-                        opened.close()
+                if page is not None:
+                    page.close()
+                # Then every page the fetch opened, until none is left: closing one popup
+                # can open another. Only after that is the guard lifted; outside a fetch
+                # the context's route refuses every request.
+                for _ in range(100):
+                    opened = [other for other in getattr(context, "pages", ())
+                              if other not in before]
+                    if not opened:
+                        break
+                    for other in opened:
+                        other.close()
+                else:
+                    context.close()
             finally:
                 self._guard = None
 
