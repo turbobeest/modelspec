@@ -224,6 +224,9 @@ def test_private_weekly_workflow_uses_guard_token_and_audit_artifact() -> None:
     assert "check_score_only" in workflow
     assert "actions/upload-artifact@v4" in workflow
     assert "steps.result.outputs.updates != '0'" in workflow
+    # MODEL-564: re-read record lines alone also open the PR, and are staged.
+    assert "steps.records.outputs.changed == 'true'" in workflow
+    assert "verification/cited-reread-requests.jsonl" in workflow
     assert "len(report['changes']) + len(report['reconfirmed'])" in workflow
     assert "gh pr merge" not in workflow
     assert "signoff: true" in workflow

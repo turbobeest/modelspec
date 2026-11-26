@@ -209,6 +209,22 @@ jobs:
           fi
           python -I -m scripts.evidence_reread "${args[@]}" > "$RUNNER_TEMP/evidence-reread.md"
           cat "$RUNNER_TEMP/evidence-reread.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Check for new reopening and re-read request lines
+        id: records
+        # MODEL-564: the re-read appends reopenings and two-reader re-read requests. They are
+        # record lines, not score updates, so a week with only these lines still opens the PR;
+        # otherwise the next run would count the same fact as reopened again.
+        if: inputs.dry_run != true
+        run: |
+          set -euo pipefail
+          changed="$(git status --porcelain --untracked-files=all -- \
+            verification/cited-reread-requests.jsonl \
+            reports/evidence-reread/ruled-reopenings.jsonl)"
+          if [ -n "$changed" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Count changes and verification failures
         id: result
         run: |
@@ -231,7 +247,7 @@ jobs:
               print(f"left_stale={len(report.get('left_stale', []))}", file=out)
           PY
       - name: Prepare the pull-request body
-        if: inputs.dry_run != true && steps.result.outputs.updates != '0'
+        if: inputs.dry_run != true && (steps.result.outputs.updates != '0' || steps.records.outputs.changed == 'true')
         run: |
           python -I - "$RUNNER_TEMP/report.md" "$RUNNER_TEMP/pr-body.md" "$RUNNER_TEMP/evidence-reread.md" <<'PY'
           import sys
@@ -257,7 +273,7 @@ jobs:
           PY
       - name: Open the score-only pull request
         id: pr
-        if: inputs.dry_run != true && steps.result.outputs.updates != '0'
+        if: inputs.dry_run != true && (steps.result.outputs.updates != '0' || steps.records.outputs.changed == 'true')
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -265,7 +281,9 @@ jobs:
           delete-branch: true
           add-paths: |
             models/**
+            registry/source-redirects.json
             reports/evidence-reread/**
+            verification/cited-reread-requests.jsonl
             verification/log.jsonl
             verification/queue/events.jsonl
           signoff: true
