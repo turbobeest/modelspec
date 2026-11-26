@@ -231,6 +231,10 @@ def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_
              "harness": True,
              "agreed": None, "readers": []}
     if region_sha256 is not None:
+        # A fact (MODEL-562): the hash of the source's cited regions on this page, so a ruling on
+        # this attempt names its ruled region (``decision.ruling_reread.resolved_region``). A
+        # board reading (MODEL-555): the row's board region (``cited_change.row_region_sha256``),
+        # so a later read can show whether the region it read has changed.
         entry["region_sha256"] = region_sha256
     try:
         for reader in readers:
