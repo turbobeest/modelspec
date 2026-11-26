@@ -1089,7 +1089,7 @@ def test_fallback_workflow_argv_uses_isolated_python_and_passes_both_artifacts_a
     name = (
         "Fake fallback demo without credentials or network"
         if fake
-        else "Fetch only failed eligible pages"
+        else "Read only failed eligible pages"
     )
     step = next(s for s in workflow()["jobs"]["fallback"]["steps"] if s.get("name") == name)
     script = """python() { printf '%s\\n' "$@" > "$RUNNER_TEMP/argv"; }
@@ -1114,15 +1114,24 @@ def test_fallback_workflow_argv_uses_isolated_python_and_passes_both_artifacts_a
     assert (tmp_path / "argv").read_text().splitlines() == expected + (
         ["--fallback-fake"] if fake else []
     )
-    if fake:
-        assert "secrets." not in json.dumps(step)
+    assert "secrets." not in json.dumps(step)
 
 
-def test_workflow_is_off_by_default_retains_a_full_month_and_replays_when_skipped():
+def test_workflow_needs_no_spend_gate_retains_a_full_month_and_replays_when_skipped():
+    """MODEL-570: the fallback reads through Playwright, so no Firecrawl gate, key or ledger."""
     jobs = workflow()["jobs"]
-    assert "vars.PRICE_REREAD_FIRECRAWL == 'true'" in jobs["fallback"]["if"]
     assert "github.ref == 'refs/heads/main'" in jobs["fallback"]["if"]
-    assert "github.run_attempt == 1" in jobs["fallback"]["if"]
+    text = (ROOT / ".github" / "private-writers" / "price-reread.yml").read_text()
+    assert "PRICE_REREAD_FIRECRAWL" not in text and "FIRECRAWL_API_KEY" not in text
+    assert "secrets." not in json.dumps(jobs["fallback"])
+    names = [s.get("name") for s in jobs["fallback"]["steps"]]
+    assert "Restore this UTC month's fallback ledger" not in names
+    install = next(s for s in jobs["fallback"]["steps"]
+                   if s.get("name") == "Install fallback dependencies")
+    render = next(s for s in jobs["render"]["steps"]
+                  if s.get("name") == "Install render dependencies")
+    # The same hash-pinned Playwright and Chromium as the render job.
+    assert install["run"] == render["run"]
     assert jobs["fallback"]["needs"] == "render"
     assert jobs["fallback"]["permissions"] == {"contents": "read", "actions": "read"}
     assert jobs["reread"]["needs"] == ["render", "fallback"]
@@ -1134,6 +1143,13 @@ def test_workflow_is_off_by_default_retains_a_full_month_and_replays_when_skippe
         s for s in jobs["fallback"]["steps"] if s.get("uses") == "actions/upload-artifact@v4"
     )
     assert upload["if"] == "always()" and upload["with"]["retention-days"] == 35
+    # One artifact per attempt: a rerun never collides with the first attempt's upload, and
+    # the re-read downloads the one this attempt wrote.
+    name = "price-reread-fallback-${{ github.run_attempt }}"
+    download = next(s for s in jobs["reread"]["steps"]
+                    if s.get("name") == "Download fallback pages when present")
+    assert upload["with"]["name"] == download["with"]["name"] == name
+    assert "price-reread-fallback\n" not in text
     assert "FIRECRAWL" not in json.dumps(jobs["reread"])
     triggers = workflow()["on"]
     assert triggers["workflow_dispatch"]["inputs"]["fallback_fake"] == {
@@ -1144,28 +1160,24 @@ def test_workflow_is_off_by_default_retains_a_full_month_and_replays_when_skippe
 
 
 @pytest.mark.parametrize(
-    "event,gate,attempt,fake,ref,job_runs,paid_runs,fake_runs",
+    "event,attempt,fake,ref,job_runs,read_runs,fake_runs",
     [
-        ("schedule", "true", 1, False, "main", True, True, False),
-        ("schedule", "false", 1, False, "main", False, False, False),
-        ("schedule", "true", 2, False, "main", False, False, False),
-        ("schedule", "true", 1, False, "other", False, False, False),
-        ("workflow_dispatch", "true", 1, False, "main", False, False, False),
-        ("workflow_dispatch", "false", 1, False, "main", False, False, False),
-        ("workflow_dispatch", "false", 1, True, "main", True, False, True),
-        ("workflow_dispatch", "true", 1, True, "main", True, False, True),
-        ("workflow_dispatch", "false", 2, True, "main", True, False, True),
-        ("workflow_dispatch", "true", 1, True, "other", False, False, False),
-        ("pull_request", "true", 1, True, "main", False, False, False),
+        ("schedule", 1, False, "main", True, True, False),
+        ("schedule", 2, False, "main", True, True, False),
+        ("schedule", 1, False, "other", False, False, False),
+        ("workflow_dispatch", 1, False, "main", False, False, False),
+        ("workflow_dispatch", 1, True, "main", True, False, True),
+        ("workflow_dispatch", 2, True, "main", True, False, True),
+        ("workflow_dispatch", 1, True, "other", False, False, False),
+        ("pull_request", 1, True, "main", False, False, False),
     ],
 )
-def test_workflow_spends_only_on_schedule_and_allows_a_keyless_ungated_demo(
-    event, gate, attempt, fake, ref, job_runs, paid_runs, fake_runs
+def test_workflow_reads_on_schedule_and_allows_a_keyless_demo(
+    event, attempt, fake, ref, job_runs, read_runs, fake_runs
 ):
     job = workflow()["jobs"]["fallback"]
     context = {
         "github": SimpleNamespace(event_name=event, run_attempt=attempt, ref=f"refs/heads/{ref}"),
-        "vars": SimpleNamespace(PRICE_REREAD_FIRECRAWL=gate),
         "inputs": SimpleNamespace(fallback_fake=fake),
     }
 
@@ -1180,15 +1192,15 @@ def test_workflow_spends_only_on_schedule_and_allows_a_keyless_ungated_demo(
 
     runs = permits(job["if"])
     assert runs is job_runs
-    paid = next(s for s in job["steps"] if s.get("name") == "Fetch only failed eligible pages")
+    read = next(s for s in job["steps"] if s.get("name") == "Read only failed eligible pages")
     demo = next(
         s
         for s in job["steps"]
         if s.get("name") == "Fake fallback demo without credentials or network"
     )
-    assert (runs and permits(paid["if"])) is paid_runs
+    assert (runs and permits(read["if"])) is read_runs
     assert (runs and permits(demo["if"])) is fake_runs
-    assert "env" not in demo
+    assert "env" not in demo and "env" not in read
 
 
 def test_cli_fake_artifact_and_reread_never_treat_fake_bodies_as_evidence(
@@ -1273,27 +1285,6 @@ def test_cli_fake_artifact_and_reread_never_treat_fake_bodies_as_evidence(
     assert all(s["copy"] is None for s in result["sources"].values())
     assert replay.spend_line in markdown.read_text()
     assert {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()} == before
-
-
-def test_failed_monthly_lookup_stops_the_workflow_step(tmp_path):
-    step = next(
-        s
-        for s in workflow()["jobs"]["fallback"]["steps"]
-        if s.get("name") == "Restore this UTC month's fallback ledger"
-    )
-    script = "gh() { return 7; }\n" + step["run"]
-    result = subprocess.run(
-        ["bash", "-c", script],
-        capture_output=True,
-        env={
-            **os.environ,
-            "RUNNER_TEMP": str(tmp_path),
-            "REPO": "fixture/repo",
-            "WORKFLOW_FILE": "price-reread.yml",
-            "CURRENT_RUN_ID": "99",
-        },
-    )
-    assert result.returncode == 7
 
 
 AWS_PRICING = "https://aws.amazon.com/bedrock/pricing/"
