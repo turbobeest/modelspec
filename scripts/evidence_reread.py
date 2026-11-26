@@ -90,6 +90,14 @@ WATCHED_FACETS = ("model.lifecycle",)
 RULED_OUTCOMES = ("current", "reopened", "open", "unbaselined", "no_text_hash",
                   "unreadable_region", "deferred", "blocked", "invalid", "now_retaining",
                   "unclassed")
+#: What the ruled board-reading re-read counts (MODEL-569,
+#: ``decision.cited_change.ruled_row_status``), per reading: ``current`` (the ruled board region,
+#: or a change outside it), ``reopened`` (another region: a reopened epoch recorded now, and the
+#: reading listed for a two-reader re-read), ``open`` (recorded already), ``unbaselined``,
+#: ``unreadable_region``, ``deferred``, ``invalid``, ``now_retaining`` and ``unclassed`` (not
+#: requested), as for ruled facts.
+RULED_READING_OUTCOMES = ("current", "reopened", "open", "unbaselined", "unreadable_region",
+                          "deferred", "invalid", "now_retaining", "unclassed")
 #: Per watched page: the sha256 of its normalised visible text and the day it was read.
 #: Hashes only, never page text, so a cite-only host keeps no bytes here.
 WATCH_STATE = "reports/evidence-reread/watched-pages.json"
@@ -387,6 +395,10 @@ class Report:
     #: none, the report is exactly what it was before: no ruled fields, no ruled line.
     ruled_facts_checked: int = 0
     ruled: Counter = field(default_factory=Counter)
+    #: Owner-ruled board readings read this run (MODEL-569), as counts. With none, the report is
+    #: exactly what it was before: no ruled-reading fields.
+    ruled_readings_checked: int = 0
+    ruled_readings: Counter = field(default_factory=Counter)
     #: Cited-change facts a quarantine clearing made (their block names a ``clearing_epoch``,
     #: MODEL-552), re-read with the other cited-change facts. Counted only.
     cleared_facts_checked: int = 0
@@ -433,6 +445,12 @@ class Report:
             data.update({
                 "ruled_facts_checked": self.ruled_facts_checked,
                 "ruled": {k: self.ruled.get(k, 0) for k in RULED_OUTCOMES},
+            })
+        if self.ruled_readings_checked:
+            data.update({
+                "ruled_readings_checked": self.ruled_readings_checked,
+                "ruled_readings": {k: self.ruled_readings.get(k, 0)
+                                   for k in RULED_READING_OUTCOMES},
             })
         if self.cleared_facts_checked:
             data["cleared_facts_checked"] = self.cleared_facts_checked
@@ -542,6 +560,8 @@ def run(root: Path, *, observed_at: date, dry_run: bool, store_root: Path,
                          observed_at=observed_at, dry_run=dry_run)
     ruled_fact_rereads(root, terms, report, sources=sources, request=request, pacer=pacer,
                        observed_at=observed_at, dry_run=dry_run)
+    ruled_reading_rereads(root, terms, report, request=request, pacer=pacer,
+                          observed_at=observed_at, dry_run=dry_run)
     refresh_redirects(root, terms, report, observed_at=observed_at, dry_run=dry_run, request=request,
                       pacer=pacer)
     return report
@@ -621,6 +641,77 @@ def cited_change_rereads(root: Path, terms: dict[str, str], report: "Report", *,
                     fh.write(json.dumps({"target": target, "at": now.isoformat()}) + "\n")
         else:
             report.note("cited_change_current", host_of(url))
+
+
+def ruled_reading_rereads(root: Path, terms: dict[str, str], report: Report, *, request=None,
+                          pacer: Pacer | None = None, observed_at: date | None = None,
+                          dry_run: bool = True) -> None:
+    """Read the board of each owner-ruled reading (MODEL-569) and reopen it when its board region
+    is no longer the ruled one (``decision.cited_change.ruled_row_status``), by the rule ruled
+    facts follow (MODEL-562): one ``reopen`` line per reading and epoch in
+    ``decision.ruling_reread.RECORD_FILE``, never twice; the gate reads the row in that epoch only
+    once it is recorded.
+
+    Every page the row cites is classed before any request: a host that retains copies now is
+    counted (``now_retaining``), an unclassed one is never requested. Pages are read with the
+    gate's own fetch, in memory; only hashes are compared and no byte is kept. A reopened reading
+    is also listed (``cited_change_rereads_required``) for its two-reader re-read. No reader is
+    asked and no card changes.
+    """
+    from decision import board_ruling
+    from decision import cited_change as gate
+    from decision import ruling_reread as rr
+
+    readings = gate.ruled_readings(root)
+    if not readings:
+        return
+    pacer = pacer or Pacer()
+    day = observed_at or date.today()
+    lines: list[dict] = []
+    for entry in readings:
+        report.ruled_readings_checked += 1
+        found = gate.reading_lookup(entry["subject"], str(entry["benchmark_id"]), entry["reading"],
+                                    data_dir=root)
+        if isinstance(found, gate.CitedChange) or not entry["source_ids"]:
+            report.ruled_readings["invalid"] += 1
+            continue
+        cited = [str((found.sources.get(str(s.get("source_id"))) or {}).get("url") or "")
+                 for s in found.row.get("sources") or () if isinstance(s, dict)]
+        classes = [host_class(url, terms) if url else "unclassed" for url in cited]
+        if "retaining" in classes:
+            report.ruled_readings["now_retaining"] += 1
+            continue
+        if any(c not in {"forbids", "cite-only"} for c in classes):
+            report.ruled_readings["unclassed"] += 1
+            for url in cited:
+                if url and host_class(url, terms) == "unclassed":
+                    host = host_of(url) or "?"
+                    report.unclassed_hosts[host] = report.unclassed_hosts.get(host, 0) + 1
+            continue
+        for url in cited:
+            pacer.wait(host_of(url))
+        source_id = entry["source_ids"][0]
+        status = gate.ruled_row_status(found, entry["subject"], source_id=source_id,
+                                       request=request, data_dir=root)
+        if status.kind == "changed" and any(
+                (line["target"], line["epoch"]) == (board_ruling.target(status.line), status.epoch)
+                for line in lines):
+            status = replace(status, kind="open")
+        if status.kind == "changed":
+            report.ruled_readings["reopened"] += 1
+            lines.append(rr.reopen_line(target=board_ruling.target(status.line),
+                                        ruled_epoch=str(status.line["epoch"]),
+                                        source_id=source_id, region_sha=status.region,
+                                        baseline=status.baseline, day=day))
+            report.cited_change_rereads.append(entry["target"])
+        else:
+            report.ruled_readings[status.kind] += 1
+    if lines and not dry_run:
+        path = root / rr.RECORD_FILE
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as fh:
+            for line in lines:
+                fh.write(json.dumps(line, sort_keys=True) + "\n")
 
 
 def ruled_fact_rereads(root: Path, terms: dict[str, str], report: Report, *, sources=None,

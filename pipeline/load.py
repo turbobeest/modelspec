@@ -313,8 +313,65 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
                     continue
             if citation:
                 cited.append({**served_fact(fact), "verification": None, "citation": citation})
+        block = front.get("benchmarks")
+        rows = block.get("evidence") if isinstance(block, dict) else None
+        if isinstance(rows, list) and any(isinstance(r, dict) and has_ruling(r) for r in rows):
+            # A board row that claims an owner's ruling (MODEL-569) is shown only while its
+            # ruling stands, by the snapshot's own test; otherwise it is withheld.
+            if rulings is None:
+                try:
+                    rulings = read_ruling_inputs(root)
+                except RepeatedKeyError as error:
+                    raise LoadError(str(error)) from None
+                except (OSError, ValueError, KeyError, TypeError) as error:
+                    raise LoadError(f"owner rulings: {type(error).__name__}") from None
+            kept = [r for r in rows if not (isinstance(r, dict) and has_ruling(r)
+                                            and _ruled_row_withheld(root, r, str(model_id),
+                                                                    rulings, sources, store,
+                                                                    as_of))]
+            if len(kept) != len(rows):
+                logger.warning("%s: a board row's owner ruling does not stand; withheld",
+                               model_id)
+                front = {**front, "benchmarks": {**block, "evidence": kept}}
         out.append(Model(str(model_id), path, front, body, cited, tuple(withheld)))
     return out
+
+
+def _ruled_row_withheld(root: Path, row: dict[str, Any], model_id: str, rulings: Any,
+                        sources: dict[str, str], store: Any, as_of: date | None) -> bool:
+    """Whether a board row that claims an owner ruling is withheld (MODEL-569): the snapshot's
+    test (``decision.board_ruling.row_refused``), with the verdicts ``reading_held`` finds."""
+    from decision.board_ruling import BoardRegistry, row_refused
+    from decision.citation import fact_citation
+    from decision.quarantine_clearing import (
+        QUEUE_FILE,
+        queue_history,
+        reading_candidates,
+        reading_held,
+    )
+
+    try:
+        citation = fact_citation(row, sources, store)
+    except ValueError:
+        return True
+    try:
+        own = str(row.get("id") or "")
+        earlier = {key[1] for key, _ in reading_candidates(rulings.verdicts, row,
+                                                           model_id=model_id) if key[1] != own}
+        history = queue_history(root / QUEUE_FILE, earlier) if earlier else {}
+        held = reading_held(rulings.verdicts, row, model_id=model_id, history=history)
+        registry = BoardRegistry.read(root)
+        page = root / "benchmarks" / f"{row.get('benchmark_id')}.md"
+        metric = {}
+        if page.is_file():
+            bench, _ = split_front_matter(page.read_text(encoding="utf-8"), path=page)
+            metric = bench.get("metric") if isinstance(bench.get("metric"), dict) else {}
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, LoadError):
+        return True
+    return row_refused(row, model_id, cited=citation is not None, rulings=rulings.rulings,
+                       attempts=rulings.attempts, sources=sources,
+                       max_score=metric.get("max_score"), held=held, as_of=as_of,
+                       registry=registry, reopened=rulings.reopened)
 
 
 def load_benchmarks(root: Path | None = None) -> list[Benchmark]:

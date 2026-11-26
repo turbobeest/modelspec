@@ -392,6 +392,10 @@ class SnapshotInputs:
     #: ``(fact id, epoch)`` of the reopened epochs the rolling re-read recorded (MODEL-562): a
     #: ruling in a reopened epoch is admitted only on one (``owner_ruling.admits``).
     owner_ruling_reopened: frozenset[tuple[str, str]] = frozenset()
+    #: The board-owner registries (``decision.board_ruling.BoardRegistry``: source rows,
+    #: publishers, benchmark owners) a ruled board row's sources are checked against (MODEL-569).
+    #: ``None``: no ruled board row is admitted.
+    board_registry: Any = None
     #: Append-only lines that clear one held mismatch on a fresh two-reader agreement (MODEL-552,
     #: ``decision.quarantine_clearing``), checked against ``cited_attempts``. A cited fact or
     #: board reading held by a mismatch is admitted only through a valid line.
@@ -1409,6 +1413,30 @@ class _Compiler:
         return ruling_refused(fact, sid, cited=citation is not None, inputs=self._ruling_inputs(),
                               sources=self.sources, as_of=self.as_of)
 
+    def _reading_ruling_refused(self, sid: str, e: Mapping[str, Any],
+                                citation: dict | None) -> bool:
+        """A board row that carries ``derivation.owner_ruling`` (MODEL-569) and is not cited, or
+        whose ruling does not stand at this build's cutoff (``decision.board_ruling.row_problem``,
+        the filer's and the gate's own test, with the verdicts ``reading_held`` finds). Rows that
+        claim no ruling are not affected."""
+        from decision.owner_ruling import has_ruling
+
+        if not has_ruling(e):
+            return False
+        from decision.board_ruling import row_refused
+        from decision.quarantine_clearing import reading_held
+
+        try:
+            held = reading_held(self.log, e, model_id=sid, history=self.inputs.clearing_history)
+        except (KeyError, TypeError, AttributeError):
+            return True
+        metric = self.inputs.benchmark_metadata.get(str(e.get("benchmark_id")), {})
+        return row_refused(e, sid, cited=citation is not None, rulings=self.owner_rulings,
+                           attempts=self.cited_attempts, sources=self.sources,
+                           max_score=metric.get("max_score"), held=held, as_of=self.as_of,
+                           registry=self.inputs.board_registry,
+                           reopened=self.owner_ruling_reopened)
+
     def _resolve_prices(self, sid: str, facts: Iterable[Any]) -> list[dict[str, Any]]:
         facts = [_as_dict(raw) for raw in facts or ()]
         try:
@@ -1586,6 +1614,11 @@ class _Compiler:
             return
         if citation is None and any(state != "open" for state in states):
             self._exclude(sid, "quarantined (cited)")
+            return
+        if self._reading_ruling_refused(str(sid), e, citation):
+            # A board row that claims an owner's ruling (MODEL-569) enters only through a valid
+            # ruling line; one that does not stand at this build's cutoff stays out.
+            self._exclude(sid, "invalid_citation")
             return
         reason = self._admit(
             "evidence",
@@ -2385,6 +2418,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
 
         supersessions = read_store(supersession_store)
     owner_rulings, cited_attempts, ruling_claims, ruling_history = [], [], {}, {}
+    board_registry = None
     ruling_reopened: frozenset[tuple[str, str]] = frozenset()
     clearings_store = root / "verification" / "quarantine-clearings.jsonl"
     quarantine_clearings: list[dict[str, Any]] = []
@@ -2406,6 +2440,13 @@ def collect_repo(root: Path) -> SnapshotInputs:
             raise SnapshotBuildError(f"{rulings_store}: {exc}") from exc
         owner_rulings = list(ruling_inputs.rulings)
         cited_attempts = list(ruling_inputs.attempts)
+        from decision.board_ruling import BoardRegistry, is_board_facet
+
+        if any(is_board_facet(r.get("facet")) for r in owner_rulings):
+            try:
+                board_registry = BoardRegistry.read(root)
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                raise SnapshotBuildError(f"board registry: {type(exc).__name__}") from None
         ruling_claims = dict(ruling_inputs.claims)
         ruling_history = dict(ruling_inputs.history)
         ruling_reopened = ruling_inputs.reopened
@@ -2463,6 +2504,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
                           owner_ruling_claims=ruling_claims,
                           owner_ruling_history=ruling_history,
                           owner_ruling_reopened=ruling_reopened,
+                          board_registry=board_registry,
                           quarantine_clearings=quarantine_clearings,
                           cited_attempt_lines=attempt_lines,
                           clearing_history=clearing_history,

@@ -933,9 +933,9 @@ def _clearing_target(held: Sequence[tuple[tuple[str, str, str], Mapping[str, Any
     if not allowed:
         return _refuse("quarantined", f"{len(held)} value(s) of this {what} hold an unresolved "
                        f"mismatch or unreachable verdict; {QUARANTINED}"), None
-    if kind == "fact" and has_ruling(subject_record):
-        return _refuse("quarantined", "the fact carries an owner's ruling; a ruling never lifts "
-                       "a quarantine, and a clearing does not apply to a ruled fact"), None
+    if has_ruling(subject_record):  # a fact's (MODEL-551) or a board row's (MODEL-569)
+        return _refuse("quarantined", f"the {what} carries an owner's ruling; a ruling never "
+                       f"lifts a quarantine, and a clearing does not apply to a ruled {what}"), None
     problem = clearable(held)
     if problem is not None:
         return _refuse("quarantined", f"{problem}; {QUARANTINED}"), None
@@ -1826,13 +1826,9 @@ def reading_lookup(subject: str, benchmark_id: str, reading: Mapping[str, Any],
                    yaml.safe_load((root / "registry" / "sources.yaml").read_text("utf-8"))["sources"]}
         path = root / REDIRECTS_FILE
         redirects = json.loads(path.read_text("utf-8")) if path.is_file() else {}
-        publishers: dict[str, str] = {}
-        providers = yaml.safe_load((root / "registry" / "providers.yaml").read_text("utf-8"))
-        for group in ("providers", "subscription_vendors"):
-            for entry in providers.get(group) or []:
-                publishers[entry["id"]] = str(entry.get("url") or "")
-        for entry in yaml.safe_load((root / "registry" / "labs.yaml").read_text("utf-8"))["labs"]:
-            publishers.setdefault(entry["id"], str(entry.get("url") or ""))
+        from decision.board_ruling import read_publishers
+
+        publishers = read_publishers(root)  # the one reading the build's owner check shares
         name = front["display_name"]
         rows = [r for r in front["benchmarks"]["evidence"] if r.get("benchmark_id") == benchmark_id]
     except (OSError, ValueError, KeyError, TypeError, IndexError, AttributeError,
@@ -1876,7 +1872,8 @@ def reading_lookup(subject: str, benchmark_id: str, reading: Mapping[str, Any],
                          model_id)
 
 
-def _reading_held(found: ReadingLookup) -> list[tuple[tuple[str, str, str], dict[str, Any]]]:
+def _reading_held(found: ReadingLookup, data_dir: str | Path | None = None
+                  ) -> list[tuple[tuple[str, str, str], dict[str, Any]]]:
     """The verdicts that hold the reading, by the one predicate the build applies too
     (``quarantine_clearing.reading_held``): on its own id (any value), or on an earlier id under
     the card's model id whose verdict's queue claim shows the same reading. A sibling row never
@@ -1893,7 +1890,7 @@ def _reading_held(found: ReadingLookup) -> list[tuple[tuple[str, str, str], dict
     )
     from decision.snapshot import _Compiler
 
-    root = Path(os.environ.get(DATA_DIR_ENV, "").strip() or ".")
+    root = Path(data_dir or os.environ.get(DATA_DIR_ENV, "").strip() or ".")
     try:
         latest = _Compiler._verification_log(read_json_lines(root / VERIFICATION_LOG))
         own = str(found.row.get("id") or "")
@@ -1904,6 +1901,63 @@ def _reading_held(found: ReadingLookup) -> list[tuple[tuple[str, str, str], dict
         return reading_held(latest, found.row, model_id=found.model_id, history=history)
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
         raise LookupFailed(f"verification log or queue: {type(error).__name__}") from None
+
+
+@dataclass(frozen=True)
+class RuledRow:
+    """A board row that claims an owner ruling (MODEL-569), as the gate finds it. ``line`` is the
+    one ruling line for its block's key (``None``: none), ``attempts`` the attempt log,
+    ``reopened`` the sweep's recorded ``(target, epoch)`` pairs, ``standing`` whether the build
+    would admit the row on it (``board_ruling.row_problem``) and ``superseded`` the recorded
+    reopened epoch an agreement superseded it in (``board_ruling.superseding_epoch``)."""
+
+    line: Mapping[str, Any] | None
+    attempts: list[dict[str, Any]]
+    reopened: frozenset[tuple[str, str]]
+    standing: bool
+    superseded: str | None
+
+
+def ruled_row(found: ReadingLookup, subject: str, *, held: Sequence[Any] = (),
+              data_dir: str | Path | None = None) -> RuledRow | None:
+    """The row's ``RuledRow``, or ``None`` for a row that claims no ruling. A log or record that
+    cannot be read stands nothing and supersedes nothing."""
+    import os
+
+    from decision.board_ruling import row_problem, ruling_line, superseding_epoch
+    from decision.cited_reader import ATTEMPTS_FILE
+    from decision.owner_ruling import RULINGS_FILE, has_ruling, read_lines
+    from decision.ruling_reread import Records
+
+    if not has_ruling(found.row):
+        return None
+    root = Path(data_dir or os.environ.get(DATA_DIR_ENV, "").strip() or ".")
+    urls = {str(k): str(v.get("url")) for k, v in found.sources.items()
+            if isinstance(v, Mapping) and v.get("url")}
+    try:
+        rulings, logged = read_lines(root / RULINGS_FILE), read_lines(root / ATTEMPTS_FILE)
+        reopened = frozenset(Records.read(root).reopened)
+    except (OSError, ValueError):
+        return RuledRow(None, [], frozenset(), False, None)
+    max_score = (found.benchmark.get("metric") or {}).get("max_score")
+    line = ruling_line(found.row, subject, rulings)
+    standing = line is not None and row_problem(
+        found.row, subject, rulings=rulings, attempts=logged, sources=urls, max_score=max_score,
+        held=held, registry=board_registry(found), reopened=reopened) is None
+    superseded = superseding_epoch(line, logged, reopened) if line is not None else None
+    return RuledRow(line, logged, reopened, standing, superseded)
+
+
+def standing_row_ruling(found: ReadingLookup, subject: str, *, held: Sequence[Any] = (),
+                        data_dir: str | Path | None = None
+                        ) -> tuple[Mapping[str, Any], list[dict[str, Any]],
+                                   frozenset[tuple[str, str]]] | None:
+    """``(ruling line, attempt log, recorded reopenings)`` when the build would admit the row on
+    its ruling (MODEL-569), else ``None``."""
+    got = ruled_row(found, subject, held=held, data_dir=data_dir)
+    if got is None or not got.standing or got.line is None:
+        return None
+    return got.line, got.attempts, got.reopened
 
 
 def _host(url: Any) -> str | None:
@@ -1928,23 +1982,23 @@ def _check_board_source(found: ReadingLookup, source_id: str, now: datetime) -> 
         return _refuse("host_unreadable", "the source URL does not parse")
     if not status:
         return _refuse("host_not_cite_only", "the host retains copies, so the verified path applies")
-    if row.get("kind") != BENCHMARK_AUTHOR:
-        return _refuse("source_kind_not_permitted", f"{row.get('kind')} is not {BENCHMARK_AUTHOR}")
-    publisher = row.get("publisher")
-    registered = found.publishers.get(publisher) if isinstance(publisher, str) else None
-    if not publisher or not registered:
-        return _refuse("not_first_party",
-                       "the source registry records no publisher, or one the registries do not know")
-    owner = found.benchmark.get("owner_id")
-    if not isinstance(owner, str) or not owner:
-        return _refuse("not_first_party", "the benchmark page records no owner")
-    if publisher != owner:
-        return _refuse("not_first_party",
-                       "the source's publisher is not the benchmark's owner")
-    host = _host(row["url"])
-    if host is None or _host(registered) != host:
-        return _refuse("not_first_party", "the owner's registry host is not the source's host")
-    return None
+    # The board owner's page: the one check the filer and the build make too (MODEL-569).
+    problem = owner_problem(board_registry(found), str(found.row.get("benchmark_id")), source_id)
+    return None if problem is None else _refuse(*problem)
+
+
+def board_registry(found: ReadingLookup):
+    """The gate's own lookup as a ``board_ruling.BoardRegistry``, keyed by the row's benchmark."""
+    from decision.board_ruling import BoardRegistry
+
+    return BoardRegistry(found.sources, found.publishers,
+                         {str(found.row.get("benchmark_id")): found.benchmark.get("owner_id")})
+
+
+def owner_problem(registry: Any, benchmark_id: str, source_id: str) -> tuple[str, str] | None:
+    from decision.board_ruling import owner_problem as shared
+
+    return shared(registry, benchmark_id, source_id)
 
 
 def reading_definition(benchmark: Mapping[str, Any], reading: Mapping[str, Any]) -> str:
@@ -2019,6 +2073,7 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
         held = _reading_held(found)
     except LookupFailed as error:
         return _refuse("registry_lookup_failed", str(error))
+    holding_any = list(held)  # a ruling stands on a row nothing holds, released or not (MODEL-569)
     released, chains = False, []
     if held:  # as for a fact (MODEL-566): a released verdict holds the row no more
         # A clearing line's target must be one of the ids that hold this row, as in the build.
@@ -2052,7 +2107,36 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     except (OSError, ValueError) as error:
         return _refuse("registry_lookup_failed", f"the attempt log: {type(error).__name__}")
     current = base
-    if unchanged and request is None:
+    ruled = ruled_row(found, subject, held=holding_any)
+    if ruled is not None:
+        # MODEL-569: a ruled row is read in its ruled epoch, where the disagreement blocks, unless
+        # the gate fetched every page the row cites itself and the row's board region is a
+        # reopened epoch of the ruling that the sweep recorded (MODEL-562's rule for facts). A
+        # ruling that no longer stands is read only in the recorded reopened epoch that
+        # superseded it: never its base or board epoch, never from bytes a caller supplies.
+        from decision.board_ruling import gate_epoch as ruled_reading_epoch
+
+        if not ruled.standing and ruled.superseded is None:
+            return _refuse("epoch_not_current", "the row's ruling does not stand and no recorded "
+                           "reopened epoch superseded it; the row is not read")
+        if request is not None and not ruled.standing:
+            return _refuse("epoch_not_current", "a superseded ruling's row is read only from "
+                           "pages the gate fetches itself")
+        if request is None:
+            _ids, refusal = _row_sources(found, now)
+            if refusal is not None:
+                return refusal
+            fetched = _fetch(url, _http_once)
+            if isinstance(fetched, CitedChange):
+                return fetched
+            region = row_region_sha256(found, now, chosen=source_id, page_bytes=fetched[0])
+            if region is None:
+                return _refuse("page_unreadable", "the board's cited region cannot be selected on "
+                               "every page the row cites; the row stays in its ruled epoch")
+        current = ruled.superseded if not ruled.standing else ruled_reading_epoch(
+            ruled.line, ruled.attempts, region, ruled.reopened)
+        lines = []
+    elif unchanged and request is None:
         # MODEL-555: an unchanged row's epoch names the row's board region, so the gate fetches
         # the page first, itself, with its own transport, and every other eligible source the
         # row cites (``row_region_sha256``). Only these bytes can name a board epoch.
@@ -2416,6 +2500,12 @@ def reread_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any
     found = reading_lookup(subject, benchmark_id, reading)
     if isinstance(found, CitedChange):
         return Reread("flagged", found.reason, None, found.detail)
+    from decision.owner_ruling import has_ruling
+
+    if has_ruling(found.row):
+        return _reread_ruled_reading(found, subject=subject, benchmark_id=benchmark_id,
+                                     reading=reading, source_id=source_id, readers=readers,
+                                     request=request)
     block = _block_of(found.row)
     if block is None:
         return Reread("flagged", "not_a_cited_change", None, "the row carries no cited_change block")
@@ -2436,3 +2526,106 @@ def reread_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any
         return Reread("flagged", "not_published", outcome.record, "the board no longer lists the row")
     same = canonical(outcome.record["value"], "_") == canonical(found.row.get("score"), "_")
     return Reread("confirmed" if same else "changed", None, outcome.record)
+
+
+@dataclass(frozen=True)
+class RuledRowStatus:
+    """What the board shows for an owner-ruled row (MODEL-569). ``kind``: ``current`` (the ruled
+    region), ``changed`` (another region, not recorded yet: the sweep records it), ``open`` (a
+    reopened epoch the sweep recorded), ``unbaselined`` (the resolved attempts logged no region),
+    ``unreadable_region``, ``deferred`` (a page could not be fetched) or ``invalid`` (no ruling
+    the build admits). Hashes only."""
+
+    kind: str
+    line: Mapping[str, Any] | None = None
+    region: str | None = None
+    baseline: str | None = None
+    epoch: str | None = None
+
+
+def ruled_row_status(found: ReadingLookup, subject: str, *, source_id: str,
+                     request: Request | None = None,
+                     data_dir: str | Path | None = None) -> RuledRowStatus:
+    """The one comparison the sweep and ``reread_reading`` make for a ruled row, from pages the
+    gate module fetches (``request`` only for the chosen page in tests; every other page with the
+    gate's own transport). No byte is kept."""
+    from decision.board_ruling import baseline, recorded_reopen
+    from decision.ruling_reread import reopen_epoch
+
+    try:
+        held = _reading_held(found, data_dir)
+    except LookupFailed:
+        return RuledRowStatus("invalid")
+    standing = standing_row_ruling(found, subject, held=held, data_dir=data_dir)
+    if standing is None:
+        return RuledRowStatus("invalid")
+    line, logged, reopened = standing
+    now = datetime.now(UTC)
+    _ids, refusal = _row_sources(found, now)
+    if refusal is not None or source_id not in found.sources:
+        return RuledRowStatus("invalid", line)
+    fetched = _fetch(found.sources[source_id]["url"], request or _http_once)
+    if isinstance(fetched, CitedChange):
+        return RuledRowStatus("deferred", line)
+    region = row_region_sha256(found, now, chosen=source_id, page_bytes=fetched[0])
+    if region is None:
+        return RuledRowStatus("unreadable_region", line)
+    known = baseline(line, logged)
+    if known is None:
+        return RuledRowStatus("unbaselined", line, region)
+    if region == known:
+        return RuledRowStatus("current", line, region, known)
+    epoch = reopen_epoch(str(line["epoch"]), region)
+    kind = "open" if recorded_reopen(line, logged, region, reopened) == epoch else "changed"
+    return RuledRowStatus(kind, line, region, known, epoch)
+
+
+def _reread_ruled_reading(found: ReadingLookup, *, subject: str, benchmark_id: str,
+                          reading: Mapping[str, Any], source_id: str, readers: Sequence[Reader],
+                          request: Request | None) -> Reread:
+    """``reread_reading`` of an owner-ruled row (MODEL-569). ``current`` while the board region is
+    the ruled one (or no change can be shown); once the sweep recorded the reopened epoch the board
+    names, the gate decides, fetching the board itself: two agreeing readers supersede the
+    ruling."""
+    status = ruled_row_status(found, subject, source_id=source_id, request=request).kind
+    if status in {"current", "unbaselined"}:
+        return Reread("current")
+    if status != "open":
+        # ``changed``: the sweep has not recorded the reopened epoch yet, so the gate would read
+        # the row in its ruled epoch; nothing is read until it does.
+        return Reread("flagged", status, None, "the ruled row's board reopened no recorded epoch")
+    outcome = cited_reading(subject=subject, benchmark_id=benchmark_id, reading=reading,
+                            source_id=source_id, readers=readers, request=None,
+                            allow_unchanged=True)
+    if outcome.outcome != "cited_change" and not outcome.marked:
+        return Reread("flagged", outcome.reason or outcome.outcome, None, outcome.detail)
+    if outcome.marked:
+        return Reread("flagged", "not_published", outcome.record,
+                      "the board no longer lists the row")
+    same = canonical(outcome.record["value"], "_") == canonical(found.row.get("score"), "_")
+    return Reread("confirmed" if same else "changed", None, outcome.record)
+
+
+def ruled_readings(data_dir: str | Path) -> list[dict[str, Any]]:
+    """Every board reading in the data directory's cards that claims an owner ruling (MODEL-569),
+    as ``{"subject", "benchmark_id", "reading", "source_ids", "target"}``."""
+    from decision.owner_ruling import has_ruling, ruling_block
+
+    out: list[dict[str, Any]] = []
+    for path in sorted((Path(data_dir) / "models").glob("*/*.md")):
+        try:
+            front = load_yaml_unique(path.read_text("utf-8").split("---", 2)[1])
+            rows = (front.get("benchmarks") or {}).get("evidence") or []
+        except (OSError, IndexError, AttributeError, yaml.YAMLError):
+            continue
+        for row in rows:
+            if isinstance(row, dict) and has_ruling(row):
+                subject = f"{path.parent.name}/{path.stem}"
+                reading = {k: row.get(k) for k in READING_KEYS}
+                facet = BENCHMARK_PREFIX + str(row.get("benchmark_id"))
+                ids = (ruling_block(row) or {}).get("source_ids")
+                out.append({"subject": subject, "benchmark_id": row.get("benchmark_id"),
+                            "reading": reading,
+                            "source_ids": [str(i) for i in ids] if isinstance(ids, list) else [],
+                            "target": f"{subject}#{facet}#{reading_epoch(reading)}"})
+    return out
