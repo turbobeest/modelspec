@@ -375,6 +375,9 @@ jobs:
             exit 0
           fi
           card="models/${model_id}.md"
+          # Filenames are compared as JSON strings, one per line: a filename with a
+          # newline in it can never pass for the card path.
+          card_json="$(jq -cn --arg card "$card" '$card')"
           # Every page of open PRs into main. Any API failure processes the signal normally.
           if ! gh api --paginate \
             "repos/$GH_REPO/pulls?state=open&base=main&sort=created&direction=asc&per_page=100" \
@@ -400,11 +403,11 @@ jobs:
           pr_url=
           while read -r number url; do
             if ! files="$(gh api --paginate "repos/$GH_REPO/pulls/$number/files?per_page=100" \
-              --jq '.[].filename')"; then
+              --jq '.[].filename | tojson')"; then
               echo "::warning::The files of ${url} could not be listed, so the signal is processed normally."
               exit 0
             fi
-            if grep -Fxq -- "$card" <<<"$files"; then
+            if grep -Fxq -- "$card_json" <<<"$files"; then
               pr_url="$url"
               break
             fi

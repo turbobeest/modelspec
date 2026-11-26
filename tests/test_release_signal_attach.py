@@ -251,6 +251,9 @@ def test_the_attach_step_runs_only_for_a_work_item_with_no_open_pull_request() -
     assert "gh api --paginate" in step["run"]
     assert "base=main" in step["run"]
     assert "/files?per_page=100" in step["run"]
+    # Exact filenames: each one is compared as a whole JSON string.
+    assert "--jq '.[].filename | tojson'" in step["run"]
+    assert 'grep -Fxq -- "$card_json"' in step["run"]
 
 
 def test_a_second_signal_for_a_model_with_an_open_card_pr_attaches_and_reaches_the_worker(
@@ -355,6 +358,11 @@ def test_the_other_lab_attaches_only_to_its_own_card_pr(tmp_path: Path) -> None:
     [["models/acme/orbit-1.md", "registry/sources.yaml"]],
     [["models/another-org/orbit-2.md"]],
     [["models/acme/orbit-2.md.bak", "offerings/acme/orbit-2.yaml"]],
+    # Lookalikes: a filename that holds the card path on a line of its own.
+    [["notes.txt\nmodels/acme/orbit-2.md"]],
+    [["models/acme/orbit-2.md\nREADME"]],
+    [["models/acme/orbit-2.md "]],
+    [["./models/acme/orbit-2.md"]],
 ])
 def test_a_pr_without_the_models_card_file_never_attaches(
     tmp_path: Path, files: list[list[str]],
