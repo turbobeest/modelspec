@@ -30,6 +30,13 @@ file that still has the planned size and sha256, and the fact file is replaced w
 if it is unchanged. A rerun after a write that stopped part way finishes it. Nothing is
 written to the verification log or the attempt log. The output is the outcome, the reason
 and counts; never page text.
+
+A benchmark board reading (MODEL-569) is ruled with ``--facet benchmark:<id>``, ``--reading``
+(its settings as JSON) and ``--epoch`` (the row's epoch, a board epoch included). The same
+limits hold, by the build's own test (``decision.board_ruling.row_problem``): the epoch is the
+row's current one, nothing holds the row, the value is a score in the board's range and each
+source is the board owner's cite-only page the row cites. It appends the ruling line and
+rewrites the one evidence row (``ruled_row``); no claim is filed.
 """
 
 from __future__ import annotations
@@ -241,9 +248,17 @@ def reopened(root: Path, found: Any, subject: str, facet: str, epoch: str,
 
 def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ruled_by: str,
          ruled_at: str, ticket: str, source_ids: list[str], basis: str, epoch: str = "initial",
-         resolves: list[str] | None = None, now: datetime | None = None) -> Plan:
+         resolves: list[str] | None = None, now: datetime | None = None,
+         reading: Any = None) -> Plan:
     now = now or datetime.now(UTC)
     root = Path(data_dir)
+    from decision.board_ruling import is_board_facet
+
+    if is_board_facet(facet):
+        return plan_board(data_dir=root, subject=subject, facet=facet, reading=reading,
+                          value=value, state=state, ruled_by=ruled_by, ruled_at=ruled_at,
+                          ticket=ticket, source_ids=source_ids, basis=basis, epoch=epoch,
+                          resolves=resolves, now=now)
     facet_def = _facet(facet)
     if facet_def is None:
         raise Refused("unknown_facet", "the facet is not registered")
@@ -380,6 +395,166 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
     return result
 
 
+# --- a board reading (MODEL-569) ----------------------------------------------------------------
+
+
+def ruled_row(subject: str, old: dict[str, Any], ruling: dict[str, Any],
+              copies: dict[str, tuple[str, str]]) -> dict[str, Any]:
+    """The evidence row as a board ruling calls for, written as the board gate writes an agreed
+    score (``scripts.cited_reading.rewritten_row``): the ruled score, dated by the resolved read,
+    each ruling source at the copy its resolved attempt read, a fresh evidence id, and
+    ``derivation.owner_ruling`` beside whatever the derivation held. Other sources are kept, so
+    the row's board region rests on the same pages."""
+    from scripts import refresh_leaderboards as refresh
+    from scripts.cited_reading import dated_cost
+    from scripts.model_143_evidence import evidence_id
+
+    new = dict(old)
+    new.pop("not_published_since", None)
+    new["score"] = ruling["value"]
+    kept = {k: v for k, v in (old.get("derivation") or {}).items() if k != "owner_ruling"}
+    # A plain copy: shared objects would dump as YAML anchors and aliases.
+    new["derivation"] = json.loads(json.dumps({**kept, "owner_ruling": ruling}, default=str))
+    day = max(at for _, at in copies.values())[:10]
+    was = None
+    if isinstance(old.get("configuration"), str):
+        was = refresh._read_day_of(old["configuration"])
+        new["configuration"] = refresh._retell_read_day(old["configuration"], day)
+    new["evidence_date"] = new["observed_at"] = new["verified_at"] = day
+    new = refresh.align_observation_dating(new)
+    if isinstance(new.get("configuration"), str) and was and was != day:
+        new["configuration"] = dated_cost(new["configuration"], was)
+    new["sources"] = [
+        {**ref, "snapshot_ref": copies[ref["source_id"]][0],
+         "retrieved_at": copies[ref["source_id"]][1]}
+        if isinstance(ref, dict) and ref.get("source_id") in copies else ref
+        for ref in old.get("sources") or []]
+    new["id"] = evidence_id(subject, new)
+    return new
+
+
+def _row_in(text: str, reading: dict[str, Any], benchmark_id: str) -> dict[str, Any] | None:
+    from decision.cited_change import READING_KEYS
+
+    front = load_yaml(_front(text)[0]) or {}
+    rows = [r for r in (front.get("benchmarks") or {}).get("evidence") or []
+            if isinstance(r, dict) and r.get("benchmark_id") == benchmark_id
+            and all(r.get(k) == reading.get(k) for k in READING_KEYS)]
+    return rows[0] if len(rows) == 1 else None
+
+
+def plan_board(*, data_dir: Path, subject: str, facet: str, reading: Any, value: Any, state: str,
+               ruled_by: str, ruled_at: str, ticket: str, source_ids: list[str], basis: str,
+               epoch: str, resolves: list[str] | None, now: datetime) -> Plan:
+    """The plan for a ruling on a board reading (MODEL-569): the same limits as a fact's, tested
+    by the build's own helper (``decision.board_ruling.row_problem``). It appends the ruling line
+    and rewrites the one evidence row; no claim is filed, as the board gate files none."""
+    from decision.board_ruling import epoch_problem, row_problem, stale_problem
+    from decision.cited_change import (
+        BENCHMARK_PREFIX,
+        READING_KEYS,
+        CitedChange,
+        _check_board_source,
+        _reading_held,
+        reading_lookup,
+    )
+    from scripts import refresh_leaderboards as refresh
+    from scripts.model_143_evidence import evidence_key
+
+    root = Path(data_dir)
+    if not isinstance(reading, dict) or set(reading) != set(READING_KEYS):
+        raise Refused("malformed", f"a board ruling names its reading: exactly "
+                      f"{len(READING_KEYS)} settings")
+    benchmark_id = facet[len(BENCHMARK_PREFIX):]
+    found = reading_lookup(subject, benchmark_id, reading, data_dir=root)
+    if isinstance(found, CitedChange):
+        raise Refused("registry_lookup_failed", str(found.reason))
+    card = root / "models" / f"{subject}.md"
+    attempts_snapshot = Snapshot.read(root / ATTEMPTS_FILE)
+    verifications = Snapshot.read(root / VERIFICATION_LOG)
+    rulings = Snapshot.read(root / RULINGS_FILE)
+    queue = Snapshot.read(root / QUEUE)
+    card_file = Snapshot.read(card)
+    try:
+        attempts, filed = attempts_snapshot.lines(), rulings.lines()
+        verifications.lines()
+    except ValueError:
+        raise Refused("malformed", "an append-only log does not parse or repeats a key") from None
+    try:
+        text = (card_file.data or b"").decode("utf-8")
+        load_yaml(_front(text)[0])
+    except yaml.YAMLError:
+        raise Refused("malformed", "the card does not parse or repeats a key") from None
+    try:
+        held = _reading_held(found, root)
+    except LookupFailed:
+        raise Refused("registry_lookup_failed", "the verification log does not parse") from None
+    if held:
+        raise Refused("quarantined", f"{len(held)} verdict(s) hold this reading; a ruling names "
+                      "no verdict and lifts none, so it is not filed on a held reading")
+    key = (subject, facet, epoch)
+    disagreeing = [attempt_id(a) for a in attempts
+                   if (a.get("subject"), a.get("facet"), a.get("epoch")) == key
+                   and disagreed(a, facet)]
+    if not disagreeing:
+        raise Refused("no_disagreement", "no complete readers_disagree attempt is logged for "
+                      "this reading and epoch")
+    ruling = {"subject": subject, "facet": facet, "epoch": epoch, "value": value, "state": state,
+              "ruled_by": ruled_by, "ruled_at": ruled_at, "ticket": ticket,
+              "source_ids": list(source_ids), "resolves": list(resolves or disagreeing),
+              "basis": basis}
+    assert set(ruling) == set(FIELDS)
+    urls = {str(sid): str(row.get("url")) for sid, row in found.sources.items()
+            if isinstance(row, dict) and row.get("url")}
+    max_score = (found.benchmark.get("metric") or {}).get("max_score")
+    problem = ruling_problem(ruling, attempts=attempts, sources=urls, today=now.date(),
+                             max_score=max_score)
+    if problem is not None:
+        raise Refused(*problem)
+    for source_id in source_ids:
+        refusal = _check_board_source(found, source_id, now)
+        if refusal is not None:
+            raise Refused("not_cited", f"a ruling source is not the board owner's cite-only "
+                          f"page the row cites ({refusal.reason})")
+    same_key = [r for r in filed if (r.get("subject"), r.get("facet"), r.get("epoch")) == key]
+    resuming = bool(same_key)
+    if same_key and (len(same_key) > 1 or canonical(same_key[0]) != canonical(ruling)):
+        raise Refused("duplicate_ruling", f"{len(same_key)} ruling(s) are filed for this "
+                      "reading and epoch already")
+    lines = filed if resuming else [*filed, ruling]
+    problem = epoch_problem(ruling, row=found.row, subject=subject, rulings=lines,
+                            attempts=attempts, sources=urls, max_score=max_score,
+                            today=now.date()) \
+        or stale_problem(ruling, row=found.row, subject=subject, attempts=attempts)
+    if problem is not None:
+        raise Refused(*problem)
+    copies = source_copies(ruling, attempts, urls)
+    row = ruled_row(subject, dict(found.row), ruling, copies)
+    result = Plan(ruling, f"{subject}#{facet}", rulings, queue, card_file, attempts_snapshot,
+                  verifications, counts={"resolves": len(ruling["resolves"]),
+                                         "sources": len(copies)})
+    if not resuming:
+        line = json.dumps(ruling, sort_keys=True, ensure_ascii=False)
+        result.ruling_line = (line + "\n").encode()
+    if _plain(row) != _plain(found.row):
+        try:
+            new = refresh.rewritten_card_text(card, text, [(evidence_key(found.row), row)])
+        except ValueError as error:
+            raise Refused("registry_lookup_failed", "the card's row cannot be rewritten: "
+                          f"{type(error).__name__}: {str(error)[:200]}") from None
+        result.new_text = new.encode("utf-8")
+        written = _row_in(new, reading, benchmark_id)
+    else:
+        written = found.row
+    if result.done:
+        raise Refused("duplicate_ruling", "this ruling is filed and applied already")
+    if written is None or row_problem(_plain(written), subject, rulings=lines, attempts=attempts,
+                                      sources=urls, max_score=max_score, held=held,
+                                      today=now.date()) is not None:
+        raise Refused("malformed", "the row as planned would not stand on its ruling")
+    return result
+
+
 def new_fact(old: dict[str, Any], ruling: dict[str, Any], refs: list[SourceRef]) -> dict[str, Any]:
     """The fact as the ruling calls for: value, state and sources replaced in place, every
     other key kept in its order. A source it cited before and no longer cites moves to
@@ -467,6 +642,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--resolve", action="append", default=None, dest="resolves",
                     help="an attempt id the ruling settles (default: every disagreeing attempt)")
     ap.add_argument("--basis", required=True, help="counts and field names only")
+    ap.add_argument("--reading", default=None,
+                    help="for a board reading (facet benchmark:<id>): its settings as JSON, "
+                         "model_id_as_evaluated, effort and harness")
     ap.add_argument("--write", action="store_true", help="file the ruling (default: dry run)")
     args = ap.parse_args(argv)
     os.environ["MODELSPEC_DATA_DIR"] = str(args.data_dir)
@@ -474,12 +652,16 @@ def main(argv: list[str] | None = None) -> int:
         value = json.loads(args.value)
     except ValueError:
         value = args.value
+    try:
+        reading = json.loads(args.reading) if args.reading is not None else None
+    except ValueError:
+        reading = None
     out: dict[str, Any] = {"subject": args.subject, "facet": args.facet, "epoch": args.epoch}
     try:
         result = plan(data_dir=args.data_dir, subject=args.subject, facet=args.facet, value=value,
                       state=args.state, ruled_by=args.ruled_by, ruled_at=args.ruled_at,
                       ticket=args.ticket, source_ids=args.sources, basis=args.basis,
-                      epoch=args.epoch, resolves=args.resolves)
+                      epoch=args.epoch, resolves=args.resolves, reading=reading)
         if args.write:
             apply(result)
     except Refused as refusal:

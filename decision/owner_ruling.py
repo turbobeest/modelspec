@@ -321,9 +321,14 @@ def _at(entry: Mapping[str, Any]) -> datetime | None:
 
 
 def ruling_problem(ruling: Any, *, attempts: Sequence[Mapping[str, Any]],
-                   sources: Mapping[str, str], today: date | None = None) -> tuple[str, str] | None:
+                   sources: Mapping[str, str], today: date | None = None,
+                   max_score: Any = None) -> tuple[str, str] | None:
     """``(reason, detail)`` when the line is not a valid ruling, else ``None``. ``sources``
-    maps registered source ids to URLs. Details carry counts and field names only."""
+    maps registered source ids to URLs. Details carry counts and field names only. A ruling on a
+    board reading (facet ``benchmark:<id>``, MODEL-569) states a score in the board's range
+    (``decision.board_ruling.value_problem``; ``max_score`` is the board's); every other check
+    is the fact ruling's."""
+    from decision.board_ruling import is_board_facet, value_problem
     from decision.cited_change import _facet, _value_fits
     from decision.retention import cite_only_status
 
@@ -343,16 +348,21 @@ def ruling_problem(ruling: Any, *, attempts: Sequence[Mapping[str, Any]],
     today = today or datetime.now(UTC).date()
     if ruled is None or ruled > today:
         return "bad_ruling_date", "ruled_at is not a day, or is in the future"
-    facet = _facet(ruling["facet"])
-    if facet is None:
-        return "unknown_facet", "the facet is not registered"
-    if ruling["state"] not in STATES:
-        return "value_invalid", f"the state is not one of {len(STATES)} a ruling may set"
-    if ruling["state"] == "not_disclosed":
-        if ruling["value"] is not None:
-            return "value_invalid", "a not_disclosed ruling has no value"
-    elif ruling["value"] is None or _value_fits(ruling["value"], facet) is not None:
-        return "value_invalid", "the value is not a value of the facet's type"
+    if is_board_facet(ruling["facet"]):
+        problem = value_problem(ruling, max_score)
+        if problem is not None:
+            return problem
+    else:
+        facet = _facet(ruling["facet"])
+        if facet is None:
+            return "unknown_facet", "the facet is not registered"
+        if ruling["state"] not in STATES:
+            return "value_invalid", f"the state is not one of {len(STATES)} a ruling may set"
+        if ruling["state"] == "not_disclosed":
+            if ruling["value"] is not None:
+                return "value_invalid", "a not_disclosed ruling has no value"
+        elif ruling["value"] is None or _value_fits(ruling["value"], facet) is not None:
+            return "value_invalid", "the value is not a value of the facet's type"
     resolves, source_ids = ruling["resolves"], ruling["source_ids"]
     if not isinstance(resolves, list) or not resolves \
             or not all(isinstance(i, str) and _ATTEMPT.fullmatch(i) for i in resolves) \

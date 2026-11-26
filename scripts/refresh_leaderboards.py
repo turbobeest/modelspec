@@ -1480,11 +1480,22 @@ def _rewrite_card(
     *,
     fields: Sequence[str] | None = None,
 ) -> None:
+    path.write_text(rewritten_card_text(path, path.read_text(encoding="utf-8"), updates,
+                                        fields=fields), encoding="utf-8")
+
+
+def rewritten_card_text(
+    path: Path,
+    text: str,
+    updates: list[tuple[tuple[object, ...], dict[str, Any]]],
+    *,
+    fields: Sequence[str] | None = None,
+) -> str:
+    """The card text ``_rewrite_card`` writes, from ``text`` (the card at ``path``), unwritten."""
     from schema.benchmark_values import validate_card_rows
 
     validate_card_rows(path, [row for _, row in updates])
     wanted = dict(updates)
-    text = path.read_text(encoding="utf-8")
     always = ("score", "evidence_date", "observed_at", "verified_at", "id", "sources")
 
     def update(match: re.Match[str]) -> str:
@@ -1540,7 +1551,7 @@ def _rewrite_card(
     )
     if wanted:
         raise ValueError(f"{path}: could not locate {len(wanted)} changed evidence rows")
-    path.write_text(changed, encoding="utf-8")
+    return changed
 
 
 def align_observation_cards(root: Path) -> list[str]:

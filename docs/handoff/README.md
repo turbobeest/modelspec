@@ -290,6 +290,30 @@ Learned expensively during 2026-09-09/10.
     cited-change block and is re-read with the cited-change facts, in the epoch that block's
     text hash names.
 
+    **The owner's ruling on a board reading (MODEL-569).** A board row split between two
+    readers has no fact facet, so `file_owner_ruling` also takes `--facet benchmark:<id>` with
+    `--reading` (the row's `model_id_as_evaluated`, `effort` and `harness` as JSON) and the
+    row's epoch. The line has the same fields and the same limits as a fact's; the value is a
+    score (`known`, a number in the board's range). `decision.board_ruling.row_problem` is the
+    one test the filer, the gate (`cited_reading`) and the build (`decision.snapshot`,
+    `pipeline.load`) apply: the epoch is one of the row's (settings or re-read epoch, a board
+    epoch whose region every resolved attempt logged, or a reopened epoch that extends a valid
+    ruling with another region); it is current (no later attempt at the reading in another
+    epoch, other than a reopened epoch of the ruling's; an agreement there on another score
+    supersedes it); nothing holds the row (`reading_held`: a ruling names no verdict and lifts
+    none, and a held reading is refused); the score is the ruling's and each ruling source is
+    cited at the copy its resolved attempt read. The filer appends the line and rewrites the
+    one row (the score, dated by the resolved read, a fresh evidence id,
+    `derivation.owner_ruling`); no claim is filed, as the board gate files none. A ruled row's
+    old id keeps any verdict it had, so `held_row_missing` still refuses a build that drops it.
+    On the re-read the gate reads a ruled row in its ruled epoch unless it fetched every page
+    the row cites itself and the row's board region (`row_region_sha256`) is not the one the
+    resolved attempts logged: then in `<ruled epoch>:reopen:<region>`, where two agreeing
+    readers supersede the ruling with a cited change. As for an unchanged row's board epoch
+    (MODEL-555), only the gate's own fetch names it; no record line is needed.
+    `reread_reading` and the sweep (`ruled_reading_rereads`, counts only) list a ruled row
+    whose region changed.
+
 16. **A confirmed fact no engine reader can read** (MODEL-558, Jamie 2026-11-25, queue 16f).
     Extend the engine's readers first; the two readers come second, and no new verification
     kind or contract field is added. `decision/verify.py` has three deterministic readers for
