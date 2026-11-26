@@ -1363,7 +1363,9 @@ def _outermost(nodes: Sequence[Any]) -> list[Any]:
 
 _DATA_CELL_ROLES = frozenset({"cell", "gridcell"})
 _SPACE_RUN = re.compile(r"\s+")
-_PIPE_RULE = re.compile(r"^\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)*\|?$")
+#: A pipe-table separator line: at least two columns and at least one pipe (a bare ``---`` is
+#: not one).
+_PIPE_RULE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$")
 
 
 def _cell_text(node: Any, rules: Any) -> str:
@@ -1410,7 +1412,8 @@ def _board_cells(nodes: Sequence[Any], rules: Any) -> list[list[str]] | None:
     Captions and the copy around a table are never read. ``None`` when ``nodes`` hold no table
     row, or no body row with a non-empty data cell (a placeholder or a header-only skeleton).
     A body row is a ``<tbody>`` row or, in a table with no ``<tbody>``, a row outside its
-    ``<thead>``: a ``<td>`` in a ``<thead>`` never makes a body."""
+    ``<thead>``: a ``<td>`` in a ``<thead>`` never makes a body. A ``<tfoot>`` row is never
+    hashed."""
 
     def role(e: Any) -> str:
         return e.attrs.get("role", "").lower()
@@ -1441,6 +1444,8 @@ def _board_cells(nodes: Sequence[Any], rules: Any) -> list[list[str]] | None:
              if e.tag == "tr" or role(e) in _ROW_ROLES]
     out, body = [], []
     for row in dict.fromkeys(found):
+        if section(row, "tfoot"):
+            continue
         cells = cells_of(row)
         texts = [_cell_text(c, rules) for c in cells]
         if any(texts):
@@ -1459,8 +1464,9 @@ def _pipe_cells(line: str) -> list[str] | None:
 
 def _text_rows(text: str, rules: Any) -> list[list[str]] | None:
     """The table rows of a plain-text board: the first pipe table (``| a | b |``) whose header
-    line is followed by a separator line (``|---|---|``), then its body lines up to the first
-    line that is not a table line. Cells are cleaned and collapsed as ``_cell_text`` does.
+    line is followed by a separator line (``_PIPE_RULE``: ``|---|---|``, two columns or more),
+    then its body lines up to the first line that is not a table line; only body rows with the
+    header's column count are hashed. Cells are cleaned and collapsed as ``_cell_text`` does.
     Prose is never hashed, pipes or not: ``None`` when the text holds no such table with a
     non-empty body row. ``text`` is the page's own text, lines intact (the normaliser drops a
     separator line as punctuation)."""
@@ -1469,14 +1475,15 @@ def _text_rows(text: str, rules: Any) -> list[list[str]] | None:
     lines = text.splitlines()
     for i in range(len(lines) - 1):
         header = _pipe_cells(lines[i])
-        if header is None or not _PIPE_RULE.match(lines[i + 1].strip()) \
-                or "-" not in lines[i + 1] or _PIPE_RULE.match(lines[i].strip()):
+        if header is None or not _PIPE_RULE.match(lines[i + 1]) or _PIPE_RULE.match(lines[i]):
             continue
         out = [[_collapse(_clean_line(c, rules)) for c in header]]
         for line in lines[i + 2:]:
             cells = _pipe_cells(line)
-            if cells is None or _PIPE_RULE.match(line.strip()):
+            if cells is None or _PIPE_RULE.match(line):
                 break
+            if len(cells) != len(header):
+                continue  # only rows with the header's column count are hashed
             texts = [_collapse(_clean_line(c, rules)) for c in cells]
             if any(texts):
                 out.append(texts)

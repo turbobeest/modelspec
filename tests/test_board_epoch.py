@@ -211,6 +211,14 @@ def pipe(score="51.2", clock="09:15", prose="Runs use the max effort."):
     return PIPE.format(score=score, clock=clock, prose=prose).encode()
 
 
+def test_only_rows_with_the_headers_column_count_are_hashed(data, own):
+    own.page = pipe()
+    split()
+    own.page = pipe().replace(b"| Rival 1 | 40.0% |", b"| Rival 1 | 40.0% |\n| a | b | c |")
+    refused("prior_attempt_disagreed")              # a row of another width is not hashed
+    assert len(data.log()) == 1
+
+
 def test_a_plain_text_board_hashes_its_table_rows_never_its_prose(data, own):
     own.page = pipe()
     split()
@@ -226,6 +234,9 @@ def test_a_plain_text_board_hashes_its_table_rows_never_its_prose(data, own):
     b"| Model | Score |\n|---|---|\n|  |  |\n",                             # empty body
     b"| Model | Score |\n| Orbit 9 Max | 51.2% |\n",                        # no separator
     b"| Model | Score |\n| Orbit-9-Max | 51.2% |\n| Rival 1 | 40.0% |\n",  # a dash, no rule
+    b"| Model | Score |\n---\n| Orbit 9 Max | 51.2% |\n",                  # a bare ---
+    b"| Model | Score |\n|---|\n| Orbit 9 Max | 51.2% |\n",                # one column rule
+    b"| Model | Score |\n|---|---|\n| Orbit 9 Max | 51.2% | x |\n",       # no row fits
     b"Pick A | B | C today.\nOrbit 9 Max | 51.2% | ok\n",                   # prose with pipes
 ])
 def test_a_plain_text_board_without_body_rows_is_refused(data, own, page):
@@ -279,6 +290,21 @@ def test_a_head_td_is_never_a_body_cell(html_data, own):
                 b"</thead><tbody></tbody><tr><td>Orbit 9 Max</td><td>53.0%</td></tr>"
                 b"</table></body></html>")
     refused("page_unreadable")                      # a <tbody> exists: only its rows are body
+    assert len(html_data.log()) == 1
+
+
+@pytest.mark.parametrize("tbody", [True, False])
+def test_a_tfoot_row_is_never_hashed(html_data, own, tbody):
+    def page(foot):
+        body = b"<tr><td>Orbit 9 Max</td><td>51.2%</td></tr>"
+        body = b"<tbody>" + body + b"</tbody>" if tbody else body
+        return (b"<html><body><table id='rows'><thead><tr><th>Model</th><th>Score</th></tr>"
+                b"</thead>" + body + b"<tfoot><tr><td>" + foot + b"</td><td>9.9%</td></tr>"
+                b"</tfoot></table></body></html>")
+    own.page = page(b"Average")
+    split()
+    own.page = page(b"Median")                      # only the footer moved
+    refused("prior_attempt_disagreed")
     assert len(html_data.log()) == 1
 
 
