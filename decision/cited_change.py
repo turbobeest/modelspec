@@ -1256,6 +1256,9 @@ class ReadingLookup:
     #: The ids of the benchmark's other current rows on the card (kept for callers; they no
     #: longer decide whose a verdict is: ``quarantine_clearing.reading_holds`` does).
     sibling_ids: frozenset[str] = frozenset()
+    #: The card's model id: the id the build files the reading under, and the one prefix the
+    #: gate and the build both search (``quarantine_clearing.reading_candidates``).
+    model_id: str = ""
 
     def owns(self, logged_id: str) -> bool:
         """A logged evidence id that may hold this reading: its own, or any id under the
@@ -1735,29 +1738,42 @@ def reading_lookup(subject: str, benchmark_id: str, reading: Mapping[str, Any],
                                  if isinstance(m, str) and m))
     siblings = frozenset(str(r["id"]) for r in rows if r is not hits[0] and r.get("id"))
     own_id = (str(hits[0]["id"]),) if hits[0].get("id") else ()
+    model_id = front.get("model_id") if isinstance(front.get("model_id"), str) \
+        and front.get("model_id") else subject
     return ReadingLookup(name, hits[0], benchmark, sources, redirects, publishers,
                          tuple(dict.fromkeys(ids)), page, own_id,
-                         tuple(f"{m}#{benchmark_id}#" for m in models), siblings - set(own_id))
+                         tuple(f"{m}#{benchmark_id}#" for m in models), siblings - set(own_id),
+                         model_id)
 
 
 def _reading_held(found: ReadingLookup) -> list[tuple[tuple[str, str, str], dict[str, Any]]]:
-    """The verdicts that hold the reading: on its own id (any value), or on an earlier id whose
-    verdict's queue claim shows the same reading (``quarantine_clearing.reading_holds``). A
-    sibling row never takes a verdict over, nor is it held by another reading's verdict. Raises
-    ``LookupFailed`` when the log or the queue cannot be read."""
+    """The verdicts that hold the reading, by the one predicate the build applies too
+    (``quarantine_clearing.reading_held``): on its own id (any value), or on an earlier id under
+    the card's model id whose verdict's queue claim shows the same reading. A sibling row never
+    takes a verdict over, nor is it held by another reading's verdict. Raises ``LookupFailed``
+    when the log or the queue cannot be read."""
     import os
 
-    from decision.quarantine_clearing import QUEUE_FILE, queue_history, reading_holds
+    from decision.owner_ruling import read_json_lines
+    from decision.quarantine_clearing import (
+        QUEUE_FILE,
+        queue_history,
+        reading_candidates,
+        reading_held,
+    )
+    from decision.snapshot import _Compiler
 
-    candidates = quarantine_rows(found.evidence_ids, found.row, kind="evidence", owns=found.owns)
-    own = set(found.evidence_ids)
-    earlier = {key[1] for key, _ in candidates if key[1] not in own}
     root = Path(os.environ.get(DATA_DIR_ENV, "").strip() or ".")
     try:
+        latest = _Compiler._verification_log(read_json_lines(root / VERIFICATION_LOG))
+        own = str(found.row.get("id") or "")
+        earlier = {key[1] for key, _ in reading_candidates(latest, found.row,
+                                                           model_id=found.model_id)
+                   if key[1] != own}
         history = queue_history(root / QUEUE_FILE, earlier) if earlier else {}
-    except (OSError, ValueError) as error:
-        raise LookupFailed(f"queue: {type(error).__name__}") from None
-    return reading_holds(candidates, found.row, own_ids=own, history=history)
+        return reading_held(latest, found.row, model_id=found.model_id, history=history)
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+        raise LookupFailed(f"verification log or queue: {type(error).__name__}") from None
 
 
 def _host(url: Any) -> str | None:

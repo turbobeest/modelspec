@@ -600,12 +600,13 @@ def test_the_snapshot_still_excludes_a_quarantined_reading_the_gate_refused():
                       {"event": "checked", "at": f"{day}T21:00:00+00:00", "target": target,
                        "outcome": "mismatch"}]}
 
-    def readings(score, eid, log, history=None):
+    def readings(score, eid, log, history=None, *, check=False):
         row = evidence("lab/alpha", "bench_x", score, eid=eid, outcome=None, source="src-cite",
                        source_url=url)
         built = build_snapshot(SnapshotInputs(
             models=[model("lab/alpha")], evidence=[row], sources={**SOURCES, "src-cite": url},
             verifications=log, clearing_history=history if history is not None else {},
+            check_held_rows=check,
             benchmark_metadata={"bench_x": {"min_score": 0, "max_score": 100, "unit": "percent"}}),
             as_of=date(2026, 10, 19))
         return load_built_snapshot(built).evidence("lab/alpha", "bench_x")
@@ -618,10 +619,15 @@ def test_the_snapshot_still_excludes_a_quarantined_reading_the_gate_refused():
     held = trail("lab/alpha#bench_x#old")
     assert readings(51.2, "lab/alpha#bench_x#new", log, held) == ()  # its earlier id's verdict
     # An earlier id holds only when its verdict's claim shows the same reading (MODEL-552
-    # follow-up): a claim from another source, or none at all, holds only its own row.
-    assert readings(51.2, "lab/alpha#bench_x#new", log, trail("lab/alpha#bench_x#old",
-                                                              source="src-board"))
-    assert readings(51.2, "lab/alpha#bench_x#new", log)
+    # follow-up). When nothing shows it (a claim from another source, or none at all), the hold
+    # is not dropped silently: the old id is gone from the data, so the build fails
+    # (``held_row_missing``) until a clearing line or the grandfather list accounts for it.
+    from decision.snapshot import SnapshotBuildError
+
+    for history in (trail("lab/alpha#bench_x#old", source="src-board"), {}):
+        with pytest.raises(SnapshotBuildError, match="held_row_missing: 1 failed verdict"):
+            readings(51.2, "lab/alpha#bench_x#new", log, history, check=True)
+    assert readings(51.2, "lab/alpha#bench_x#new", log, held, check=True) == ()  # still held
     other = [verification("evidence", "lab/beta#bench_x#old", "mismatch", day="2026-10-14",
                           value=evidence_verification_value(filed))]
     assert readings(51.2, "lab/alpha#bench_x#new", other)  # another model's verdict is not its

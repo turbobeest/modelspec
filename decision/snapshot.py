@@ -403,6 +403,14 @@ class SnapshotInputs:
     #: the targets clearing lines name and every evidence id with a failed latest verdict: the
     #: record as filed at the verdict decides its epoch, and which reading the verdict is on.
     clearing_history: Mapping[str, Sequence[Mapping[str, Any]]] = field(default_factory=dict)
+    #: Target kind -> the verdict hashes of the reviewed grandfather list in the data
+    #: (``verification/held-row-grandfather.json``): failed verdicts on row ids that were
+    #: already gone when the ``held_row_missing`` check began. The list may only shrink.
+    held_row_grandfather: Mapping[str, frozenset[str]] = field(default_factory=dict)
+    #: Whether the build refuses a failed verdict on a vanished row id (``held_row_missing``).
+    #: ``collect_repo`` turns it on for every build from the data; hand-built test inputs that
+    #: name only a few records leave it off.
+    check_held_rows: bool = False
     #: Lab id -> ``decision.labs.Lab``. Empty when the checkout has no lab registry.
     labs: Mapping[str, Any] = field(default_factory=dict)
     #: Sourced hardware YAML records. Metadata, never ranking candidates.
@@ -820,6 +828,12 @@ class _Compiler:
         self.owner_ruling_reopened = frozenset(inputs.owner_ruling_reopened)
         self.quarantine_clearings = tuple(dict(r) for r in inputs.quarantine_clearings)
         self._attempt_log: Any = None
+        #: (kind, id) of every fact and board row the data has, admitted or not (MODEL-552).
+        self.seen_ids: set[tuple[str, str]] = set()
+        #: Every board row the data has, for the queue-proven predecessor test.
+        self.evidence_rows: list[dict[str, Any]] = []
+        #: Hashes of the verdicts a clearing line admitted a row through.
+        self.cleared_verdicts: set[str] = set()
         #: record ID -> the mismatches a supersession retired, for provenance.
         self.superseded: dict[str, list[dict[str, Any]]] = {}
         #: subject id -> {"kind", "model", "lifecycle"}
@@ -989,6 +1003,8 @@ class _Compiler:
         (MODEL-552): see ``_cleared_fact``. A cited board reading whose earlier ids
         hold a verdict enters only once each is cleared (``_reading_hold``).
         """
+        if rid is not None:
+            self.seen_ids.add((kind, str(rid)))
         urls = [self.sources[s] for s in source_ids if s in self.sources]
         if self.guard is not None and (any(self.guard.url(u) for u in [*urls, *extra_urls])
                                        or (benchmark is not None
@@ -1034,6 +1050,43 @@ class _Compiler:
 
         return ruling_cutoff(self.as_of)
 
+    def _note_cleared(self, verdict: Mapping[str, Any]) -> None:
+        from decision.quarantine_clearing import verdict_sha256
+
+        self.cleared_verdicts.add(verdict_sha256(verdict))
+
+    def held_row_missing(self) -> Counter[str]:
+        """``missing_holds`` counted by target kind."""
+        return Counter(kind for kind, _ in self.missing_holds())
+
+    def missing_holds(self) -> list[tuple[str, str]]:
+        """Failed latest verdicts (``mismatch``, ``unreachable``) on a fact or board-row id the
+        data no longer has, by target kind: a hold must not disappear silently (MODEL-552
+        follow-up). A verdict is accounted for when a clearing line admitted a row through it,
+        when it holds a current board row as that row's queue-proven predecessor
+        (``quarantine_clearing.reading_holds``), or when the reviewed grandfather list in the
+        data names its exact hash (``held_row_grandfather``). ``(kind, verdict hash)`` pairs."""
+        from decision.quarantine_clearing import reading_holds, verdict_sha256
+
+        grandfather = self.inputs.held_row_grandfather
+        missing: list[tuple[str, str]] = []
+        for (kind, rid, _), (_, _, row) in self.log.items():
+            if kind not in ("fact", "evidence") or row.get("outcome") == "verified" \
+                    or (kind, rid) in self.seen_ids:
+                continue
+            sha = verdict_sha256(row)
+            if sha in self.cleared_verdicts or sha in grandfather.get(kind, ()):
+                continue
+            if kind == "evidence":
+                prefix = rid.rsplit("#", 1)[0] + "#"
+                key = (kind, rid, str((row.get("target") or {}).get("value_hash") or ""))
+                if any(reading_holds([(key, row)], e, own_ids={str(e.get("id"))},
+                                     history=self.inputs.clearing_history)
+                       for e in self.evidence_rows if str(e.get("id") or "").startswith(prefix)):
+                    continue
+            missing.append((kind, sha))
+        return sorted(missing)
+
     def _clearing_log(self):
         if self._attempt_log is None:
             from decision.quarantine_clearing import AttemptLog
@@ -1055,10 +1108,13 @@ class _Compiler:
             return False
         from decision.quarantine_clearing import fact_cleared
 
-        return fact_cleared(record, subject, verdict=winner, clearings=self.quarantine_clearings,
-                            log=self._clearing_log(), sources=self.sources,
-                            history=self.inputs.clearing_history,
-                            cutoff=self._clearing_cutoff())
+        cleared = fact_cleared(record, subject, verdict=winner,
+                               clearings=self.quarantine_clearings, log=self._clearing_log(),
+                               sources=self.sources, history=self.inputs.clearing_history,
+                               cutoff=self._clearing_cutoff())
+        if cleared:
+            self._note_cleared(winner)
+        return cleared
 
     def _fact_hold(self, subject: str, record: Mapping[str, Any], rid: Any, inline: Any,
                    value: Any, facet: Any) -> str | None:
@@ -1092,6 +1148,7 @@ class _Compiler:
                             clearings=self.quarantine_clearings, log=self._clearing_log(),
                             sources=self.sources, history=self.inputs.clearing_history,
                             cutoff=self._clearing_cutoff()):
+                self._note_cleared(held[0][1])
                 return None
         return f"quarantined ({held[0][1].get('outcome')})"
 
@@ -1105,18 +1162,13 @@ class _Compiler:
         self-report beside a board's own row) never holds this one. A reading's id changes with its
         score and date, so a new score never carries the verdict its old id holds; the gate refuses
         it, and the build admits it only through a clearing."""
-        from decision.cited_change import held_rows
-        from decision.quarantine_clearing import reading_holds
+        from decision.quarantine_clearing import reading_held
 
-        own = str(e.get("id") or "")
-        prefix = f"{subject}#{e.get('benchmark_id')}#"
         try:
-            candidates = held_rows(self.log, (own,), e, kind="evidence",
-                                   owns=lambda logged: logged.startswith(prefix))
+            held = reading_held(self.log, e, model_id=subject,
+                                history=self.inputs.clearing_history)
         except (KeyError, TypeError, AttributeError):
             return "quarantined (invalid verification)"
-        held = reading_holds(candidates, e, own_ids={own},
-                             history=self.inputs.clearing_history)
         holding = {key[1] for key, _ in held}
 
         def owns(logged: str) -> bool:
@@ -1131,6 +1183,7 @@ class _Compiler:
                                clearings=self.quarantine_clearings, log=self._clearing_log(),
                                sources=self.sources, history=self.inputs.clearing_history,
                                cutoff=self._clearing_cutoff()):
+                self._note_cleared(held[0][1])
                 return None
         return f"quarantined ({held[0][1].get('outcome')})"
 
@@ -1213,6 +1266,9 @@ class _Compiler:
         row = self.facts.setdefault(sid, {})
         for f in self._resolve_prices(sid, facts):
             facet_id, state = str(f["facet"]), str(f["state"])
+            self.seen_ids.add(("fact", f"{sid}#{facet_id}"))
+            if f.get("id"):
+                self.seen_ids.add(("fact", str(f["id"])))
             if not self._ruling_known(sid, f):
                 # A ruled fact this build does not know yet (MODEL-551) is withheld before its
                 # citation is read, so its gap names the facet and a count, never a source.
@@ -1459,6 +1515,9 @@ class _Compiler:
 
     def add_evidence(self, raw: Any) -> None:
         e = _as_dict(raw)
+        if e.get("id"):
+            self.seen_ids.add(("evidence", str(e["id"])))
+        self.evidence_rows.append(e)
         subject = e.get("subject") or {}
         sid = subject.get("id")
         if sid is None:
@@ -2081,6 +2140,16 @@ def _compile(inputs: SnapshotInputs, registry: Any, guard: ExcludedSources | Non
         c.add_hardware(device)
     for record in inputs.hardware_fit_records:
         c.add_hardware_fit(record)
+    if inputs.check_held_rows:
+        missing = c.held_row_missing()
+        if missing:
+            # Counts and field names only: never an id or a value.
+            raise SnapshotBuildError(
+                f"held_row_missing: {sum(missing.values())} failed verdict(s) on row ids the "
+                "data no longer has ("
+                + ", ".join(f"{kind} {n}" for kind, n in sorted(missing.items()))
+                + "); each needs a clearing line or an entry in "
+                "verification/held-row-grandfather.json")
     if c.refused_supersessions:
         # Counts and fixed reason wording only: never a record id.
         logger.warning(
@@ -2311,6 +2380,12 @@ def collect_repo(root: Path) -> SnapshotInputs:
         except ValueError as exc:
             raise SnapshotBuildError(f"{ATTEMPTS_FILE}: {type(exc).__name__}") from exc
         attempt_lines = list(log.lines)
+    from decision.quarantine_clearing import GRANDFATHER_FILE, read_grandfather
+
+    try:
+        held_row_grandfather = read_grandfather(root / GRANDFATHER_FILE)
+    except ValueError as exc:
+        raise SnapshotBuildError(f"{GRANDFATHER_FILE}: {exc}") from None
     # Which reading a failed evidence verdict is on comes from the claim it checked (MODEL-552
     # follow-up): the queue trail of every evidence id whose latest counting verdict failed.
     # Only well-formed verdict objects are ranked here; the compile refuses a malformed row.
@@ -2348,6 +2423,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
                           quarantine_clearings=quarantine_clearings,
                           cited_attempt_lines=attempt_lines,
                           clearing_history=clearing_history,
+                          held_row_grandfather=held_row_grandfather, check_held_rows=True,
                           labs=load_labs(root), hardware_fit_records=fit_records,
                           hardware=[yaml.safe_load(path.read_text(encoding="utf-8"))
                                     for path in sorted((root / "hardware").glob("*.yaml"))

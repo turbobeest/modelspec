@@ -964,3 +964,182 @@ def test_a_decoy_sibling_cannot_take_a_verdict():
     candidates = held_rows(log, (NEW_ID,), other_reading, kind="evidence",
                            owns=lambda i: i.startswith(prefix))
     assert reading_holds(candidates, other_reading, own_ids={NEW_ID}, history=history) == []
+
+
+# --- a hold cannot disappear silently: held_row_missing (MODEL-552 follow-up) --------------------
+
+
+def _checked(row, log, *, grandfather=None, clearings=(), attempts=(), history=None, kind="fact"):
+    from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+
+    from tests.snapshot_records import SOURCES, model
+
+    if kind == "fact":
+        models, evidence = [model(MID, facts=[row])], []
+        sources = {**SOURCES, "src-cite": CITE}
+    else:
+        models, evidence = [model(MID)], [row]
+        sources = {**SOURCES, "src-cite": BOARD}
+    inputs = SnapshotInputs(
+        models=models, evidence=evidence, sources=sources, verifications=list(log),
+        cited_attempt_lines=[raw(a) for a in attempts], quarantine_clearings=list(clearings),
+        clearing_history=history if history is not None else history_of(log, sources=BOARD_SOURCE),
+        held_row_grandfather=grandfather or {}, check_held_rows=True,
+        benchmark_metadata={"bench_x": {"min_score": 0, "max_score": 100, "unit": "percent"}})
+    return load_built_snapshot(build_snapshot(inputs, as_of=TODAY))
+
+
+def test_a_failed_verdict_on_a_vanished_row_id_fails_the_build():
+    from decision.snapshot import SnapshotBuildError
+
+    from tests.snapshot_records import fact
+
+    gone = mismatch(f"{MID}#model.weights_openness_old")  # a fact id the data no longer has
+    plain = fact("model", MID, FACET, VALUE, source="src-cite", outcome=None)
+    with pytest.raises(SnapshotBuildError) as caught:
+        _checked(plain, [gone])
+    message = str(caught.value)
+    assert message.startswith("held_row_missing: 1 failed verdict") and "fact 1" in message
+    assert MID not in message and gone["target"]["value_hash"] not in message  # counts only
+    # The reviewed list names its exact hash: accounted for. Another kind's entry is not.
+    assert admitted(_checked(plain, [gone], grandfather={"fact": frozenset({
+        verdict_sha256(gone)})}))
+    with pytest.raises(SnapshotBuildError):
+        _checked(plain, [gone], grandfather={"evidence": frozenset({verdict_sha256(gone)})})
+    # A newer verdict on the same vanished id is a new hash: the list does not cover it.
+    newer = mismatch(f"{MID}#model.weights_openness_old", day="2026-10-05")
+    with pytest.raises(SnapshotBuildError):
+        _checked(plain, [gone, newer], grandfather={"fact": frozenset({verdict_sha256(gone)})})
+    # A verified latest verdict, or a row the data still has, is no vanished hold.
+    fixed = verification("fact", f"{MID}#model.weights_openness_old", "verified",
+                         day="2026-10-06", value=VALUE)
+    assert admitted(_checked(plain, [gone, fixed]))
+
+
+def test_a_cleared_or_carried_verdict_on_a_vanished_id_is_accounted_for():
+    from decision.cited_change import reading_epoch
+    from decision.model import evidence_verification_value
+
+    filed = board_rows(46.6, OLD_ID)
+    verdict = verification("evidence", OLD_ID, "mismatch", day="2026-10-01",
+                           value=evidence_verification_value(filed))
+    settings = {"model_id_as_evaluated": MID, "effort": None, "harness": None}
+    epoch = clearing_epoch(reading_epoch(settings), verdict_sha256(verdict))
+    attempt = agreement(epoch, values=(51.2, 51.2), facet="benchmark:bench_x")
+    attempt["url"] = BOARD
+    row = board_rows()
+    row["sources"][0].update(snapshot_ref=f"sha256:{PAGE}", retrieved_at=AT)
+    row["derivation"] = cleared_row(attempt, base=reading_epoch(settings))["derivation"]
+    # Carried: the queue proves the current row is the same reading, so it holds it (no failure).
+    assert _checked(row, [verdict], kind="evidence").evidence(MID, "bench_x") == ()
+    # Cleared: a valid line admits the row through that verdict.
+    index = _checked(row, [verdict], clearings=[clearing(attempt, verdict)], attempts=[attempt],
+                     kind="evidence")
+    assert index.evidence(MID, "bench_x")
+
+
+def test_the_grandfather_list_is_checked_and_may_only_shrink():
+    from decision.quarantine_clearing import (
+        grandfather_added,
+        grandfather_document,
+        parse_grandfather,
+    )
+
+    a, b = "sha256:" + "a" * 64, "sha256:" + "b" * 64
+    document = grandfather_document({"fact": [b, a], "evidence": []})
+    assert document == {"schema_version": 1, "verdicts": {"fact": [a, b]}, "counts": {"fact": 2}}
+    assert parse_grandfather(document) == {"fact": frozenset({a, b})}
+    for broken in ({**document, "counts": {"fact": 3}}, {**document, "schema_version": 2},
+                   {**document, "verdicts": {"fact": [a, a]}, "counts": {"fact": 2}},
+                   {**document, "verdicts": {"fact": ["not-a-hash"]}, "counts": {"fact": 1}},
+                   {**document, "verdicts": {"other": [a]}, "counts": {"other": 1}},
+                   {**document, "note": "x"}):
+        with pytest.raises(ValueError):
+            parse_grandfather(broken)
+    base = {"fact": frozenset({a, b})}
+    assert grandfather_added({"fact": frozenset({a})}, base) == 0  # shrinking is fine
+    assert grandfather_added({"fact": frozenset({a, b, "sha256:" + "c" * 64})}, base) == 1
+    assert grandfather_added({"evidence": frozenset({a})}, base) == 1  # another kind is new
+    assert grandfather_added({"fact": frozenset({a})}, None) == 0  # seeded in its own PR
+
+
+def test_the_shrink_check_compares_with_the_merge_base(tmp_path):
+    import subprocess
+
+    from scripts.held_row_grandfather import main
+
+    root = tmp_path / "data"
+    (root / "verification").mkdir(parents=True)
+
+    def git(*args):
+        subprocess.run(["git", "-C", str(root), *args], check=True, capture_output=True)
+
+    def write(hashes):
+        from decision.quarantine_clearing import grandfather_document
+
+        path = root / "verification/held-row-grandfather.json"
+        path.write_text(json.dumps(grandfather_document({"fact": hashes})))
+
+    a, b = "sha256:" + "a" * 64, "sha256:" + "b" * 64
+    git("init", "-q", "-b", "main")
+    git("-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-q", "--allow-empty",
+        "-m", "base")
+    write([a, b])
+    assert main(["check", "--data-dir", str(root), "--base", "main"]) == 0  # seeding
+    git("add", "-A")
+    git("-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-q", "-m", "seed")
+    git("checkout", "-q", "-b", "next")
+    write([a])
+    assert main(["check", "--data-dir", str(root), "--base", "main"]) == 0  # shrinks
+    write([a, b, "sha256:" + "c" * 64])
+    assert main(["check", "--data-dir", str(root), "--base", "main"]) == 1  # gains one
+
+
+def test_collect_repo_reads_the_grandfather_list_and_turns_the_check_on(tmp_path):
+    from decision.quarantine_clearing import grandfather_document
+    from decision.snapshot import SnapshotBuildError, collect_repo
+
+    root = tmp_path / "data"
+    for d in ("models", "registry", "verification", "benchmarks"):
+        (root / d).mkdir(parents=True)
+    (root / "registry/sources.yaml").write_text(yaml.safe_dump({"schema_version": 1,
+                                                               "sources": []}))
+    inputs = collect_repo(root)
+    assert inputs.check_held_rows is True and inputs.held_row_grandfather == {}
+    a = "sha256:" + "a" * 64
+    (root / "verification/held-row-grandfather.json").write_text(
+        json.dumps(grandfather_document({"evidence": [a]})))
+    assert collect_repo(root).held_row_grandfather == {"evidence": frozenset({a})}
+    (root / "verification/held-row-grandfather.json").write_text('{"schema_version": 1}')
+    with pytest.raises(SnapshotBuildError, match="held-row-grandfather"):
+        collect_repo(root)
+
+
+def test_the_gate_and_the_build_search_the_same_scope(board):
+    """One helper (``reading_held``) decides for both: a verdict under the card file's path but
+    not under its model id is outside both; one under the model id is inside both."""
+    from decision.cited_change import _reading_held, reading_lookup
+    from decision.owner_ruling import read_json_lines
+    from decision.quarantine_clearing import QUEUE_FILE, queue_history, reading_held
+    from decision.snapshot import _Compiler
+
+    card = yaml.safe_dump({"display_name": "Orbit 9", "model_id": "acme/orbit-9-real",
+                           "benchmarks": {"scores": {}, "evidence": [board.row]}}, sort_keys=False)
+    (board.root / "models/acme/orbit-9.md").write_text(f"---\n{card}---\n")
+    for eid in (f"{reading_gate.SUBJECT}#{reading_gate.BENCH}#0123456789ab",
+                f"acme/orbit-9-real#{reading_gate.BENCH}#0123456789ab"):
+        settings = dict(effort=reading_gate.READING["effort"],
+                        harness=reading_gate.READING["harness"],
+                        names=[reading_gate.READING["model_id_as_evaluated"]],
+                        sources=[{"source_id": "board"}])
+        plant(board.root, verification("evidence", eid, "mismatch", day="2026-10-14",
+                                       value=46.6), **settings)
+    found = reading_lookup(reading_gate.SUBJECT, reading_gate.BENCH, reading_gate.READING)
+    gate = {key[1] for key, _ in _reading_held(found)}
+    latest = _Compiler._verification_log(read_json_lines(board.root / "verification/log.jsonl"))
+    history = queue_history(board.root / QUEUE_FILE, {
+        f"{p}#{reading_gate.BENCH}#0123456789ab" for p in (reading_gate.SUBJECT,
+                                                          "acme/orbit-9-real")})
+    build = {key[1] for key, _ in reading_held(latest, found.row, model_id="acme/orbit-9-real",
+                                               history=history)}
+    assert gate == build == {f"acme/orbit-9-real#{reading_gate.BENCH}#0123456789ab"}

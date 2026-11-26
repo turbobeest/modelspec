@@ -427,6 +427,31 @@ def same_reading(claim: Mapping[str, Any], row: Mapping[str, Any]) -> bool:
     return measured is None or measured == row.get("measured_by")
 
 
+def reading_candidates(latest: Mapping[Key, Any], row: Mapping[str, Any], *, model_id: str
+                       ) -> list[tuple[Key, dict[str, Any]]]:
+    """The failed verdicts that may hold a board reading, for the gate and the build alike: on
+    its own id (any value, its inline verification ranked in) or any id under
+    ``<model_id>#<benchmark>#``, where ``model_id`` is the card's model id (the id the build
+    files the row under). ``latest`` is the ranked log (``_Compiler._verification_log``)."""
+    from decision.cited_change import held_rows
+
+    own = str(row.get("id") or "")
+    prefix = f"{model_id}#{row.get('benchmark_id')}#"
+    return held_rows(latest, (own,) if own else (), row, kind="evidence",
+                     owns=lambda logged: logged == own or logged.startswith(prefix))
+
+
+def reading_held(latest: Mapping[Key, Any], row: Mapping[str, Any], *, model_id: str,
+                 history: Mapping[str, Sequence[Mapping[str, Any]]]
+                 ) -> list[tuple[Key, dict[str, Any]]]:
+    """The verdicts that hold a board reading (``reading_candidates`` then ``reading_holds``):
+    the one predicate the gate (``cited_change.cited_reading``) and the build
+    (``snapshot._Compiler._reading_hold``) both apply."""
+    own = str(row.get("id") or "")
+    return reading_holds(reading_candidates(latest, row, model_id=model_id), row,
+                         own_ids={own} - {""}, history=history)
+
+
 def reading_holds(held: Sequence[tuple[Key, Mapping[str, Any]]], row: Mapping[str, Any], *,
                   own_ids: set[str], history: Mapping[str, Sequence[Mapping[str, Any]]]
                   ) -> list[tuple[Key, Mapping[str, Any]]]:
@@ -640,3 +665,59 @@ def append(lines: Sequence[Mapping[str, Any]], data_dir: str | Path) -> None:
             if set(entry) != set(FIELDS):
                 raise ValueError("a clearing line has exactly its fields")
             handle.write(json.dumps(dict(entry), sort_keys=True, ensure_ascii=False) + "\n")
+
+
+# --- the held-row grandfather list (MODEL-552 follow-up) -----------------------------------------
+
+#: The reviewed list, under the data directory, of failed verdicts on row ids that were already gone
+#: when the build began refusing a vanished hold (``held_row_missing``). It may only shrink.
+GRANDFATHER_FILE = "verification/held-row-grandfather.json"
+GRANDFATHER_KINDS = ("fact", "evidence")
+
+
+def parse_grandfather(data: Any) -> dict[str, frozenset[str]]:
+    """The list's hashes by target kind, checked: ``schema_version`` 1, ``verdicts`` mapping each
+    kind to unique ``sha256:`` verdict hashes, and ``counts`` equal to their numbers. Raises
+    ``ValueError`` with field names only."""
+    if not isinstance(data, Mapping) or set(data) != {"schema_version", "verdicts", "counts"} \
+            or data["schema_version"] != 1:
+        raise ValueError("the grandfather list has exactly schema_version 1, verdicts and counts")
+    verdicts, counts = data["verdicts"], data["counts"]
+    if not isinstance(verdicts, Mapping) or not isinstance(counts, Mapping) \
+            or set(verdicts) - set(GRANDFATHER_KINDS) or set(verdicts) != set(counts):
+        raise ValueError("verdicts and counts name the same target kinds, fact or evidence")
+    out = {}
+    for kind, hashes in verdicts.items():
+        if not isinstance(hashes, list) or len(set(hashes)) != len(hashes) \
+                or not all(isinstance(h, str) and _REF.fullmatch(h) for h in hashes):
+            raise ValueError(f"verdicts.{kind} lists unique sha256 verdict hashes")
+        if counts[kind] != len(hashes):
+            raise ValueError(f"counts.{kind} is not the number of verdicts.{kind}")
+        out[kind] = frozenset(hashes)
+    return out
+
+
+def read_grandfather(path: Path) -> dict[str, frozenset[str]]:
+    """The grandfather list in the data directory; an absent file grandfathers nothing."""
+    from decision.owner_ruling import loads
+
+    if not path.is_file():
+        return {}
+    return parse_grandfather(loads(path.read_text(encoding="utf-8")))
+
+
+def grandfather_document(missing: Mapping[str, Sequence[str]]) -> dict[str, Any]:
+    """The list for these verdict hashes by kind, sorted: hashes and counts, no values."""
+    verdicts = {kind: sorted(set(missing.get(kind, ()))) for kind in GRANDFATHER_KINDS
+                if missing.get(kind)}
+    return {"schema_version": 1, "verdicts": verdicts,
+            "counts": {kind: len(hashes) for kind, hashes in verdicts.items()}}
+
+
+def grandfather_added(head: Mapping[str, frozenset[str]],
+                      base: Mapping[str, frozenset[str]] | None) -> int:
+    """How many hashes ``head`` lists that ``base`` (the merge base's list) does not: the list may
+    only shrink. With no list at the base, it is seeded and reviewed in the PR that adds it."""
+    if base is None:
+        return 0
+    return sum(len(hashes - base.get(kind, frozenset())) for kind, hashes in head.items())
