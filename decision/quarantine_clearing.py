@@ -451,13 +451,27 @@ def line_problem(entry: Any, *, verdict: Mapping[str, Any], subject: str, facet:
                             first=first, settings=settings)
     if derived is None:
         return "the record's epoch at the verdict cannot be shown", None
-    if base != derived:
+    if base != derived and not _board_base(base, derived, first, settings, attempt):
         return "the clearing's base epoch is not the record's epoch at the verdict", None
     for epoch in (entry["epoch"], base):
         problem = epoch_problem(log.keyed(subject, facet, epoch), entry["value"], facet)
         if problem is not None:
             return problem, None
     return "", attempt
+
+
+def _board_base(base: str, derived: str, first: str, settings: Settings | None,
+                attempt: Mapping[str, Any]) -> bool:
+    """A board reading filed in its settings epoch (``first``) may be cleared in a board epoch
+    of it (MODEL-555): the epoch the gate read the row in once the board's cited region changed,
+    ``<first>:board:<region hash>``. The agreement must have logged that very region hash. The
+    disagreements counted are then the clearing epoch's and that board epoch's, as the gate
+    counts them; a split under an older board region does not block."""
+    from decision.cited_change import is_board_epoch
+
+    region = is_board_epoch(base, first)
+    return settings is not None and derived == first and region is not None \
+        and attempt.get("board_region_sha256") == region
 
 
 def _block(record: Mapping[str, Any]) -> Mapping[str, Any] | None:
