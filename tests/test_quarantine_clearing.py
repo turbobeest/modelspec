@@ -1032,38 +1032,71 @@ def test_a_cleared_or_carried_verdict_on_a_vanished_id_is_accounted_for():
     row["derivation"] = cleared_row(attempt, base=reading_epoch(settings))["derivation"]
     # Carried: the queue proves the current row is the same reading, so it holds it (no failure).
     assert _checked(row, [verdict], kind="evidence").evidence(MID, "bench_x") == ()
+    # Not carried: the claim shows another reading (another source), so by the shared predicate
+    # (``reading_held``) it holds no current row, and the vanished hold fails the build.
+    from decision.snapshot import SnapshotBuildError
+
+    other = history_of([verdict], sources=[{"source_id": "src-lab-docs"}])
+    with pytest.raises(SnapshotBuildError, match="held_row_missing: 1 failed verdict"):
+        _checked(row, [verdict], kind="evidence", history=other)
     # Cleared: a valid line admits the row through that verdict.
     index = _checked(row, [verdict], clearings=[clearing(attempt, verdict)], attempts=[attempt],
                      kind="evidence")
     assert index.evidence(MID, "bench_x")
 
 
-def test_the_grandfather_list_is_checked_and_may_only_shrink():
+A_HASH, B_HASH, C_HASH = ("sha256:" + c * 64 for c in "abc")
+
+
+@pytest.fixture
+def seeded(monkeypatch):
+    """A synthetic seeded set in place of the engine's: fact {a, b}."""
+    from decision import quarantine_clearing as qc
+
+    monkeypatch.setattr(qc, "GRANDFATHER_SEEDED", {"fact": (2, qc.set_digest([A_HASH, B_HASH]))})
+
+
+def test_the_grandfather_list_must_be_the_engines_seeded_set(seeded):
     from decision.quarantine_clearing import (
         grandfather_added,
         grandfather_document,
         parse_grandfather,
     )
 
-    a, b = "sha256:" + "a" * 64, "sha256:" + "b" * 64
-    document = grandfather_document({"fact": [b, a], "evidence": []})
-    assert document == {"schema_version": 1, "verdicts": {"fact": [a, b]}, "counts": {"fact": 2}}
-    assert parse_grandfather(document) == {"fact": frozenset({a, b})}
-    for broken in ({**document, "counts": {"fact": 3}}, {**document, "schema_version": 2},
-                   {**document, "verdicts": {"fact": [a, a]}, "counts": {"fact": 2}},
-                   {**document, "verdicts": {"fact": ["not-a-hash"]}, "counts": {"fact": 1}},
-                   {**document, "verdicts": {"other": [a]}, "counts": {"other": 1}},
-                   {**document, "note": "x"}):
+    document = grandfather_document({"fact": [B_HASH, A_HASH]})
+    assert document == {"schema_version": 1, "seeded": {"fact": [A_HASH, B_HASH]},
+                        "released": {}}
+    assert parse_grandfather(document) == {"fact": frozenset({A_HASH, B_HASH})}
+    # It shrinks only by released entries, each a seeded one.
+    shrunk = grandfather_document({"fact": [A_HASH, B_HASH]}, {"fact": [B_HASH]})
+    assert parse_grandfather(shrunk) == {"fact": frozenset({A_HASH})}
+    for broken in (
+            grandfather_document({"fact": [A_HASH, B_HASH, C_HASH]}),  # an entry outside the set
+            grandfather_document({"fact": [A_HASH, C_HASH]}),  # a swap keeps the count only
+            grandfather_document({"fact": [A_HASH]}),  # seeded is the whole set, always
+            grandfather_document({"fact": [A_HASH, B_HASH], "evidence": [C_HASH]}),
+            grandfather_document({"fact": [A_HASH, B_HASH]}, {"fact": [C_HASH]}),
+            {**document, "schema_version": 2}, {**document, "note": "x"},
+            {**document, "seeded": {"fact": [A_HASH, A_HASH]}},
+            {**document, "seeded": {"fact": ["not-a-hash", B_HASH]}}):
         with pytest.raises(ValueError):
             parse_grandfather(broken)
-    base = {"fact": frozenset({a, b})}
-    assert grandfather_added({"fact": frozenset({a})}, base) == 0  # shrinking is fine
-    assert grandfather_added({"fact": frozenset({a, b, "sha256:" + "c" * 64})}, base) == 1
-    assert grandfather_added({"evidence": frozenset({a})}, base) == 1  # another kind is new
-    assert grandfather_added({"fact": frozenset({a})}, None) == 0  # seeded in its own PR
+    base = {"fact": frozenset({A_HASH, B_HASH})}
+    assert grandfather_added({"fact": frozenset({A_HASH})}, base) == 0  # shrinking is fine
+    assert grandfather_added(base, {"fact": frozenset({A_HASH})}) == 1  # a release undone
+    assert grandfather_added({"fact": frozenset({A_HASH})}, None) == 0  # seeded in its own PR
 
 
-def test_the_shrink_check_compares_with_the_merge_base(tmp_path):
+def test_the_engine_seeded_set_is_the_one_measured_on_the_data():
+    from decision.quarantine_clearing import GRANDFATHER_SEEDED
+
+    assert {kind: count for kind, (count, _) in GRANDFATHER_SEEDED.items()} == {
+        "fact": 127, "evidence": 12}
+    assert all(digest.startswith("sha256:") and len(digest) == 71
+               for _, digest in GRANDFATHER_SEEDED.values())
+
+
+def test_the_shrink_check_compares_with_the_merge_base(tmp_path, seeded):
     import subprocess
 
     from scripts.held_row_grandfather import main
@@ -1074,28 +1107,37 @@ def test_the_shrink_check_compares_with_the_merge_base(tmp_path):
     def git(*args):
         subprocess.run(["git", "-C", str(root), *args], check=True, capture_output=True)
 
-    def write(hashes):
+    def write(released):
         from decision.quarantine_clearing import grandfather_document
 
         path = root / "verification/held-row-grandfather.json"
-        path.write_text(json.dumps(grandfather_document({"fact": hashes})))
+        path.write_text(json.dumps(grandfather_document({"fact": [A_HASH, B_HASH]},
+                                                        {"fact": released})))
 
-    a, b = "sha256:" + "a" * 64, "sha256:" + "b" * 64
     git("init", "-q", "-b", "main")
     git("-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-q", "--allow-empty",
         "-m", "base")
-    write([a, b])
+    write([B_HASH])
     assert main(["check", "--data-dir", str(root), "--base", "main"]) == 0  # seeding
     git("add", "-A")
     git("-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-q", "-m", "seed")
     git("checkout", "-q", "-b", "next")
-    write([a])
+    write([A_HASH, B_HASH])
     assert main(["check", "--data-dir", str(root), "--base", "main"]) == 0  # shrinks
-    write([a, b, "sha256:" + "c" * 64])
-    assert main(["check", "--data-dir", str(root), "--base", "main"]) == 1  # gains one
+    write([])
+    assert main(["check", "--data-dir", str(root), "--base", "main"]) == 1  # a release undone
+    # Deleting the file and adding it back resets nothing: the engine's set still decides.
+    (root / "verification/held-row-grandfather.json").unlink()
+    git("add", "-A")
+    git("-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-q", "-m", "drop")
+    path = root / "verification/held-row-grandfather.json"
+    path.write_text(json.dumps({"schema_version": 1, "seeded": {"fact": [A_HASH, C_HASH]},
+                                "released": {}}))
+    with pytest.raises(ValueError, match="seeded"):
+        main(["check", "--data-dir", str(root), "--base", "next"])
 
 
-def test_collect_repo_reads_the_list_and_checks_the_private_checkout(tmp_path):
+def test_collect_repo_reads_the_list_and_checks_the_private_checkout(tmp_path, seeded):
     from decision.quarantine_clearing import grandfather_document
     from decision.snapshot import SnapshotBuildError, collect_repo
 
@@ -1108,11 +1150,11 @@ def test_collect_repo_reads_the_list_and_checks_the_private_checkout(tmp_path):
     (root / ".engine-pin").write_text("0" * 40 + "\n")
     inputs = collect_repo(root)
     assert inputs.check_held_rows is True and inputs.held_row_grandfather == {}
-    a = "sha256:" + "a" * 64
     (root / "verification/held-row-grandfather.json").write_text(
-        json.dumps(grandfather_document({"evidence": [a]})))
-    assert collect_repo(root).held_row_grandfather == {"evidence": frozenset({a})}
-    (root / "verification/held-row-grandfather.json").write_text('{"schema_version": 1}')
+        json.dumps(grandfather_document({"fact": [A_HASH, B_HASH]}, {"fact": [B_HASH]})))
+    assert collect_repo(root).held_row_grandfather == {"fact": frozenset({A_HASH})}
+    (root / "verification/held-row-grandfather.json").write_text(
+        json.dumps(grandfather_document({"fact": [A_HASH, C_HASH]})))
     with pytest.raises(SnapshotBuildError, match="held-row-grandfather"):
         collect_repo(root)
 

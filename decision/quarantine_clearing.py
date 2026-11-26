@@ -670,35 +670,61 @@ def append(lines: Sequence[Mapping[str, Any]], data_dir: str | Path) -> None:
 # --- the held-row grandfather list (MODEL-552 follow-up) -----------------------------------------
 
 #: The reviewed list, under the data directory, of failed verdicts on row ids that were already gone
-#: when the build began refusing a vanished hold (``held_row_missing``). It may only shrink.
+#: when the build began refusing a vanished hold (``held_row_missing``).
 GRANDFATHER_FILE = "verification/held-row-grandfather.json"
 GRANDFATHER_KINDS = ("fact", "evidence")
+#: The list as seeded, fixed in the engine (MODEL-552 review): per kind, the number of verdict
+#: hashes and the sha256 of the sorted hashes joined by newlines. The data file's ``seeded`` lists
+#: must match it exactly, so no entry outside the seeded set can be added, and deleting the file
+#: and adding it back resets nothing. The list shrinks only by ``released`` entries.
+GRANDFATHER_SEEDED = {
+    "fact": (127, "sha256:00d0922cee36b5d3d07eccc96bdfde5bc9601c5428905020d574ed114e9e580a"),
+    "evidence": (12, "sha256:016e09c8720d68649da728b79de7d4b84dd404f0c2871a488a41127a1eed206d"),
+}
 
 
-def parse_grandfather(data: Any) -> dict[str, frozenset[str]]:
-    """The list's hashes by target kind, checked: ``schema_version`` 1, ``verdicts`` mapping each
-    kind to unique ``sha256:`` verdict hashes, and ``counts`` equal to their numbers. Raises
-    ``ValueError`` with field names only."""
-    if not isinstance(data, Mapping) or set(data) != {"schema_version", "verdicts", "counts"} \
-            or data["schema_version"] != 1:
-        raise ValueError("the grandfather list has exactly schema_version 1, verdicts and counts")
-    verdicts, counts = data["verdicts"], data["counts"]
-    if not isinstance(verdicts, Mapping) or not isinstance(counts, Mapping) \
-            or set(verdicts) - set(GRANDFATHER_KINDS) or set(verdicts) != set(counts):
-        raise ValueError("verdicts and counts name the same target kinds, fact or evidence")
-    out = {}
-    for kind, hashes in verdicts.items():
+def set_digest(hashes: Sequence[str]) -> str:
+    """The sha256 of a set of hashes: sorted, joined by newlines."""
+    return "sha256:" + hashlib.sha256("\n".join(sorted(set(hashes))).encode("utf-8")).hexdigest()
+
+
+def _hash_lists(value: Any, name: str) -> dict[str, list[str]]:
+    if not isinstance(value, Mapping) or set(value) - set(GRANDFATHER_KINDS):
+        raise ValueError(f"{name} names only the target kinds fact and evidence")
+    for kind, hashes in value.items():
         if not isinstance(hashes, list) or len(set(hashes)) != len(hashes) \
                 or not all(isinstance(h, str) and _REF.fullmatch(h) for h in hashes):
-            raise ValueError(f"verdicts.{kind} lists unique sha256 verdict hashes")
-        if counts[kind] != len(hashes):
-            raise ValueError(f"counts.{kind} is not the number of verdicts.{kind}")
-        out[kind] = frozenset(hashes)
+            raise ValueError(f"{name}.{kind} lists unique sha256 verdict hashes")
+    return dict(value)
+
+
+def parse_grandfather(data: Any, seeded: Mapping[str, tuple[int, str]] | None = None
+                      ) -> dict[str, frozenset[str]]:
+    """The active hashes by kind (``seeded`` minus ``released``), checked: ``schema_version`` 1;
+    each kind's ``seeded`` list is exactly the engine's seeded set (its count and digest); every
+    ``released`` hash is a seeded one. Raises ``ValueError`` with field names only."""
+    if not isinstance(data, Mapping) or set(data) != {"schema_version", "seeded", "released"} \
+            or data["schema_version"] != 1:
+        raise ValueError("the grandfather list has exactly schema_version 1, seeded and released")
+    seeded = GRANDFATHER_SEEDED if seeded is None else seeded
+    listed, released = _hash_lists(data["seeded"], "seeded"), _hash_lists(data["released"],
+                                                                          "released")
+    if set(listed) != set(seeded):
+        raise ValueError("seeded names exactly the kinds the engine seeded")
+    out = {}
+    for kind, (count, digest) in seeded.items():
+        if len(listed[kind]) != count or set_digest(listed[kind]) != digest:
+            raise ValueError(f"seeded.{kind} is not the set the engine seeded")
+        gone = set(released.get(kind, ()))
+        if gone - set(listed[kind]):
+            raise ValueError(f"released.{kind} names a hash that was never seeded")
+        out[kind] = frozenset(listed[kind]) - gone
     return out
 
 
 def read_grandfather(path: Path) -> dict[str, frozenset[str]]:
-    """The grandfather list in the data directory; an absent file grandfathers nothing."""
+    """The active list in the data directory; an absent file grandfathers nothing (every vanished
+    hold then fails the build)."""
     from decision.owner_ruling import loads
 
     if not path.is_file():
@@ -706,18 +732,21 @@ def read_grandfather(path: Path) -> dict[str, frozenset[str]]:
     return parse_grandfather(loads(path.read_text(encoding="utf-8")))
 
 
-def grandfather_document(missing: Mapping[str, Sequence[str]]) -> dict[str, Any]:
-    """The list for these verdict hashes by kind, sorted: hashes and counts, no values."""
-    verdicts = {kind: sorted(set(missing.get(kind, ()))) for kind in GRANDFATHER_KINDS
-                if missing.get(kind)}
-    return {"schema_version": 1, "verdicts": verdicts,
-            "counts": {kind: len(hashes) for kind, hashes in verdicts.items()}}
+def grandfather_document(seeded: Mapping[str, Sequence[str]],
+                         released: Mapping[str, Sequence[str]] | None = None) -> dict[str, Any]:
+    """The data file for these seeded and released hashes by kind, sorted: hashes only."""
+    released = released or {}
+    return {"schema_version": 1,
+            "seeded": {kind: sorted(set(seeded.get(kind, ()))) for kind in GRANDFATHER_KINDS
+                       if seeded.get(kind)},
+            "released": {kind: sorted(set(released[kind])) for kind in GRANDFATHER_KINDS
+                         if released.get(kind)}}
 
 
 def grandfather_added(head: Mapping[str, frozenset[str]],
                       base: Mapping[str, frozenset[str]] | None) -> int:
-    """How many hashes ``head`` lists that ``base`` (the merge base's list) does not: the list may
-    only shrink. With no list at the base, it is seeded and reviewed in the PR that adds it."""
+    """How many active hashes ``head`` has that ``base`` (the merge base's active list) does not:
+    a released entry may not come back. With no list at the base, it is being seeded."""
     if base is None:
         return 0
     return sum(len(hashes - base.get(kind, frozenset())) for kind, hashes in head.items())

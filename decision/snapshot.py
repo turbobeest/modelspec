@@ -1067,24 +1067,41 @@ class _Compiler:
         when it holds a current board row as that row's queue-proven predecessor
         (``quarantine_clearing.reading_holds``), or when the reviewed grandfather list in the
         data names its exact hash (``held_row_grandfather``). ``(kind, verdict hash)`` pairs."""
-        from decision.quarantine_clearing import reading_holds, verdict_sha256
+        from decision.quarantine_clearing import reading_held, verdict_sha256
 
         grandfather = self.inputs.held_row_grandfather
         missing: list[tuple[str, str]] = []
-        for (kind, rid, _), (_, _, row) in self.log.items():
+        carried: dict[tuple[str, str], set[tuple[str, str, str]]] = {}
+
+        def holds_a_current_row(key: tuple[str, str, str]) -> bool:
+            """The verdict holds a current board row of its model and benchmark, by the one
+            predicate the gate and the build use (``reading_held``, the card's model id)."""
+            scopes = {(str((e.get("subject") or {}).get("id") or ""), str(e.get("benchmark_id")))
+                      for e in self.evidence_rows}
+            for scope in scopes:
+                if not key[1].startswith(f"{scope[0]}#{scope[1]}#"):
+                    continue
+                if scope not in carried:
+                    carried[scope] = {
+                        k for e in self.evidence_rows
+                        if (str((e.get("subject") or {}).get("id") or ""),
+                            str(e.get("benchmark_id"))) == scope
+                        for k, _ in reading_held(self.log, e, model_id=scope[0],
+                                                 history=self.inputs.clearing_history)}
+                if key in carried[scope]:
+                    return True
+            return False
+
+        for key, (_, _, row) in self.log.items():
+            kind, rid = key[0], key[1]
             if kind not in ("fact", "evidence") or row.get("outcome") == "verified" \
                     or (kind, rid) in self.seen_ids:
                 continue
             sha = verdict_sha256(row)
             if sha in self.cleared_verdicts or sha in grandfather.get(kind, ()):
                 continue
-            if kind == "evidence":
-                prefix = rid.rsplit("#", 1)[0] + "#"
-                key = (kind, rid, str((row.get("target") or {}).get("value_hash") or ""))
-                if any(reading_holds([(key, row)], e, own_ids={str(e.get("id"))},
-                                     history=self.inputs.clearing_history)
-                       for e in self.evidence_rows if str(e.get("id") or "").startswith(prefix)):
-                    continue
+            if kind == "evidence" and holds_a_current_row(key):
+                continue
             missing.append((kind, sha))
         return sorted(missing)
 
