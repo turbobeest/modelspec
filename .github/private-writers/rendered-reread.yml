@@ -272,46 +272,35 @@ jobs:
           mkdir -p "$purelib"
           printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
       - name: Install re-read dependencies
-        run: python -I -m pip install pydantic pyyaml httpx
-      - name: Restore prior spend and the latest retained copies
+        # The engine's hash-pinned Playwright, and its headless Chromium: every page is read
+        # through the engine's class-checked Playwright path (MODEL-565).
+        run: |
+          python -I -m pip install pydantic pyyaml httpx
+          python -I -m pip install --require-hashes --no-deps -r "$GITHUB_WORKSPACE/engine/scripts/price-reread-render.requirements.txt"
+          python -I -m playwright install --with-deps --only-shell chromium
+      - name: Restore the latest retained copies
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
         run: |
           set -euo pipefail
-          ledger="$RUNNER_TEMP/rendered-ledger"
-          mkdir -p "$ledger" "$MODELSPEC_SOURCE_CACHE"
+          # The re-read takes a run ledger directory; no metered scraper is used, so it is empty.
+          mkdir -p "$RUNNER_TEMP/rendered-ledger" "$MODELSPEC_SOURCE_CACHE"
           gh run list --repo "$REPO" --workflow rendered-reread.yml --branch main \
             --limit 1000 --json databaseId,createdAt,event > "$RUNNER_TEMP/rendered-prior-runs.json"
           python -I - "$RUN_ID" "$RUNNER_TEMP" <<'PY'
           import json, sys
-          from datetime import datetime, timezone
           from pathlib import Path
           current, temporary = int(sys.argv[1]), Path(sys.argv[2])
           runs = json.loads((temporary / 'rendered-prior-runs.json').read_text())
-          if len(runs) >= 1000:
-              raise SystemExit('Refusing an incomplete monthly credit ledger: 1000 runs returned.')
           earlier = sorted(
               (row for row in runs if row["event"] == "schedule"
                and int(row["databaseId"]) < current),
               key=lambda row: int(row['databaseId']), reverse=True,
           )
-          month = datetime.now(timezone.utc).strftime('%Y-%m')
-          for name, rows in (
-              ('rendered-month-ids', [row for row in earlier if row['createdAt'].startswith(month + '-')]),
-              ('rendered-copy-ids', earlier),
-          ):
-              (temporary / name).write_text(''.join(f"{row['databaseId']}\n" for row in rows))
+          (temporary / 'rendered-copy-ids').write_text(''.join(f"{row['databaseId']}\n" for row in earlier))
           PY
-          while IFS= read -r id; do
-            [ -n "$id" ] || continue
-            [[ "$id" =~ ^[0-9]+$ ]]
-            # A missing or invalid report reserves 14 credits in the script.
-            mkdir -p "$ledger/$id"
-            gh run download "$id" --repo "$REPO" --name rendered-reread-ledger \
-              --dir "$ledger/$id" || echo "::notice::run $id has no readable ledger; reserve 14 credits"
-          done < "$RUNNER_TEMP/rendered-month-ids"
           while IFS= read -r id; do
             [ -n "$id" ] || continue
             [[ "$id" =~ ^[0-9]+$ ]]
@@ -327,7 +316,6 @@ jobs:
         id: verify
         continue-on-error: true
         env:
-          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
           RUN_ID: ${{ github.run_id }}
         run: |
           set -euo pipefail
@@ -345,13 +333,13 @@ jobs:
           python -I .github/scripts/rendered_reread.py --sync-alerts --root . \
             --state registry/rendered-reread-state.json \
             --report docs/evidence/g2-ios/MODEL-336-reread.json --run-url "$RUN_URL"
-      - name: Retain a conservative ledger even if execution crashed
+      - name: Keep a report even if execution crashed
         if: always()
         env:
           RUN_ID: ${{ github.run_id }}
         run: |
           python -I - <<'PY'
-          import json, os, shutil
+          import json, os
           from datetime import datetime, timezone
           from pathlib import Path
           report = Path('docs/evidence/g2-ios/MODEL-336-reread.json')
@@ -360,30 +348,18 @@ jobs:
               report.write_text(json.dumps({
                   "run_id": os.environ['RUN_ID'],
                   "month": datetime.now(timezone.utc).strftime('%Y-%m'),
-                  "credits_spent": 14,
-                  "alerts": [{"kind": "operational", "reason": "Execution wrote no report; reserving the full run cap."}],
+                  "alerts": [{"kind": "operational", "reason": "Execution wrote no report."}],
               }, indent=2) + '\n')
-          directory = Path(os.environ['RUNNER_TEMP']) / 'rendered-current'
-          directory.mkdir(parents=True, exist_ok=True)
-          shutil.copyfile(report, directory / 'report.json')
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
               out.write('Rendered-source re-read evidence is retained in the private report PR.\n\n')
               out.write(f"Run: {os.environ['RUN_ID']}\n")
           Path(os.environ['RUNNER_TEMP'], 'rendered-pr-body.md').write_text(
               'Weekly rendered-source re-verification (MODEL-336).\n\n'
-              'This draft PR retains the rotation cursor, credit ledger, verification records and queue events. '
+              'This draft PR retains the rotation cursor, verification records and queue events. '
               'The job changes no claim values. Source mismatches require a reviewed two-key data PR.\n\n'
               'Private report: `docs/evidence/g2-ios/MODEL-336-reread.json`.\n'
           )
           PY
-      - name: Retain this run's credit ledger
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: rendered-reread-ledger
-          path: ${{ runner.temp }}/rendered-current/report.json
-          retention-days: 35
-          if-no-files-found: error
       - name: Keep source copies for the next rotating slice
         if: always()
         uses: actions/upload-artifact@v4
