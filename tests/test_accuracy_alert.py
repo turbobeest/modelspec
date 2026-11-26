@@ -1687,6 +1687,14 @@ def _private_reference_exceptions() -> dict:
             (f"{path}/run",
              f"gh workflow run {writer} --repo turbobeest/modelspec-data --ref main"),
         })
+        if writer == "release-signals.yml":
+            # MODEL-572: the dispatch reads the target's state first and skips while
+            # it is not active. The state is the only value read.
+            exceptions[(filename, job)] |= {(
+                f"{path}/run",
+                'state="$(gh api repos/turbobeest/modelspec-data/actions/workflows/'
+                f'{writer} -q .state)"',
+            )}
     token = ("/steps[3]/env/MODELSPEC_DATA_TOKEN", "${{ secrets.MODELSPEC_DATA_TOKEN }}")
     key = ("/steps[3]/env/<key>MODELSPEC_DATA_TOKEN", "MODELSPEC_DATA_TOKEN")
     exceptions[("coverage-slo.yml", "private-health")] = frozenset({

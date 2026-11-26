@@ -2353,7 +2353,8 @@ def test_pending_gate_counts_valid_queues_and_dispatches_once(tmp_path, signals,
     assert result.returncode == 0, result.stderr
     assert output.read_text() == f"count={count}\n"
     assert not result.stdout and not result.stderr
-    stub = 'gh() { printf "%s\\n" "$*" >> calls; }\n'
+    stub = ('gh() { printf "%s\\n" "$*" >> calls; '
+            'if [ "$1" = api ]; then echo active; fi; }\n')
     dispatch_result = subprocess.run(
         ["bash", "-e", "-c", stub + '. "$GITHUB_OUTPUT"\nif [ "$count" != 0 ]; then\n' + dispatch["run"] + "fi\n"],
         cwd=tmp_path, capture_output=True, text=True,
@@ -2362,9 +2363,71 @@ def test_pending_gate_counts_valid_queues_and_dispatches_once(tmp_path, signals,
     assert dispatch_result.returncode == 0, dispatch_result.stderr
     calls = tmp_path / "calls"
     if count:
-        assert calls.read_text().splitlines() == ["workflow run release-signals.yml --repo turbobeest/modelspec-data --ref main"]
+        assert calls.read_text().splitlines() == [
+            "api repos/turbobeest/modelspec-data/actions/workflows/release-signals.yml -q .state",
+            "workflow run release-signals.yml --repo turbobeest/modelspec-data --ref main",
+        ]
     else:
         assert not calls.exists()
+
+
+def _dispatch_run(workflow: str, job: str) -> str:
+    import yaml
+
+    document = yaml.safe_load((ROOT / ".github/workflows" / workflow).read_text())
+    runs = [step["run"] for step in document["jobs"][job]["steps"]
+            if "gh workflow run release-signals.yml" in step.get("run", "")]
+    assert len(runs) == 1
+    return runs[0]
+
+
+@pytest.mark.parametrize("workflow,job", [
+    ("release-signals-gate.yml", "pending"), ("release-watch.yml", "dispatch"),
+])
+@pytest.mark.parametrize("state,dispatched", [
+    ("active", True), ("disabled_manually", False), ("disabled_inactivity", False), ("", False),
+])
+def test_dispatch_skips_with_a_notice_while_the_target_is_not_active(
+    tmp_path, workflow, job, state, dispatched,
+):
+    """MODEL-572: a disabled target refuses the dispatch with HTTP 422, so the step
+    reads the target's state first and exits 0 with a notice while it is not active."""
+    import os
+    import subprocess
+
+    stub = (f'gh() {{ printf "%s\\n" "$*" >> calls; '
+            f'if [ "$1" = api ]; then printf "%s\\n" "{state}"; fi; }}\n')
+    result = subprocess.run(
+        ["bash", "-e", "-c", stub + _dispatch_run(workflow, job)],
+        cwd=tmp_path, capture_output=True, text=True,
+        env=os.environ | {"GH_TOKEN": "offline-fixture"},
+    )
+    assert result.returncode == 0, result.stderr
+    calls = (tmp_path / "calls").read_text().splitlines()
+    assert calls[0] == ("api repos/turbobeest/modelspec-data/actions/workflows/"
+                        "release-signals.yml -q .state")
+    run = "workflow run release-signals.yml --repo turbobeest/modelspec-data --ref main"
+    assert (run in calls) is dispatched
+    assert ("::notice::" in result.stdout) is (not dispatched)
+
+
+@pytest.mark.parametrize("workflow,job", [
+    ("release-signals-gate.yml", "pending"), ("release-watch.yml", "dispatch"),
+])
+def test_dispatch_fails_when_the_target_state_cannot_be_read(tmp_path, workflow, job):
+    """A failed state read (a token or API error) fails the step; it never skips silently."""
+    import os
+    import subprocess
+
+    stub = ('gh() { printf "%s\\n" "$*" >> calls; '
+            'if [ "$1" = api ]; then return 1; fi; }\n')
+    result = subprocess.run(
+        ["bash", "-e", "-c", stub + _dispatch_run(workflow, job)],
+        cwd=tmp_path, capture_output=True, text=True,
+        env=os.environ | {"GH_TOKEN": "offline-fixture"},
+    )
+    assert result.returncode != 0
+    assert "workflow run" not in (tmp_path / "calls").read_text()
 
 
 def test_worker_endpoint_is_on_and_vendors_the_shared_contract() -> None:

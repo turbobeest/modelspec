@@ -39,4 +39,12 @@ jobs:
           GH_TOKEN: ${{ secrets.MODELSPEC_DATA_DISPATCH_TOKEN }}
         run: |
           test -n "$GH_TOKEN"
+          # MODEL-572: a disabled target refuses the dispatch with HTTP 422. Read its
+          # state first and skip with a notice while it is not active. A failed read
+          # still fails the step.
+          state="$(gh api repos/turbobeest/modelspec-data/actions/workflows/release-signals.yml -q .state)"
+          if [ "$state" != active ]; then
+            echo "::notice::release-signals.yml in the data repository is not active; nothing was dispatched."
+            exit 0
+          fi
           gh workflow run release-signals.yml --repo turbobeest/modelspec-data --ref main
