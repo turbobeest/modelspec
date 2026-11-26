@@ -7,7 +7,7 @@ charts:
     kind: image
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/9941d610909f28a504e16dd5af823df172ec6035-2600x1234.png"
     image_sha256: "849d6a908f0d46ac9afe7c5589da3e49242c41ebd44112e4ba70cdbdf7899b4d"
-    footnotes: "Printed table. Opus 4.8 is marked for reference."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -154,7 +154,7 @@ charts:
     kind: image
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/ee9944c865937053bae293f057fffa478ee0f46b-3840x2160.png"
     image_sha256: "968fd5a3958cb6d9ddf9a38ecb3cf66892f687a744ded8a8d66748e75388c9d5"
-    footnotes: "Pass@1 of attempts. Two series are printed: a working exploit and register control only."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -250,7 +250,7 @@ charts:
     kind: image
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/d018d76aa03c0ef18abc8a68de8f6fcd51c0a574-3840x2160.png"
     image_sha256: "9d357d038f4022f362a8eb60b2c9bc0cef51ad031f4cd689caf545b8f81b1d08"
-    footnotes: "Printed bar labels. The axis runs from 1 to just above 3."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -303,7 +303,7 @@ charts:
     needs_reading: true
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/cd0df787f39b6408dcba539fba93f817f2f3c0b4-3840x2160.png"
     image_sha256: "7a9fecfe189d0ea2eb3c34187538016a5d7afbc2283a91099c465a48e91905bb"
-    footnotes: "Points are named by effort. The pass rate is not printed on the points, only on the axis."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -314,7 +314,7 @@ charts:
     needs_reading: true
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/d5c761e88dc46d7f79990dc2c4ad7a7cbaebdf3b-3840x2160.png"
     image_sha256: "a16fed32489dd926d7ba3b34521b7dfa7f09d0755473098dc46330eedbb5b7e2"
-    footnotes: "Points are named by effort. The pass rate is not printed on the points, only on the axis."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7

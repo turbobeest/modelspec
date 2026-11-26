@@ -7,7 +7,7 @@ charts:
     kind: image
     image_url: "https://cdn.sanity.io/images/rjtqmwfu/web3-prod/148eddc43a6f9fc03e0affc9c6d9f2ff395b4c90-3140x1720.png"
     image_sha256: "a1568403fee7984845438517184a1840a0ad54ddeceecc474342c1d9a56f2285"
-    footnotes: "Command A+ and Command A Reasoning. The percent is printed on each bar. Throughput and relative token-cost figures on the same post are not benchmark scores."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -113,7 +113,7 @@ charts:
     kind: image
     image_url: "https://cdn.sanity.io/images/rjtqmwfu/web3-prod/7a4893073821656b1e49879b7e8c731b740ea507-3140x1720.png"
     image_sha256: "766600791b1140b4aa68b6610b80f7b7b37c3353cf435b59c3dd227ee8bb6b32"
-    footnotes: "Scores on Cohere's North applications: agentic question answering, data analysis, and memory usage. Both models are printed. Throughput and relative token-cost figures on the same post are not benchmark scores."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -185,7 +185,7 @@ charts:
     kind: image
     image_url: "https://cdn.sanity.io/images/rjtqmwfu/web3-prod/947763245bcb378badae1494e8b27075c9e6fb0a-3140x1720.png"
     image_sha256: "7ce2bfe0939e01cf57f5d812632a448e9db6771c832369bd89448a5f064cb7ba"
-    footnotes: "Command A+ and Command A Vision. CharXiv reasoning and descriptive are separate bars. Throughput and relative token-cost figures on the same post are not benchmark scores."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -277,7 +277,7 @@ charts:
     kind: image
     image_url: "https://cdn.sanity.io/images/rjtqmwfu/web3-prod/cfe28582c9c34cf1ad9bd3052fadbe8ce71ccb2f-3140x1720.png"
     image_sha256: "b6b31cb6861334b56e24464e68035a1d662adc4ad15f4d5857c8c5565218da8a"
-    footnotes: "MT-AIME 2025 is not AIME 2025. WMT24++ is the translation set. Throughput and relative token-cost figures on the same post are not benchmark scores."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7

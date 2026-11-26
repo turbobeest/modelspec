@@ -5,7 +5,7 @@ phase: "phase2a"
 charts:
   - title: "Benchmark comparison"
     kind: html_table
-    footnotes: "Competitor figures are drawn from the developers' published system cards or benchmark leaderboards. Column headers are Grok 4.6 High, Grok 4.5 High, GPT-5.6 Sol Max, and Fable 5 Max. A dash for GPT-5.6 Sol on APEX-SWE is omitted."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7

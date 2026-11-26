@@ -5,7 +5,7 @@ phase: "phase2b-2"
 charts:
   - title: "Full benchmark table"
     kind: html_table
-    footnotes: "Same comparison the open-weight card later reprints. Fable 5 may involve fallbacks. Terminal-Bench 2.1 for Qwen is Claude Code, average of 10; Opus 4.8 and Fable 5 are published Terminus 2 scores; GPT-5.6 Sol is the published Codex score. Rival columns mix those published scores with Qwen's own runs. QwenReactBench and QwenSVGBench are Elo. Blanks are unpublished."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -1429,7 +1429,7 @@ charts:
         role: subject
   - title: "Multimodal benchmark table"
     kind: html_table
-    footnotes: "MathVision, BabyVision, CharXiv reasoning and ZeroBench are without a code interpreter, then with one. OSWorld 2.0 is full reward, then partial reward. ClawEval-MM is pass@3, then the mean of three trials. OCR-Bench-V2 is English, then Chinese. MMMU-Pro for Gemini 3.1 Pro and GPT-5.6 Sol is taken from those vendors' reports; other columns are Qwen's runs. ScreenSpot Pro for Opus 4.8 and Fable 5 is from system cards, and the Fable 5 figure is the Mythos Preview score. Blanks are unpublished."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7

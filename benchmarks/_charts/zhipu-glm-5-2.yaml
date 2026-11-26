@@ -5,7 +5,7 @@ phase: "phase2b-1"
 charts:
   - title: "Benchmark"
     kind: html_table
-    footnotes: "Reasoning tasks use temperature 1.0 and top_p 0.95, up to 163840 tokens. Unstarred HLE is the text-only subset; a star is the full set. AIME, HMMT, and IMOAnswerBench use the Exact Answer system prompt and GPT-5.5 medium as judge. SWE-bench Pro uses OpenHands, temperature 1, top_p 1, 32k new tokens, 400K context. NL2Repo uses temperature 1.0, top_p 1.0, 48k new tokens, 400k context. DeepSWE uses the official pier framework and mini-swe-agent, temperature 1.0, top_p 1.0, 2h, 400K, no internet. ProgramBench uses Claude Code 2.1.156 at max effort. Terminal-Bench 2.1 is shown once under Terminus-2 and once as the best reported harness. FrontierSWE, PostTrainBench, and SWE-Marathon were run by Proximal, PostTrainBench, and Abundant AI at 1M context and max effort, as of 2026-06-16 for FrontierSWE. MCP-Atlas is the 500-task public subset in think mode. Tool-Decathlon uses the official service with a 128K max token."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7

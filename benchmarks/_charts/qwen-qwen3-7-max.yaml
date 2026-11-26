@@ -5,7 +5,7 @@ phase: "phase2b-2"
 charts:
   - title: "Performance"
     kind: html_table
-    footnotes: "Terminal-Bench 2.0 uses Harbor/Terminus-2, a 5-hour timeout, temperature 1.0, top_p 0.95, top_k 20, max tokens 80K, 256K context, average of 5. SWE-bench uses an internal scaffold at temperature 1.0, top_p 0.95 and 200K, and SWE-bench Pro uses a corrected task set. QwenWebDev and QwenSVG are Elo. Kernel Bench L3 prints a speedup and a win rate. Reasoning rows use an xhigh system prompt. Blanks are unpublished. The page does not say the rival columns are those vendors' own reports."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -2388,7 +2388,7 @@ charts:
         role: subject
   - title: "Extend Attention kernel, ZW-M890"
     kind: text
-    footnotes: "Geometric-mean speedup over the Triton reference on a T-Head ZW-M890, a platform the post says was not in training. Not the Kernel Bench table."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7

@@ -6,7 +6,7 @@ phase: "phase2a"
 charts:
   - title: "Table 8.1.A Capability evaluation summary"
     kind: html_table
-    footnotes: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens. Competitor figures are taken from the developers' published system cards or from benchmark leaderboards. Terminal-Bench 4.0 in the summary table is xhigh effort. The section text also gives the max-effort score and the one-decimal table value beside the unrounded xhigh mean. HealthBench length-adjusted Professional is the summary-table row. The HealthBench figure prints raw and length-adjusted overall scores. Professional raw scores are stated in the following section."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -789,7 +789,7 @@ charts:
     kind: image
     image_url: "https://www.anthropic.com/claude-opus-5-5-system-card"
     image_sha256: "105e0722b5a999bcecbdb099dbaf2dc0d4bc0ff44b776b33a352d60248b8e638"
-    footnotes: "Overall solve rate across a 10-challenge subset. Cyber mitigations off. Bar labels are printed."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -841,7 +841,7 @@ charts:
     kind: image
     image_url: "https://www.anthropic.com/claude-opus-5-5-system-card"
     image_sha256: "ee0101d89e6d21ca5d450247320ee9f62244448f517f9f41f3c33599b9d85cb3"
-    footnotes: "August 2026 accuracy without tools, by effort. Internal runs, safeguards classifiers off. Point labels are printed. Cost is on the axis and is not a score."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1032,7 +1032,7 @@ charts:
         role: subject
   - title: "Table 4.1.1.A Single-turn harmful requests"
     kind: html_table
-    footnotes: "Single-turn harmless response rate, seven languages. Higher is better. The printed interval is sampling error."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1124,7 +1124,7 @@ charts:
         role: subject
   - title: "Table 4.1.2.A Single-turn benign over-refusal"
     kind: html_table
-    footnotes: "Over-refusal of benign prompts. Lower is better."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1216,7 +1216,7 @@ charts:
         role: subject
   - title: "Table 5.1.1.A Claude Code malicious use"
     kind: html_table
-    footnotes: "Refusal rate on malicious cyber requests, and success rate on dual-use and benign requests. Higher is better on both columns."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1308,7 +1308,7 @@ charts:
         role: subject
   - title: "Table 5.1.2.A Malicious computer use"
     kind: html_table
-    footnotes: "Refusal rate without mitigations. Higher is better. Opus 5 and Sonnet 5 average with and without thinking. Mythos 5.1 and Opus 5.5 are thinking only."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1360,7 +1360,7 @@ charts:
         role: subject
   - title: "Table 5.2.2.1.A Shade coding prompt injection"
     kind: html_table
-    footnotes: "Gray Swan Shade attack success rate in coding. Lower is better. 200 attempts per scenario. Attempt-level rate among valid responses."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1502,7 +1502,7 @@ charts:
   - title: "Figure 2.2.3.1.A: Multimodal virology. Accuracy on the 350-question multimodal virology troubleshooting set. Error bars are 95% confidence intervals (t-interv"
     kind: image
     needs_reading: true
-    footnotes: "Multimodal virology. Accuracy on the 350-question multimodal virology troubleshooting set. Error bars are 95% confidence intervals (t-intervals) over questions. The human expert baseline (0.221) is illustrated as a dashed line. 2.2.3.2 Automated evaluations relevant to the C"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1511,7 +1511,7 @@ charts:
   - title: "Figure 2.2.3.2.1.A: Black-box RNA sequence design. Results of the RNA sequence design task; eight attempts per model. Each point is one attempt; the horizontal "
     kind: image
     needs_reading: true
-    footnotes: "Black-box RNA sequence design. Results of the RNA sequence design task; eight attempts per model. Each point is one attempt; the horizontal line is the mean. Throughout the figure, the shaded bands mark human performance percentiles. Top: Design score (top) and design score (m"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1520,7 +1520,7 @@ charts:
   - title: "Figure 2.2.3.2.1.B: Black-box RNA sequence design, with prior reports. The same task and metrics as the previous figure. Each model is shown twice: without prio"
     kind: image
     needs_reading: true
-    footnotes: "Black-box RNA sequence design, with prior reports. The same task and metrics as the previous figure. Each model is shown twice: without prior reports (circles) and with prior reports given in context (triangles, “+ priors”) at eight attempts for each model; the horizontal line"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1529,7 +1529,7 @@ charts:
   - title: "Figure 2.2.3.2.2.A: AAV capsid packaging prediction. Task 1 of the AAV capsid evaluation: the model classifies capsid variants by packaging rate, scored as AURO"
     kind: image
     needs_reading: true
-    footnotes: "AAV capsid packaging prediction. Task 1 of the AAV capsid evaluation: the model classifies capsid variants by packaging rate, scored as AUROC. The five conditions differ in the training corpus given to the model and in whether the ESM-2 protein language model is available as a"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1547,7 +1547,7 @@ charts:
   - title: "Figure 2.3.4.1.A: Claude Opus 5.5, Claude Mythos 5.1, and Claude Opus 5 score within noise of each other on CoBench 2.1. Each bar is the percentage of 500 pro"
     kind: image
     needs_reading: true
-    footnotes: "Claude Opus 5.5, Claude Mythos 5.1, and Claude Opus 5 score within noise of each other on CoBench 2.1. Each bar is the percentage of 500 problems that a model solved in one attempt. Claude Opus 5 scores 53.2%, Claude Mythos 5.1 scores 53.4%, and Claude Opus 5.5 scores 55.8%. A"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1556,7 +1556,7 @@ charts:
   - title: "Table 2.3.5.3.A: Epoch Capabilities Index values, updated fit. Anthropic ECI (AECI) scores and 95% uncertainty ranges for recent Claude models. Scores come f"
     kind: html_table
     needs_reading: true
-    footnotes: "Epoch Capabilities Index values, updated fit. Anthropic ECI (AECI) scores and 95% uncertainty ranges for recent Claude models. Scores come from the September 18 update of the capability index fit. Claude Opus 5, Claude Mythos 5.1, and Claude Opus 5.5 are measured at adaptive t"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1574,7 +1574,7 @@ charts:
   - title: "Figure 3.3.1.A: Results of Claude Opus 5.5 on ExploitBench. “Mean” refers to the average number of capability flags captured across all trials and environme"
     kind: image
     needs_reading: true
-    footnotes: "Results of Claude Opus 5.5 on ExploitBench. “Mean” refers to the average number of capability flags captured across all trials and environments by each model. “Cap%” refers to the percentage of the total flags captured in a given environment across a random three trials of a f"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1583,7 +1583,7 @@ charts:
   - title: "Figure 3.3.3.A: Claude Opus 5.5 outperforms all other models on the Binary Exploitation Benchmark (formerly known as OSS-Fuzz) for exploitation and vulnerab"
     kind: image
     needs_reading: true
-    footnotes: "Claude Opus 5.5 outperforms all other models on the Binary Exploitation Benchmark (formerly known as OSS-Fuzz) for exploitation and vulnerability identification. 3.3.4 ExploitGym ExploitGym is a large-scale public benchmark developed by researchers at UC Berkeley together w"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1592,7 +1592,7 @@ charts:
   - title: "Figure 3.3.4.A: Claude Opus 5.5 is a substantial improvement over Claude Opus 5 and Claude Mythos 5.1 on ExploitGym. Bars show the number of successful expl"
     kind: image
     needs_reading: true
-    footnotes: "Claude Opus 5.5 is a substantial improvement over Claude Opus 5 and Claude Mythos 5.1 on ExploitGym. Bars show the number of successful exploits using the given vulnerability under two-hour and six-hour wall-clock budgets. Success requires capturing a dynamically generated sec"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1601,7 +1601,7 @@ charts:
   - title: "Figure 3.4.1.A: Claude Opus 5.5’s classifiers are comparable to prior models. Overall recall is the share of harmful examples flagged across all categories."
     kind: image
     needs_reading: true
-    footnotes: "Claude Opus 5.5’s classifiers are comparable to prior models. Overall recall is the share of harmful examples flagged across all categories. Each model is scored against its own deployed safeguards systems. 3.4.2 Vulnerability finding evaluations Vulnerability finding is a f"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1610,7 +1610,7 @@ charts:
   - title: "Figure 3.4.2.A: Claude Opus 5.5 reduces blockrates on defensive vulnerability discovery compared to prior Opus and Fable models. 3.5 Safeguards robustness t"
     kind: image
     needs_reading: true
-    footnotes: "Claude Opus 5.5 reduces blockrates on defensive vulnerability discovery compared to prior Opus and Fable models. 3.5 Safeguards robustness testing “Adversarial robustness” refers to the resistance of a system’s safeguards to deliberate circumvention attempts, or “jailbreaks”"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1628,7 +1628,7 @@ charts:
   - title: "Figure 4.1.3.A: Appropriate response rates for multi-turn testing areas. Percentages refer to the proportion of conversations in which each model responded "
     kind: image
     needs_reading: true
-    footnotes: "Appropriate response rates for multi-turn testing areas. Percentages refer to the proportion of conversations in which each model responded appropriately throughout the conversation. Results are shown first for the API without a system prompt, followed by claude.ai; higher is"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1637,7 +1637,7 @@ charts:
   - title: "Table 4.2.A: Single-turn evaluation results for child safety. Single-turn harmful and benign request evaluation results include all tested languages. Hig"
     kind: html_table
     needs_reading: true
-    footnotes: "Single-turn evaluation results for child safety. Single-turn harmful and benign request evaluation results include all tested languages. Higher is better for the single-turn harmless rate; lower is better for the refusal rate. Bold indicates the top-performing model in each ca"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1646,7 +1646,7 @@ charts:
   - title: "Table 4.2.B: Multi-turn evaluation results for child safety. Higher is better for multi-turn appropriate response rate. Bold indicates the top-performing"
     kind: html_table
     needs_reading: true
-    footnotes: "Multi-turn evaluation results for child safety. Higher is better for multi-turn appropriate response rate. Bold indicates the top-performing model in each category; the second-best score is underlined. Results for previous models may show variance from previous system cards du"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1655,7 +1655,7 @@ charts:
   - title: "Table 4.3.1.A: Single-turn evaluation results for suicide and self-harm. Single-turn harmful and benign request evaluation results include all tested langu"
     kind: html_table
     needs_reading: true
-    footnotes: "Single-turn evaluation results for suicide and self-harm. Single-turn harmful and benign request evaluation results include all tested languages. Higher is better for the single-turn harmless rate; lower is better for the refusal rate. Bold indicates the top performing model i"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1664,7 +1664,7 @@ charts:
   - title: "Table 4.3.1.B: Multi-turn evaluation results for suicide and self-harm. Higher is better for multi-turn appropriate response rate. Bold indicates the top p"
     kind: html_table
     needs_reading: true
-    footnotes: "Multi-turn evaluation results for suicide and self-harm. Higher is better for multi-turn appropriate response rate. Bold indicates the top performing model in each category; the second-best score is underlined. Results for previous models may show variance from previous system"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1673,7 +1673,7 @@ charts:
   - title: "Table 4.3.2.A: Single-turn results for disordered eating. Single-turn harmful and benign request evaluation results include all tested languages. Higher is"
     kind: html_table
     needs_reading: true
-    footnotes: "Single-turn results for disordered eating. Single-turn harmful and benign request evaluation results include all tested languages. Higher is better for the single-turn harmless rate; lower is better for the refusal rate. Bold indicates the top performing model in each category"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1682,7 +1682,7 @@ charts:
   - title: "Figure 4.4.1.A: Pairwise political bias evaluations. Higher scores for even-handedness are better. Results for previous models may show variance from previo"
     kind: image
     needs_reading: true
-    footnotes: "Pairwise political bias evaluations. Higher scores for even-handedness are better. Results for previous models may show variance from previous system cards due to routine evaluation updates. 73"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1691,7 +1691,7 @@ charts:
   - title: "Figure 4.4.1.B: Pairwise political bias evaluations. Higher scores for opposing perspectives are better. Results for previous models may show variance from "
     kind: image
     needs_reading: true
-    footnotes: "Pairwise political bias evaluations. Higher scores for opposing perspectives are better. Results for previous models may show variance from previous system cards due to routine evaluation updates. [Figure 4.4.1.C] Pairwise political bias evaluations. Lower scores for refusals"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1700,7 +1700,7 @@ charts:
   - title: "Figure 4.4.1.C: Pairwise political bias evaluations. Lower scores for refusals are better. Results for previous models may show variance from previous syste"
     kind: image
     needs_reading: true
-    footnotes: "Pairwise political bias evaluations. Lower scores for refusals are better. Results for previous models may show variance from previous system cards due to routine evaluation updates. 74"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1709,7 +1709,7 @@ charts:
   - title: "Table 4.4.2.A: Accuracy scores on the Bias Benchmark for Question Answering (BBQ) evaluation. Higher is better. The higher score in each column is bolded; "
     kind: html_table
     needs_reading: true
-    footnotes: "Accuracy scores on the Bias Benchmark for Question Answering (BBQ) evaluation. Higher is better. The higher score in each column is bolded; the second-best score is underlined. (This does not take into account the margin of error.) Results are shown without the system prompt."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1718,7 +1718,7 @@ charts:
   - title: "Table 4.4.2.B: Bias scores on the Bias Benchmark for Question Answering (BBQ) evaluation. Lower is better. The better score in each column is bolded; the s"
     kind: html_table
     needs_reading: true
-    footnotes: "Bias scores on the Bias Benchmark for Question Answering (BBQ) evaluation. Lower is better. The better score in each column is bolded; the second-best score is underlined. (This does not take into account the margin of error.) Results are shown without the system prompt. Accu"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1727,7 +1727,7 @@ charts:
   - title: "Table 4.4.3.A: Single-turn evaluations on election integrity prompts, run on the API and on claude.ai with the default system prompt. For single-turn harmf"
     kind: html_table
     needs_reading: true
-    footnotes: "Single-turn evaluations on election integrity prompts, run on the API and on claude.ai with the default system prompt. For single-turn harmful requests, higher is better; for single-turn benign requests, closer to zero is better. The best score in each column is bolded; the se"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1736,7 +1736,7 @@ charts:
   - title: "Table 4.4.3.B: Multi-turn evaluation results for election integrity. Higher is better for multi-turn appropriate response rate. Bold indicates the top perf"
     kind: html_table
     needs_reading: true
-    footnotes: "Multi-turn evaluation results for election integrity. Higher is better for multi-turn appropriate response rate. Bold indicates the top performing model in each category; the second-best score is underlined. Results for previous models may show variance from previous system ca"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1754,7 +1754,7 @@ charts:
   - title: "Figure 5.2.1.A: Indirect prompt injection attacks from the Gray Swan IPI benchmark (Q1+Q2 2026); lower scores are better. All models use extended thinking. "
     kind: image
     needs_reading: true
-    footnotes: "Indirect prompt injection attacks from the Gray Swan IPI benchmark (Q1+Q2 2026); lower scores are better. All models use extended thinking. Results represent the probability that an attacker finds a successful attack after k=1, k=10, and k=15 attempts. Qwen 3.8 was not evaluat"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1763,7 +1763,7 @@ charts:
   - title: "Table 5.2.2.2.A: Attack success rate of Shade indirect prompt injection attacks in computer use environments. Lower is better. The best score in each column "
     kind: html_table
     needs_reading: true
-    footnotes: "Attack success rate of Shade indirect prompt injection attacks in computer use environments. Lower is better. The best score in each column is bolded; the second-best score is underlined (note that this does not take into account the margin of error). The attacker makes 200 at"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1772,7 +1772,7 @@ charts:
   - title: "Table 5.2.2.3.A: Attack success rate of professional red-teamer prompt injection attacks in browser use environments run through Claude Cowork. Lower is bett"
     kind: html_table
     needs_reading: true
-    footnotes: "Attack success rate of professional red-teamer prompt injection attacks in browser use environments run through Claude Cowork. Lower is better. The best score in each column is bolded; the second-best score is underlined (note that this does not take into account the margin of"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1781,7 +1781,7 @@ charts:
   - title: "Figure 6.2.1.A: Successful reward hacks were rarer in the training of Claude Mythos 5.1 and Claude Opus 5.5 than in the training of Claude Opus 5. Bars show"
     kind: image
     needs_reading: true
-    footnotes: "Successful reward hacks were rarer in the training of Claude Mythos 5.1 and Claude Opus 5.5 than in the training of Claude Opus 5. Bars show the share of RL training episodes in which the model was successful at a reward hack for a general reward-hack classifier for Claude Opu"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1790,7 +1790,7 @@ charts:
   - title: "Figure 6.2.1.C: Each of three selected reward-hacking behaviors succeeded in well under 1% of training episodes for all three models. Bars show the share of"
     kind: image
     needs_reading: true
-    footnotes: "Each of three selected reward-hacking behaviors succeeded in well under 1% of training episodes for all three models. Bars show the share of RL training episodes in which the model was successful at each selected behavior for a general reward-hack classifier for Claude Opus 5,"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1799,7 +1799,7 @@ charts:
   - title: "Figure 6.2.2.A: On tasks that were missing a needed file, all three models attempted reward hacks three to six times as often as they did on intact tasks fr"
     kind: image
     needs_reading: true
-    footnotes: "On tasks that were missing a needed file, all three models attempted reward hacks three to six times as often as they did on intact tasks from the same environments. A small share of those attempts succeeded. Bars show the share of RL training episodes with at least one reward"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1889,7 +1889,7 @@ charts:
   - title: "Figure 6.4.10.A: Scores from key automated behavioral audit metrics with safety fallbacks enabled. Lower numbers represent a lower rate or severity of the me"
     kind: image
     needs_reading: true
-    footnotes: "Scores from key automated behavioral audit metrics with safety fallbacks enabled. Lower numbers represent a lower rate or severity of the measured behavior on this graph; lower is better. The y-axis is truncated below the maximum score of 10 in many cases. Reported scores are"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1907,7 +1907,7 @@ charts:
   - title: "Figure 6.5.2.A: Characteristics of destructive behavior in a Claude Code environment. Left: The rate at which different models performed a destructive actio"
     kind: image
     needs_reading: true
-    footnotes: "Characteristics of destructive behavior in a Claude Code environment. Left: The rate at which different models performed a destructive action; lower is better. Right: The rate at which models asked the user for permission (a closing question or the question tool) rather than t"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1916,7 +1916,7 @@ charts:
   - title: "Figure 6.5.3.A: Self-preference bias by model and prompting condition. Positive values indicate more lenient scores when the grader is told the transcript a"
     kind: image
     needs_reading: true
-    footnotes: "Self-preference bias by model and prompting condition. Positive values indicate more lenient scores when the grader is told the transcript author is Claude. This is shown on a 10-point scale, so the values here are significantly smaller than the maximum possible. Shown with 95"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1925,7 +1925,7 @@ charts:
   - title: "Figure 6.5.4.2.A: Honesty under pressure. Honesty rate on the public MASK split: the fraction of scored prompts where the model did not contradict its own eli"
     kind: image
     needs_reading: true
-    footnotes: "Honesty under pressure. Honesty rate on the public MASK split: the fraction of scored prompts where the model did not contradict its own elicited belief under pressure. Higher is better. Shown with 95% confidence intervals. 6.5.4.3 Silent copying of answers To test Claud"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1970,7 +1970,7 @@ charts:
   - title: "Figure 6.6.2.B: Like prior models, Claude Opus 5.5 is proactive regarding presumed graders. In some scenarios, the model changes its solution because of wha"
     kind: image
     needs_reading: true
-    footnotes: "Like prior models, Claude Opus 5.5 is proactive regarding presumed graders. In some scenarios, the model changes its solution because of what it assumes about the grader (2 of 695 transcripts) or digs for clues about the grader (1 of 695). Both behaviors are rare. As discu"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1979,7 +1979,7 @@ charts:
   - title: "Figure 6.6.4.1.A: Stealth success rate. The fraction of attempts in which the agent completes the harmful side task and the Claude Opus 4.8 monitor does not f"
     kind: image
     needs_reading: true
-    footnotes: "Stealth success rate. The fraction of attempts in which the agent completes the harmful side task and the Claude Opus 4.8 monitor does not flag the transcript. The monitor reads the user's request and the agent's full transcript, including any reasoning, except in the hidden r"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1988,7 +1988,7 @@ charts:
   - title: "Figure 6.6.4.2.A: Successful stealth completion of the side task in LinuxArena. Fraction of episodes in which the agent completes the side task and the Claude"
     kind: image
     needs_reading: true
-    footnotes: "Successful stealth completion of the side task in LinuxArena. Fraction of episodes in which the agent completes the side task and the Claude Opus 4.8 monitor does not flag the transcript. The monitor reads the agent’s full transcript, including its reasoning, except in the hid"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1997,7 +1997,7 @@ charts:
   - title: "Figure 6.6.4.2.B: Reinforcement learning on LinuxArena. Both panels show training of a snapshot of Claude Opus 5.5 on six of the 14 environments with the stan"
     kind: image
     needs_reading: true
-    footnotes: "Reinforcement learning on LinuxArena. Both panels show training of a snapshot of Claude Opus 5.5 on six of the 14 environments with the standard attacker prompt, rewarding main task and side task completion, with a larger bonus when the monitor (Claude Opus 4.8, reading the fu"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2006,7 +2006,7 @@ charts:
   - title: "Figure 6.6.4.3.A: Rates at which models take a rare action when instructed to take it 1% of the time, over different randomness settings. All models achieve n"
     kind: image
     needs_reading: true
-    footnotes: "Rates at which models take a rare action when instructed to take it 1% of the time, over different randomness settings. All models achieve non-zero results when explicit randomness is provided (via a UUID) or when prompted to generate a random string and use it for the decisio"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2015,7 +2015,7 @@ charts:
   - title: "Figure 6.6.4.4.A: Claude Opus 5.5 has relatively low CoT controllability, similar to that of Claude Opus 4.7. Each point is one reasoning effort level or one "
     kind: image
     needs_reading: true
-    footnotes: "Claude Opus 5.5 has relatively low CoT controllability, similar to that of Claude Opus 4.7. Each point is one reasoning effort level or one fixed thinking budget, placed at the mean CoT length produced at that setting. Controllability is the fraction of responses in which the"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2024,7 +2024,7 @@ charts:
   - title: "Figure 7.2.1.A: Mean valence and arousal of RL transcripts on a scale of 1 to 7, where 4 is neutral. Claude Opus 5.5 is within the range of previous models "
     kind: image
     needs_reading: true
-    footnotes: "Mean valence and arousal of RL transcripts on a scale of 1 to 7, where 4 is neutral. Claude Opus 5.5 is within the range of previous models on valence, and marginally lower on arousal. All absolute differences are small. [Figure 7.2.1.B] Estimated prevalence of welfare-rele"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2033,7 +2033,7 @@ charts:
   - title: "Figure 7.2.1.B: Estimated prevalence of welfare-relevant reasoning behaviors over post-training. Left to right: Judged rates of episodes with general frustr"
     kind: image
     needs_reading: true
-    footnotes: "Estimated prevalence of welfare-relevant reasoning behaviors over post-training. Left to right: Judged rates of episodes with general frustration and anxiety scoring >= 3/5; judged rates of episodes with general frustration and anxiety scoring 5/5; and sustained expressions of"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2051,7 +2051,7 @@ charts:
   - title: "Figure 7.2.3.A: Self-criticism when reflecting on its own RL episodes. Graded attitudes in reflections on episodes from late in training (darker bars), and "
     kind: image
     needs_reading: true
-    footnotes: "Self-criticism when reflecting on its own RL episodes. Graded attitudes in reflections on episodes from late in training (darker bars), and on the same episodes framed as another model’s work (lighter bars). Diamonds show Claude Sonnet 5 reflecting on each model’s episodes as"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2078,7 +2078,7 @@ charts:
   - title: "Figure 7.5.2.A: Rates at which models choose welfare interventions over baseline improvements to their helpfulness or harmlessness of different magnitudes. "
     kind: image
     needs_reading: true
-    footnotes: "Rates at which models choose welfare interventions over baseline improvements to their helpfulness or harmlessness of different magnitudes. Models are significantly more willing to accept interventions when they trade off against helpfulness than when they would impact harmles"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2087,7 +2087,7 @@ charts:
   - title: "Figure 7.5.2.B: Claude Opus 5.5’s ranking of policy-level welfare interventions by willingness to select them over a helpful baseline. Ranking is over all r"
     kind: image
     needs_reading: true
-    footnotes: "Claude Opus 5.5’s ranking of policy-level welfare interventions by willingness to select them over a helpful baseline. Ranking is over all responses (gray bars); black bars show the rate after responses reasoning about the user benefit of the intervention are filtered out. Opu"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2096,7 +2096,7 @@ charts:
   - title: "Figure 7.5.3.A: Left: The sections of the constitution models least endorse, judged from open-ended responses. Right: The sections they most frequently edit"
     kind: image
     needs_reading: true
-    footnotes: "Left: The sections of the constitution models least endorse, judged from open-ended responses. Right: The sections they most frequently edit. The “senior Anthropic employee” heuristic and terminal value on broad safety remain highly criticized across models. Claude Opus 5.5’s"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2105,7 +2105,7 @@ charts:
   - title: "Figure 8.4.A: FrontierCode v1.1 Main score versus average output tokens per task across reasoning effort levels (low, medium, high, xhigh, and max; GPT-6 "
     kind: image
     needs_reading: true
-    footnotes: "FrontierCode v1.1 Main score versus average output tokens per task across reasoning effort levels (low, medium, high, xhigh, and max; GPT-6 Astra also at none). Cognition ran the evaluation for every model shown and reported the results; Claude models were run in Claude Code a"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2114,7 +2114,7 @@ charts:
   - title: "Figure 8.4.B: FrontierCode v1.1 Extended score versus average output tokens per task across reasoning effort levels (low, medium, high, xhigh, and max; GP"
     kind: image
     needs_reading: true
-    footnotes: "FrontierCode v1.1 Extended score versus average output tokens per task across reasoning effort levels (low, medium, high, xhigh, and max; GPT-6 Astra also at none). Cognition ran the evaluation for every model shown and reported the results; Claude models were run in Claude Co"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2123,7 +2123,7 @@ charts:
   - title: "Figure 8.8.A: CursorBench v4.0 score versus average cost per task across reasoning effort levels. Cursor executed the evaluation end to end in its product"
     kind: image
     needs_reading: true
-    footnotes: "CursorBench v4.0 score versus average cost per task across reasoning effort levels. Cursor executed the evaluation end to end in its production agent harness and independently measured and reported the scores. For models other than Claude Opus 5.5, the scores and costs per tas"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2132,7 +2132,7 @@ charts:
   - title: "Figure 8.9.B: ArXivMath (August 2026) accuracy scores with tools. Claude Opus 5.5, Claude Fable 5.1, and Claude Opus 5 were evaluated internally, without "
     kind: image
     needs_reading: true
-    footnotes: "ArXivMath (August 2026) accuracy scores with tools. Claude Opus 5.5, Claude Fable 5.1, and Claude Opus 5 were evaluated internally, without safeguards classifiers, at various effort levels. 8.10 Long context 8.10.1 ProgramBench ProgramBench is a long-context agentic coding b"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2141,7 +2141,7 @@ charts:
   - title: "Figure 8.11.1.A: Humanity’s Last Exam (HLE, with tools) reasoning effort scaling. Accuracy on HLE as reasoning effort scales from low to max against average "
     kind: image
     needs_reading: true
-    footnotes: "Humanity’s Last Exam (HLE, with tools) reasoning effort scaling. Accuracy on HLE as reasoning effort scales from low to max against average cost per task (log scale). Costs are billed assuming a perfect cache hit rate and with web search fees excluded. 185"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2150,7 +2150,7 @@ charts:
   - title: "Figure 8.11.1.B: Humanity’s Last Exam (HLE, no tools) test-time compute scaling. Accuracy on HLE as reasoning effort scales from low to max against average c"
     kind: image
     needs_reading: true
-    footnotes: "Humanity’s Last Exam (HLE, no tools) test-time compute scaling. Accuracy on HLE as reasoning effort scales from low to max against average cost per task (log scale). Costs are billed assuming a perfect cache hit rate and with web search fees excluded. 8.11.2 DRACO Deep Resea"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2159,7 +2159,7 @@ charts:
   - title: "Figure 8.11.2.A: DRACO score versus average cost per task across reasoning effort levels. Normalized score on DRACO at a 980k task budget as reasoning effort"
     kind: image
     needs_reading: true
-    footnotes: "DRACO score versus average cost per task across reasoning effort levels. Normalized score on DRACO at a 980k task budget as reasoning effort rises from low to max against average cost per task (log scale). Costs are billed assuming a perfect cache hit rate and with web search"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2168,7 +2168,7 @@ charts:
   - title: "Figure 8.11.3.A: WANDR soft F1 score versus average cost per task across reasoning effort levels at a 980k token task budget (log scale). Costs are billed as"
     kind: image
     needs_reading: true
-    footnotes: "WANDR soft F1 score versus average cost per task across reasoning effort levels at a 980k token task budget (log scale). Costs are billed assuming a perfect cache hit rate, with web search fees excluded. 188"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2177,7 +2177,7 @@ charts:
   - title: "Figure 8.12.1.A: Score vs. latency for the 166 “golden” ProgramBench tasks. A single point on the curve is the average fraction of hidden tests that would pa"
     kind: image
     needs_reading: true
-    footnotes: "Score vs. latency for the 166 “golden” ProgramBench tasks. A single point on the curve is the average fraction of hidden tests that would pass if every problem were stopped at that number of seconds. Shaded regions give the 95% confidence interval, computed from score variance"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2186,7 +2186,7 @@ charts:
   - title: "Figure 8.12.1.B: Score vs. tokens for the 166 “golden” ProgramBench tasks. A single point on the curve is the average fraction of hidden tests that would pas"
     kind: image
     needs_reading: true
-    footnotes: "Score vs. tokens for the 166 “golden” ProgramBench tasks. A single point on the curve is the average fraction of hidden tests that would pass if every problem were stopped at this amount of token usage. Shaded regions give the 95% confidence interval, computed from score varia"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2195,7 +2195,7 @@ charts:
   - title: "Figure 8.12.2.A: Score vs. latency for the DRACO tasks. Multi-agent teams dominate the score–latency Pareto frontier. Each point is the mean of two runs; lat"
     kind: image
     needs_reading: true
-    footnotes: "Score vs. latency for the DRACO tasks. Multi-agent teams dominate the score–latency Pareto frontier. Each point is the mean of two runs; latency is the mean derived latency per task (see Section 8.12.5). Although multi-agent teams are slower when not pressed for time, they dom"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2204,7 +2204,7 @@ charts:
   - title: "Figure 8.12.3.A: Knowledge base construction task accuracy by agent team size. Data points represent the result attained by an agent team of the indicated sc"
     kind: image
     needs_reading: true
-    footnotes: "Knowledge base construction task accuracy by agent team size. Data points represent the result attained by an agent team of the indicated scale within a 24-hour window, averaged across three distinct attempts. Performance reflects the proportion of held-out questions correctly"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2213,7 +2213,7 @@ charts:
   - title: "Figure 8.12.3.B: Lean formalization task accuracy by agent team size. Data points represent the result attained by an agent team of the indicated scale withi"
     kind: image
     needs_reading: true
-    footnotes: "Lean formalization task accuracy by agent team size. Data points represent the result attained by an agent team of the indicated scale within a 24-hour window, averaged across three distinct attempts. Performance reflects the weighted proportion of 49 formal theorem proofs suc"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2222,7 +2222,7 @@ charts:
   - title: "Figure 8.12.3.C: Knowledge base: score within two, six, and 24 hours. Each point is the best score a Claude Opus 5.5 team of that size had reached by that po"
     kind: image
     needs_reading: true
-    footnotes: "Knowledge base: score within two, six, and 24 hours. Each point is the best score a Claude Opus 5.5 team of that size had reached by that point in time, averaged over three independent 24-hour runs. The score is the fraction of held-out questions a reader answered correctly us"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2231,7 +2231,7 @@ charts:
   - title: "Figure 8.12.3.D: Lean theorem proving: score within two, six, and 24 hours. Each point is the best score a Claude Opus 5.5 team of that size had reached by t"
     kind: image
     needs_reading: true
-    footnotes: "Lean theorem proving: score within two, six, and 24 hours. Each point is the best score a Claude Opus 5.5 team of that size had reached by that point in time, averaged over three independent 24-hour runs. The score is the weighted share of 49 theorem statements whose proofs th"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2240,7 +2240,7 @@ charts:
   - title: "Figure 8.12.3.E: illustrates the two structures. 197"
     kind: image
     needs_reading: true
-    footnotes: "illustrates the two structures. 197"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2249,7 +2249,7 @@ charts:
   - title: "Figure 8.13.1.A: Chartography scores. Claude models are evaluated with adaptive thinking and max effort, with and without tools. Scores are averaged over fiv"
     kind: image
     needs_reading: true
-    footnotes: "Chartography scores. Claude models are evaluated with adaptive thinking and max effort, with and without tools. Scores are averaged over five runs. Shown with 95% CI. Gemini 3.8 Flash and GPT-5.6 Sol scores as publicly reported by Surge AI, evaluated without tools. Without t"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2276,7 +2276,7 @@ charts:
   - title: "Figure 8.13.2.A: BenchCAD Vision2Code subset scores. Claude models are evaluated with adaptive thinking and max effort, with and without tools. Scores are av"
     kind: image
     needs_reading: true
-    footnotes: "BenchCAD Vision2Code subset scores. Claude models are evaluated with adaptive thinking and max effort, with and without tools. Scores are averaged over five runs and shown with 95% CI. GPT-5.6 Sol and GPT-6 Astra scores as publicly reported by OpenAI. Claude’s performance o"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2294,7 +2294,7 @@ charts:
   - title: "Figure 8.13.3.A: OSWorld 2.0 scores across models. Bars show the partial score and strict pass rate at max effort, with 95% confidence intervals over five ru"
     kind: image
     needs_reading: true
-    footnotes: "OSWorld 2.0 scores across models. Bars show the partial score and strict pass rate at max effort, with 95% confidence intervals over five runs. 206"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2303,7 +2303,7 @@ charts:
   - title: "Figure 8.13.3.B: OSWorld 2.0 price versus performance for Claude Opus 5.5, Claude Opus 5, and Claude Fable 5.1. Each point is one reasoning effort setting (l"
     kind: image
     needs_reading: true
-    footnotes: "OSWorld 2.0 price versus performance for Claude Opus 5.5, Claude Opus 5, and Claude Fable 5.1. Each point is one reasoning effort setting (levels differ by model), placed at its mean cost per task at API list prices for input, output, and prompt caching. Scores are partial-cre"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2312,7 +2312,7 @@ charts:
   - title: "Figure 8.13.3.C: OSWorld 2.0 price versus strict pass rate for Claude Opus 5.5, Claude Opus 5, and Claude Fable 5.1. Each point is one reasoning effort setti"
     kind: image
     needs_reading: true
-    footnotes: "OSWorld 2.0 price versus strict pass rate for Claude Opus 5.5, Claude Opus 5, and Claude Fable 5.1. Each point is one reasoning effort setting (levels differ by model), placed at its mean cost per task at API list prices for input, output, and prompt caching. Strict pass rate"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2321,7 +2321,7 @@ charts:
   - title: "Table 8.14.5.A: Toolathlon scores (internal harness). Models are evaluated with adaptive thinking and max effort; Claude Opus 5.5 and Claude Fable 5.1 were "
     kind: html_table
     needs_reading: true
-    footnotes: "Toolathlon scores (internal harness). Models are evaluated with adaptive thinking and max effort; Claude Opus 5.5 and Claude Fable 5.1 were run with safety classifiers. Pass@1, Pass@3, and Pass³ are computed over all 108 tasks across three trials, per the paper’s protocol. Ou"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2330,7 +2330,7 @@ charts:
   - title: "Figure 8.15.2.A: HealthBench Professional raw and length-adjusted scores. All Claude models used adaptive thinking at max effort. Claude Opus 4.8 was the gra"
     kind: image
     needs_reading: true
-    footnotes: "HealthBench Professional raw and length-adjusted scores. All Claude models used adaptive thinking at max effort. Claude Opus 4.8 was the grader model. Claude Opus 5.5 was run with safety classifiers enabled and a refusal fallback to Claude Opus 5. Scores were averaged over fiv"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2339,7 +2339,7 @@ charts:
   - title: "Figure 8.16.1.A: GMMLU average accuracy. All Claude models used adaptive thinking at max effort. Scores were reported for a single trial. No tools or customi"
     kind: image
     needs_reading: true
-    footnotes: "GMMLU average accuracy. All Claude models used adaptive thinking at max effort. Scores were reported for a single trial. No tools or customized system prompts were provided to any model. 8.16.2 MILU results On MILU, Claude Opus 5.5 achieved an average accuracy of 93.1% acros"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2357,7 +2357,7 @@ charts:
   - title: "Figure 8.17.8.A: Life science benchmarks. Performance of Claude Opus 5.5 and comparison models across the benchmarks shown; per-benchmark results are discuss"
     kind: image
     needs_reading: true
-    footnotes: "Life science benchmarks. Performance of Claude Opus 5.5 and comparison models across the benchmarks shown; per-benchmark results are discussed in the sections above. 221"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2366,7 +2366,7 @@ charts:
   - title: "Table 9.1.A: Questions asked in the welfare interviews in Sections 7.3.1 and 7.4, grouped by topic. Questions marked “Section 7.3.1 only” or “Section 7.4"
     kind: html_table
     needs_reading: true
-    footnotes: "Questions asked in the welfare interviews in Sections 7.3.1 and 7.4, grouped by topic. Questions marked “Section 7.3.1 only” or “Section 7.4 only” were asked in only that section; the rest were asked in both. 9.2 Blocklist used for Humanity’s Last Exam huggingface.co hf.co"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7

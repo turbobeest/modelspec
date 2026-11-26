@@ -5,7 +5,7 @@ phase: "phase2a"
 charts:
   - title: "Launch benchmark grid"
     kind: html_table
-    footnotes: "Fable 5.1 was run with production safeguards. On OSWorld, a safeguard intervention scored zero. Terminal-Bench 4.0 prints Mythos 5.1 in the same cell as Fable 5.1. The post says the two are the same model and the gap is the safeguard. Competitor figures follow the developers' published numbers."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7

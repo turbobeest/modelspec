@@ -5,7 +5,7 @@ phase: "phase1"
 charts:
   - title: "OSWorld 2.0 offline, stated in prose"
     kind: text
-    footnotes: "Partial reward on the offline set from the v2026.08.08 release. Stated in the post, not printed on a chart image."
+    footnotes: ""
     competitor_numbers: vendor_run
     readings:
       - reader: grok-build-4.7
@@ -35,7 +35,7 @@ charts:
         role: competitor
   - title: "Agents' Last Exam, FrontierCode, DeepSWE, factuality and deception charts"
     kind: text
-    footnotes: "The drawn charts do not print point values. The bars are the figures the prose states."
+    footnotes: ""
     competitor_numbers: vendor_run
     readings:
       - reader: grok-build-4.7
