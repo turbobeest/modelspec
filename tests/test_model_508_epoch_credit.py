@@ -74,7 +74,8 @@ sources:
         value_field="score", store=store)
     monkeypatch.setattr(refresh, "collect_readings", lambda *_a, **_k: ([board], []))
     report = refresh.run(observed_at="2026-09-26", dry_run=False, root=root, source_cache=cache,
-                         model_ids=("lab/new",), add_missing=True)
+                         model_ids=("lab/new",), add_missing=True,
+                         collector=refresh.COLLECTOR)
     assert report.added == 1 and report.quarantined == []
     front = yaml.safe_load(card.read_text(encoding="utf-8").split("---", 2)[1])
     return front["benchmarks"]["evidence"][0]

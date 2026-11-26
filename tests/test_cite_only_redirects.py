@@ -76,6 +76,15 @@ def test_firecrawl_preserves_both_reported_origin_fields(tmp_path, monkeypatch):
 
 
 def test_rendered_fetch_preserves_intermediate_redirect_origin(tmp_path, monkeypatch):
+    from decision.retention import cite_only_hosts
+
+    (tmp_path / "terms" / "registry").mkdir(parents=True)
+    (tmp_path / "terms" / "registry" / "source-terms.json").write_text(
+        json.dumps({"example.test": "permits"}))
+    (tmp_path / "terms" / "registry" / "sources.yaml").write_text(
+        '{"schema_version": 1, "sources": []}')
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path / "terms"))
+    cite_only_hosts.cache_clear()
     sync_api = ModuleType("playwright.sync_api")
     sync_api.Error = type("PageError", (Exception,), {})
     sync_api.TimeoutError = type("PageTimeout", (sync_api.Error,), {})
@@ -95,3 +104,10 @@ def test_rendered_fetch_preserves_intermediate_redirect_origin(tmp_path, monkeyp
     store = CopyStore(tmp_path)
     ref = store.put(result.body, source_url=START, resolved_urls=result.resolved_urls)
     assert not store.path(ref).exists()
+
+
+def test_citation_metadata_keeps_every_hop_as_fetched():
+    from decision.retention import citation_metadata
+
+    hops = ["https://example.test/a", "https://example.test/b", "https://example.test/a"]
+    assert citation_metadata(hops[0], "sha256:" + "0" * 64, resolved_urls=hops)["resolved_urls"] == hops

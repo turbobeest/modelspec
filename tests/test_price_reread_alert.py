@@ -526,14 +526,24 @@ def test_metadata_origins_end_on_the_final_url() -> None:
     assert metadata_origins({"url": a, "final_url": b, "resolved_urls": [a, b, c]})[-1] == b
     assert metadata_origins({"sourceURL": a, "url": c}) == (a, c)  # Firecrawl: requested, final
     assert metadata_origins({"url": a, "resolved_urls": [a, b, a]})[-1] == a
-    assert citation_metadata(a, "sha256:" + "0" * 64, resolved_urls=[a, b, a])["resolved_urls"] == [b, a]
+    # Exactly as fetched, repeats kept (MODEL-565); it still ends on the final URL.
+    assert citation_metadata(a, "sha256:" + "0" * 64, resolved_urls=[a, b, a])["resolved_urls"] == [a, b, a]
 
 
-def test_a_rendered_page_that_moves_back_ends_on_its_own_url(monkeypatch) -> None:
+def test_a_rendered_page_that_moves_back_ends_on_its_own_url(monkeypatch, tmp_path) -> None:
     """MODEL-525: when a page script returns to an earlier hop, that URL is the final one."""
     from types import ModuleType, SimpleNamespace
 
+    from decision.retention import cite_only_hosts
     from decision.sources import RenderedFetcher
+
+    # The rendered path fetches nothing without a terms register (MODEL-565).
+    (tmp_path / "registry").mkdir()
+    (tmp_path / "registry" / "source-terms.json").write_text(
+        json.dumps({"a.example": "permits", "b.example": "permits"}))
+    (tmp_path / "registry" / "sources.yaml").write_text('{"schema_version": 1, "sources": []}')
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))
+    cite_only_hosts.cache_clear()
 
     sync_api = ModuleType("playwright.sync_api")
     sync_api.Error = type("PageError", (Exception,), {})
