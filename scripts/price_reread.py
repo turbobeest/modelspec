@@ -39,8 +39,9 @@ guesses a value for them; a person re-collects.
 With ``--write`` the job records only reconfirmations of unchanged values, and
 the dated citations of cite-only sources; it never edits a value.
 
-The optional, read-only Firecrawl fallback has its own credit limits. Replays
-and ordinary re-reads never call a model or a paid scraper.
+The optional, read-only fallback reads failed pages through the class-checked
+Playwright path, never Firecrawl (MODEL-570). Replays and ordinary re-reads never
+call a model or a paid scraper.
 """
 
 from __future__ import annotations
@@ -1391,13 +1392,15 @@ def main(argv: list[str] | None = None) -> int:
     rendering.add_argument("--rendered-from", type=Path,
                            help="re-read rendered HTML from a validated artifact, without a browser")
     rendering.add_argument("--fallback-from-render", type=Path,
-                           help="fetch failed eligible pages with the capped Firecrawl fallback")
+                           help="read failed eligible pages through the class-checked "
+                           "Playwright fallback (no Firecrawl)")
     parser.add_argument("--fallback-to", type=Path)
-    parser.add_argument("--fallback-ledger", type=Path)
+    parser.add_argument("--fallback-ledger", type=Path,
+                        help="the month's earlier fallback artifacts; accepted, nothing is spent")
     parser.add_argument("--fallback-fake", action="store_true",
-                        help="demo fallback artifacts with fake HTML, no key or network")
+                        help="demo fallback artifacts with fake HTML, no browser or network")
     parser.add_argument("--fallback-from", type=Path,
-                        help="replay a validated fallback artifact, without a Firecrawl key")
+                        help="replay a validated fallback artifact, without a browser")
     parser.add_argument("--report-json", type=Path)
     parser.add_argument("--report-md", type=Path)
     parser.add_argument("--retain-only-cited", action="store_true",
@@ -1436,25 +1439,33 @@ def main(argv: list[str] | None = None) -> int:
             except (OSError, ValueError) as exc:
                 parser.error(f"invalid rendered artifact: {exc}")
         if args.fallback_from_render is not None:
-            from decision.firecrawl import (
-                DisabledFirecrawlFetcher, FakeFirecrawlFetcher, FirecrawlFetcher, firecrawl_opted_in,
+            # MODEL-570: the fallback reads through the class-checked Playwright path and
+            # never constructs a Firecrawl client or reads its key. The ledger argument is
+            # still accepted so the workflow's argv is unchanged; nothing is spent.
+            from scripts.price_reread_fallback import (
+                PLAYWRIGHT_UNAVAILABLE,
+                FakeReader,
+                fallback_to,
+                read_fallback,
             )
-            from scripts.price_reread_fallback import fallback_to, monthly_budget, read_fallback
 
             try:
                 rendered = RenderedReplayFetcher(args.fallback_from_render)
                 month = datetime.now(UTC).strftime("%Y-%m")
-                budget = monthly_budget(args.fallback_ledger, month)
-                # Default OFF: only an explicit opt-in constructs the paid client.
-                paid = (FakeFirecrawlFetcher() if args.fallback_fake else
-                        FirecrawlFetcher(allowance=budget.allowance) if firecrawl_opted_in()
-                        else DisabledFirecrawlFetcher())
+                reader, unavailable = None, None
+                if args.fallback_fake:
+                    reader = FakeReader()
+                else:
+                    try:
+                        reader = stack.enter_context(RenderedFetcher())
+                    except Exception as exc:  # no Playwright, or no browser to launch
+                        unavailable = f"{PLAYWRIGHT_UNAVAILABLE} ({type(exc).__name__})"
                 fallback_to(root=ROOT, rendered=rendered, directory=args.fallback_to, month=month,
                             # Missing plain entries are unavailable in a fake run.
                             # Demo eligibility never makes a primary HTTP request.
                             plain=(rendered if args.fallback_fake else
                                    Fetcher(user_agent=USER_AGENT)),
-                            firecrawl=paid, budget=budget)
+                            reader=reader, fake=args.fallback_fake, unavailable=unavailable)
                 replay, _ = read_fallback(args.fallback_to)
                 print(replay.spend_line)
                 if summary := os.environ.get("GITHUB_STEP_SUMMARY"):

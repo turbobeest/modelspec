@@ -41,7 +41,7 @@ deleted by this ticket; readers refuse to use them for cite-only sources.
 All writer paths must use the guard, including ordinary rechecks
 (`decision/sources.py:687`), rendered price rechecks
 (`scripts/price_reread.py:289,405`), rendered fallback artifacts
-(`scripts/price_reread_fallback.py:273`), pricing scrape caches
+(`scripts/price_reread_fallback.py`, `fallback_to`, which reads through the class-checked Playwright path since MODEL-570), pricing scrape caches
 (`scripts/fetch_pricing.py:595,611`), and benchmark fetch caches
 (`scripts/benchmarks/fetch.py:308,490`). Local fixture tests cover these
 boundaries. Collection scripts that cannot safely provide a transient reader
