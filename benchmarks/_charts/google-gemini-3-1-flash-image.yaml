@@ -5,7 +5,7 @@ phase: "phase2b-4"
 charts:
   - title: "Text-to-image and editing Elo"
     kind: html_table
-    footnotes: "Side-by-side human Elo. The point estimate is the bar; the table also prints a plus-minus. GenAI-Bench preference and visual quality are separate metrics of that benchmark. Grok has no multi-input cell."
+    footnotes: ""
     competitor_numbers: vendor_run
     readings:
       - reader: grok-build-4.7

@@ -5,7 +5,7 @@ phase: "phase2b-2"
 charts:
   - title: "Capability results"
     kind: html_table
-    footnotes: "Results as of July 2026. The card points at the Gemini 3.6 Flash evals methodology page and does not say whether rival numbers are Google's runs. Price rows are omitted. CharXiv is shown with no tools and with tools. MRCR is shown at 128k average and at the 1M point."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -460,7 +460,7 @@ charts:
         role: subject
   - title: "Safety deltas versus Gemini 3.5 Flash"
     kind: html_table
-    footnotes: "Percentage-point deltas versus Gemini 3.5 Flash. Lower is better except tone. These evals have no catalogue page."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7

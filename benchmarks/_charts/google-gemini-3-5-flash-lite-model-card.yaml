@@ -5,7 +5,7 @@ phase: "phase2b-2"
 charts:
   - title: "Capability results"
     kind: html_table
-    footnotes: "Results as of July 2026. The card points at the Gemini 3.5 Flash-Lite evals methodology page and does not say whether rival numbers are Google's runs. Price rows are omitted."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -255,7 +255,7 @@ charts:
         role: subject
   - title: "Safety deltas versus Gemini 3.1 Flash-Lite"
     kind: html_table
-    footnotes: "Percentage-point deltas versus Gemini 3.1 Flash-Lite. Lower is better except tone. These evals have no catalogue page."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7

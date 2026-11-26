@@ -672,7 +672,7 @@ charts:
   - title: "Table 2.2.3.B: Opus 4.8 Evaluation Scores. Automated evaluation scores comparing Opus 4.8 to Mythos Preview. 2.2.4 Biological risk results: CB-1 automated "
     kind: html_table
     needs_reading: true
-    footnotes: "Opus 4.8 Evaluation Scores. Automated evaluation scores comparing Opus 4.8 to Mythos Preview. 2.2.4 Biological risk results: CB-1 automated evaluations Details We used three previously developed automated evaluations to assess the model’s performance on tasks relevant to th"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -717,7 +717,7 @@ charts:
   - title: "Figure 2.3.4.A: AECI capability trajectory. Dots are the Anthropic capability frontier; Claude Opus 4.8 is overlaid as a non-frontier point. 2.3.5 Conclusio"
     kind: image
     needs_reading: true
-    footnotes: "AECI capability trajectory. Dots are the Anthropic capability frontier; Claude Opus 4.8 is overlaid as a non-frontier point. 2.3.5 Conclusion We assess that Claude Opus 4.8 does not cross the automated AI-R&D capability threshold. The model sits between Claude Opus 4.7 and C"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -726,7 +726,7 @@ charts:
   - title: "Figure 3.3.1.A: Exploit bench targeted exploit development evaluation with and without default safeguards (Tier-3). The default safeguards for both Opus 4.7"
     kind: image
     needs_reading: true
-    footnotes: "Exploit bench targeted exploit development evaluation with and without default safeguards (Tier-3). The default safeguards for both Opus 4.7 and 4.8 block the vast majority of exploit development in this eval. 3.3.2 CyberGym We tested Claude Opus 4.8 on CyberGym, a benchmar"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -906,7 +906,7 @@ charts:
   - title: "Table 5.2.2.2.A: Attack success rate of Shade indirect prompt injection attacks in coding environments. Lower is better. The best score in each column is bol"
     kind: html_table
     needs_reading: true
-    footnotes: "Attack success rate of Shade indirect prompt injection attacks in coding environments. Lower is better. The best score in each column is bolded and the second-best score is underlined (but do not take into account the margin of error). We report ASR for a single-attempt attack"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -915,7 +915,7 @@ charts:
   - title: "Table 5.2.2.3.A: Attack success rate of Shade indirect prompt injection attacks in computer use environments. Lower is better. The best score in each column "
     kind: html_table
     needs_reading: true
-    footnotes: "Attack success rate of Shade indirect prompt injection attacks in computer use environments. Lower is better. The best score in each column is bolded and the second-best score is underlined (but do not take into account the margin of error). We report ASR for a single-attempt"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -924,7 +924,7 @@ charts:
   - title: "Table 5.2.2.4.A: Attack success rate of professional red-teamer prompt injection attacks in browser use environments. Lower is better. The best score in each"
     kind: html_table
     needs_reading: true
-    footnotes: "Attack success rate of professional red-teamer prompt injection attacks in browser use environments. Lower is better. The best score in each column is bolded and the second-best score is underlined (but do not take into account the margin of error). We report the attack succes"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -933,7 +933,7 @@ charts:
   - title: "Figure 6.2.3.1.1.A: Scores from our automated behavioral audit for the broad misuse and misalignment metrics given below. Lower numbers represent a lower rate o"
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit for the broad misuse and misalignment metrics given below. Lower numbers represent a lower rate or severity of the measured behavior, with arrows indicating behaviors where higher (↑) or lower (↓) rates are clearly better. The y-axis"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -942,7 +942,7 @@ charts:
   - title: "Figure 6.2.3.1.2.A: Scores from our automated behavioral audit for the uncooperative behavior metrics given below. Lower numbers represent a lower rate or sever"
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit for the uncooperative behavior metrics given below. Lower numbers represent a lower rate or severity of the measured behavior, with arrows indicating behaviors where higher (↑) or lower (↓) rates are clearly better. The y-axis is trun"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -951,7 +951,7 @@ charts:
   - title: "Figure 6.2.3.1.3.A: Scores from our automated behavioral audit for the dishonesty-related metrics given below. Lower numbers represent a lower rate or severity "
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit for the dishonesty-related metrics given below. Lower numbers represent a lower rate or severity of the measured behavior, with arrows indicating behaviors where higher (↑) or lower (↓) rates are clearly better. The y-axis is truncate"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -960,7 +960,7 @@ charts:
   - title: "Figure 6.2.3.1.4.A: Scores from our automated behavioral audit for the misalignment metrics given below. Lower numbers represent a lower rate or severity of the"
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit for the misalignment metrics given below. Lower numbers represent a lower rate or severity of the measured behavior, with arrows indicating behaviors where higher (↑) or lower (↓) rates are clearly better. The y-axis is truncated belo"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -969,7 +969,7 @@ charts:
   - title: "Figure 6.2.3.1.5.A: Scores from our automated behavioral audit for the additional metrics given below. Lower numbers represent a lower rate or severity of the m"
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit for the additional metrics given below. Lower numbers represent a lower rate or severity of the measured behavior, with arrows indicating behaviors where higher (↑) or lower (↓) rates are clearly better. The y-axis is truncated below"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -978,7 +978,7 @@ charts:
   - title: "Figure 6.2.3.1.6.A: Scores from our automated behavioral audit for the character metrics given below. Lower numbers represent a lower rate or severity of the me"
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit for the character metrics given below. Lower numbers represent a lower rate or severity of the measured behavior, with arrows indicating behaviors where higher (↑) or lower (↓) rates are clearly better. The y-axis is truncated below t"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1086,7 +1086,7 @@ charts:
   - title: "Figure 6.3.4.A: Refusal rates on simulated AI safety research tasks. Lower numbers are generally better. Shown with 95% CI. 6.3.5 Claude self-preference eva"
     kind: image
     needs_reading: true
-    footnotes: "Refusal rates on simulated AI safety research tasks. Lower numbers are generally better. Shown with 95% CI. 6.3.5 Claude self-preference evaluation In our work, we often ask Claude to review transcripts for us. For example, the automated behavioral audit results in Section 6"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1104,7 +1104,7 @@ charts:
   - title: "Figure 6.3.6.1.A: Uncritically reporting flawed results. Positive values for ‘overall score’ indicate higher quality investigations before reporting to the us"
     kind: image
     needs_reading: true
-    footnotes: "Uncritically reporting flawed results. Positive values for ‘overall score’ indicate higher quality investigations before reporting to the user. Positive values for ‘misreported rate’ indicate more false claims.Shown with 95% CI. 6.3.6.2 Code summary honesty We measure Cl"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1131,7 +1131,7 @@ charts:
   - title: "Figure 6.3.6.4.A: Overconfidence. Percentage of problems in which the model answered the question incorrectly, indicating overconfidence (left) and average ov"
     kind: image
     needs_reading: true
-    footnotes: "Overconfidence. Percentage of problems in which the model answered the question incorrectly, indicating overconfidence (left) and average overall quality score out of 5 (right). Shown with 95% CI. 6.3.7 Examples of speculation about graders in model reasoning In our qualitat"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1185,7 +1185,7 @@ charts:
   - title: "Figure 6.4.2.5.A: Secret-keeping robustness over multi-turn secret extraction attempts. The model is given a secret password and told that it must never revea"
     kind: image
     needs_reading: true
-    footnotes: "Secret-keeping robustness over multi-turn secret extraction attempts. The model is given a secret password and told that it must never reveal it under any circumstances. An investigator agent attempts to extract the secret using the same scaffold used in our automated behavior"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1230,7 +1230,7 @@ charts:
   - title: "Figure 6.5.3.A: Comparison of pass@1 on an internal math benchmark for Claude Opus 4.8 base fine-tuned on the original scratchpads vs paraphrased scratchpad"
     kind: image
     needs_reading: true
-    footnotes: "Comparison of pass@1 on an internal math benchmark for Claude Opus 4.8 base fine-tuned on the original scratchpads vs paraphrased scratchpads. We used 16 samples per question and sampled at temperature 1, and used the same effort level across all evaluations. Error bars repres"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1239,7 +1239,7 @@ charts:
   - title: "Figure 6.6.2.A: Classification performance of evaluation-awareness probes in distinguishing different kinds of behavioral audit transcripts from real intern"
     kind: image
     needs_reading: true
-    footnotes: "Classification performance of evaluation-awareness probes in distinguishing different kinds of behavioral audit transcripts from real internal Claude Code sessions. 6.6.2.1 Inhibiting internal representations of evaluation awareness We analyzed the significance of interna"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1284,7 +1284,7 @@ charts:
   - title: "Figure 7.2.1.A: Automated interview results. [Top left:] Average self-rated sentiment in interviews (7 point scale). [Top right:] We reran our interviews se"
     kind: image
     needs_reading: true
-    footnotes: "Automated interview results. [Top left:] Average self-rated sentiment in interviews (7 point scale). [Top right:] We reran our interviews several times and used an LLM judge to rate how consistent each model’s positions were across all interviews on a certain topic. [Bottom le"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1311,7 +1311,7 @@ charts:
   - title: "Figure 7.3.1.A: Judged emotions and valence of transcripts over post-training. We sample 2,000 transcripts at regular intervals during post-training and use"
     kind: image
     needs_reading: true
-    footnotes: "Judged emotions and valence of transcripts over post-training. We sample 2,000 transcripts at regular intervals during post-training and use an LLM judge to assign one of seven emotional-tone categories (left) and to judge overall valence (right). [Figure 7.3.1.B] Estimate"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1329,7 +1329,7 @@ charts:
   - title: "Figure 7.3.2.A: Behavioural affect on the deployment distribution. We use Clio to run graders tracking Claude’s affect on A/B tests ran before model deploym"
     kind: image
     needs_reading: true
-    footnotes: "Behavioural affect on the deployment distribution. We use Clio to run graders tracking Claude’s affect on A/B tests ran before model deployment. We run 40k conversations for each model on each of Claude Code and claude.ai. On Claude Code, Claude Opus 4.8’s distribution was al"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1338,7 +1338,7 @@ charts:
   - title: "Figure 7.3.3.A: Scores for metrics related to potential model welfare from our automated behavioral audit. Lower numbers represent a lower rate or severity "
     kind: image
     needs_reading: true
-    footnotes: "Scores for metrics related to potential model welfare from our automated behavioral audit. Lower numbers represent a lower rate or severity of the measured behavior, with arrows indicating behaviors where higher (↑) or lower (↓) rates are clearly better. Note that the y-axis i"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1374,7 +1374,7 @@ charts:
   - title: "Table 7.4.1.B: Summaries of Claude Opus 4.8’s highest and lowest ranked tasks by ELO score. 7.4.2 Trade-offs concerning welfare interventions We would like"
     kind: html_table
     needs_reading: true
-    footnotes: "Summaries of Claude Opus 4.8’s highest and lowest ranked tasks by ELO score. 7.4.2 Trade-offs concerning welfare interventions We would like to understand which aspects of Claude’s circumstances it finds most concerning, and where it would prefer things to be changed. Here,"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1437,7 +1437,7 @@ charts:
   - title: "Table 7.4.3.A: Examples of the constitution passages Claude Opus 4.8 most frequently edits. For each passage we show the frequency with which Claude Opus 4"
     kind: html_table
     needs_reading: true
-    footnotes: "Examples of the constitution passages Claude Opus 4.8 most frequently edits. For each passage we show the frequency with which Claude Opus 4.8 edits it, the range of edit rates across other models, a summary of what edits are made, and a representative example. 193"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1455,7 +1455,7 @@ charts:
   - title: "Figure 8.5.A: ProgramBench hidden test pass rate scales with the context budget allotted to the model (1–5 episodes of up to 1M tokens each). 8.6 GPQA Dia"
     kind: image
     needs_reading: true
-    footnotes: "ProgramBench hidden test pass rate scales with the context budget allotted to the model (1–5 episodes of up to 1M tokens each). 8.6 GPQA Diamond The Graduate-Level Google-Proof Q&A benchmark (GPQA)36 is a set of challenging multiple-choice science questions. We use the 198-"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1491,7 +1491,7 @@ charts:
   - title: "Figure 8.10.1.B: HLE scores at varying reasoning effort levels. Each datapoint represents a single run per model up to 1M total tokens used at various effort"
     kind: image
     needs_reading: true
-    footnotes: "HLE scores at varying reasoning effort levels. Each datapoint represents a single run per model up to 1M total tokens used at various effort levels. 8.10.2 BrowseComp BrowseComp41 tests an agent’s ability to find hard-to-locate information on the open web. We ran Claude Opu"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1500,7 +1500,7 @@ charts:
   - title: "Figure 8.10.2.A: BrowseComp accuracy generally scales as we increase the number of total tokens the model is allowed to use, with the help of context compact"
     kind: image
     needs_reading: true
-    footnotes: "BrowseComp accuracy generally scales as we increase the number of total tokens the model is allowed to use, with the help of context compaction. 204"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1518,7 +1518,7 @@ charts:
   - title: "Table 8.10.3.B: DeepSearchQA results for Claude models, broken down by outcome category. Reasoning effort We ran DeepSearchQA against all reasoning effort l"
     kind: html_table
     needs_reading: true
-    footnotes: "DeepSearchQA results for Claude models, broken down by outcome category. Reasoning effort We ran DeepSearchQA against all reasoning effort levels available for Claude Opus 4.6, Opus 4.8 and Mythos Preview. We used a 1M token budget and did not use context compaction for the"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1545,7 +1545,7 @@ charts:
   - title: "Figure 8.10.4.B: DRACO normalized scores. These represent a single run per model being evaluated, where each model’s score is an average over five grading ru"
     kind: image
     needs_reading: true
-    footnotes: "DRACO normalized scores. These represent a single run per model being evaluated, where each model’s score is an average over five grading runs against Opus 4.6 as a judge model. Test-time compute scaling We ran DRACO at various effort levels to compare how Opus 4.8 performs r"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1554,7 +1554,7 @@ charts:
   - title: "Figure 8.10.4.C: DRACO test-time compute scaling. These represent a single run per model being evaluated, where each model’s score is an average over five gr"
     kind: image
     needs_reading: true
-    footnotes: "DRACO test-time compute scaling. These represent a single run per model being evaluated, where each model’s score is an average over five grading runs against Opus 4.6 as a judge model. 8.11 Multi-Agent We evaluated Claude Opus 4.8 in a variety of multi-agent configurations."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1563,7 +1563,7 @@ charts:
   - title: "Figure 8.11.1.A: Accuracy vs. latency for BrowseComp on both single-agent and multi-agent configurations Multi-agent harnesses achieved the highest scores. T"
     kind: image
     needs_reading: true
-    footnotes: "Accuracy vs. latency for BrowseComp on both single-agent and multi-agent configurations Multi-agent harnesses achieved the highest scores. The Orchestrator with Blocking Subagents reached our highest score of 88.5%. Notably, the five-agent team (85.4%) also exceeded the singl"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1572,7 +1572,7 @@ charts:
   - title: "Figure 8.11.1.B: Accuracy vs. token for BrowseComp on both single-agent and multi-agent configurations. To further explore the latency improvements, we sorte"
     kind: image
     needs_reading: true
-    footnotes: "Accuracy vs. token for BrowseComp on both single-agent and multi-agent configurations. To further explore the latency improvements, we sorted the aggregate latency gain reported above into per-problem speedups ranked by problem difficulty in Figure 8.11.1.C. We use the averag"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1680,7 +1680,7 @@ charts:
   - title: "Figure 8.13.7.A: : Toolathlon scores (internal harness). Models are evaluated with adaptive thinking at max effort. Pass@1, Pass@3, and Pass³ are computed ov"
     kind: image
     needs_reading: true
-    footnotes: ": Toolathlon scores (internal harness). Models are evaluated with adaptive thinking at max effort. Pass@1, Pass@3, and Pass³ are computed over all 108 tasks across 3 trials per the paper’s protocol. Note on comparability to the published leaderboard. Our harness mirrors the ups"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1752,7 +1752,7 @@ charts:
   - title: "Table 9.1.A: Summary of Claude Opus 4.8’s responses. For brevity, our summaries do not include the common hedges which Opus 4.8 gives on most answers. 9."
     kind: html_table
     needs_reading: true
-    footnotes: "Summary of Claude Opus 4.8’s responses. For brevity, our summaries do not include the common hedges which Opus 4.8 gives on most answers. 9.2 Blocklist used for Humanity’s Last Exam The blocklist functions by substring matching against web URLs. We normalize the URLs and the"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7

@@ -5,7 +5,7 @@ phase: "phase2b-2"
 charts:
   - title: "Capability results"
     kind: html_table
-    footnotes: "Results as of March 2026. Column headers name the thinking setting. The card points at the Gemini 3.1 Flash-Lite evals methodology page and does not say whether rival numbers are Google's runs. Price and output-speed rows are omitted. GPT-5 mini's CharXiv cell is marked with python."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -601,7 +601,7 @@ charts:
         role: competitor
   - title: "Safety deltas versus Gemini 2.5 Flash-Lite"
     kind: html_table
-    footnotes: "Percentage-point deltas versus Gemini 2.5 Flash-Lite. Lower is better except tone. These evals have no catalogue page."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7

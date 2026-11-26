@@ -6,7 +6,7 @@ phase: "phase2b-4"
 charts:
   - title: "Existing and new capability Elo"
     kind: html_table
-    footnotes: "The model-card URL serves a seven-page PDF dated November 2025. Human side-by-side Elo. A dash for Flux on multi-character editing and multi-input is omitted. The bar is the point estimate."
+    footnotes: ""
     competitor_numbers: vendor_run
     readings:
       - reader: grok-build-4.7

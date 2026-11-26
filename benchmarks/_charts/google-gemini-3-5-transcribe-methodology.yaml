@@ -8,7 +8,7 @@ charts:
     kind: image
     image_url: "https://deepmind.google/models/evals-methodology/gemini-3-5-transcribe"
     image_sha256: "82c4a3f03c7926e204bf4e8ea783665c08ae3defb8459674559157842922ef4a"
-    footnotes: "Word error rate on FLEURS top locales, streaming. Top locales: ar-EG, bn-IN, cmn-Hans-CN, de-DE, en-US, es-ES, es-US, fr-FR, hi-IN, id-ID, it-IT, ja-JP, ko-KR, mr-IN, nl-NL, pl-PL, pt-BR, ro-RO, ru-RU, ta-IN, te-IN, th-TH, tr-TR, uk-UA, vi-VN. Lower is better. The chart is embedded in the methodology PDF. Google says these are its runs of competitors' default APIs."
+    footnotes: ""
     competitor_numbers: vendor_run
     readings:
       - reader: grok-build-4.7
@@ -72,7 +72,7 @@ charts:
     kind: image
     image_url: "https://deepmind.google/models/evals-methodology/gemini-3-5-transcribe"
     image_sha256: "a06f9bc9995cebad0337d589804e7a58bf3757cf93cc25ab1a5fe536c52db3e0"
-    footnotes: "Word error rate on FLEURS top locales, non-streaming. Top locales: ar-EG, bn-IN, cmn-Hans-CN, de-DE, en-US, es-ES, es-US, fr-FR, hi-IN, id-ID, it-IT, ja-JP, ko-KR, mr-IN, nl-NL, pl-PL, pt-BR, ro-RO, ru-RU, ta-IN, te-IN, th-TH, tr-TR, uk-UA, vi-VN. Lower is better. ElevenLabs Scribe v2 is printed 7.12%."
+    footnotes: ""
     competitor_numbers: vendor_run
     readings:
       - reader: grok-build-4.7

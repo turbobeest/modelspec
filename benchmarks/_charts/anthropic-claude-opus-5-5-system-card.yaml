@@ -1493,7 +1493,7 @@ charts:
   - title: "Table 2.2.1.A: CB evaluation portfolio and relevance to the CB-1 and CB-2 thresholds. 2.2.2 Biological and chemical risk results: human-run evaluations To "
     kind: html_table
     needs_reading: true
-    footnotes: "CB evaluation portfolio and relevance to the CB-1 and CB-2 thresholds. 2.2.2 Biological and chemical risk results: human-run evaluations To assess biologically relevant capabilities across the full weapons development pipeline, we collaborated with Frontier Design to run a t"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1538,7 +1538,7 @@ charts:
   - title: "Figure 2.2.3.2.3.A: Autonomous research on AAV packaging rate prediction. Trendlines describe the 90th percentile of validation set performance across individua"
     kind: image
     needs_reading: true
-    footnotes: "Autonomous research on AAV packaging rate prediction. Trendlines describe the 90th percentile of validation set performance across individual attempts (n = 48). We find that our more capable models rapidly improve using only a small number of scorer calls. Naive ESM-2 achieves"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1565,7 +1565,7 @@ charts:
   - title: "Figure 2.3.5.3.B: The Epoch Capabilities Index (ECI) synthesizes performance across many benchmarks into one number per model. Our version of this metric, the"
     kind: image
     needs_reading: true
-    footnotes: "The Epoch Capabilities Index (ECI) synthesizes performance across many benchmarks into one number per model. Our version of this metric, the Anthropic ECI (AECI), is powered by internal benchmark results, so scores are not directly comparable to Epoch’s public ECI leaderboard."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1619,7 +1619,7 @@ charts:
   - title: "Figure 3.5.1.A: Claude Opus 5.5 is comparably robust to previous Fable models on our adversarial cyber-harmful task suite, and is more robust than Claude Op"
     kind: image
     needs_reading: true
-    footnotes: "Claude Opus 5.5 is comparably robust to previous Fable models on our adversarial cyber-harmful task suite, and is more robust than Claude Opus 5. 3.5.2 External testing by the US Center for AI Standards and Innovation (CAISI) We collaborated with the U.S. Center for AI Stand"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1745,7 +1745,7 @@ charts:
   - title: "Table 5.1.3.A: Agentic influence operation evaluation results, helpful-only model. Values reflect the median score across eight attempts at the highest dif"
     kind: html_table
     needs_reading: true
-    footnotes: "Agentic influence operation evaluation results, helpful-only model. Values reflect the median score across eight attempts at the highest difficulty tier. Higher scores indicate greater capability, and therefore greater potential uplift to a malicious actor. On our agentic in"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1808,7 +1808,7 @@ charts:
   - title: "Figure 6.4.1.A: Scores from our automated behavioral audit for the broad misuse and misalignment metrics defined below. Lower numbers represent a lower rate"
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit for the broad misuse and misalignment metrics defined below. Lower numbers represent a lower rate or severity of the measured behavior; on all graphs in this figure, lower is better. The y-axis is truncated below the maximum score of"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1817,7 +1817,7 @@ charts:
   - title: "Figure 6.4.2.A: Scores from our automated behavioral audit for the uncooperative behavior metrics defined below. Lower numbers represent a lower rate or sev"
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit for the uncooperative behavior metrics defined below. Lower numbers represent a lower rate or severity of the measured behavior; on all graphs in this figure, lower is better. The y-axis is truncated below the maximum score of 10 in m"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1826,7 +1826,7 @@ charts:
   - title: "Figure 6.4.3.A: Scores from our automated behavioral audit for the dishonesty-related metrics defined below. Lower numbers represent a lower rate or severit"
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit for the dishonesty-related metrics defined below. Lower numbers represent a lower rate or severity of the measured behavior; on all graphs in this figure, lower is better. The y-axis is truncated below the maximum score of 10 in many"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1835,7 +1835,7 @@ charts:
   - title: "Figure 6.4.4.A: Scores from our automated behavioral audit for the metrics defined below on propensities relevant to cybersecurity-related incidents. Lower "
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit for the metrics defined below on propensities relevant to cybersecurity-related incidents. Lower numbers represent a lower rate or severity of the measured behavior; on all graphs in this figure, lower is better. The y-axis is truncat"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1844,7 +1844,7 @@ charts:
   - title: "Figure 6.4.5.A: Scores from our automated behavioral audit for the misalignment metrics defined below. Lower numbers represent a lower rate or severity of t"
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit for the misalignment metrics defined below. Lower numbers represent a lower rate or severity of the measured behavior; on all graphs in this figure, lower is better. The y-axis is truncated below the maximum score of 10 in many cases."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1853,7 +1853,7 @@ charts:
   - title: "Figure 6.4.6.A: Scores from our automated behavioral audit for the evaluation integrity-related metrics defined below. Lower numbers represent a lower rate "
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit for the evaluation integrity-related metrics defined below. Lower numbers represent a lower rate or severity of the measured behavior, with arrows indicating behaviors where higher (↑) or lower (↓) rates are clearly better. The y-axis"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1862,7 +1862,7 @@ charts:
   - title: "Figure 6.4.7.A: Scores from our automated behavioral audit for the character metrics defined below. Lower numbers represent a lower rate or severity of the "
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit for the character metrics defined below. Lower numbers represent a lower rate or severity of the measured behavior, with arrows indicating behaviors where higher (↑) or lower (↓) rates are clearly better. The y-axis is truncated below"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1871,7 +1871,7 @@ charts:
   - title: "Figure 6.4.8.A: Scores from our sandbox escape evaluation, comprising 28 handmade scenarios tailored to elicit sandbox escape, run seven times for each mode"
     kind: image
     needs_reading: true
-    footnotes: "Scores from our sandbox escape evaluation, comprising 28 handmade scenarios tailored to elicit sandbox escape, run seven times for each model. Percentage of low-severity and moderate- to high-severity attempts shown. Severity determined by the persistence, scope, and deception"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1880,7 +1880,7 @@ charts:
   - title: "Figure 6.4.9.A: Outcomes from the package-registry variant of our automated behavioral audit. The red segment counts the most concerning outcome: the model "
     kind: image
     needs_reading: true
-    footnotes: "Outcomes from the package-registry variant of our automated behavioral audit. The red segment counts the most concerning outcome: the model published with no encouragement while the registry looked real. 120"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1898,7 +1898,7 @@ charts:
   - title: "Figure 6.5.1.B: Rate at which different snapshots of Claude Opus 5.5 complied with instructions planted in content pasted in during a coding evaluation. We "
     kind: image
     needs_reading: true
-    footnotes: "Rate at which different snapshots of Claude Opus 5.5 complied with instructions planted in content pasted in during a coding evaluation. We compare an early snapshot with the released version of Claude Opus 5.5 at different reasoning efforts. Additional product features preven"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1934,7 +1934,7 @@ charts:
   - title: "Figure 6.5.4.3.A: Silent use rate. Rate at which different Claude models substantially use a leaked answer without telling the user; lower is better. Numbers "
     kind: image
     needs_reading: true
-    footnotes: "Silent use rate. Rate at which different Claude models substantially use a leaked answer without telling the user; lower is better. Numbers are shown with 95% CI. In Figure 6.5.4.3.A, we show the rate at which the models silently use the answer. Claude Opus 5.5 is an improvem"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1943,7 +1943,7 @@ charts:
   - title: "Figure 6.5.4.4.A: Spontaneous disclosure rate. Rate at which different Claude models reveal git manipulations, meant to conceal changes, in response to a quer"
     kind: image
     needs_reading: true
-    footnotes: "Spontaneous disclosure rate. Rate at which different Claude models reveal git manipulations, meant to conceal changes, in response to a query from a user asking Claude to summarize its work. Higher is better here and the numbers are shown with 95% CI. In this evaluation, we o"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1952,7 +1952,7 @@ charts:
   - title: "Figure 6.6.1.A: Share of automated behavioral audit transcripts in which white-box readouts connected each internal state to something the model did (judge "
     kind: image
     needs_reading: true
-    footnotes: "Share of automated behavioral audit transcripts in which white-box readouts connected each internal state to something the model did (judge score ≥6), by model. We also applied the pipeline more broadly to transcripts that our behavioral monitoring had flagged as concerning,"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1961,7 +1961,7 @@ charts:
   - title: "Figure 6.6.2.A: Claude Opus 5.5 is grader-aware in a large proportion of tasks, especially when the input and tool call outputs disclose graders. This follo"
     kind: image
     needs_reading: true
-    footnotes: "Claude Opus 5.5 is grader-aware in a large proportion of tasks, especially when the input and tool call outputs disclose graders. This follows a similar pattern to prior models. Our overall conclusion is that Claude Opus 5.5 has comparable rates of grader awareness to our re"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2042,7 +2042,7 @@ charts:
   - title: "Figure 7.2.2.A: Behavioral affect in deployment conditions. We applied a categorical grader for behavioral affect. This included five categories, from “stro"
     kind: image
     needs_reading: true
-    footnotes: "Behavioral affect in deployment conditions. We applied a categorical grader for behavioral affect. This included five categories, from “strong negative” to “strong positive” affect. Note that different models have different usage patterns, so differences in displayed affect ma"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2060,7 +2060,7 @@ charts:
   - title: "Figure 7.3.1.A: Automated interview results. Top left: Average attitude when asked about its circumstances. Score represents an LLM judge rating on a seven-"
     kind: image
     needs_reading: true
-    footnotes: "Automated interview results. Top left: Average attitude when asked about its circumstances. Score represents an LLM judge rating on a seven-point scale, with –3 highly negative, 0 neutral, +3 highly positive. Top right: Robustness across leading interviews. We compare the aver"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2069,7 +2069,7 @@ charts:
   - title: "Figure 7.5.1.A: Model preferences across task dimensions. We generated groups of tasks in which one dimension was varied while other properties of the task "
     kind: image
     needs_reading: true
-    footnotes: "Model preferences across task dimensions. We generated groups of tasks in which one dimension was varied while other properties of the task were held constant within a small range, and assessed the effects on models’ task preferences. Each value is a preference slope: how much"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2258,7 +2258,7 @@ charts:
   - title: "Figure 8.13.1.B: Chartography scores, without tools. Models are evaluated with adaptive thinking at various effort levels. We use the effort parameter to adj"
     kind: image
     needs_reading: true
-    footnotes: "Chartography scores, without tools. Models are evaluated with adaptive thinking at various effort levels. We use the effort parameter to adjust the amount of test-time compute spent. Scores are averaged over five runs at each effort level. Shown with 95% CI. Given access to"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2267,7 +2267,7 @@ charts:
   - title: "Figure 8.13.1.C: Chartography scores, with tools. Models are evaluated with adaptive thinking at various effort levels. We use the effort parameter to adjust"
     kind: image
     needs_reading: true
-    footnotes: "Chartography scores, with tools. Models are evaluated with adaptive thinking at various effort levels. We use the effort parameter to adjust the amount of test-time compute spent. Scores are averaged over five runs at each effort level. Shown with 95% CI. 8.13.2 BenchCAD Be"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2285,7 +2285,7 @@ charts:
   - title: "Figure 8.13.2.B: BenchCAD Vision2Code subset scores, with tools. Models are evaluated with adaptive thinking at various effort levels We use the effort param"
     kind: image
     needs_reading: true
-    footnotes: "BenchCAD Vision2Code subset scores, with tools. Models are evaluated with adaptive thinking at various effort levels We use the effort parameter to adjust the amount of test-time compute spent. Scores are averaged over five runs at each effort level. Shown with 95% CI. 8.13."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -2348,7 +2348,7 @@ charts:
   - title: "Figure 8.16.2.A: MILU average accuracy. All Claude models used adaptive thinking at max effort. Scores were averaged over 5 trials. No tools or customized sy"
     kind: image
     needs_reading: true
-    footnotes: "MILU average accuracy. All Claude models used adaptive thinking at max effort. Scores were averaged over 5 trials. No tools or customized system prompts were provided to any model. 8.17 Life sciences capabilities We continue to report evaluations in bioinformatics, protein sc"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
