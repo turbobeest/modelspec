@@ -389,6 +389,9 @@ class SnapshotInputs:
     #: Fact id -> its queue events, for the same facts: a ruling stands at a build's cutoff
     #: only once its claim line is filed and checked by then (``owner_ruling.stands_at``).
     owner_ruling_history: Mapping[str, Sequence[Mapping[str, Any]]] = field(default_factory=dict)
+    #: ``(fact id, epoch)`` of the reopened epochs the rolling re-read recorded (MODEL-562): a
+    #: ruling in a reopened epoch is admitted only on one (``owner_ruling.admits``).
+    owner_ruling_reopened: frozenset[tuple[str, str]] = frozenset()
     #: Append-only lines that clear one held mismatch on a fresh two-reader agreement (MODEL-552,
     #: ``decision.quarantine_clearing``), checked against ``cited_attempts``. A cited fact or
     #: board reading held by a mismatch is admitted only through a valid line.
@@ -813,6 +816,7 @@ class _Compiler:
         self.owner_ruling_claims = {str(k): dict(v) for k, v in inputs.owner_ruling_claims.items()}
         self.owner_ruling_history = {str(k): tuple(v)
                                      for k, v in inputs.owner_ruling_history.items()}
+        self.owner_ruling_reopened = frozenset(inputs.owner_ruling_reopened)
         self.quarantine_clearings = tuple(dict(r) for r in inputs.quarantine_clearings)
         self._attempt_log: Any = None
         #: record ID -> the mismatches a supersession retired, for provenance.
@@ -1271,7 +1275,7 @@ class _Compiler:
         from decision.owner_ruling import RulingInputs
 
         return RulingInputs(self.owner_rulings, self.cited_attempts, self.owner_ruling_claims,
-                            self.log, self.owner_ruling_history)
+                            self.log, self.owner_ruling_history, self.owner_ruling_reopened)
 
     def _ruling_known(self, sid: str, fact: Mapping[str, Any]) -> bool:
         """False for a fact that carries ``derivation.owner_ruling`` whose ruling or claim line
@@ -2261,6 +2265,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
 
         supersessions = read_store(supersession_store)
     owner_rulings, cited_attempts, ruling_claims, ruling_history = [], [], {}, {}
+    ruling_reopened: frozenset[tuple[str, str]] = frozenset()
     clearings_store = root / "verification" / "quarantine-clearings.jsonl"
     quarantine_clearings: list[dict[str, Any]] = []
     if clearings_store.is_file():
@@ -2283,6 +2288,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
         cited_attempts = list(ruling_inputs.attempts)
         ruling_claims = dict(ruling_inputs.claims)
         ruling_history = dict(ruling_inputs.history)
+        ruling_reopened = ruling_inputs.reopened
     attempt_lines: list[str] = []
     clearing_history: dict[str, list[dict[str, Any]]] = {}
     if quarantine_clearings:
@@ -2314,6 +2320,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
                           owner_rulings=owner_rulings, cited_attempts=cited_attempts,
                           owner_ruling_claims=ruling_claims,
                           owner_ruling_history=ruling_history,
+                          owner_ruling_reopened=ruling_reopened,
                           quarantine_clearings=quarantine_clearings,
                           cited_attempt_lines=attempt_lines,
                           clearing_history=clearing_history,
