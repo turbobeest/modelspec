@@ -113,4 +113,96 @@ the job already reads, and one bad read cannot file a whole board.
 - The 25th new row is written. The 26th is reported and not written.
 - A diff that only adds these rows is classed for human review. A score-only update of an existing row stays auto-merge.
 
-This ticket does not implement the design.
+MODEL-467 did not implement the design. MODEL-478 does, below.
+
+## Built (MODEL-478)
+
+`scripts/refresh_leaderboards.py` files first rows when `run(first_rows=True)`
+is called, or the CLI gets `--first-rows`. Without the flag the weekly job
+behaves as before. Only the Arena boards file (`FIRST_ROW_BOARD_PREFIXES`).
+
+- `first_row_match` is the matcher above, tightened by the MODEL-478
+  adversarial review. Names are folded with `first_row_fold`, which is
+  `slug(strip=False)` after the parentheses become spaces. Qualifiers such as
+  "(Thinking)", "Instruct" and dates stay in the key on both sides, so
+  "Qwen3-Next 80B-A3B" never names the "(Thinking)" card. `first_row_index`
+  keys every card, whatever its status, on the fold of its display name and its
+  model id. A board row that names a card is skipped when the card already has
+  a row for that benchmark.
+- A card whose display name, `version` or model id carries a date or snapshot
+  stamp takes only a board name that states one of those dates. A stamp is a
+  digit token 4 to 8 long. Even as the sole hit, such a card never takes a base
+  row.
+- `first_row_fold` keeps letters outside ASCII, so "Foo β" never folds to "foo".
+  The verifier's name matcher would drop such letters. So a board name that has
+  them is refused, and a first row's claim does not name the verifier any card
+  name that has them.
+- Round 2 of the review settled effort words. When a board name carries an
+  effort label, the full name is looked up first. A card named "Foo (Max)" means
+  that row is never read as Foo at max effort. If a base card "Foo" also exists,
+  the row is refused as ambiguous. If not, it is refused as a variant. A card
+  whose own name ends in an effort word is a variant, unless MODEL-568's
+  `verify.effort_word_is_name`, given the card's registered names
+  (`_card_names`), finds the word part of the name. So "Qwen3 Max" and "Mistral
+  Medium" are their own cards. "Bar xHigh" on `lab/bar` and "(xHigh)" still
+  read as labels.
+- `first_row_known_names` collects the other names a card is known by: its
+  `version`, its `aliases`, `former_names` and `previous_names`, the names its
+  Arena rows were filed under, and what `ARENA_RENAMED` calls those now. A board
+  name that this gives another card than the name match is refused as ambiguous.
+  So is one it gives more than one card.
+- The verifier checks a first row against the card's own identity: its display
+  name, version, model id, and lab-prefixed name. It does not check against the
+  board name the row copied (`_claim(card_identity=True)`).
+- Two board rows that name one card file neither.
+- `first_row_host_class` reads the canonical host. The board's fetch host and
+  the row's source host must both be `permits` or `restricts`. A board read as
+  cite-only files nothing. A host classed `forbids`, `cite-only`, `unclear`,
+  `excluded` or `missing` files nothing.
+- The run must have written the board whole (`arena_boards_written`), and no
+  Arena revision gate may have stopped it.
+- The verifier must accept each row before it is planned. The run then writes
+  the row and logs it under its collector.
+- An added Arena row has `date_type: published`. Its `configuration` quotes the
+  subset, the category, `leaderboard_publish_date` and `Rating <score> [<lower>,
+  <upper>], <n> votes, rank <rank>.`. `interval` and `n` sit beside the score.
+  The `add_missing` path writes the same fields (MODEL-511).
+- `FIRST_ROWS_PER_RUN` is 50, by the orchestrator's decision on MODEL-478. It
+  replaces the 25 above. Rows past it go to `first_rows_capped`. The cap reads
+  candidates in `FIRST_ROW_ORDER`: cards on `premier/slice-1.yaml` first, then
+  newest card `release_date` first, then the board. A card with no release date
+  comes last, and the model id breaks a tie.
+- One exception to the parentheses rule, also by that decision. A name that ends
+  in one parenthesis `_name_effort` reads as an effort label, such as
+  `Claude Fable 5.2 (xHigh)`, is matched on its base name, the text before the
+  parenthesis. The row lands on that one base card, at that effort. The base
+  card's own name and model id must carry no effort label. A lone variant card,
+  such as "Foo (xHigh)" or "Bar xHigh", is never its own base and is refused. The card's
+  Arena rows must be read at that effort already. Or it must be read at no effort
+  on Arena and must not state `feature.effort_controls: false`. Any other
+  parenthesis is refused, and so is a base name that still has one. When two
+  board rows still name the card after that check, neither is filed.
+- The report has a `## First rows (human review)` section. The report JSON
+  carries `merge_class` (`human-review` or `score-only`), `labels`
+  (`["first-row"]` when a first row was filed), `first_rows`,
+  `first_rows_capped`, `first_rows_refused` and `first_rows_unmatched`.
+- `check_score_only(before, after, first_rows=True)` accepts appended first rows
+  and counts them under the class `first_row`. Each row needs a qualifying host,
+  the dataset-root `source_url`, its own evidence id, and the card's first row on
+  that board. It needs an appended `verified` log line with `COLLECTOR` on the
+  observation day. The result's `merge_class` is then `human-review`, and
+  `labels` is `("first-row",)`. Without `first_rows` the guard refuses any change
+  in the row count, as before.
+
+`run()` takes `collector`. The weekly refresh leaves it unset and logs
+`COLLECTOR`. A run with `add_missing` or `first_rows` must name its collector,
+or it stops before any request. The release-signal job logs
+`process_release_signals.BOARD_COLLECTOR`, and `scripts/model_233_evidence.py`
+logs its own `BOARD_COLLECTOR`. The weekly `--first-rows` run logs `COLLECTOR`,
+and the guard checks for that.
+
+The installed weekly workflow does not yet pass `--first-rows`. That change is
+in the private writer workflow, which is a workflow change, and its four parts
+are listed on MODEL-478. Pass the flag. Call the guard with `first_rows=True`.
+Count `added` among the updates that open a pull request. Apply the report's
+`labels`, and drop the closing claim that no evidence row was added.

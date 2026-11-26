@@ -312,17 +312,20 @@ def _first_row_repo(tmp_path):
 def test_a_release_signal_files_the_first_4_1_row_now_that_no_board_is_held(monkeypatch, tmp_path):
     assert refresh.FIRST_ROW_BOARDS_HELD == frozenset()
     report, _ = _run(monkeypatch, tmp_path, _first_row_repo(tmp_path), _page(),
-                     dry_run=True, add_missing=True, model_ids=["lab/alpha"])
+                     dry_run=True, add_missing=True, model_ids=["lab/alpha"],
+                     collector=refresh.COLLECTOR)
     assert report.added == 1
 
 
 def test_a_held_board_files_no_first_row_until_released(monkeypatch, tmp_path):
     monkeypatch.setattr(refresh, "FIRST_ROW_BOARDS_HELD", frozenset({"terminal-bench-4-1"}))
     held, _ = _run(monkeypatch, tmp_path / "a", _first_row_repo(tmp_path / "a"), _page(),
-                   dry_run=True, add_missing=True, model_ids=["lab/alpha"])
+                   dry_run=True, add_missing=True, model_ids=["lab/alpha"],
+                   collector=refresh.COLLECTOR)
     assert held.added == 0
     released, _ = _run(monkeypatch, tmp_path / "b", _first_row_repo(tmp_path / "b"), _page(),
                        dry_run=True, add_missing=True, model_ids=["lab/alpha"],
+                       collector=refresh.COLLECTOR,
                        release_held_boards=True)
     assert released.added == 1
 
