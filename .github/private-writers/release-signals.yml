@@ -346,7 +346,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          REPOSITORY_OWNER: ${{ github.repository_owner }}
           SIGNAL_ID: ${{ matrix.work.signal_id }}
           RECHECK_DAY: ${{ matrix.work.recheck_day }}
         run: |
@@ -369,23 +368,47 @@ jobs:
                   print(resolution.model_id)
           PY
           )"
-          if [ -z "$model_id" ]; then
+          # The full resolved id, lab prefix included: another lab's model of the
+          # same name is a different model and never attaches.
+          if ! [[ "$model_id" =~ ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$ ]] \
+            || [[ "$model_id" == *..* ]]; then
             exit 0
           fi
-          gh pr list --state open --limit 200 \
-            --json number,url,title,headRefName,headRepositoryOwner,isCrossRepository \
-            > "$RUNNER_TEMP/open-prs.json"
-          pr_url="$(jq -r --arg model "$model_id" --arg owner "$REPOSITORY_OWNER" '
+          card="models/${model_id}.md"
+          # Every page of open PRs into main. Any API failure processes the signal normally.
+          if ! gh api --paginate \
+            "repos/$GH_REPO/pulls?state=open&base=main&sort=created&direction=asc&per_page=100" \
+            --jq '.[] | {number, url: .html_url, title, base: .base.ref, head: .head.ref, repo: (.head.repo.full_name // "")}' \
+            > "$RUNNER_TEMP/open-prs.jsonl"; then
+            echo "::warning::Open pull requests could not be listed, so the signal is processed normally."
+            exit 0
+          fi
+          jq -r -s --arg model "$model_id" --arg repo "$GH_REPO" '
             ["data: add or identify \($model) (MODEL-113)",
              "ANSWERS REGRESS: data: add or identify \($model) (MODEL-113)"] as $titles
             | map(select(
                 (.title | IN($titles[]))
-                and (.isCrossRepository | not)
-                and ((.headRepositoryOwner.login // "") == $owner)
-                and (.headRefName | test("^data/release-signal-[A-Za-z0-9._-]{1,150}-(initial|[0-9]{1,3})$"))
+                and .base == "main"
+                and .repo == $repo
+                and (.head | test("^data/release-signal-[A-Za-z0-9._-]{1,150}-(initial|[0-9]{1,3})$"))
+                and (.head | contains("..") | not)
+                and (.url | startswith("https://github.com/\($repo)/pull/"))
               ))
-            | sort_by(.number) | first | .url // ""
-          ' "$RUNNER_TEMP/open-prs.json")"
+            | sort_by(.number) | .[] | "\(.number) \(.url)"
+          ' "$RUNNER_TEMP/open-prs.jsonl" > "$RUNNER_TEMP/attach-candidates.txt"
+          # A title and branch are not enough: the PR must change this model's card.
+          pr_url=
+          while read -r number url; do
+            if ! files="$(gh api --paginate "repos/$GH_REPO/pulls/$number/files?per_page=100" \
+              --jq '.[].filename')"; then
+              echo "::warning::The files of ${url} could not be listed, so the signal is processed normally."
+              exit 0
+            fi
+            if grep -Fxq -- "$card" <<<"$files"; then
+              pr_url="$url"
+              break
+            fi
+          done < "$RUNNER_TEMP/attach-candidates.txt"
           if [[ "$pr_url" != "https://github.com/$GH_REPO/pull/"* ]]; then
             exit 0
           fi

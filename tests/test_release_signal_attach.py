@@ -5,6 +5,11 @@ second signal with a different id can name the same new model while that model's
 add-or-identify pull request is still open. Its card is not on main yet, so on
 main it resolves `new` again. The workflow acknowledges it onto the open pull
 request instead, and its re-checks then run on that pull request's branch.
+
+A pull request is eligible only when its title names the full resolved model id,
+it targets main from a writer branch in the same repository, and its changed
+files include that model's card. Any failed GitHub read processes the signal
+normally.
 """
 
 from __future__ import annotations
@@ -25,19 +30,23 @@ from tests.test_release_signals import _write_card
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "private-writers" / "release-signals.yml"
+STEP = "Attach a different signal to the open card PR for its model"
 REPO = "turbobeest/modelspec-data"
 FIRST_ID = "grok-20260926-123456789"
 SECOND_ID = "grok-20260927-987654321"
 PR_URL = f"https://github.com/{REPO}/pull/9002"
 ISSUE_URL = f"https://github.com/{REPO}/issues/9001"
 BRANCH = f"data/release-signal-{FIRST_ID}-initial"
+CARD = "models/acme/orbit-2.md"
 KEY = "Bearer read-secret"
 
 
-def _signal(signal_id: str = SECOND_ID, model_name: str = "Orbit 2") -> dict[str, object]:
+def _signal(
+    signal_id: str = SECOND_ID, model_name: str = "Orbit 2", provider: str = "Acme",
+) -> dict[str, object]:
     return {
         "model_name": model_name,
-        "provider": "Acme",
+        "provider": provider,
         "first_seen_url": "https://x.com/acme/status/987654321",
         "timestamp": "2026-09-27T08:00:00Z",
         "confidence": 0.9,
@@ -45,15 +54,18 @@ def _signal(signal_id: str = SECOND_ID, model_name: str = "Orbit 2") -> dict[str
     }
 
 
-def _open_pr(**changes: object) -> dict[str, object]:
+def _open_pr(
+    number: int = 9002, *, title: str = "data: add or identify acme/orbit-2 (MODEL-113)",
+    base: str = "main", head: str = BRANCH, repo: str | None = REPO, url: str | None = None,
+) -> dict[str, object]:
+    """One open pull request as the REST `pulls` list returns it."""
     return {
-        "number": 9002,
-        "url": PR_URL,
-        "title": "data: add or identify acme/orbit-2 (MODEL-113)",
-        "headRefName": BRANCH,
-        "headRepositoryOwner": {"login": "turbobeest"},
-        "isCrossRepository": False,
-    } | changes
+        "number": number,
+        "html_url": url or f"https://github.com/{REPO}/pull/{number}",
+        "title": title,
+        "base": {"ref": base},
+        "head": {"ref": head, "repo": {"full_name": repo} if repo else None},
+    }
 
 
 def _steps() -> list[dict]:
@@ -66,22 +78,51 @@ def _step(name: str) -> dict:
 
 
 def _engine_root(tmp_path: Path) -> None:
-    """main: Orbit 1 only. Orbit 2 is drafted on the open PR's branch, not here."""
+    """main: Orbit 1 of two labs. Orbit 2 is drafted on the open PR's branch, not here."""
     _write_card(tmp_path / "engine", "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _write_card(
+        tmp_path / "engine", "another-org", "orbit-1", display="Orbit 1", version="orbit-1",
+    )
 
 
-def _tools(tmp_path: Path, open_prs: list[dict]) -> Path:
+def _tools(
+    tmp_path: Path, pages: list[list[dict]], files: dict[int, list[list[str]]],
+) -> Path:
+    """An offline `gh api --paginate` that applies `--jq` to every page, like gh."""
     stub = tmp_path / "bin"
     stub.mkdir(exist_ok=True)
-    (tmp_path / "open-prs-fixture.json").write_text(json.dumps(open_prs), encoding="utf-8")
+    fixtures = tmp_path / "gh-fixtures"
+    fixtures.mkdir(exist_ok=True)
+    for index, page in enumerate(pages):
+        (fixtures / f"pulls-{index:02d}.json").write_text(json.dumps(page), encoding="utf-8")
+    for number, file_pages in files.items():
+        for index, page in enumerate(file_pages):
+            (fixtures / f"files-{number}-{index:02d}.json").write_text(
+                json.dumps([{"filename": name} for name in page]), encoding="utf-8",
+            )
     (stub / "gh").write_text(
         "#!/bin/bash\n"
         "printf '%s\\n' \"$*\" >> \"$RUNNER_TEMP/gh-calls\"\n"
+        "fixtures=\"$RUNNER_TEMP/gh-fixtures\"\n"
         "case \"$1 $2\" in\n"
-        "  'pr list') cat \"$RUNNER_TEMP/open-prs-fixture.json\" ;;\n"
-        "  'pr comment') [ -z \"${GH_COMMENT_FAILS:-}\" ] ;;\n"
+        "  'pr comment') [ -z \"${GH_COMMENT_FAILS:-}\" ]; exit ;;\n"
+        "  'api --paginate') ;;\n"
         "  *) exit 3 ;;\n"
-        "esac\n",
+        "esac\n"
+        "path=\"$3\"; filter=\"$5\"\n"
+        "[ \"$4\" = --jq ] || exit 4\n"
+        "if [[ \"$path\" == \"repos/$GH_REPO/pulls?\"* ]]; then\n"
+        "  [ -z \"${GH_LIST_FAILS:-}\" ] || exit 1\n"
+        "  pattern=\"pulls-*.json\"\n"
+        "elif [[ \"$path\" =~ ^repos/$GH_REPO/pulls/([0-9]+)/files\\? ]]; then\n"
+        "  [ -z \"${GH_FILES_FAILS:-}\" ] || exit 1\n"
+        "  pattern=\"files-${BASH_REMATCH[1]}-*.json\"\n"
+        "else\n"
+        "  exit 5\n"
+        "fi\n"
+        "for page in $(ls \"$fixtures\" | grep -x \"${pattern//\\*/.*}\" | sort); do\n"
+        "  jq -c \"$filter\" \"$fixtures/$page\" | jq -r 'if type == \"string\" then . else tojson end'\n"
+        "done\n",
         encoding="utf-8",
     )
     (stub / "curl").write_text(
@@ -105,7 +146,8 @@ def _tools(tmp_path: Path, open_prs: list[dict]) -> Path:
 
 
 def _run(
-    step: dict, tmp_path: Path, env: dict[str, str], *, open_prs: list[dict] | None = None,
+    step: dict, tmp_path: Path, env: dict[str, str], *,
+    pages: list[list[dict]] | None = None, files: dict[int, list[list[str]]] | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], dict[str, str]]:
     output = tmp_path / "github-output"
     output.write_text("", encoding="utf-8")
@@ -119,10 +161,8 @@ def _run(
             "GITHUB_STEP_SUMMARY": str(tmp_path / "summary.md"),
             "GH_TOKEN": "offline-fixture",
             "GH_REPO": REPO,
-            "REPOSITORY_OWNER": "turbobeest",
             "PATH": os.pathsep.join(
-                (str(_tools(tmp_path, open_prs if open_prs is not None else [])),
-                 os.environ["PATH"])
+                (str(_tools(tmp_path, pages or [], files or {})), os.environ["PATH"])
             ),
         } | env,
     )
@@ -137,17 +177,24 @@ def _pending(tmp_path: Path, payload: dict) -> None:
 
 
 def _attach(
-    tmp_path: Path, *, open_prs: list[dict], recheck_day: int = 0,
-    signal_id: str = SECOND_ID, env: dict[str, str] | None = None,
+    tmp_path: Path, *, pages: list[list[dict]], files: dict[int, list[list[str]]] | None = None,
+    recheck_day: int = 0, signal_id: str = SECOND_ID, env: dict[str, str] | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], dict[str, str]]:
-    return _run(_step("Attach a different signal to the open card PR for its model"), tmp_path, {
+    return _run(_step(STEP), tmp_path, {
         "SIGNAL_ID": signal_id, "RECHECK_DAY": str(recheck_day),
-    } | (env or {}), open_prs=open_prs)
+    } | (env or {}), pages=pages, files=files if files is not None else {9002: [[CARD]]})
 
 
 def _calls(tmp_path: Path) -> list[str]:
     path = tmp_path / "gh-calls"
     return path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+
+
+def _assert_not_attached(tmp_path: Path, done, outputs) -> None:
+    assert done.returncode == 0, done.stderr
+    assert outputs == {}
+    assert not (tmp_path / "result.json").exists()
+    assert not [call for call in _calls(tmp_path) if call.startswith("pr comment")]
 
 
 @pytest.fixture
@@ -182,11 +229,11 @@ class KV:
 
 def test_the_attach_step_runs_only_for_a_work_item_with_no_open_pull_request() -> None:
     names = [step.get("name") for step in _steps()]
-    attach = names.index("Attach a different signal to the open card PR for its model")
+    attach = names.index(STEP)
     assert names.index("Download the pending-work snapshot") < attach
     assert names.index("Install pipeline dependencies") < attach
     assert attach < names.index("Preserve the mechanically checked baseline")
-    step = _step("Attach a different signal to the open card PR for its model")
+    step = _step(STEP)
     assert step["id"] == "attach"
     assert step["if"] == (
         "steps.recheck.outputs.mode == 'initial' || steps.recheck.outputs.mode == 'unlinked'"
@@ -200,6 +247,10 @@ def test_the_attach_step_runs_only_for_a_work_item_with_no_open_pull_request() -
     )
     # No new permission or secret: the job already writes pull requests.
     assert step["env"]["GH_TOKEN"] == "${{ secrets.GITHUB_TOKEN }}"
+    # Every page of the open list, and every page of each candidate's files.
+    assert "gh api --paginate" in step["run"]
+    assert "base=main" in step["run"]
+    assert "/files?per_page=100" in step["run"]
 
 
 def test_a_second_signal_for_a_model_with_an_open_card_pr_attaches_and_reaches_the_worker(
@@ -213,11 +264,10 @@ def test_a_second_signal_for_a_model_with_an_open_card_pr_attaches_and_reaches_t
     )).body
     _pending(tmp_path, pending)
 
-    done, outputs = _attach(tmp_path, open_prs=[
-        _open_pr(number=9100, url=f"https://github.com/{REPO}/pull/9100",
-                 title="data: add or identify acme/orbit-3 (MODEL-113)"),
+    done, outputs = _attach(tmp_path, pages=[[
+        _open_pr(9100, title="data: add or identify acme/orbit-3 (MODEL-113)"),
         _open_pr(),
-    ])
+    ]], files={9002: [["models/acme/orbit-1.md"], [CARD]]})
 
     assert done.returncode == 0, done.stderr
     assert outputs == {"pr_url": PR_URL}
@@ -227,11 +277,13 @@ def test_a_second_signal_for_a_model_with_an_open_card_pr_attaches_and_reaches_t
     )
     assert result["recheck_day"] is None
     calls = _calls(tmp_path)
-    assert calls[0].startswith("pr list --state open")
-    assert calls[1].startswith(f"pr comment {PR_URL} --body Release signal {SECOND_ID}")
-    assert not [call for call in calls if call.startswith("pr create")]
+    assert calls[0].startswith(f"api --paginate repos/{REPO}/pulls?state=open&base=main")
+    # Only the title-matching PR's files are read, through every page.
+    assert calls[1].startswith(f"api --paginate repos/{REPO}/pulls/9002/files?per_page=100")
+    assert calls[2].startswith(f"pr comment {PR_URL} --body Release signal {SECOND_ID}")
+    assert len(calls) == 3
 
-    _, _ = _run(
+    _run(
         _step("Acknowledge the signal and schedule its 1, 7, and 30 day re-checks"),
         tmp_path, {"RESULT_URL": outputs["pr_url"], "MODELSPEC_SIGNALS_READ_KEY": "read-secret",
                    "SIGNALS_ORIGIN": "https://signals.invalid"},
@@ -260,9 +312,9 @@ def test_an_unlinked_recheck_attaches_and_keeps_its_day(tmp_path: Path) -> None:
         "pr_url": ISSUE_URL, "signal": _signal(),
     }]})
 
-    done, outputs = _attach(tmp_path, open_prs=[_open_pr(
+    done, outputs = _attach(tmp_path, pages=[[_open_pr(
         title="ANSWERS REGRESS: data: add or identify acme/orbit-2 (MODEL-113)",
-    )], recheck_day=7)
+    )]], recheck_day=7)
 
     assert done.returncode == 0, done.stderr
     assert outputs == {"pr_url": PR_URL}
@@ -270,26 +322,70 @@ def test_an_unlinked_recheck_attaches_and_keeps_its_day(tmp_path: Path) -> None:
     assert (result["recheck_day"], result["recheck_due"]) == (7, "2026-10-04")
 
 
-@pytest.mark.parametrize("pr", [
-    _open_pr(title="data: add or identify acme/orbit-20 (MODEL-113)"),
-    _open_pr(title="data: refresh acme/orbit-2 release evidence (MODEL-113)"),
-    _open_pr(isCrossRepository=True),
-    _open_pr(headRepositoryOwner={"login": "someone-else"}),
-    _open_pr(headRefName="feature/orbit-2"),
-    _open_pr(url="https://github.com/elsewhere/modelspec-data/pull/9002"),
+def test_another_labs_model_of_the_same_name_never_attaches(tmp_path: Path) -> None:
+    """`another-org/orbit-2` is not `acme/orbit-2`, though both are "Orbit 2"."""
+    _engine_root(tmp_path)
+    _pending(tmp_path, {"signals": [_signal(provider="Another Org")], "rechecks": []})
+
+    done, outputs = _attach(tmp_path, pages=[[_open_pr()]])
+
+    _assert_not_attached(tmp_path, done, outputs)
+    # The acme PR's title never matched, so its files were not even read.
+    assert [call.split("?")[0] for call in _calls(tmp_path)] == [
+        f"api --paginate repos/{REPO}/pulls",
+    ]
+
+
+def test_the_other_lab_attaches_only_to_its_own_card_pr(tmp_path: Path) -> None:
+    _engine_root(tmp_path)
+    _pending(tmp_path, {"signals": [_signal(provider="Another Org")], "rechecks": []})
+    own = _open_pr(9300, title="data: add or identify another-org/orbit-2 (MODEL-113)")
+
+    done, outputs = _attach(
+        tmp_path, pages=[[_open_pr(), own]],
+        files={9002: [[CARD]], 9300: [["models/another-org/orbit-2.md"]]},
+    )
+
+    assert done.returncode == 0, done.stderr
+    assert outputs == {"pr_url": f"https://github.com/{REPO}/pull/9300"}
+
+
+@pytest.mark.parametrize("files", [
+    [[]],
+    [["models/acme/orbit-1.md", "registry/sources.yaml"]],
+    [["models/another-org/orbit-2.md"]],
+    [["models/acme/orbit-2.md.bak", "offerings/acme/orbit-2.yaml"]],
 ])
-def test_no_matching_open_card_pr_leaves_the_work_item_to_draft(
-    tmp_path: Path, pr: dict,
+def test_a_pr_without_the_models_card_file_never_attaches(
+    tmp_path: Path, files: list[list[str]],
 ) -> None:
     _engine_root(tmp_path)
     _pending(tmp_path, {"signals": [_signal()], "rechecks": []})
 
-    done, outputs = _attach(tmp_path, open_prs=[pr])
+    done, outputs = _attach(tmp_path, pages=[[_open_pr()]], files={9002: files})
 
-    assert done.returncode == 0, done.stderr
-    assert outputs == {}
-    assert not (tmp_path / "result.json").exists()
-    assert not [call for call in _calls(tmp_path) if call.startswith("pr comment")]
+    _assert_not_attached(tmp_path, done, outputs)
+
+
+@pytest.mark.parametrize("pr", [
+    _open_pr(title="data: add or identify acme/orbit-20 (MODEL-113)"),
+    _open_pr(title="data: add or identify orbit-2 (MODEL-113)"),
+    _open_pr(title="data: refresh acme/orbit-2 release evidence (MODEL-113)"),
+    _open_pr(base="data-lag/image"),
+    _open_pr(repo="someone-else/modelspec-data"),
+    _open_pr(repo=None),
+    _open_pr(head="feature/orbit-2"),
+    _open_pr(head="data/release-signal-a..b-initial"),
+    _open_pr(url="https://github.com/elsewhere/modelspec-data/pull/9002"),
+])
+def test_a_title_or_branch_match_alone_never_attaches(tmp_path: Path, pr: dict) -> None:
+    _engine_root(tmp_path)
+    _pending(tmp_path, {"signals": [_signal()], "rechecks": []})
+
+    # The card file is there; every other condition must hold too.
+    done, outputs = _attach(tmp_path, pages=[[pr]])
+
+    _assert_not_attached(tmp_path, done, outputs)
 
 
 @pytest.mark.parametrize("signal_id, model_name", [
@@ -302,11 +398,45 @@ def test_a_model_on_main_or_a_test_signal_never_lists_pull_requests(
     _engine_root(tmp_path)
     _pending(tmp_path, {"signals": [_signal(signal_id, model_name)], "rechecks": []})
 
-    done, outputs = _attach(tmp_path, open_prs=[_open_pr()], signal_id=signal_id)
+    done, outputs = _attach(tmp_path, pages=[[_open_pr()]], signal_id=signal_id)
+
+    _assert_not_attached(tmp_path, done, outputs)
+    assert _calls(tmp_path) == []
+
+
+def test_the_oldest_eligible_pr_is_found_on_a_later_page(tmp_path: Path) -> None:
+    _engine_root(tmp_path)
+    _pending(tmp_path, {"signals": [_signal()], "rechecks": []})
+    filler = [
+        _open_pr(1000 + n, title=f"data: add or identify acme/other-{n} (MODEL-113)")
+        for n in range(100)
+    ]
+    newer = _open_pr(9200, head="data/release-signal-watch-x-initial")
+    # An older title-matching PR that lacks the card is passed over, not chosen.
+    older_without_card = _open_pr(8000)
+
+    done, outputs = _attach(
+        tmp_path, pages=[filler, [newer, _open_pr(), older_without_card]],
+        files={8000: [["registry/sources.yaml"]], 9002: [[CARD]], 9200: [[CARD]]},
+    )
 
     assert done.returncode == 0, done.stderr
-    assert outputs == {}
-    assert _calls(tmp_path) == []
+    assert outputs == {"pr_url": PR_URL}
+    file_reads = [call for call in _calls(tmp_path) if "/files?" in call]
+    assert [call.split("/pulls/")[1].split("/")[0] for call in file_reads] == ["8000", "9002"]
+
+
+@pytest.mark.parametrize("failure", ["GH_LIST_FAILS", "GH_FILES_FAILS"])
+def test_a_failed_github_read_processes_the_signal_normally(
+    tmp_path: Path, failure: str,
+) -> None:
+    _engine_root(tmp_path)
+    _pending(tmp_path, {"signals": [_signal()], "rechecks": []})
+
+    done, outputs = _attach(tmp_path, pages=[[_open_pr()]], env={failure: "1"})
+
+    _assert_not_attached(tmp_path, done, outputs)
+    assert "so the signal is processed normally" in done.stdout
 
 
 def test_a_failed_comment_still_attaches_the_signal(tmp_path: Path) -> None:
@@ -314,21 +444,9 @@ def test_a_failed_comment_still_attaches_the_signal(tmp_path: Path) -> None:
     _pending(tmp_path, {"signals": [_signal()], "rechecks": []})
 
     done, outputs = _attach(
-        tmp_path, open_prs=[_open_pr()], env={"GH_COMMENT_FAILS": "1"},
+        tmp_path, pages=[[_open_pr()]], env={"GH_COMMENT_FAILS": "1"},
     )
 
     assert done.returncode == 0, done.stderr
     assert outputs == {"pr_url": PR_URL}
     assert "::warning::The signal is attached" in done.stdout
-
-
-def test_the_oldest_matching_open_card_pr_wins(tmp_path: Path) -> None:
-    _engine_root(tmp_path)
-    _pending(tmp_path, {"signals": [_signal()], "rechecks": []})
-    newer = _open_pr(number=9200, url=f"https://github.com/{REPO}/pull/9200",
-                     headRefName="data/release-signal-watch-x-initial")
-
-    done, outputs = _attach(tmp_path, open_prs=[newer, _open_pr()])
-
-    assert done.returncode == 0, done.stderr
-    assert outputs == {"pr_url": PR_URL}
