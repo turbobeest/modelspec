@@ -873,8 +873,8 @@ def _unreleased(held: Held, record: Mapping[str, Any], subject: str, *, now: dat
     return [h for h in held if h not in released], [c for _, c in chains if c is not None]
 
 
-def _relitigates(chains: Sequence[Sequence[Mapping[str, Any]]], page_bytes: bytes, *,
-                 own_fetch: bool, first: str, epoch: str,
+def _relitigates(chains: Sequence[Sequence[Any]], page_bytes: bytes, *,
+                 own_fetch: bool, first: str, epoch: str, now: datetime,
                  region: str | None = None) -> CitedChange | None:
     """Refuse a read, after a verdict was released (MODEL-566), unless the gate fetched the page
     itself with its own transport (bytes or a transport a caller supplies never re-read a
@@ -884,19 +884,25 @@ def _relitigates(chains: Sequence[Sequence[Mapping[str, Any]]], page_bytes: byte
     (``quarantine_clearing.openers`` and ``_moved``, the build's own). A clearing, and each read
     after it, is not re-litigated in its own epoch. A clearing of a newer verdict is read in
     that verdict's own clearing epoch, and is not held to this."""
-    from decision.quarantine_clearing import _moved, openers
+    from decision.quarantine_clearing import _moved, openers, openers_before
 
     if not own_fetch:
         return _refuse("quarantined", "a released verdict is re-read only on a page the gate "
                        f"fetched itself; {QUARANTINED}")
-    read = {"text_sha256": text_sha256(page_bytes), "region_sha256": region}
-    if not all(any(_moved(o, read) for o in openers(chain, first, epoch)) for chain in chains):
+    read = {"text_sha256": text_sha256(page_bytes), "region_sha256": region,
+            "at": now.astimezone(UTC).replace(microsecond=0).isoformat()}
+    ready = [openers_before(openers(chain, first, epoch), read, lambda _: True)
+             for chain in chains]
+    if not all(ready):
+        return _refuse("quarantined", "the read would come before the clearing or read that "
+                       f"opened the epoch; {QUARANTINED}")
+    if not all(any(_moved(o, read) for o in before) for before in ready):
         return _refuse("quarantined", "the page is the one the record's read after its clearing "
                        f"rests on; a released verdict is not re-litigated there; {QUARANTINED}")
     return None
 
 
-def _not_a_link(chains: Sequence[Sequence[Mapping[str, Any]]], *, subject: str, facet: str,
+def _not_a_link(chains: Sequence[Sequence[Any]], *, subject: str, facet: str,
                 first: str, epoch: str) -> CitedChange | None:
     """After the read is logged (MODEL-566): refuse unless it is a link of every chain that
     releases a verdict on the record, by the build's own test
@@ -1131,7 +1137,7 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     page_bytes, resolved = page
     if released and clearing is None:
         # ``own_page``: the bytes are the gate module's own fetch (``reread``), never a caller's.
-        refusal = _relitigates(chains, page_bytes, first="initial", epoch=epoch,
+        refusal = _relitigates(chains, page_bytes, first="initial", epoch=epoch, now=now,
                                own_fetch=request is None and (gate_fetched or own_page),
                                region=_region_sha256(row, page_bytes))
         if refusal is not None:
@@ -2072,6 +2078,7 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     page_bytes, resolved = fetched
     if released and clearing is None:
         refusal = _relitigates(chains, page_bytes, first=reading_epoch(reading), epoch=epoch,
+                               now=now,
                                own_fetch=request is None)
         if refusal is not None:
             return refusal

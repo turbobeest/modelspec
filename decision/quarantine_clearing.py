@@ -583,23 +583,41 @@ def _moved(opener: Mapping[str, Any], read: Mapping[str, Any]) -> bool:
     return None in regions or regions[0] != regions[1]
 
 
+Opener = tuple[Mapping[str, Any], datetime]
+
+
+def openers_before(pairs: Sequence[Opener], read: Mapping[str, Any],
+                   after: Callable[[Mapping[str, Any]], bool]) -> list[Mapping[str, Any]]:
+    """The openers of an epoch (``(agreement, opened)``: a clearing's agreement with its line's
+    ``cleared_at``, or a link with its own time) that ``read`` comes after: at or after the full
+    timestamp it was opened at, never only on the same UTC day, and logged after it
+    (``after``). The gate and the build both filter so (MODEL-566 review)."""
+    at = _at(read.get("at"))
+    return [o for o, opened in pairs if at is not None and at >= opened and after(o)]
+
+
 def link_problem(entries: Sequence[Mapping[str, Any]], read: Mapping[str, Any],
-                 openers: Sequence[Mapping[str, Any]], facet: str) -> str | None:
+                 openers: Sequence[Opener], facet: str,
+                 after: Callable[[Mapping[str, Any]], bool] = lambda _: True) -> str | None:
     """Why ``read``, logged in an epoch after a clearing, is no link of the chain there
     (MODEL-566), or ``None``: it must be a complete agreed harness attempt by two distinct known
     families with its hashes (``agreement_problem``), in an epoch where no answer recorded
     (``entries``: every attempt logged in it, ``read`` included), complete or not, is another
     value (``epoch_problem``: an agreement on silence or absence and a later value is a
-    disagreement), on another page than one of the agreements that opened the epoch
-    (``openers``, ``_moved``). The gate asks exactly this of the read it has just logged, and the
-    build of each read it walks (``later_agreements``)."""
+    disagreement), after one of the agreements that opened the epoch (``openers_before``: in
+    time and in the log; ``after`` says the latter, and the gate's read just logged is last), on
+    another page than it (``_moved``). The gate asks exactly this of the read it has just logged,
+    and the build of each read it walks (``later_agreements``)."""
     if "agreed_value" not in read:
         return "the read is not an agreement"
+    before = openers_before(openers, read, after)
+    if not before:
+        return "the read is not after the clearing or read that opened its epoch"
     value = read["agreed_value"]
     problem = agreement_problem(read, value, facet) or epoch_problem(entries, value, facet)
     if problem is not None:
         return problem
-    if not any(_moved(opener, read) for opener in openers):
+    if not any(_moved(opener, read) for opener in before):
         return "the read is of the page the record already rests on"
     return None
 
@@ -653,9 +671,13 @@ def later_agreements(log: AttemptLog, line_entry: Mapping[str, Any], attempt: Ma
             if at is None or at.astimezone(UTC).date() > cutoff \
                     or not _HEX.fullmatch(str(agreed.get("text_sha256") or "")):
                 continue
-            before = [o for o, t in openers[epoch]
-                      if position[id(agreed)] > position[id(o)] and at >= t]
-            if not before or (made is None and link_problem(entries, agreed, before, facet)):
+            def later(o: Mapping[str, Any], agreed: Mapping[str, Any] = agreed) -> bool:
+                return position[id(agreed)] > position[id(o)]
+
+            if made is None:
+                if link_problem(entries, agreed, openers[epoch], facet, later) is not None:
+                    continue
+            elif not openers_before(openers[epoch], agreed, later):
                 continue
             then = at if made is None else _at(made.get("cleared_at"))
             if then is None or then < at:
@@ -671,8 +693,9 @@ def _chain(record: Mapping[str, Any], *, verdict: Mapping[str, Any], subject: st
            log: AttemptLog, first: str, sources: Mapping[str, str],
            history: Mapping[str, Sequence[Mapping[str, Any]]], cutoff: date,
            settings: Settings | None = None, later: bool = False,
-           held: Sequence[Mapping[str, Any]] = ()) -> list[Mapping[str, Any]] | None:
-    """The chain that releases ``verdict`` for ``record``, or ``None``: the agreement of the
+           held: Sequence[Mapping[str, Any]] = ()) -> list[Opener] | None:
+    """The chain that releases ``verdict`` for ``record``, or ``None``, as ``(agreement,
+    opened)`` pairs (``openers_before``): the agreement of the
     latest valid line for it (``line_problem``; by ``cleared_at``, then line order), and with
     ``later`` (MODEL-566) every agreement after the clearing epoch (``later_agreements``), when
     one of them made the record's block with the record's value: the clearing's own agreement,
@@ -702,8 +725,11 @@ def _chain(record: Mapping[str, Any], *, verdict: Mapping[str, Any], subject: st
     own = latest(verdict)
     if own is None:
         return None
+    root = _at(own[0].get("cleared_at"))
+    if root is None:
+        return None
     if made(*own):
-        return [own[1]]
+        return [(own[1], root)]
     block = _block(record)
     if not later or block is None:
         return None
@@ -711,23 +737,27 @@ def _chain(record: Mapping[str, Any], *, verdict: Mapping[str, Any], subject: st
               if (pair := latest(row)) is not None]
     nodes = later_agreements(log, own[0], own[1], subject=subject, facet=facet, first=first,
                              cutoff=cutoff, cleared=others)
+    chain: list[Opener] = [(own[1], root)]
+    for agreed, line_entry in nodes:
+        opened = _at(agreed.get("at")) if line_entry is None else _at(line_entry.get("cleared_at"))
+        if opened is not None:
+            chain.append((agreed, opened))
     for agreed, line_entry in nodes:
         if line_entry is not None:
             if made(line_entry, agreed):
-                return [own[1], *(n for n, _ in nodes)]
+                return chain
         elif "clearing_epoch" not in block \
                 and _canonical(value, facet) == _canonical(agreed["agreed_value"], facet) \
                 and _block_is(record, block, agreed, sources=sources):
-            return [own[1], *(n for n, _ in nodes)]
+            return chain
     return None
 
 
-def openers(chain: Sequence[Mapping[str, Any]], first: str, epoch: str
-            ) -> list[Mapping[str, Any]]:
-    """The agreements of a releasing chain (``_chain``) that open ``epoch``: a read there is a
-    link against these (``link_problem``). The gate takes them from the same chain the build
-    walks, never from another source or epoch."""
-    return [a for a in chain if epoch_after(first, a) == epoch]
+def openers(chain: Sequence[Opener], first: str, epoch: str) -> list[Opener]:
+    """The ``(agreement, opened)`` pairs of a releasing chain (``_chain``) that open ``epoch``:
+    a read there is a link against these (``link_problem``). The gate takes them from the same
+    chain the build walks, never from another source or epoch."""
+    return [(a, t) for a, t in chain if epoch_after(first, a) == epoch]
 
 
 def fact_cleared(fact: Mapping[str, Any], subject: str, *, verdict: Mapping[str, Any],
@@ -749,7 +779,7 @@ def fact_chain(fact: Mapping[str, Any], subject: str, *, verdict: Mapping[str, A
                clearings: Sequence[Mapping[str, Any]], log: AttemptLog,
                sources: Mapping[str, str], history: Mapping[str, Sequence[Mapping[str, Any]]],
                cutoff: date, later: bool = True,
-               held: Sequence[Mapping[str, Any]] = ()) -> list[Mapping[str, Any]] | None:
+               held: Sequence[Mapping[str, Any]] = ()) -> list[Opener] | None:
     """The chain that releases ``verdict`` for the fact (``_chain``), or ``None``, under
     ``fact_cleared``'s terms for the fact itself."""
     from decision.owner_ruling import has_ruling
@@ -802,7 +832,7 @@ def reading_chain(row: Mapping[str, Any], subject: str, *, verdict: Mapping[str,
                   log: AttemptLog, sources: Mapping[str, str],
                   history: Mapping[str, Sequence[Mapping[str, Any]]], cutoff: date,
                   later: bool = True,
-                  held: Sequence[Mapping[str, Any]] = ()) -> list[Mapping[str, Any]] | None:
+                  held: Sequence[Mapping[str, Any]] = ()) -> list[Opener] | None:
     """``fact_chain`` for a cited board reading (``reading_cleared``'s terms)."""
     from decision.cited_change import BENCHMARK_PREFIX, READING_KEYS, reading_epoch
 

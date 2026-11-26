@@ -773,14 +773,19 @@ def test_the_gate_takes_its_opener_from_the_releasing_chain():
     decoy = {**opener, "epoch": clearing_epoch("initial", "sha256:" + "4" * 64),
              "region_sha256": "2" * 64}
     epoch = epoch_after("initial", opener)
-    assert openers([opener, decoy], "initial", epoch) == [opener]
-    kw = dict(own_fetch=True, first="initial", epoch=epoch)
-    assert _relitigates([[opener]], page, region="1" * 64, **kw).reason == "quarantined"
-    assert _relitigates([[opener]], page, region="2" * 64, **kw) is None
-    same_text = {**opener, "text_sha256": text_sha256(page)}
-    assert _relitigates([[same_text]], page, region="9" * 64, **kw).reason == "quarantined"
-    assert _relitigates([[opener]], page, region="2" * 64, own_fetch=False, first="initial",
-                        epoch=epoch).reason == "quarantined"
+    opened = datetime(2026, 10, 12, 9, tzinfo=UTC)
+    assert openers([(opener, opened), (decoy, opened)], "initial", epoch) == [(opener, opened)]
+    now = datetime(2026, 10, 20, 9, tzinfo=UTC)
+    kw = dict(own_fetch=True, first="initial", epoch=epoch, now=now)
+    chain = [[(opener, opened)]]
+    assert _relitigates(chain, page, region="1" * 64, **kw).reason == "quarantined"
+    assert _relitigates(chain, page, region="2" * 64, **kw) is None
+    same_text = [[({**opener, "text_sha256": text_sha256(page)}, opened)]]
+    assert _relitigates(same_text, page, region="9" * 64, **kw).reason == "quarantined"
+    assert _relitigates(chain, page, region="2" * 64, **{**kw, "own_fetch": False}).reason \
+        == "quarantined"
+    early = {**kw, "now": datetime(2026, 10, 12, 8, tzinfo=UTC)}  # same day, before it opened
+    assert _relitigates(chain, page, region="2" * 64, **early).reason == "quarantined"
 
 
 def seed_epoch(root, subject, facet, epoch, **entry):
@@ -852,3 +857,49 @@ def test_an_absence_then_a_score_refuses_a_readings_re_read(tmp_path, monkeypatc
     PAGES[reading_gate.URL] = BOARD_MOVED
     held = reread_reading(**kw, readers=reading_gate.pair(53.0))
     assert held.outcome == "flagged" and held.reason == "prior_attempt_disagreed", held
+
+
+# --- adversarial review round 3 (MODEL-566) -------------------------------------------------------
+
+
+def test_a_same_day_re_read_before_cleared_at_is_refused_by_gate_and_build(tmp_path, monkeypatch):
+    """The gate compares the full timestamp with the opener's ``cleared_at``, through the
+    build's own helper: a re-read on the clearing's UTC day but before its line was made is no
+    link in either (parity, round 3)."""
+    from decision.cited_change import fact_epoch
+
+    clock = Clock(monkeypatch)
+    d = offering.Data(tmp_path / "data", monkeypatch)
+    plant(d.root, verification("fact", offering.FACT_ID, "mismatch", day="2026-09-20", value=45))
+    out = offering.retention(clear_quarantine=True)
+    assert out.changed, (out.reason, out.detail)
+    writer.apply(out, data_dir=d.root)
+    late = "2026-10-01T23:00:00+00:00"  # the line was made late that day
+    rewrite_line(d, CLEARINGS_FILE, lambda lines: [
+        json.dumps({**json.loads(lines[0]), "cleared_at": late}, sort_keys=True)])
+    facet = "offering.data.retention"
+
+    def walked():
+        log = AttemptLog.read(d.root / ATTEMPTS_FILE)
+        [entry] = read_clearings(d.root / CLEARINGS_FILE)
+        agreed = next(e for e in log.entries if e["epoch"] == entry["epoch"])
+        return [n for n, _ in later_agreements(log, entry, agreed, subject=offering.SUBJECT,
+                                               facet=facet, first="initial",
+                                               cutoff=datetime(2026, 12, 31).date())]
+
+    clock.at = datetime(2026, 10, 1, 12, tzinfo=UTC)  # same UTC day, before ``cleared_at``
+    before = len(d.log())
+    early = again()
+    assert early.outcome == "flagged" and early.reason == "quarantined", early
+    assert len(d.log()) == before  # refused before any reader was asked
+    # The same read, had a harness logged it, is no link in the build either.
+    synthetic = {k: v for k, v in d.log()[-1].items() if k not in ("subject", "facet", "epoch")}
+    seed_epoch(d.root, offering.SUBJECT, facet, fact_epoch(filed(d)), **{
+        **synthetic, "at": "2026-10-01T12:00:00+00:00", "text_sha256": "e" * 64,
+        "page_sha256": "e" * 64})
+    assert walked() == []
+    clock.at = datetime(2026, 10, 2, 9, tzinfo=UTC)
+    rewrite_line(d, ATTEMPTS_FILE, lambda lines: lines[:-1])  # drop the synthetic read
+    later_read = again()
+    assert later_read.outcome == "changed", (later_read.reason, later_read.detail)
+    assert d.log()[-1] in walked()
