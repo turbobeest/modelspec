@@ -976,6 +976,13 @@ def test_workflow_needs_no_spend_gate_retains_a_full_month_and_replays_when_skip
         s for s in jobs["fallback"]["steps"] if s.get("uses") == "actions/upload-artifact@v4"
     )
     assert upload["if"] == "always()" and upload["with"]["retention-days"] == 35
+    # One artifact per attempt: a rerun never collides with the first attempt's upload, and
+    # the re-read downloads the one this attempt wrote.
+    name = "price-reread-fallback-${{ github.run_attempt }}"
+    download = next(s for s in jobs["reread"]["steps"]
+                    if s.get("name") == "Download fallback pages when present")
+    assert upload["with"]["name"] == download["with"]["name"] == name
+    assert "price-reread-fallback\n" not in text
     assert "FIRECRAWL" not in json.dumps(jobs["reread"])
     triggers = workflow()["on"]
     assert triggers["workflow_dispatch"]["inputs"]["fallback_fake"] == {

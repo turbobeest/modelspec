@@ -285,7 +285,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: price-reread-fallback
+          name: price-reread-fallback-${{ github.run_attempt }}
           path: ${{ runner.temp }}/fallback
           retention-days: 35
           if-no-files-found: warn
@@ -455,7 +455,7 @@ jobs:
         if: needs.fallback.result == 'success'
         uses: actions/download-artifact@v4
         with:
-          name: price-reread-fallback
+          name: price-reread-fallback-${{ github.run_attempt }}
           path: ${{ runner.temp }}/fallback
       - name: Re-read every page once
         env:
