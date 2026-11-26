@@ -1592,6 +1592,10 @@ def _claim(model_id: str, front: Mapping[str, Any], row: Mapping[str, Any],
         # The card's lab before its name: a board's own "lab/Name" spelling.
         f"{model_id.split('/', 1)[0]}/{display}" if card_identity and display else None,
     ))))
+    if card_identity:
+        # The verifier's name matcher drops a letter outside ASCII ("Foo β" reads as
+        # "foo"): such a name could find another model's row, so it is not offered.
+        names = tuple(name for name in names if not _folds_outside_ascii(str(name)))
     source = SourceRef(source_id=board.source_id, snapshot_ref=board.snapshot_ref,
                        cited_regions=["rows"])
     return Claim(
@@ -2544,16 +2548,33 @@ _FIRST_ROW_VARIANT_CARD = "the card is itself an effort variant, not a base card
 _FIRST_ROW_DATED = "a dated snapshot card; the board name states none of its dates"
 _FIRST_ROW_OTHER_ALIAS = "the board name is another card's alias or former name"
 _FIRST_ROW_REUSED = "the board name is reused by more than one card"
+_FIRST_ROW_BOTH_READINGS = (
+    "the name reads as a card's full name and as its base card at an effort"
+)
+_FIRST_ROW_NON_ASCII = "the board name has letters outside ASCII the matcher would drop"
 #: Card fields that list other names the card is known by, where a card has them.
 _KNOWN_NAME_FIELDS = ("aliases", "former_names", "previous_names")
 
 
 def first_row_fold(name: str) -> str:
-    """A name folded with its qualifiers kept: ``slug(strip=False)`` after the
-    parentheses become spaces, so "(Thinking)", "Instruct" and dates stay in the key."""
-    from scripts.premier_slice1 import slug
+    """A name folded with its qualifiers and letters kept.
 
-    return slug(re.sub(r"[()]", " ", name or ""), strip=False)
+    ``slug(strip=False)`` for an ASCII name (the ``org/`` prefix dropped, ``+`` read as
+    ``plus``, a dot as a break), with parentheses read as breaks, so "(Thinking)",
+    "Instruct" and dates stay in the key. Unlike ``slug`` it keeps a letter outside
+    ASCII: "Foo β" folds to ``foo-β``, never to ``foo``.
+    """
+    text = (name or "").lower().strip()
+    if "/" in text and "://" not in text:
+        text = text.rsplit("/", 1)[-1]
+    text = text.replace("+", " plus ").replace(".", " ")
+    return "-".join(part for part in re.split(r"[\W_]+", text) if part)
+
+
+def _folds_outside_ascii(name: str) -> bool:
+    """True when the name has a letter or digit outside ASCII, which the verifier's
+    name matcher (``normalise_name``) would drop."""
+    return any(not char.isascii() and char.isalnum() for char in name or "")
 
 
 def _date_tokens(key: str) -> set[str]:
@@ -2634,18 +2655,24 @@ def first_row_match(
 
     A name with parentheses is refused, with one exception: one trailing parenthesis
     that ``_name_effort`` reads as a known effort label ("Claude Fable 5.2 (xHigh)").
-    That name is matched on its base name, and ``effort`` is the label; the row lands
-    on that base card at that effort or nowhere. The base card's own name must carry
-    no effort qualifier: a lone variant card is never its own base.
+    The full name is looked up first: a card with that full name ("Foo (Max)") is
+    never read as its base card at that effort; with a base card too the name is
+    ambiguous, and either way it is refused. Otherwise the name is matched on its base
+    name, and ``effort`` is the label; the row lands on that base card at that effort
+    or nowhere. A card whose own name ends in an effort label is refused on every
+    path for now (MODEL-568 decides when such a word is identity).
+    A name with a letter outside ASCII is refused: the verifier would drop it.
 
-    A card whose display name or model id carries a date or snapshot stamp takes only
-    a board name that states one of those dates. A name that ``known`` (from
+    A card whose display name, ``version`` or model id carries a date or snapshot
+    stamp takes only a board name that states one of those dates. A name that ``known`` (from
     ``first_row_known_names``) gives another card, or more than one card, is refused.
     A publisher prefix (``lab/`` before the first ``/`` of a name that is not a URL)
     must be the card's lab. The card must be active. ``nearest`` is the one card the
     key names, even when the name is refused; it is empty when no single card does.
     """
     known = known or {}
+    if _folds_outside_ascii(name):
+        return None, first_row_fold(name), _FIRST_ROW_NON_ASCII, "", None
     effort = None
     base = name
     if "(" in name or ")" in name:
@@ -2656,20 +2683,28 @@ def first_row_match(
     nearest = next(iter(hits)) if len(hits) == 1 else ""
     if "(" in base or ")" in base:
         return None, key, _FIRST_ROW_PARENTHESES, nearest, None
+    if effort is not None:
+        # The full name first: a "Foo (Max)" card is never read as Foo at max effort.
+        whole = index.get(first_row_fold(name), set())
+        if whole and hits:
+            return None, key, _FIRST_ROW_BOTH_READINGS, "", effort
+        if whole:
+            only = next(iter(whole)) if len(whole) == 1 else ""
+            return None, key, _FIRST_ROW_VARIANT_CARD, only, effort
     if not hits:
-        variants = index.get(first_row_fold(name), set()) if effort else set()
-        if len(variants) == 1:
-            return None, key, _FIRST_ROW_VARIANT_CARD, next(iter(variants)), effort
         return None, key, _FIRST_ROW_NO_CARD, "", effort
     if len(hits) > 1:
         return None, key, f"{len(hits)} cards share this name", "", effort
     model_id = nearest
     front = fronts[model_id]
+    # A card whose own name ends in an effort label takes no row on this path yet.
+    # Whether such a word is identity ("Qwen3 Max") is MODEL-568's
+    # ``verify.effort_word_is_name``; the matcher will call it once that lands.
     if _effort_variant_card(model_id, front):
         return None, key, _FIRST_ROW_VARIANT_CARD, model_id, effort
     stamps = set().union(*(
         _date_tokens(first_row_fold(str(value or "")))
-        for value in (front.get("display_name"), model_id)
+        for value in (front.get("display_name"), front.get("version"), model_id)
     ))
     if stamps and not stamps & _date_tokens(key):
         return None, key, _FIRST_ROW_DATED, model_id, effort

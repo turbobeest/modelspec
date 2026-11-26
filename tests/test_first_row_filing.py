@@ -457,15 +457,81 @@ def test_a_lone_effort_variant_card_is_never_its_own_base(monkeypatch, tmp_path:
 
     report = _run(monkeypatch, tmp_path, root, [
         _dataset_row("Foo (xHigh)", 1200.0), _dataset_row("Bar (xHigh)", 1190.0),
-        _dataset_row("Bar xHigh", 1180.0),
     ])
 
     assert _rows(by_name) == [] and _rows(by_id) == []
     refused = _refusals(report)
-    variant = "the card is itself an effort variant, not a base card"
-    assert refused["Foo (xHigh)"] == ("lab/foo-xhigh", variant)
-    assert refused["Bar (xHigh)"] == ("lab/bar", variant)
-    assert refused["Bar xHigh"] == ("lab/bar", variant)
+    assert refused["Foo (xHigh)"] == (
+        "lab/foo-xhigh", "the card is itself an effort variant, not a base card")
+    # "Bar" (the id) and "Bar xHigh" (the name) are both this card: refused either way.
+    assert refused["Bar (xHigh)"] == (
+        "", "the name reads as a card's full name and as its base card at an effort")
+
+
+# --- the MODEL-478 review, round 2 ------------------------------------------------------------
+
+
+def test_a_full_name_card_beats_the_base_card_at_an_effort(monkeypatch, tmp_path: Path) -> None:
+    """With both "Foo" and "Foo (Max)" cards, "Foo (Max)" never lands on Foo at max."""
+    root = _repo(tmp_path)
+    base = _card(root, "foo", "Foo")
+    variant = _card(root, "foo-max", "Foo (Max)")
+
+    report = _run(monkeypatch, tmp_path, root, [_dataset_row("Foo (Max)", 1200.0)])
+
+    assert _rows(base) == [] and _rows(variant) == []
+    assert _refusals(report)["Foo (Max)"] == (
+        "", "the name reads as a card's full name and as its base card at an effort")
+
+
+def test_a_dated_version_makes_a_snapshot_card(monkeypatch, tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    card = _card(root, "foo", "Foo", extra="version: foo-2025-04-14\n")
+
+    report = _run(monkeypatch, tmp_path, root, [_dataset_row("Foo", 1200.0)])
+
+    assert _rows(card) == []
+    assert _refusals(report)["Foo"] == (
+        "lab/foo", "a dated snapshot card; the board name states none of its dates")
+
+
+def test_a_letter_outside_ascii_is_never_folded_away(monkeypatch, tmp_path: Path) -> None:
+    assert refresh.first_row_fold("Foo β") == "foo-β" != refresh.first_row_fold("Foo")
+    assert refresh.first_row_fold("Claude Opus 4.7 (Thinking)") == "claude-opus-4-7-thinking"
+    assert refresh.first_row_fold("lab/GPT-4o+") == "gpt-4o-plus"
+    root = _repo(tmp_path)
+    plain = _card(root, "foo", "Foo")
+    beta = _card(root, "foo-beta", "Foo β")
+
+    report = _run(monkeypatch, tmp_path, root, [
+        _dataset_row("Foo β", 1200.0), _dataset_row("foo-beta", 1190.0),
+    ])
+
+    assert _rows(plain) == []
+    assert _refusals(report)["Foo β"][1] == (
+        "the board name has letters outside ASCII the matcher would drop")
+    # The ASCII id still files, and its claim never offers the verifier "Foo β" ("foo").
+    assert [row["model_id_as_evaluated"] for row in _rows(beta)] == ["foo-beta"]
+    board = _board(tmp_path, [])
+    names = refresh._claim("lab/foo-beta", {"display_name": "Foo β"}, {
+        "id": "x", "benchmark_id": "arena_elo_overall", "score": 1.0}, board,
+        card_identity=True).names
+    assert names == ("foo-beta",)
+
+
+def test_a_card_named_with_an_effort_word_takes_no_row_until_model_568(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """Whether "Max" in "Qwen3 Max" is identity is MODEL-568's helper; until the matcher
+    calls it, such a card is refused as a variant, never filed at an effort."""
+    root = _repo(tmp_path)
+    qwen = _card(root, "qwen3-max", "Qwen3 Max", lab="qwen")
+
+    report = _run(monkeypatch, tmp_path, root, [_dataset_row("Qwen3 Max", 1200.0)])
+
+    assert _rows(qwen) == []
+    assert _refusals(report)["Qwen3 Max"] == (
+        "qwen/qwen3-max", "the card is itself an effort variant, not a base card")
 
 
 def test_a_sole_dated_snapshot_card_never_takes_a_base_row(monkeypatch, tmp_path: Path) -> None:

@@ -129,9 +129,21 @@ behaves as before. Only the Arena boards file (`FIRST_ROW_BOARD_PREFIXES`).
   keys every card, whatever its status, on the fold of its display name and its
   model id. A board row that names a card is skipped when the card already has
   a row for that benchmark.
-- A card whose display name or model id carries a date or snapshot stamp takes
-  only a board name that states one of those dates. A stamp is a digit token 4
-  to 8 long. Even as the sole hit, such a card never takes a base row.
+- A card whose display name, `version` or model id carries a date or snapshot
+  stamp takes only a board name that states one of those dates. A stamp is a
+  digit token 4 to 8 long. Even as the sole hit, such a card never takes a base
+  row.
+- `first_row_fold` keeps letters outside ASCII, so "Foo β" never folds to "foo".
+  The verifier's name matcher would drop such letters. So a board name that has
+  them is refused, and a first row's claim does not name the verifier any card
+  name that has them.
+- Round 2 of the review settled effort words. When a board name carries an
+  effort label, the full name is looked up first. A card named "Foo (Max)" means
+  that row is never read as Foo at max effort. If a base card "Foo" also exists,
+  the row is refused as ambiguous. If not, it is refused as a variant. A card
+  whose own name ends in an effort word, such as "Qwen3 Max", is refused for now.
+  MODEL-568's `verify.effort_word_is_name` decides when such a word is identity,
+  and the matcher will call it once that lands.
 - `first_row_known_names` collects the other names a card is known by: its
   `version`, its `aliases`, `former_names` and `previous_names`, the names its
   Arena rows were filed under, and what `ARENA_RENAMED` calls those now. A board
