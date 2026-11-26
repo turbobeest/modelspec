@@ -229,7 +229,11 @@ Learned expensively during 2026-09-09/10.
     (`later_agreements`: a complete agreed harness attempt by two distinct known families, on
     another page than the agreement that opened its epoch (its text hash, and its cited-region
     hash when both logged one), logged after it, at or after the clearing line's `cleared_at`
-    and not after the build's day, in an epoch where no answer, complete or not, disagrees).
+    and not after the build's day, in an epoch where no answer, complete or not, disagrees:
+    an agreement on silence or absence and a later value do; `link_problem`). Every agreement
+    that opens an epoch counts as its opener. The gate decides a re-read with the same
+    functions: the chain that releases each verdict (`fact_chain`, `reading_chain`), its openers
+    of the epoch (`openers`) and `link_problem` on the read it has just logged.
     Only the latest valid line of each verdict counts (by `cleared_at`, then line order). A
     verdict's epoch is derived only from the record's own agreement: never another setting's,
     and a clearing's only when a line names it. The gate re-reads a released record only on a

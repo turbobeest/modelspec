@@ -724,3 +724,131 @@ def test_a_conflicting_incomplete_answer_blocks_a_readings_re_read(tmp_path, mon
     PAGES[reading_gate.URL] = BOARD_MOVED
     held = reread_reading(**kw, readers=reading_gate.pair(53.0))
     assert held.outcome == "flagged" and held.reason == "prior_attempt_disagreed", held
+
+
+# --- adversarial review round 2 (MODEL-566) -------------------------------------------------------
+
+
+def test_a_same_page_attempt_on_another_value_never_supplies_the_epoch():
+    """The agreement that set the record's epoch must be on the claim's value (finding 1)."""
+    from decision.quarantine_clearing import verdict_epoch
+
+    from tests.test_quarantine_clearing import events
+
+    verdict = mismatch(day="2026-10-12")
+    trail = events(verdict, method="two-readers-cited-change@3",
+                   sources=[{"source_id": "src-cite", "snapshot_ref": f"sha256:{PAGE}"}])
+    kw = dict(history=trail, subject=MID, facet=FACET, first="initial")
+    other = agreement("initial", values=(65536, 65536))
+    assert verdict_epoch(verdict, log=AttemptLog([raw(other)]), **kw) is None
+    same = agreement("initial")
+    assert verdict_epoch(verdict, log=AttemptLog([raw(other), raw(same)]), **kw) \
+        == reread_epoch("initial", TEXT)
+
+
+def test_every_opener_of_an_epoch_counts():
+    """Two agreements open the same epoch (the same page text, other cited regions); a read
+    there that only the second makes valid is still a link (finding 2)."""
+    first = {**agreement(), "region_sha256": "1" * 64}
+    one = {**later(at="2026-10-12T09:00:00+00:00"), "region_sha256": "2" * 64}
+    two = {**later(at="2026-10-12T10:00:00+00:00"), "region_sha256": "3" * 64}
+    read = {**later(reread_epoch("initial", LATER_TEXT), at="2026-10-13T09:00:00+00:00",
+                    values=(65536, 65536), text="c" * 64, page="6" * 64),
+            "region_sha256": "2" * 64}  # the region ``one`` read: no move against it
+    logged = [first, one, two, read]
+    assert shows(build(later_row(read), [clearing(first)], logged), 65536)
+    assert not shows(build(later_row(read), [clearing(first)], [first, one, read]), 65536)
+
+
+def test_the_gate_takes_its_opener_from_the_releasing_chain():
+    """Only the chain's own agreements that open the epoch are compared, never another
+    attempt on the same page in another epoch or source (finding 3)."""
+    from decision.cited_change import _relitigates
+    from decision.cited_reader import text_sha256
+    from decision.quarantine_clearing import epoch_after, openers
+
+    page = b"<html><body>a synthetic page, long enough to read</body></html>"
+    opener = {**later(), "text_sha256": "0" * 64, "region_sha256": "1" * 64}
+    # The same page read in a clearing epoch opens another epoch: it is no opener of this one.
+    decoy = {**opener, "epoch": clearing_epoch("initial", "sha256:" + "4" * 64),
+             "region_sha256": "2" * 64}
+    epoch = epoch_after("initial", opener)
+    assert openers([opener, decoy], "initial", epoch) == [opener]
+    kw = dict(own_fetch=True, first="initial", epoch=epoch)
+    assert _relitigates([[opener]], page, region="1" * 64, **kw).reason == "quarantined"
+    assert _relitigates([[opener]], page, region="2" * 64, **kw) is None
+    same_text = {**opener, "text_sha256": text_sha256(page)}
+    assert _relitigates([[same_text]], page, region="9" * 64, **kw).reason == "quarantined"
+    assert _relitigates([[opener]], page, region="2" * 64, own_fetch=False, first="initial",
+                        epoch=epoch).reason == "quarantined"
+
+
+def seed_epoch(root, subject, facet, epoch, **entry):
+    with (root / ATTEMPTS_FILE).open("a") as fh:
+        fh.write(json.dumps({"subject": subject, "facet": facet, "epoch": epoch,
+                             "harness": True, "at": "2026-11-01T09:00:00+00:00", **entry},
+                            sort_keys=True) + "\n")
+
+
+SILENT = {"complete": True, "agreed": True, "agreed_value": None, "readers": [
+    {"reader_id": "codex", "family": "openai", "version": "1", "value": None},
+    {"reader_id": "claude", "family": "anthropic", "version": "1", "value": None}]}
+
+
+@pytest.mark.parametrize("seeded", ["nothing", "silence", "incomplete", "other_value"])
+def test_the_gate_and_the_build_agree_on_a_re_read(cleared, seeded):
+    """Parity (round 2): on the same logs, the gate accepts a re-read exactly when the build
+    walks it as a link after the clearing. A complete agreement on silence then a value, an
+    incomplete answer and an agreement on another value are refused by both (finding 4)."""
+    from decision.cited_change import fact_epoch
+
+    d = cleared
+    epoch = fact_epoch(filed(d))
+    facet = "offering.data.retention"
+    if seeded == "silence":
+        seed_epoch(d.root, offering.SUBJECT, facet, epoch, **SILENT)
+    elif seeded == "incomplete":
+        seed_epoch(d.root, offering.SUBJECT, facet, epoch, complete=False, readers=[
+            {"reader_id": "codex", "family": "openai", "version": "1", "value": 12}])
+    elif seeded == "other_value":
+        seed_epoch(d.root, offering.SUBJECT, facet, epoch, **{
+            **SILENT, "agreed_value": 12,
+            "readers": [{**r, "value": 12} for r in SILENT["readers"]]})
+    before = len(d.log())
+    out = again()
+    log = AttemptLog.read(d.root / ATTEMPTS_FILE)
+    [entry] = read_clearings(d.root / CLEARINGS_FILE)
+    agreed = next(e for e in log.entries if e["epoch"] == entry["epoch"])
+    walked = later_agreements(log, entry, agreed, subject=offering.SUBJECT, facet=facet,
+                              first="initial", cutoff=datetime.now(UTC).date())
+    gate_read = log.entries[-1] if len(log.entries) > before else None
+    in_build = gate_read is not None and any(n == gate_read for n, _ in walked)
+    assert (out.outcome == "changed") is in_build, (seeded, out.reason, out.detail)
+    assert (out.outcome == "changed") is (seeded == "nothing")
+
+
+def test_an_absence_then_a_score_refuses_a_readings_re_read(tmp_path, monkeypatch):
+    """The board gate refuses a released row's re-read on a value after an agreed absence in
+    its epoch, as the build does (finding 4)."""
+    from decision.cited_change import reading_epoch
+
+    board = reading_gate.Data(tmp_path / "data", monkeypatch)
+    board.row["id"] = reading_gate.ROW_ID
+    board.write()
+    plant(board.root, verification("evidence", reading_gate.ROW_ID, "mismatch",
+                                   day="2026-10-14", value=46.6),
+          effort=reading_gate.READING["effort"], harness=reading_gate.READING["harness"],
+          names=[reading_gate.READING["model_id_as_evaluated"]])
+    kw = dict(subject=reading_gate.SUBJECT, benchmark_id=reading_gate.BENCH,
+              reading=reading_gate.READING, source_id="board")
+    out = cited_reading(**kw, readers=reading_gate.pair(), request=reading_gate.serve(),
+                        clear_quarantine=True)
+    assert out.changed, (out.reason, out.detail)
+    board.row = rewritten_row(reading_gate.SUBJECT, board.row, out)
+    board.write()
+    append(out.record["clearings"], board.root)
+    seed_epoch(board.root, reading_gate.SUBJECT, f"benchmark:{reading_gate.BENCH}",
+               reading_epoch(reading_gate.READING, board.row), **SILENT)
+    PAGES[reading_gate.URL] = BOARD_MOVED
+    held = reread_reading(**kw, readers=reading_gate.pair(53.0))
+    assert held.outcome == "flagged" and held.reason == "prior_attempt_disagreed", held

@@ -826,10 +826,11 @@ Held = list[tuple[tuple[str, str, str], dict[str, Any]]]
 
 def _unreleased(held: Held, record: Mapping[str, Any], subject: str, *, now: datetime,
                 sources: Mapping[str, Mapping[str, Any]],
-                owns: Callable[[str], bool] | None = None) -> tuple[Held, bool] | CitedChange:
-    """``(held, released)``: the held verdicts that no valid clearing line has released for this
-    record, and whether one was (MODEL-566). The test is the build's own
-    (``quarantine_clearing.fact_released``, or ``reading_released`` when ``owns`` is given): the
+                owns: Callable[[str], bool] | None = None
+                ) -> tuple[Held, list[list[Mapping[str, Any]]]] | CitedChange:
+    """``(held, chains)``: the held verdicts that no valid clearing line has released for this
+    record, and the chain that releases each one that was (MODEL-566). The test is the build's
+    own (``quarantine_clearing.fact_chain``, or ``reading_chain`` when ``owns`` is given): the
     line is checked as #1169 checks it, and the record carries the block that clearing made or one
     a later agreement made in an epoch after the clearing epoch. A verdict newer than the clearing
     is not the one a line names, so it still holds. A read that fails refuses."""
@@ -840,16 +841,16 @@ def _unreleased(held: Held, record: Mapping[str, Any], subject: str, *, now: dat
         CLEARINGS_FILE,
         QUEUE_FILE,
         AttemptLog,
-        fact_released,
+        fact_chain,
         queue_history,
         read_clearings,
-        reading_released,
+        reading_chain,
     )
 
     root = Path(os.environ.get(DATA_DIR_ENV, "").strip() or ".")
     mismatches = [h for h in held if h[1].get("outcome") == "mismatch"]
     if not mismatches or not (root / CLEARINGS_FILE).is_file():
-        return list(held), False
+        return list(held), []
     try:
         clearings = read_clearings(root / CLEARINGS_FILE)
         targets = {str((row.get("target") or {}).get("id")) for _, row in mismatches}
@@ -863,45 +864,52 @@ def _unreleased(held: Held, record: Mapping[str, Any], subject: str, *, now: dat
     common = dict(clearings=clearings, log=log, sources=urls, history=history,
                   cutoff=now.astimezone(UTC).date(), held=[row for _, row in held])
     try:
-        released = [h for h in mismatches if (
-            reading_released(record, subject, verdict=h[1], owns=owns, **common)
-            if owns is not None else fact_released(record, subject, verdict=h[1], **common))]
+        chains = [(h, reading_chain(record, subject, verdict=h[1], owns=owns, **common)
+                   if owns is not None else fact_chain(record, subject, verdict=h[1], **common))
+                  for h in mismatches]
     except (KeyError, TypeError, ValueError, AttributeError) as error:
         return _refuse("registry_lookup_failed", f"clearing check: {type(error).__name__}")
-    return [h for h in held if h not in released], bool(released)
+    released = [h for h, chain in chains if chain is not None]
+    return [h for h in held if h not in released], [c for _, c in chains if c is not None]
 
 
-def _relitigates(record: Mapping[str, Any], page_bytes: bytes, *, own_fetch: bool,
-                 subject: str, facet: str, region: str | None = None) -> CitedChange | None:
+def _relitigates(chains: Sequence[Sequence[Mapping[str, Any]]], page_bytes: bytes, *,
+                 own_fetch: bool, first: str, epoch: str,
+                 region: str | None = None) -> CitedChange | None:
     """Refuse a read, after a verdict was released (MODEL-566), unless the gate fetched the page
     itself with its own transport (bytes or a transport a caller supplies never re-read a
-    released fact, as MODEL-562 requires) and the page is another than the one the record rests
-    on: its visible text hash differs, and so does its cited-region hash when the agreement that
-    made the record logged one (``quarantine_clearing._moved``, the build's rule). A clearing,
-    and each read after it, is not re-litigated in its own epoch. A clearing of a newer verdict
-    is read in that verdict's own clearing epoch, and is not held to this."""
-    from decision.cited_reader import _attempts_path
-    from decision.quarantine_clearing import AttemptLog, _moved
+    released fact, as MODEL-562 requires) and, for every released verdict, the page is another
+    than one of the agreements that opened the epoch in the chain that releases it: its visible
+    text hash differs, and so does its cited-region hash when both are logged
+    (``quarantine_clearing.openers`` and ``_moved``, the build's own). A clearing, and each read
+    after it, is not re-litigated in its own epoch. A clearing of a newer verdict is read in
+    that verdict's own clearing epoch, and is not held to this."""
+    from decision.quarantine_clearing import _moved, openers
 
     if not own_fetch:
         return _refuse("quarantined", "a released verdict is re-read only on a page the gate "
                        f"fetched itself; {QUARANTINED}")
-    block = _block_of(record) or {}
-    opener = {"text_sha256": block.get("text_sha256"), "region_sha256": None}
-    try:
-        logged = AttemptLog.read(_attempts_path(None)).entries
-    except (OSError, ValueError, ReaderError) as error:
-        return _refuse("registry_lookup_failed", f"the attempt log: {type(error).__name__}")
-    for entry in reversed(logged):  # the agreement that made the block, by its hashes
-        if (entry.get("subject"), entry.get("facet")) == (subject, facet) \
-                and entry.get("page_sha256") == block.get("sha256") \
-                and entry.get("text_sha256") == block.get("text_sha256") \
-                and entry.get("agreed") is True:
-            opener["region_sha256"] = entry.get("region_sha256")
-            break
-    if not _moved(opener, {"text_sha256": text_sha256(page_bytes), "region_sha256": region}):
+    read = {"text_sha256": text_sha256(page_bytes), "region_sha256": region}
+    if not all(any(_moved(o, read) for o in openers(chain, first, epoch)) for chain in chains):
         return _refuse("quarantined", "the page is the one the record's read after its clearing "
                        f"rests on; a released verdict is not re-litigated there; {QUARANTINED}")
+    return None
+
+
+def _not_a_link(chains: Sequence[Sequence[Mapping[str, Any]]], *, subject: str, facet: str,
+                first: str, epoch: str) -> CitedChange | None:
+    """After the read is logged (MODEL-566): refuse unless it is a link of every chain that
+    releases a verdict on the record, by the build's own test
+    (``quarantine_clearing.link_problem`` over every attempt logged in the epoch: an agreement on
+    silence or absence there and a later value disagree, and so does an incomplete answer)."""
+    from decision.quarantine_clearing import link_problem, openers
+
+    logged = attempts(subject, facet, epoch)
+    for chain in chains:
+        problem = link_problem(logged, logged[-1], openers(chain, first, epoch), facet) \
+            if logged else "the read is not logged"
+        if problem is not None:
+            return _refuse("prior_attempt_disagreed", problem)
     return None
 
 
@@ -1035,12 +1043,13 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         return _refuse("registry_lookup_failed", str(error))
     # A verdict a valid clearing line released no longer holds the fact in the epochs after the
     # clearing epoch (MODEL-566), by the build's own test; any other verdict still does.
-    released = False
+    released, chains = False, []
     if held:
         got = _unreleased(held, found.fact, subject, now=now, sources=found.sources)
         if isinstance(got, CitedChange):
             return got
-        held, released = got
+        held, chains = got
+        released = bool(chains)
     clearing = None
     if held:
         refusal, clearing = _clearing_target(held, found.fact, now,
@@ -1122,7 +1131,7 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     page_bytes, resolved = page
     if released and clearing is None:
         # ``own_page``: the bytes are the gate module's own fetch (``reread``), never a caller's.
-        refusal = _relitigates(found.fact, page_bytes, subject=subject, facet=facet,
+        refusal = _relitigates(chains, page_bytes, first="initial", epoch=epoch,
                                own_fetch=request is None and (gate_fetched or own_page),
                                region=_region_sha256(row, page_bytes))
         if refusal is not None:
@@ -1165,6 +1174,8 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         return _refuse("reader_failed", "a reader returned no usable answer")
     refusal = _check_readers(answers, facet_def, url=row["url"], subject_name=found.subject_name,
                              page_bytes=page_bytes, definition=found.definition)
+    if refusal is None and released and clearing is None:
+        refusal = _not_a_link(chains, subject=subject, facet=facet, first="initial", epoch=epoch)
     if refusal is not None:
         return refusal
     value = answers[0].value
@@ -1965,13 +1976,14 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
         held = quarantine_rows(found.evidence_ids, found.row, kind="evidence", owns=found.owns)
     except LookupFailed as error:
         return _refuse("registry_lookup_failed", str(error))
-    released = False
+    released, chains = False, []
     if held:  # as for a fact (MODEL-566): a released verdict holds the row no more
         got = _unreleased(held, found.row, subject, now=now, sources=found.sources,
                           owns=found.owns)
         if isinstance(got, CitedChange):
             return got
-        held, released = got
+        held, chains = got
+        released = bool(chains)
     clearing = None
     if held:
         refusal, clearing = _clearing_target(held, found.row, now, allowed=clear_quarantine,
@@ -2059,7 +2071,7 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
         return fetched
     page_bytes, resolved = fetched
     if released and clearing is None:
-        refusal = _relitigates(found.row, page_bytes, subject=subject, facet=facet_id,
+        refusal = _relitigates(chains, page_bytes, first=reading_epoch(reading), epoch=epoch,
                                own_fetch=request is None)
         if refusal is not None:
             return refusal
@@ -2088,11 +2100,11 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     if canonical(answers[0].value, facet.id) != canonical(answers[1].value, facet.id):
         return _refuse("readers_disagree", "the readers returned different values")
     value = answers[0].value
-    if released and clearing is None and any(
-            canonical(v, facet_id) != canonical(value, facet_id)
-            for v in _incomplete_values(attempts(subject, facet_id, epoch))):
-        return _refuse("prior_attempt_disagreed",
-                       "an answer recorded in an incomplete attempt differs from this agreement")
+    if released and clearing is None:
+        refusal = _not_a_link(chains, subject=subject, facet=facet_id,
+                              first=reading_epoch(reading), epoch=epoch)
+        if refusal is not None:
+            return refusal
     mark = {"subject": subject, "benchmark_id": benchmark_id,
             "reading": {k: reading[k] for k in READING_KEYS}}
     if value is None and clearing is not None:
