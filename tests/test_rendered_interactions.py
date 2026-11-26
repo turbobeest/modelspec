@@ -531,6 +531,11 @@ def hosts(tmp_path, monkeypatch):
                 redirects[self.path] = (OTHER, "/back")
             if self.path == "/slow.png":
                 time.sleep(1)  # holds the load event while a popup opens
+            if self.path == "/to-tricky":  # a browser reads the backslash as a slash
+                self.send_response(302)
+                self.send_header("Location", url(CLASSED, "") + "\\@" + url(UNCLASSED, "/page")[7:])
+                self.end_headers()
+                return
             if self.path in redirects:
                 self.send_response(302)
                 self.send_header("Location", url(*redirects[self.path]))
@@ -701,3 +706,9 @@ def test_pages_get_no_webrtc(hosts, guarded):
     result = guarded.fetch(hosts.url(CLASSED, "/page"))
     assert result.outcome == "ok", result.error
     assert b'<div id="rtc">undefined/undefined</div>' in result.body
+
+
+def test_a_redirect_another_parser_could_read_differently_is_refused(hosts, guarded):
+    result = guarded.fetch(hosts.url(CLASSED, "/to-tricky"))
+    assert (result.outcome, result.error) == ("unreachable", "ambiguous URL")
+    assert hosts.hits == [CLASSED + "/to-tricky"]

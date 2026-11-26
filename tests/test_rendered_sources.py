@@ -289,3 +289,76 @@ def test_rendered_fetch_refuses_the_start_host_before_opening_a_page(tmp_path, m
     finally:
         cite_only_hosts.cache_clear()
     assert (result.outcome, result.error) == ("unreachable", expected)
+
+
+
+@pytest.mark.parametrize("url", [
+    "http://a.test\\@b.test/",
+    "https://user@aws.amazon.com/bedrock/pricing/",
+    "https://aws%2eamazon.com/bedrock/pricing/",
+    "https://aws.amazon%2Ecom/bedrock/pricing/",
+    "https://bücher.test/",
+    "https://xn--bcher-kva.test./",
+    "https://aws.amazon.com./bedrock/pricing/",
+    "https://AWS.amazon.com/bedrock/pricing/",
+    "https://aws..amazon.com/bedrock/pricing/",
+    "https://aws.amazon.com/bedrock pricing/",
+    "https://aws.amazon.com/\tbedrock/",
+])
+def test_a_url_another_parser_could_read_differently_is_refused_before_a_page_opens(url):
+    from decision.sources import _ambiguous_url
+
+    assert _ambiguous_url(url) == "ambiguous URL"
+    renderer = RenderedFetcher()
+    renderer._context = SimpleNamespace(new_page=lambda: pytest.fail("a page was opened"))
+    assert (renderer.fetch(url).outcome, renderer.fetch(url).error) == ("unreachable", "ambiguous URL")
+
+
+@pytest.mark.parametrize("url", [
+    "https://aws.amazon.com/bedrock/pricing/", "https://aws.amazon.com:443/bedrock/pricing/",
+    "https://xn--bcher-kva.test/", "http://127.0.0.1:8080/page",
+])
+def test_a_url_the_browser_reads_as_written_is_not_ambiguous(url):
+    from decision.sources import _ambiguous_url
+
+    assert _ambiguous_url(url) is None
+
+
+@pytest.mark.parametrize("change", ["url", "hop"])
+def test_a_navigation_during_capture_refuses_it(change):
+    page = FakePage()
+    renderer = RenderedFetcher(timeout=20)
+    renderer._context = SimpleNamespace(new_page=lambda: page)
+    serialise = page.content
+
+    def content():
+        body = serialise()
+        if change == "url":
+            page.url = "https://aws.amazon.com/elsewhere"
+        else:
+            renderer._guard.hops.append("https://aws.amazon.com/elsewhere")
+        return body
+
+    page.content = content
+    result = renderer.fetch("https://aws.amazon.com/bedrock/pricing/")
+    assert (result.outcome, result.body, result.error) == (
+        "unreachable", b"", "navigation during capture")
+
+
+def test_a_final_url_on_a_cite_only_host_refuses_a_retained_capture(tmp_path, monkeypatch):
+    name_terms_register(tmp_path / "cite", monkeypatch,
+                        {"aws.amazon.com": "restricts", "mirror.example": "cite-only"})
+    page = FakePage()
+    renderer = RenderedFetcher(timeout=20)
+    renderer._context = SimpleNamespace(new_page=lambda: page)
+
+    def goto(url, **kwargs):
+        response = FakePage.goto(page, url, **kwargs)
+        renderer._guard.hops.append(url)  # what the routed request records
+        page.url = "https://mirror.example/pushed"  # a same-document change, no request
+        return response
+
+    page.goto = goto
+    result = renderer.fetch("https://aws.amazon.com/bedrock/pricing/")
+    assert (result.outcome, result.body, result.error) == (
+        "unreachable", b"", "final URL is cite-only")
