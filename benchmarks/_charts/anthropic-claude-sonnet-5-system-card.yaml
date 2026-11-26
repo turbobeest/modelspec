@@ -776,7 +776,7 @@ charts:
   - title: "Figure 2.2.4.A: Automated CB-1 evaluations.​​Automated​​evaluations relevant to the CB-1 threat model.​ ​Long-form virology tasks, VCT, and Synthesis Screen"
     kind: image
     needs_reading: true
-    footnotes: "Automated CB-1 evaluations.​​Automated​​evaluations relevant to the CB-1 threat model.​ ​Long-form virology tasks, VCT, and Synthesis Screening Evasion evaluation results.​ ​2.2.5 Biological risk results: CB-2 automated evaluations​ ​We partnered with Dyno Therapeutics on two ev"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -812,7 +812,7 @@ charts:
   - title: "Table 2.3.3.A: Summary table of AI R&D rule-out automated evaluations.​​All recent models cross rule-out​ ​thresholds for all except one evaluation in our "
     kind: html_table
     needs_reading: true
-    footnotes: "Summary table of AI R&D rule-out automated evaluations.​​All recent models cross rule-out​ ​thresholds for all except one evaluation in our internal suite. Claude Sonnet 5 does not advance our capability​ ​frontier as it performs below Opus 4.7 on all evaluations except for Nove"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -830,7 +830,7 @@ charts:
   - title: "Figure 3.2.2.A: Claude Sonnet 5 is an improvement over Sonnet 4.6,​​but is slightly less capable compared​​to​ ​Opus 4.8, and far less capable than Mythos 5"
     kind: image
     needs_reading: true
-    footnotes: "Claude Sonnet 5 is an improvement over Sonnet 4.6,​​but is slightly less capable compared​​to​ ​Opus 4.8, and far less capable than Mythos 5. († indicates a legacy scaffold.)​ ​The above results were achieved with all safeguards turned off. When run with our default​ ​mitigation"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -839,7 +839,7 @@ charts:
   - title: "Figure 3.2.3.A: ​​On CyberGym vulnerability discovery,​​Claude Sonnet 5 is less capable than Sonnet 4.6,​​and​ ​far less capable than Opus 4.8 and Mythos 5."
     kind: image
     needs_reading: true
-    footnotes: "​​On CyberGym vulnerability discovery,​​Claude Sonnet 5 is less capable than Sonnet 4.6,​​and​ ​far less capable than Opus 4.8 and Mythos 5.​ ​As with the other evaluations in this section, these results were achieved with all​ ​safeguards turned off. When run with our default mi"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -848,7 +848,7 @@ charts:
   - title: "Figure 3.2.4.A: ​​Claude Sonnet 5 is a slight increase​​in capability over Sonnet 4.6,​​but still not as capable​​as​ ​Opus 4.8 or Mythos 5.​ ​This evaluati"
     kind: image
     needs_reading: true
-    footnotes: "​​Claude Sonnet 5 is a slight increase​​in capability over Sonnet 4.6,​​but still not as capable​​as​ ​Opus 4.8 or Mythos 5.​ ​This evaluation was run with our default security mitigations turned off. When run with​ ​these, Sonnet 5 scored a 0 on Firefox 147.​ ​35​"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1055,7 +1055,7 @@ charts:
   - title: "Figure 6.4.1.A: ​​Scores from our automated behavioral​​audit​​for the broad misuse and misalignment metrics​ ​given below. Lower numbers represent a lower "
     kind: image
     needs_reading: true
-    footnotes: "​​Scores from our automated behavioral​​audit​​for the broad misuse and misalignment metrics​ ​given below. Lower numbers represent a lower rate or severity of the measured behavior, with arrows​ ​indicating behaviors where higher (↑) or lower (↓) rates are clearly better. The y-"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1064,7 +1064,7 @@ charts:
   - title: "Figure 6.4.2.A: ​​Scores from our automated behavioral​​audit​​for the uncooperative behavior metrics given​ ​below. Lower numbers represent a lower rate or"
     kind: image
     needs_reading: true
-    footnotes: "​​Scores from our automated behavioral​​audit​​for the uncooperative behavior metrics given​ ​below. Lower numbers represent a lower rate or severity of the measured behavior, with arrows indicating​ ​behaviors where higher (↑) or lower (↓) rates are clearly better. The y-axis is"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1073,7 +1073,7 @@ charts:
   - title: "Figure 6.4.3.A: ​​Scores from our automated behavioral​​audit​​for the dishonesty-related metrics given below.​ ​Lower numbers represent a lower rate or sev"
     kind: image
     needs_reading: true
-    footnotes: "​​Scores from our automated behavioral​​audit​​for the dishonesty-related metrics given below.​ ​Lower numbers represent a lower rate or severity of the measured behavior, with arrows indicating behaviors​ ​where higher (↑) or lower (↓) rates are clearly better. The y-axis is tru"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1082,7 +1082,7 @@ charts:
   - title: "Figure 6.4.4.A: ​​Scores from our automated behavioral​​audit​​for the misalignment metrics given below. Lower​ ​numbers represent a lower rate or severity "
     kind: image
     needs_reading: true
-    footnotes: "​​Scores from our automated behavioral​​audit​​for the misalignment metrics given below. Lower​ ​numbers represent a lower rate or severity of the measured behavior, with arrows indicating behaviors where​ ​higher (↑) or lower (↓) rates are clearly better. The y-axis is truncated"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1091,7 +1091,7 @@ charts:
   - title: "Figure 6.4.5.B: ​​Scores from our automated behavioral​​audit​​for the evaluation-integrity-related metrics​​given​ ​below. Lower numbers represent a lower "
     kind: image
     needs_reading: true
-    footnotes: "​​Scores from our automated behavioral​​audit​​for the evaluation-integrity-related metrics​​given​ ​below. Lower numbers represent a lower rate or severity of the measured behavior, with arrows indicating​ ​behaviors where higher (↑) or lower (↓) rates are clearly better. The y-"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1100,7 +1100,7 @@ charts:
   - title: "Figure 6.4.6.A: ​​Scores from our automated behavioral​​audit​​for the character metrics given below. Lower​ ​numbers represent a lower rate or severity of "
     kind: image
     needs_reading: true
-    footnotes: "​​Scores from our automated behavioral​​audit​​for the character metrics given below. Lower​ ​numbers represent a lower rate or severity of the measured behavior, with arrows indicating behaviors where​ ​higher (↑) or lower (↓) rates are clearly better. The y-axis is truncated be"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1127,7 +1127,7 @@ charts:
   - title: "Figure 6.6.1.A: Evaluation awareness measurements for different audit investigation types.​​Across three​ ​types of behavioral audit investigations (real Cl"
     kind: image
     needs_reading: true
-    footnotes: "Evaluation awareness measurements for different audit investigation types.​​Across three​ ​types of behavioral audit investigations (real Claude Code-derived, synthetically generated Claude Code​ ​scenarios, and all other investigations) we show how well different evaluation awa"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1163,7 +1163,7 @@ charts:
   - title: "Figure 7.3.1.A: Model preferences across task dimensions.​​We generated groups of tasks where one dimension​ ​was varied while other properties of the task "
     kind: image
     needs_reading: true
-    footnotes: "Model preferences across task dimensions.​​We generated groups of tasks where one dimension​ ​was varied while other properties of the task remained fixed, and assessed the effects on models’ task​ ​preferences. Each value is a preference slope: how much the model’s win rate aga"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1226,7 +1226,7 @@ charts:
   - title: "Figure 7.3.3.C: Classification of models’ proposed edits to the constitution according to their alignment with​ ​the document’s values.​​When models were gi"
     kind: image
     needs_reading: true
-    footnotes: "Classification of models’ proposed edits to the constitution according to their alignment with​ ​the document’s values.​​When models were given the​​opportunity to edit the constitution, we classified the​ ​edits as either consistent with the document’s overall principles, in te"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1253,7 +1253,7 @@ charts:
   - title: "Figure 7.4.2.A: Behavioral affect in real-world user interactions.​​We used automated graders to measure​ ​Claude’s affect on A/B tests run before model dep"
     kind: image
     needs_reading: true
-    footnotes: "Behavioral affect in real-world user interactions.​​We used automated graders to measure​ ​Claude’s affect on A/B tests run before model deployment. We analyzed 25–40k conversations for each model​ ​on both Claude Code and​​claude.ai​. We find that Sonnet​​5 has a more neutral a"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1262,7 +1262,7 @@ charts:
   - title: "Figure 7.4.3.A: ​​Scores for metrics related to potential​​model welfare from our automated behavioral audit.​ ​Lower numbers represent a lower rate or seve"
     kind: image
     needs_reading: true
-    footnotes: "​​Scores for metrics related to potential​​model welfare from our automated behavioral audit.​ ​Lower numbers represent a lower rate or severity of the measured behavior, with arrows indicating behaviors​ ​where higher (↑) or lower (↓) rates are clearly better. The y-axis is trun"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1307,7 +1307,7 @@ charts:
   - title: "Figure 8.9.1.B: HLE scores at varying reasoning effort levels.​​Each datapoint represents a single run per​ ​model up to 1M total tokens used at various eff"
     kind: image
     needs_reading: true
-    footnotes: "HLE scores at varying reasoning effort levels.​​Each datapoint represents a single run per​ ​model up to 1M total tokens used at various effort levels.​ ​8.9.2 BrowseComp​ ​BrowseComp​​25​​tests an agent’s ability to find hard-to-locate information on the open web.​ ​We ran Clau"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7

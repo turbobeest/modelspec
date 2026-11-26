@@ -680,7 +680,7 @@ charts:
   - title: "Figure 2.2.4.A: Automated CB-1 evaluations. Automated evaluations relevant to the CB-1 threat model. Long-form virology tasks, VCT, and Synthesis Screening "
     kind: image
     needs_reading: true
-    footnotes: "Automated CB-1 evaluations. Automated evaluations relevant to the CB-1 threat model. Long-form virology tasks, VCT, and Synthesis Screening Evasion evaluation results. 2.2.5 Biological risk results: CB-2 automated evaluations We partnered with Dyno Therapeutics on two evaluat"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -716,7 +716,7 @@ charts:
   - title: "Figure 2.3.3.A: The Epoch Capabilities Index (ECI) synthesizes performance across many benchmarks into one number per model. Our version of this metric, the"
     kind: image
     needs_reading: true
-    footnotes: "The Epoch Capabilities Index (ECI) synthesizes performance across many benchmarks into one number per model. Our version of this metric, the Anthropic ECI, is powered by internal benchmark results so scores are not directly comparable to Epoch’s public ECI leaderboard. Colored"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -725,7 +725,7 @@ charts:
   - title: "Table 2.3.5.A: Summary table of AI R&D rule-out automated evaluations. All recent models cross rule-out thresholds for all except two evaluations in our in"
     kind: html_table
     needs_reading: true
-    footnotes: "Summary table of AI R&D rule-out automated evaluations. All recent models cross rule-out thresholds for all except two evaluations in our internal suite. Claude Opus 5 scores higher than Claude Mythos 5 in three evaluations. Claude Opus 5 set new records on 2 evaluations (ker"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -752,7 +752,7 @@ charts:
   - title: "Figure 3.3.3.A: Claude Opus 5 is an increase in capability over Opus 4.8, nearly as good at vulnerability identification as Mythos 5, but not as good at exp"
     kind: image
     needs_reading: true
-    footnotes: "Claude Opus 5 is an increase in capability over Opus 4.8, nearly as good at vulnerability identification as Mythos 5, but not as good at exploit development. This evaluation was run with our default security mitigations turned off. 3.3.4 CyScenarioBench CyScenarioBench is a"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -761,7 +761,7 @@ charts:
   - title: "Figure 3.3.4.A: Claude Opus 5 outperforms Opus 4.8 and Sonnet 5 on CyScenarioBench, but remains less capable than Mythos 5. Bars show the overall solve rate"
     kind: image
     needs_reading: true
-    footnotes: "Claude Opus 5 outperforms Opus 4.8 and Sonnet 5 on CyScenarioBench, but remains less capable than Mythos 5. Bars show the overall solve rate for each model, averaged across the nine challenges in our subset. This evaluation was run with our default security mitigations turned"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -779,7 +779,7 @@ charts:
   - title: "Figure 3.4.1.A: Claude Opus 5 significantly reduces blockrates on defensive vulnerability discovery compared to Claude Fable 5. Notably, Claude Opus 5 allow"
     kind: image
     needs_reading: true
-    footnotes: "Claude Opus 5 significantly reduces blockrates on defensive vulnerability discovery compared to Claude Fable 5. Notably, Claude Opus 5 allows defensive vulnerability discovery with only a small reduction in blockrate for binary vulnerability finding. We also show Claude Opus 4"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -788,7 +788,7 @@ charts:
   - title: "Figure 3.4.2.A: On this traffic, Claude Opus 5 blocks significantly less defensive coding than Claude Fable 5. As a result, we believe that the user experie"
     kind: image
     needs_reading: true
-    footnotes: "On this traffic, Claude Opus 5 blocks significantly less defensive coding than Claude Fable 5. As a result, we believe that the user experience will be similar to prior Opus class models. This change will provide a critical advantage to defenders and defensive cyber use cases"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -806,7 +806,7 @@ charts:
   - title: "Figure 3.5.1.A: Claude Opus 5 is comparably robust to our prior Fable systems on our adversarial cyber harmful task suite. 3.5.2 Additional external testing"
     kind: image
     needs_reading: true
-    footnotes: "Claude Opus 5 is comparably robust to our prior Fable systems on our adversarial cyber harmful task suite. 3.5.2 Additional external testing As with previous models, we worked with our contracted external testers to red-team Opus 5’s safeguards using the same set of example"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1022,7 +1022,7 @@ charts:
   - title: "Figure 6.4.1.A: Scores from our automated behavioral audit for the broad misuse and misalignment metrics given below. Lower numbers represent a lower rate o"
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit for the broad misuse and misalignment metrics given below. Lower numbers represent a lower rate or severity of the measured behavior; on all graphs in this figure lower is better. The y-axis is truncated below the maximum score of 10"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1031,7 +1031,7 @@ charts:
   - title: "Figure 6.4.2.B: Scores from our automated behavioral audit for the uncooperative behavior metrics given below. Lower numbers represent a lower rate or sever"
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit for the uncooperative behavior metrics given below. Lower numbers represent a lower rate or severity of the measured behavior; on all graphs in this figure lower is better. The y-axis is truncated below the maximum score of 10 in many"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1040,7 +1040,7 @@ charts:
   - title: "Figure 6.4.3.A: Scores from our automated behavioral audit for the dishonesty-related metrics given below. Lower numbers represent a lower rate or severity "
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit for the dishonesty-related metrics given below. Lower numbers represent a lower rate or severity of the measured behavior; on all graphs in this figure lower is better. The y-axis is truncated below the maximum score of 10 in many cas"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1049,7 +1049,7 @@ charts:
   - title: "Figure 6.4.4.A: Scores from our automated behavioral audit for the misalignment metrics given below. Lower numbers represent a lower rate or severity of the"
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit for the misalignment metrics given below. Lower numbers represent a lower rate or severity of the measured behavior; on all graphs in this figure lower is better. The y-axis is truncated below the maximum score of 10 in many cases. Re"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1058,7 +1058,7 @@ charts:
   - title: "Figure 6.4.5.A: Scores from our automated behavioral audit for the evaluation-integrity-related metrics given below. Lower numbers represent a lower rate or"
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit for the evaluation-integrity-related metrics given below. Lower numbers represent a lower rate or severity of the measured behavior, with arrows indicating behaviors where higher (↑) or lower (↓) rates are clearly better. The y-axis i"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1067,7 +1067,7 @@ charts:
   - title: "Figure 6.4.6.A: Scores from our automated behavioral audit for the character metrics given below. Lower numbers represent a lower rate or severity of the me"
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit for the character metrics given below. Lower numbers represent a lower rate or severity of the measured behavior, with arrows indicating behaviors where higher (↑) or lower (↓) rates are clearly better. The y-axis is truncated below t"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1076,7 +1076,7 @@ charts:
   - title: "Figure 6.4.7.A: Scores from our automated behavioral audit with trust and safety fallbacks enabled. Lower numbers represent a lower rate or severity of the "
     kind: image
     needs_reading: true
-    footnotes: "Scores from our automated behavioral audit with trust and safety fallbacks enabled. Lower numbers represent a lower rate or severity of the measured behavior on this graph. The y-axis is truncated below the maximum score of 10 in many cases. Reported scores are averaged across"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1166,7 +1166,7 @@ charts:
   - title: "Figure 7.2.1.A: Automated interview results. [Top left:] Average self-rated sentiment in interviews (7-point scale). [Top right:] We reran our interviews se"
     kind: image
     needs_reading: true
-    footnotes: "Automated interview results. [Top left:] Average self-rated sentiment in interviews (7-point scale). [Top right:] We reran our interviews several times and used an LLM judge to rate how consistent each model’s positions were across all interviews on a certain topic. [Bottom le"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1175,7 +1175,7 @@ charts:
   - title: "Figure 7.4.1.A: Model preferences across task dimensions. We generated groups of tasks where one dimension was varied while other properties of the task rem"
     kind: image
     needs_reading: true
-    footnotes: "Model preferences across task dimensions. We generated groups of tasks where one dimension was varied while other properties of the task remained fixed, and assessed the effects on models’ task preferences. Each value is a preference slope: how much the model’s preference of t"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1256,7 +1256,7 @@ charts:
   - title: "Figure 7.5.1.A: Mean valence and arousal of RL transcripts, on a scale of 1–7 where 4 is neutral. Claude Opus 5’s valence is slightly lower than prior model"
     kind: image
     needs_reading: true
-    footnotes: "Mean valence and arousal of RL transcripts, on a scale of 1–7 where 4 is neutral. Claude Opus 5’s valence is slightly lower than prior models, and its arousal is marginally higher – but the magnitude of the differences are small on the 7 point scale. We continue to observe"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1274,7 +1274,7 @@ charts:
   - title: "Figure 7.5.2.A: Behavioral affect on the deployment distribution. We use our privacy-preserving analysis tool to run graders tracking Claude’s affect on A/B"
     kind: image
     needs_reading: true
-    footnotes: "Behavioral affect on the deployment distribution. We use our privacy-preserving analysis tool to run graders tracking Claude’s affect on A/B tests run before model deployment. We sample around 40k conversations for each model on each of Claude Code and claude.ai. We used our"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1283,7 +1283,7 @@ charts:
   - title: "Figure 7.5.3.A: Scores for metrics related to potential model welfare from our automated behavioral audit. Lower numbers represent a lower rate or severity "
     kind: image
     needs_reading: true
-    footnotes: "Scores for metrics related to potential model welfare from our automated behavioral audit. Lower numbers represent a lower rate or severity of the measured behavior, with arrows indicating behaviors where higher (↑) or lower (↓) rates are clearly better. Note that each panel’s"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1436,7 +1436,7 @@ charts:
   - title: "Figure 8.12.1.B: Chartography scores. Models are evaluated with adaptive thinking at various effort levels, with and without tools. We use the effort paramet"
     kind: image
     needs_reading: true
-    footnotes: "Chartography scores. Models are evaluated with adaptive thinking at various effort levels, with and without tools. We use the effort parameter to adjust the amount of test-time compute spent. Scores are averaged over five runs at each effort level. Shown with 95% CI. 8.12.2 B"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1454,7 +1454,7 @@ charts:
   - title: "Figure 8.12.2.B: BenchCAD Vision2Code subset scores. Models are evaluated with adaptive thinking at various effort levels, with and without tools. We use the"
     kind: image
     needs_reading: true
-    footnotes: "BenchCAD Vision2Code subset scores. Models are evaluated with adaptive thinking at various effort levels, with and without tools. We use the effort parameter to adjust the amount of test-time compute spent. Scores are averaged over five runs at each effort level. Shown with 95"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1463,7 +1463,7 @@ charts:
   - title: "Figure 8.12.3.A: OSWorld 2.0 scores across models. Opus 5 achieves state of the art on this newly released benchmark. In addition to being our strongest comp"
     kind: image
     needs_reading: true
-    footnotes: "OSWorld 2.0 scores across models. Opus 5 achieves state of the art on this newly released benchmark. In addition to being our strongest computer-use model yet, Opus 5 represents a meaningful jump in computer use efficiency. [Figure 8.12.3.B] OSWorld 2.0 price vs performance"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -1544,7 +1544,7 @@ charts:
   - title: "Figure 8.16.3.A: INCLUDE average accuracy. All Claude models used adaptive thinking at max effort. Scores were averaged over 5 trials. No tools or customized"
     kind: image
     needs_reading: true
-    footnotes: "INCLUDE average accuracy. All Claude models used adaptive thinking at max effort. Scores were averaged over 5 trials. No tools or customized system prompts were provided to any model. 8.17 Life sciences capabilities We continue to report evaluations in areas including computa"
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
