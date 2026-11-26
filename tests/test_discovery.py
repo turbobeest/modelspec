@@ -11,6 +11,8 @@ import jsonschema
 import pytest
 import yaml
 
+from pipeline import entity
+
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = ROOT / "tests/fixtures/mcp_registry/server-2025-12-11.schema.json"
 
@@ -51,6 +53,9 @@ def test_remote_manifest_validates_and_matches_the_deployed_route():
         "url": "https://github.com/turbobeest/modelspec", "source": "github", "subfolder": "mcp"
     }
     assert manifest["websiteUrl"] == "https://modelspec.dev"
+    assert manifest["description"] == entity.SHORT, (
+        "the registry listing carries the registry short form, like the site's MCP card"
+    )
     assert "packages" not in manifest
     remote, = manifest["remotes"]
     assert remote["type"] == "streamable-http"
