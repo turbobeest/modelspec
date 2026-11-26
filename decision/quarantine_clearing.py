@@ -253,12 +253,13 @@ def queue_history(path: Path, ids: set[str]) -> dict[str, list[dict[str, Any]]]:
     rows: dict[str, list[tuple[datetime, int, dict[str, Any]]]] = {}
     if not ids or not path.is_file():
         return {}
+    few = len(ids) <= 64
     with path.open(encoding="utf-8") as handle:
         for index, raw in enumerate(handle):
-            if ('"collected"' not in raw and '"checked"' not in raw
-                    and '"retired"' not in raw) \
-                    or not any(i in raw for i in ids):
+            if '"collected"' not in raw and '"checked"' not in raw and '"retired"' not in raw:
                 continue
+            if few and not any(i in raw for i in ids):
+                continue  # a quick text test first, for a handful of ids; the parse decides
             event = loads(raw)  # a repeated key refuses (MODEL-554)
             target = _event_target(event)
             at = _event_at(event)
@@ -334,32 +335,7 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
     other claim left it in its first epoch (``initial``, or a reading's settings epoch). A claim
     under an owner's ruling, a claim ``settings`` rejects (a reading's settings are not shown to
     be this row's), no matching check or no such claim before it cannot be shown."""
-    target = (verdict.get("target") or {}).get("id")
-    day = _day(verdict.get("date"))
-    pair = None
-    # Only the newest matching check of the day may supply the epoch: if it cannot be bound to
-    # the verdict's value, nothing clears (an older same-day check is never a fallback).
-    matching = [i for i, event in enumerate(history)
-                if event.get("event") == "checked" and _event_target(event) == target
-                and event.get("outcome") == verdict.get("outcome") and day is not None
-                and (at := _event_at(event)) is not None and at.astimezone(UTC).date() == day]
-    if matching:
-        index = matching[-1]
-        event = history[index]
-        filed = [e for e in history[:index]
-                 if e.get("event") == "collected" and _event_target(e) == target]
-        covers = check_binds(event, verdict, (filed[-1].get("claim") or {}).get("field")) \
-            if filed else False
-        if covers is None:
-            filed = filed[-1:]  # the claim it follows, nothing for another value in between
-        binding = [e for e in filed if claim_binds(e.get("claim") or {}, verdict)] \
-            if covers is not False else []
-        # A claim retired before the check (``Queue.retire``, MODEL-557) was not what it covered.
-        start = max((i for i, e in enumerate(history[:index]) if binding and e is binding[-1]),
-                    default=index)
-        if binding and not any(e.get("event") == "retired" and _event_target(e) == target
-                               for e in history[start + 1:index]):
-            pair = (binding[-1], event)
+    pair = verdict_pair(verdict, history)
     if pair is None:
         return None
     filed_event, checked = pair
@@ -387,6 +363,39 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
     return None
 
 
+def verdict_pair(verdict: Mapping[str, Any], history: Sequence[Mapping[str, Any]]
+                 ) -> tuple[Mapping[str, Any], Mapping[str, Any]] | None:
+    """``(claim event, check event)``: the claim the verdict checked and the check that made it,
+    or ``None`` when that cannot be shown (``verdict_epoch`` gives the rule)."""
+    target = (verdict.get("target") or {}).get("id")
+    day = _day(verdict.get("date"))
+    pair = None
+    # Only the newest matching check of the day may supply the epoch: if it cannot be bound to
+    # the verdict's value, nothing clears (an older same-day check is never a fallback).
+    matching = [i for i, event in enumerate(history)
+                if event.get("event") == "checked" and _event_target(event) == target
+                and event.get("outcome") == verdict.get("outcome") and day is not None
+                and (at := _event_at(event)) is not None and at.astimezone(UTC).date() == day]
+    if matching:
+        index = matching[-1]
+        event = history[index]
+        filed = [e for e in history[:index]
+                 if e.get("event") == "collected" and _event_target(e) == target]
+        covers = check_binds(event, verdict, (filed[-1].get("claim") or {}).get("field")) \
+            if filed else False
+        if covers is None:
+            filed = filed[-1:]  # the claim it follows, nothing for another value in between
+        binding = [e for e in filed if claim_binds(e.get("claim") or {}, verdict)] \
+            if covers is not False else []
+        # A claim retired before the check (``Queue.retire``, MODEL-557) was not what it covered.
+        start = max((i for i, e in enumerate(history[:index]) if binding and e is binding[-1]),
+                    default=index)
+        if binding and not any(e.get("event") == "retired" and _event_target(e) == target
+                               for e in history[start + 1:index]):
+            pair = (binding[-1], event)
+    return pair
+
+
 def reading_settings(row: Mapping[str, Any]) -> Settings:
     """Whether a claim was filed for this reading's settings: its conditions carry the row's
     ``effort`` and ``harness``, and its names the row's ``model_id_as_evaluated``."""
@@ -398,6 +407,44 @@ def reading_settings(row: Mapping[str, Any]) -> Settings:
             and conditions.get("harness") == row.get("harness") \
             and row.get("model_id_as_evaluated") in (claim.get("names") or ())
     return same
+
+
+def same_reading(claim: Mapping[str, Any], row: Mapping[str, Any]) -> bool:
+    """Whether a claim was filed for the same reading as ``row``: the same settings
+    (``reading_settings``), at least one of the row's own registered sources, and, when the
+    claim records who measured it, the same measurer. A provider's self-report and a board's
+    own row of one model and benchmark are two readings: their sources differ."""
+    if not reading_settings(row)(claim):
+        return False
+    mine = {str(ref.get("source_id")) for ref in row.get("sources") or ()
+            if isinstance(ref, Mapping) and ref.get("source_id")}
+    theirs = {str(ref.get("source_id")) for ref in claim.get("sources") or ()
+              if isinstance(ref, Mapping) and ref.get("source_id")}
+    if not mine & theirs:
+        return False
+    conditions = claim.get("conditions") if isinstance(claim.get("conditions"), Mapping) else {}
+    measured = claim.get("measured_by", conditions.get("measured_by"))
+    return measured is None or measured == row.get("measured_by")
+
+
+def reading_holds(held: Sequence[tuple[Key, Mapping[str, Any]]], row: Mapping[str, Any], *,
+                  own_ids: set[str], history: Mapping[str, Sequence[Mapping[str, Any]]]
+                  ) -> list[tuple[Key, Mapping[str, Any]]]:
+    """The held verdicts that hold this board reading: one on the row's own id (any value), or on
+    an earlier id whose verdict's queue claim (``verdict_pair``) shows it was the same reading
+    (``same_reading``). Whether some current sibling row carries that earlier id is beside the
+    point: no row takes a verdict over or diverts it, and a verdict on another reading (another
+    setting, source or measurer) never holds this one. A verdict whose claim cannot be shown
+    holds only its own row."""
+    out = []
+    for key, verdict in held:
+        if key[1] in own_ids:
+            out.append((key, verdict))
+            continue
+        pair = verdict_pair(verdict, history.get(key[1], ()))
+        if pair is not None and same_reading(pair[0].get("claim") or {}, row):
+            out.append((key, verdict))
+    return out
 
 
 def line_problem(entry: Any, *, verdict: Mapping[str, Any], subject: str, facet: str,

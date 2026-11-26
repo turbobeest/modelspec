@@ -1253,14 +1253,15 @@ class ReadingLookup:
     #: ``<model>#<benchmark>#``, for the subject and the card's ``model_id``: a logged id under
     #: one of these is the reading's earlier id unless another current row of the benchmark has it.
     id_prefixes: tuple[str, ...] = ()
-    #: The ids of the benchmark's other current rows on the card: their verdicts are theirs.
+    #: The ids of the benchmark's other current rows on the card (kept for callers; they no
+    #: longer decide whose a verdict is: ``quarantine_clearing.reading_holds`` does).
     sibling_ids: frozenset[str] = frozenset()
 
     def owns(self, logged_id: str) -> bool:
-        """A logged evidence id that holds this reading: its own, or any id under the reading's
-        ``<model>#<benchmark>#`` prefix. No other row of the benchmark takes a verdict over
-        (MODEL-552 review): a verdict holds every row of its subject and benchmark until a
-        clearing line releases that exact verdict."""
+        """A logged evidence id that may hold this reading: its own, or any id under the
+        reading's ``<model>#<benchmark>#`` prefix. Only a candidate: an id other than the row's
+        own holds it only when its verdict's queue claim shows the same reading
+        (``quarantine_clearing.reading_holds``, MODEL-552 follow-up)."""
         return logged_id in self.evidence_ids \
             or any(logged_id.startswith(prefix) for prefix in self.id_prefixes)
 
@@ -1739,6 +1740,26 @@ def reading_lookup(subject: str, benchmark_id: str, reading: Mapping[str, Any],
                          tuple(f"{m}#{benchmark_id}#" for m in models), siblings - set(own_id))
 
 
+def _reading_held(found: ReadingLookup) -> list[tuple[tuple[str, str, str], dict[str, Any]]]:
+    """The verdicts that hold the reading: on its own id (any value), or on an earlier id whose
+    verdict's queue claim shows the same reading (``quarantine_clearing.reading_holds``). A
+    sibling row never takes a verdict over, nor is it held by another reading's verdict. Raises
+    ``LookupFailed`` when the log or the queue cannot be read."""
+    import os
+
+    from decision.quarantine_clearing import QUEUE_FILE, queue_history, reading_holds
+
+    candidates = quarantine_rows(found.evidence_ids, found.row, kind="evidence", owns=found.owns)
+    own = set(found.evidence_ids)
+    earlier = {key[1] for key, _ in candidates if key[1] not in own}
+    root = Path(os.environ.get(DATA_DIR_ENV, "").strip() or ".")
+    try:
+        history = queue_history(root / QUEUE_FILE, earlier) if earlier else {}
+    except (OSError, ValueError) as error:
+        raise LookupFailed(f"queue: {type(error).__name__}") from None
+    return reading_holds(candidates, found.row, own_ids=own, history=history)
+
+
 def _host(url: Any) -> str | None:
     from urllib.parse import urlsplit
 
@@ -1849,7 +1870,7 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     facet_id = BENCHMARK_PREFIX + benchmark_id
     # Up front, before any read or attempt (MODEL-547): the fact gate's predicate, for evidence.
     try:
-        held = quarantine_rows(found.evidence_ids, found.row, kind="evidence", owns=found.owns)
+        held = _reading_held(found)
     except LookupFailed as error:
         return _refuse("registry_lookup_failed", str(error))
     clearing = None

@@ -400,7 +400,8 @@ class SnapshotInputs:
     #: exact line (``decision.quarantine_clearing.line_hash``), so a re-spelled row is no match.
     cited_attempt_lines: Sequence[str] = ()
     #: Verdict target id -> its queue events (``decision.quarantine_clearing.queue_history``), for
-    #: the targets clearing lines name: the record as filed at the verdict decides its epoch.
+    #: the targets clearing lines name and every evidence id with a failed latest verdict: the
+    #: record as filed at the verdict decides its epoch, and which reading the verdict is on.
     clearing_history: Mapping[str, Sequence[Mapping[str, Any]]] = field(default_factory=dict)
     #: Lab id -> ``decision.labs.Lab``. Empty when the checkout has no lab registry.
     labs: Mapping[str, Any] = field(default_factory=dict)
@@ -1095,25 +1096,32 @@ class _Compiler:
         return f"quarantined ({held[0][1].get('outcome')})"
 
     def _reading_hold(self, subject: str, e: Mapping[str, Any]) -> str | None:
-        """Why a cited board reading stays out: a verdict that is not ``verified`` on any id of
-        its subject and benchmark (its own, any value, or any other logged under
-        ``<model>#<benchmark>#``, as ``decision.cited_change.ReadingLookup.owns``), not cleared by
-        a valid clearing line for that exact verdict and this row. No sibling row takes a verdict
-        over, whether it is verified, rejected or carries an old id. A reading's id changes with
-        its score and date, so a new score never carries the verdict its old id holds; the gate
-        refuses it, and the build admits it only through a clearing."""
+        """Why a cited board reading stays out: a verdict that is not ``verified`` on its own id
+        (any value), or on an earlier id under ``<model>#<benchmark>#`` whose verdict's queue
+        claim shows the same reading (same settings, source and measurer:
+        ``decision.quarantine_clearing.reading_holds``), not cleared by a valid clearing line for
+        that exact verdict and this row. A current sibling row never takes or inherits a verdict:
+        a decoy carrying an earlier id diverts nothing, and another reading's verdict (a provider's
+        self-report beside a board's own row) never holds this one. A reading's id changes with its
+        score and date, so a new score never carries the verdict its old id holds; the gate refuses
+        it, and the build admits it only through a clearing."""
         from decision.cited_change import held_rows
+        from decision.quarantine_clearing import reading_holds
 
         own = str(e.get("id") or "")
         prefix = f"{subject}#{e.get('benchmark_id')}#"
-
-        def owns(logged: str) -> bool:
-            return logged == own or logged.startswith(prefix)
-
         try:
-            held = held_rows(self.log, (own,), e, kind="evidence", owns=owns)
+            candidates = held_rows(self.log, (own,), e, kind="evidence",
+                                   owns=lambda logged: logged.startswith(prefix))
         except (KeyError, TypeError, AttributeError):
             return "quarantined (invalid verification)"
+        held = reading_holds(candidates, e, own_ids={own},
+                             history=self.inputs.clearing_history)
+        holding = {key[1] for key, _ in held}
+
+        def owns(logged: str) -> bool:
+            return logged in holding
+
         if not held:
             return None
         if len(held) == 1 and self.quarantine_clearings:
@@ -2303,6 +2311,22 @@ def collect_repo(root: Path) -> SnapshotInputs:
         except ValueError as exc:
             raise SnapshotBuildError(f"{ATTEMPTS_FILE}: {type(exc).__name__}") from exc
         attempt_lines = list(log.lines)
+    # Which reading a failed evidence verdict is on comes from the claim it checked (MODEL-552
+    # follow-up): the queue trail of every evidence id whose latest counting verdict failed.
+    # Only well-formed verdict objects are ranked here; the compile refuses a malformed row.
+    shaped = [v for v in verifications if isinstance(v, Mapping)
+              and isinstance(v.get("target"), Mapping) and isinstance(v.get("collector"), Mapping)
+              and isinstance(v.get("verifier"), Mapping) and "outcome" in v and "date" in v]
+    failed = {key[1] for key, (_, _, row) in _Compiler._verification_log(shaped).items()
+              if key[0] == "evidence" and row.get("outcome") != "verified"}
+    if failed - set(clearing_history):
+        from decision.quarantine_clearing import QUEUE_FILE as _QUEUE, queue_history as _history
+
+        try:
+            clearing_history = {**_history(root / _QUEUE, failed - set(clearing_history)),
+                                **clearing_history}
+        except ValueError as exc:
+            raise SnapshotBuildError(f"{_QUEUE}: {type(exc).__name__}") from exc
     from decision.labs import load_labs
 
     fit_path = root / "hardware" / "fit" / "records.yaml"

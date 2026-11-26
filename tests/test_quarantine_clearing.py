@@ -516,6 +516,10 @@ def board_rows(score=51.2, eid=NEW_ID):
                     source_url=BOARD)
 
 
+#: A board-reading claim's source: the board row's own registered source.
+BOARD_SOURCE = [{"source_id": "src-cite"}]
+
+
 def reading_build(row, log, clearings=(), attempts=(), history=None):
     from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
 
@@ -524,7 +528,7 @@ def reading_build(row, log, clearings=(), attempts=(), history=None):
     built = build_snapshot(SnapshotInputs(
         models=[model(MID)], evidence=[row], sources={**SOURCES, "src-cite": BOARD},
         verifications=list(log), cited_attempt_lines=[raw(a) for a in attempts],
-        clearing_history=history_of(log) if history is None else history,
+        clearing_history=history_of(log, sources=BOARD_SOURCE) if history is None else history,
         quarantine_clearings=list(clearings),
         benchmark_metadata={"bench_x": {"min_score": 0, "max_score": 100, "unit": "percent"}}),
         as_of=TODAY)
@@ -548,10 +552,11 @@ def test_a_cleared_reading_enters_only_through_its_line():
     assert reading_build(row, [verdict]) == ()
     entry = clearing(attempt, verdict)
     assert reading_build(row, [verdict], [entry], [attempt])
-    # The same line does not clear another setting of the reading.
+    # Another setting of the reading is another reading: this verdict does not hold it at all
+    # (MODEL-552 follow-up), so it enters without a line, and the line is not its.
     other = copy.deepcopy(row)
     other["effort"] = "low"
-    assert reading_build(other, [verdict], [entry], [attempt]) == ()
+    assert reading_build(other, [verdict])
 
 
 def test_the_clearing_file_is_read_by_collect_repo(tmp_path):
@@ -696,9 +701,12 @@ def test_a_decoy_sibling_does_not_divert_a_readings_verdict():
         return load_built_snapshot(build_snapshot(SnapshotInputs(
             models=[model(MID)], evidence=[row, *others],
             sources={**SOURCES, "src-cite": BOARD}, verifications=list(log),
+            clearing_history=history_of([verdict], sources=BOARD_SOURCE),
             benchmark_metadata={"bench_x": {"min_score": 0, "max_score": 100,
                                             "unit": "percent"}}),
             as_of=TODAY)).evidence(MID, "bench_x")
+
+    assert all(e.value != 51.2 for e in built())  # the earlier id's claim was this reading
 
     decoy = board_rows(10.0, OLD_ID)  # a cited row under the held id, other settings
     decoy["effort"] = "low"
@@ -892,3 +900,67 @@ def test_queue_history_reads_retired_events_and_refuses_a_repeated_key(tmp_path)
                     f'"target": {{"kind": "fact", "id": "{FID}"}}}}\n')
     with pytest.raises(ValueError):
         queue_history(path, {FID})
+
+
+# --- MODEL-552 follow-up: a verdict holds only its own reading ------------------------------------
+
+
+def test_an_author_measured_row_is_not_held_by_the_providers_self_report_verdict():
+    """Data#549 regression: a mismatch on a provider's self-reported row of a model and
+    benchmark held the board author's own row of the same model and benchmark (another source and
+    measurer). A verdict holds a row only through the row's own id, or an earlier id its queue
+    claim shows was the same reading."""
+    from decision.model import evidence_verification_value
+    from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+
+    from tests.snapshot_records import SOURCES, evidence, model
+
+    self_id, board_id = f"{MID}#bench_x#selfreport01", f"{MID}#bench_x#boardrow0001"
+    self_report = evidence(MID, "bench_x", 40.0, eid=self_id, outcome=None,
+                           source="src-lab-docs", measured_by="provider_self_report")
+    board = board_rows(51.2, board_id)
+    board["measured_by"] = "benchmark_author"
+    verdict = verification("evidence", self_id, "mismatch", day="2026-10-01",
+                           value=evidence_verification_value(self_report))
+    trail = {self_id: events(verdict, value=40.0, sources=[{"source_id": "src-lab-docs"}])}
+
+    def shown(history):
+        built = build_snapshot(SnapshotInputs(
+            models=[model(MID)], evidence=[self_report, board],
+            sources={**SOURCES, "src-cite": BOARD}, verifications=[verdict],
+            clearing_history=history,
+            benchmark_metadata={"bench_x": {"min_score": 0, "max_score": 100,
+                                            "unit": "percent"}}),
+            as_of=TODAY)
+        return sorted(e.value for e in load_built_snapshot(built).evidence(MID, "bench_x"))
+
+    assert shown(trail) == [51.2]  # the board's own row enters; the self-report stays out
+    assert shown({}) == [51.2]  # with no trail at all, the verdict holds only its own row
+
+
+def test_a_decoy_sibling_cannot_take_a_verdict():
+    """A decoy row carrying the held earlier id (another setting) takes nothing over: the
+    verdict's claim shows which reading it was on, and that reading stays held. The decoy itself
+    is held by the verdict on its own id."""
+    from decision.cited_change import held_rows
+    from decision.model import evidence_verification_value
+    from decision.quarantine_clearing import reading_holds
+    from decision.snapshot import _Compiler
+
+    filed = board_rows(46.6, OLD_ID)
+    verdict = verification("evidence", OLD_ID, "mismatch", day="2026-10-01",
+                           value=evidence_verification_value(filed))
+    log = _Compiler._verification_log([verdict])
+    history = history_of([verdict], sources=BOARD_SOURCE)
+    row, decoy = board_rows(), board_rows(10.0, OLD_ID)
+    decoy["effort"] = "low"
+    prefix = f"{MID}#bench_x#"
+    for target, own in ((row, NEW_ID), (decoy, OLD_ID)):
+        candidates = held_rows(log, (own,), target, kind="evidence",
+                               owns=lambda i: i.startswith(prefix))
+        held = reading_holds(candidates, target, own_ids={own}, history=history)
+        assert [key[1] for key, _ in held] == [OLD_ID], own
+    other_reading = {**board_rows(), "effort": "low"}
+    candidates = held_rows(log, (NEW_ID,), other_reading, kind="evidence",
+                           owns=lambda i: i.startswith(prefix))
+    assert reading_holds(candidates, other_reading, own_ids={NEW_ID}, history=history) == []
