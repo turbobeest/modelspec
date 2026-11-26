@@ -5,7 +5,7 @@ phase: "phase1"
 charts:
   - title: "Computer use"
     kind: html_table
-    footnotes: "Maximum at any effort. OpenAI ran its own models. Third-party models used a simpler setup. Dashes on the page are omitted. Claude OSWorld scores were reproduced from the official leaderboard. The Fable ScreenSpot figure is Mythos, Fable with fewer safeguards."
+    footnotes: ""
     competitor_numbers: vendor_run
     readings:
       - reader: grok-build-4.7
@@ -115,7 +115,7 @@ charts:
         role: competitor
   - title: "Professional"
     kind: html_table
-    footnotes: "Maximum at any effort. OpenAI ran its own models. Third-party models used a simpler setup. Dashes on the page are omitted. BenchCAD is geometric overlap. OpenScore is 1 minus OMR-NED."
+    footnotes: ""
     competitor_numbers: vendor_run
     readings:
       - reader: grok-build-4.7
@@ -231,7 +231,7 @@ charts:
         role: subject
   - title: "Coding"
     kind: html_table
-    footnotes: "Maximum at any effort. OpenAI ran its own models. Third-party models used a simpler setup. Dashes on the page are omitted. Astra's FrontierCode run used a Codex-like developer message."
+    footnotes: ""
     competitor_numbers: vendor_run
     readings:
       - reader: grok-build-4.7
@@ -475,7 +475,7 @@ charts:
         role: competitor
   - title: "Academic"
     kind: html_table
-    footnotes: "Maximum at any effort. OpenAI ran its own models. Third-party models used a simpler setup. Dashes on the page are omitted."
+    footnotes: ""
     competitor_numbers: vendor_run
     readings:
       - reader: grok-build-4.7
@@ -675,7 +675,7 @@ charts:
         role: competitor
   - title: "Science and health"
     kind: html_table
-    footnotes: "Maximum at any effort. OpenAI ran its own models. Third-party models used a simpler setup. Dashes on the page are omitted. HealthBench Professional is length-adjusted, unclipped, and graded with GPT-5.4."
+    footnotes: ""
     competitor_numbers: vendor_run
     readings:
       - reader: grok-build-4.7
@@ -805,7 +805,7 @@ charts:
         role: subject
   - title: "Cybersecurity"
     kind: html_table
-    footnotes: "Maximum at any effort. OpenAI ran its own models. Third-party models used a simpler setup. Dashes on the page are omitted. ExploitGym has no 6-hour cap for Astra and Sol."
+    footnotes: ""
     competitor_numbers: vendor_run
     readings:
       - reader: grok-build-4.7
@@ -965,7 +965,7 @@ charts:
         role: subject
   - title: "Alignment"
     kind: html_table
-    footnotes: "Maximum at any effort. OpenAI ran its own models. Third-party models used a simpler setup. Dashes on the page are omitted. Lower is better on these internal evals."
+    footnotes: ""
     competitor_numbers: vendor_run
     readings:
       - reader: grok-build-4.7
@@ -1115,7 +1115,7 @@ charts:
         role: subject
   - title: "Long context"
     kind: html_table
-    footnotes: "Maximum at any effort. OpenAI ran its own models. Third-party models used a simpler setup. Dashes on the page are omitted."
+    footnotes: ""
     competitor_numbers: vendor_run
     readings:
       - reader: grok-build-4.7
@@ -1165,7 +1165,7 @@ charts:
         role: subject
   - title: "Abstract reasoning"
     kind: html_table
-    footnotes: "Maximum at any effort. OpenAI ran its own models. Third-party models used a simpler setup. Dashes on the page are omitted. Astra's ARC-AGI-3 run used the responses API harness."
+    footnotes: ""
     competitor_numbers: vendor_run
     readings:
       - reader: grok-build-4.7

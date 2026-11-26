@@ -7,7 +7,7 @@ charts:
     kind: image
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/a8fb4f77a9fe240e6f27f3bdc47a137f3c74a29d-2600x2578.png"
     image_sha256: "924165396ca8913080e6254b6562954e9083e2ce63903fa8d3f2bb7852241b1d"
-    footnotes: "Table image on the launch post. Columns are Opus 5, Fable 5, Opus 4.8, and GPT-5.6 Sol. The Health cell under Fable 5 is labelled Mythos 5. BioMysteryBench prints two slices."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -432,7 +432,7 @@ charts:
     needs_reading: true
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/7530b1086992936d7e9d5796a892d1e8fa063253-3840x2160.png"
     image_sha256: "015df0145ae599d96fb7c710a4998cc19a703b0cdda3371fad55036ed8ae3d82"
-    footnotes: "Effort ladder against cost. Axis ticks and series names are printed. Point scores are not."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -443,7 +443,7 @@ charts:
     needs_reading: true
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/1af9dbd742e3812be4bf66903740188fb8fd2e33-3840x2160.png"
     image_sha256: "f820f1eb4e2b28d689d50dc8eb98310e48309c8cb4a28cc4bf20eb3557454ecb"
-    footnotes: "Image on the Opus 5 launch post. This pass did not transcribe point values."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -455,7 +455,7 @@ charts:
     needs_reading: true
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/08499ed7c3c2b6416700fa47c70d36dff5eb8461-3840x2160.png"
     image_sha256: "25b9803360d12c2d19d33ae9790911467469ee9302b34b557ffbd6501c418a2f"
-    footnotes: "Image on the Opus 5 launch post. This pass did not transcribe point values."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -467,7 +467,7 @@ charts:
     needs_reading: true
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/b5e071ba6a9ce5628b4662f05484d1806a9fdc94-3840x2160.png"
     image_sha256: "b99a8c99779137f01ac4c17426613d7831736d6df79fffa31a3648cdd4e70da9"
-    footnotes: "Image on the Opus 5 launch post. This pass did not transcribe point values."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -479,7 +479,7 @@ charts:
     needs_reading: true
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/8c0870bfca0dfac1d81a20e0ebac7eb3eff6d554-3840x2160.png"
     image_sha256: "f6f7a459701a1bef1b28ac69feb2f1e30f0ddc51560cdbd5784ff966e2aa7b19"
-    footnotes: "Image on the Opus 5 launch post. This pass did not transcribe point values."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -491,7 +491,7 @@ charts:
     needs_reading: true
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/44fac8bd76238d8c09305ec7fe1511670d45c6d6-3840x2160.png"
     image_sha256: "51b585470c812db05dfc3046b72c5bd48c6d169b80442c96b4c9f3b826d1a427"
-    footnotes: "Image on the Opus 5 launch post. This pass did not transcribe point values."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -503,7 +503,7 @@ charts:
     needs_reading: true
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/368a6a6ae23e72deac37566b9d0166d062e7dde1-3840x2160.png"
     image_sha256: "8c2c8faf67810e897184bdbb04c3ca4d6c5722611152dfdc20497630f34061ef"
-    footnotes: "Image on the Opus 5 launch post. This pass did not transcribe point values."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -515,7 +515,7 @@ charts:
     needs_reading: true
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/c7c726c5588b69c944dcc205bd1ba7ebdf8c2259-3840x2160.png"
     image_sha256: "c3c93cfe20efc3118669fcebf97398f8d2d49116880f5dea4f6841f737159a29"
-    footnotes: "Image on the Opus 5 launch post. This pass did not transcribe point values."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -527,7 +527,7 @@ charts:
     needs_reading: true
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/8ac95d8d4d6e68b6f5fdf04a09206defc877513e-3840x2160.png"
     image_sha256: "7eda46ce196393b687d7c383dfdc86422cf4b3fa05ddf92ad1d1119b56a17af5"
-    footnotes: "Image on the Opus 5 launch post. This pass did not transcribe point values."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -539,7 +539,7 @@ charts:
     needs_reading: true
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/76d4af96516ffca2aceb4c1d0b0a83e2720d874b-3840x2160.png"
     image_sha256: "8b436e10a59cf9c72aa48993b06427a4c709b13db64d31f1ff2c19f71be78600"
-    footnotes: "Image on the Opus 5 launch post. This pass did not transcribe point values."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -551,7 +551,7 @@ charts:
     needs_reading: true
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/b22d18a4d2003401f96f866effd9a40b5518c4c5-3840x2160.png"
     image_sha256: "c28cec6e0f595480a84f1aa20fa82bc0382bb14bd7f14377c7179e3d9b37f1ec"
-    footnotes: "Image on the Opus 5 launch post. This pass did not transcribe point values."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7

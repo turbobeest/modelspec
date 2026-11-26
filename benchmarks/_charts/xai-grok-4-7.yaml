@@ -5,7 +5,7 @@ phase: "phase2a"
 charts:
   - title: "Benchmark comparison"
     kind: html_table
-    footnotes: "The comparison table's column headers are Grok 4.7 xHigh, Grok 4.6 High, GPT-5.6 Sol Max, and Fable 5.1 Max. DeepSWE for Grok 4.7 is starred as high effort. The page does not say where the competitor numbers come from. The CursorBench scatter prints axis ticks and model names, not point values."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -249,7 +249,7 @@ charts:
         role: competitor
   - title: "EEBench"
     kind: html_table
-    footnotes: "Tabbed chart. Printed bar labels. EEBench is accuracy. The chart's model set is not the same as the table."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -322,7 +322,7 @@ charts:
   - title: "CursorBench 4.0 cost scatter"
     kind: image
     needs_reading: true
-    footnotes: "Scatter of score against average cost. Axis ticks and series names are printed. Point values are not."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7

@@ -5,7 +5,7 @@ phase: "phase2a"
 charts:
   - title: "Coding benchmark tabs"
     kind: html_table
-    footnotes: "Competitor figures are drawn from the developers' published system cards or benchmark leaderboards. DeepSWE 1.1 used the mini-swe-agent harness run by Datacurve. Token counts are average output tokens on SWE-bench Pro, not the resolve rate."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7

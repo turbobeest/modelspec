@@ -5,7 +5,7 @@ phase: "phase2b-1"
 charts:
   - title: "Coding, agent, and vision comparison"
     kind: html_table
-    footnotes: "The comparison columns are GLM-5.3-Flash, GLM-5.2, DeepSeek-V4-Vision-Exp, Opus 4.8, GPT-5.6 Terra, and Gemini 3.7 Flash. HLE with tools uses temperature 1.0, top_p 0.95, 163840 tokens, and a 300000 context, judged by GPT-5.6-luna medium. NL2Repo uses temperature 1.0, top_p 1.0, 64k new tokens, 1M context. DeepSWE uses mini-swe-agent, temperature 0.95, top_p 1.0, 6h, 400K context. Terminal-Bench 2.1 uses Claude Code 2.1.207, temperature 1.0, top_p 1, 65536 tokens, 6h. Toolathlon Verified is pass@1 over 3 official runs. BabyVision uses temperature 1.0, top_p 0.95, 164K context, and images resized so the short side is at least 1.5K pixels."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7

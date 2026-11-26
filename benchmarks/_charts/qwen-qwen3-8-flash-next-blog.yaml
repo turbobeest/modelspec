@@ -5,7 +5,7 @@ phase: "phase2b-2"
 charts:
   - title: "Language"
     kind: html_table
-    footnotes: "DeepSWE 1.1 takes the higher of Claude Code and mini-SWE-agent at temperature 1.0, top_p 0.95 and a 256K context; Flash-Next's best is mini-SWE-agent. SWE-bench Pro uses Claude Code on a corrected task set, except Claude Opus 4.6 Max, which is the published score. SWE-bench Multilingual uses mini-SWE-agent. NL2Repo uses Claude Code and blocks repository-fetch commands. CoWorkBench is in-house. HLE is judged by GPT-4o. Parameter rows are not scores. Blanks are unpublished. Rival columns mix a published Opus score with Qwen's own runs."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -582,7 +582,7 @@ charts:
         role: competitor
   - title: "Vision language"
     kind: html_table
-    footnotes: "ClawEval-MM reports pass@3 and the mean of three trials. RecreationBench is in-house. OSWorld 2.0 reports a full-reward rate and a partial-reward aggregate. Vision2Web averages frontend, webpage and website scores on Claude Code, judged by gpt-5.4-2026-03-05. MathVision and CharXiv reasoning quote a no-code-interpreter setting and a with-code-interpreter setting. Blanks are unpublished."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7

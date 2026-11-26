@@ -5,7 +5,7 @@ phase: "phase2b-2"
 charts:
   - title: "Text benchmarks"
     kind: html_table
-    footnotes: "Same protocol notes as the Qwen3.7-Max post: Terminus-2 for Terminal-Bench 2.0, an internal scaffold for SWE-bench, Elo for the in-house front-end benches, and an xhigh prompt on the reasoning rows. The last column is Qwen3.7-Plus. Blanks are unpublished."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -2394,7 +2394,7 @@ charts:
         role: subject
   - title: "Multimodal benchmarks"
     kind: html_table
-    footnotes: "Search-augmented rows are the multimodal search group. BabyVision and CharXiv print with a code interpreter first, then without. Ego3D-Bench is lower-is-better. QwenVision2Code is an Elo-style rating. VideoMME includes subtitles."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7

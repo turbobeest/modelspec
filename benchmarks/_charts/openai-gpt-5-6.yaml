@@ -5,7 +5,7 @@ phase: "phase2b-2"
 charts:
   - title: "Appendix comparison tables"
     kind: html_table
-    footnotes: "One appendix groups professional, coding, science, computer use, cybersecurity, self-improvement, multimodal, academic, tool-use, long-context and abstract-reasoning tables. A dash is unpublished. Ultra is a separate Sol column. ExploitBench uses the API harness, 5 seeds and reasoning continuity. ExploitGym was run on the alpha API and latencies were rescaled. HealthBench Professional uses that paper's scorer. ARC-AGI-3 for Opus 4.8 is the published high-effort result. The post does not say in one place whether every rival number is that vendor's own report."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -1978,7 +1978,7 @@ charts:
         role: competitor
   - title: "Introduction scores not in the appendix percent"
     kind: text
-    footnotes: "The introduction prints 53.6 on Agents' Last Exam and a two-hour ExploitGym pass rate of 24.9 percent. Deltas without their own absolute score are not separate bars."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -2011,7 +2011,7 @@ charts:
   - title: "Agents' Last Exam and Intelligence Index scatters"
     kind: image
     needs_reading: true
-    footnotes: "Score against API cost. Axis ticks and series names are printed. Point values are not."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -2023,7 +2023,7 @@ charts:
   - title: "Multi-agent score against latency"
     kind: image
     needs_reading: true
-    footnotes: "BrowseComp, SEC-Bench Pro and Terminal-Bench 2.1, comparing one agent with ultra's four-agent default, and 16 agents where the post says so. Point values are not printed."
+    footnotes: ""
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7

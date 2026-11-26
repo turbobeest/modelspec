@@ -5,7 +5,7 @@ phase: "phase2a"
 charts:
   - title: "Launch benchmark grid"
     kind: html_table
-    footnotes: "Launch comparison. Opus 5.5 uses adaptive thinking at max effort except Terminal-Bench 4.0, which is xhigh. GPT-6 Astra's Terminal-Bench 4.0 figure is the high-effort number OpenAI reported. Dashes omitted. At default effort, which the post calls medium, Opus 5.5 scores 54.6 on FrontierCode and 52.5 on CursorBench. Those are the same page's effort notes, kept with the table."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7

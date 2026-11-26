@@ -7,7 +7,7 @@ charts:
     kind: image
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/a9007019094f217e98cb8261a2765d7646c01708-2600x1392.png"
     image_sha256: "7ad9b784f2579c8ad520c155ab8ee9b580536d134203dbc4ddee41317488c0b7"
-    footnotes: "Printed table. HLE has a no-tools and a with-tools line."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -240,7 +240,7 @@ charts:
     needs_reading: true
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/40343dc40c700814e02f0ed90a7b513eca85039c-3840x2160.png"
     image_sha256: "35a45b0b9255930d594bdb1681229ec3a21bb36aca4940ca76f46514ddf6b5f0"
-    footnotes: "Bars have no printed values. Only the axis grid is numbered."
+    footnotes: ""
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
