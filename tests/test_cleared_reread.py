@@ -47,6 +47,7 @@ from tests.test_quarantine_clearing import (
     MID,
     PAGE,
     TEXT,
+    TODAY,
     VALUE,
     VERDICT,
     agreement,
@@ -64,6 +65,20 @@ from tests.test_quarantine_clearing import (
 @pytest.fixture(autouse=True)
 def offline(monkeypatch):
     monkeypatch.setattr(socket.socket, "connect", lambda *a: pytest.fail("Network attempted"))
+
+
+#: What the gate's own transport serves (``decision.cited_change._http_once``, stubbed): a
+#: released verdict is re-read only on a page the gate fetched itself.
+PAGES: dict[str, bytes] = {}
+
+
+@pytest.fixture(autouse=True)
+def web(monkeypatch):
+    import decision.cited_change as gate_module
+
+    PAGES.clear()
+    PAGES.update({offering.URL: offering.PAGE, reading_gate.URL: reading_gate.PAGE})
+    monkeypatch.setattr(gate_module, "_http_once", lambda url: (200, None, PAGES[url]))
 
 
 # --- the gate: a cleared offering fact, through the real gate and writer -------------------------
@@ -98,8 +113,9 @@ def edit(d, change):
 
 
 def again(page=MOVED, value=46):
-    return reread(filed_of_subject(), source_id="data", readers=offering.pair(value),
-                  request=offering.serve({offering.URL: page}))
+    """A re-read through the gate's own fetch of ``page``."""
+    PAGES[offering.URL] = page
+    return reread(filed_of_subject(), source_id="data", readers=offering.pair(value))
 
 
 def filed_of_subject():
@@ -144,10 +160,24 @@ def test_the_clearing_is_not_re_litigated_on_its_own_page(cleared):
     before = len(d.log())
     assert again(offering.PAGE).outcome == "current"
     for kw in ({}, {"clear_quarantine": True}, {"readers": offering.pair(46)}):
-        out = offering.retention(**kw)
+        out = offering.retention(request=None, **kw)
         assert out.outcome == "refused" and out.reason == "quarantined", (out.reason, kw)
         assert "re-litigated" in out.detail
     assert len(d.log()) == before  # refused before any reader was asked
+
+
+def test_a_released_fact_is_re_read_only_on_the_gates_own_fetch(cleared):
+    """Bytes or a transport a caller supplies never re-read a released fact (review 1)."""
+    d = cleared
+    before = len(d.log())
+    out = reread(filed_of_subject(), source_id="data", readers=offering.pair(46),
+                 request=offering.serve({offering.URL: MOVED}))
+    assert out.reason == "quarantined" and "fetched itself" in out.detail
+    for kw in ({}, {"clear_quarantine": True}):
+        out = offering.retention(request=offering.serve({offering.URL: MOVED}),
+                                 readers=offering.pair(46), **kw)
+        assert out.reason == "quarantined" and "fetched itself" in out.detail
+    assert len(d.log()) == before
 
 
 @pytest.mark.parametrize("forge", ["verdict_hash", "agreement", "value", "subject", "facet",
@@ -233,15 +263,18 @@ def test_a_cleared_reading_is_re_read_on_a_changed_board(tmp_path, monkeypatch):
     board.row = rewritten_row(reading_gate.SUBJECT, board.row, out)
     board.write()
     append(out.record["clearings"], board.root)
-    same = cited_reading(**kw, readers=reading_gate.pair(), request=reading_gate.serve())
+    same = cited_reading(**kw, readers=reading_gate.pair())
     assert same.reason == "quarantined" and "re-litigated" in same.detail
-    moved = reread_reading(**kw, readers=reading_gate.pair(53.0),
-                           request=reading_gate.serve(BOARD_MOVED))
+    theirs = reread_reading(**kw, readers=reading_gate.pair(53.0),
+                            request=reading_gate.serve(BOARD_MOVED))
+    assert theirs.reason == "quarantined" and "fetched itself" in theirs.detail
+    PAGES[reading_gate.URL] = BOARD_MOVED
+    moved = reread_reading(**kw, readers=reading_gate.pair(53.0))
     assert moved.outcome == "changed" and moved.record["value"] == 53.0, (moved.reason,
                                                                           moved.detail)
     (board.root / CLEARINGS_FILE).write_text("")  # no line: the verdict holds again
-    held = reread_reading(**kw, readers=reading_gate.pair(53.0),
-                          request=reading_gate.serve(BOARD_MOVED.replace(b"53.0", b"54.0")))
+    PAGES[reading_gate.URL] = BOARD_MOVED.replace(b"53.0", b"54.0")
+    held = reread_reading(**kw, readers=reading_gate.pair(53.0))
     assert held.outcome == "flagged" and held.reason == "quarantined"
 
 
@@ -285,8 +318,9 @@ def test_the_build_admits_a_block_a_later_agreement_made_after_the_clearing():
                 values=(65536, 65536), text="c" * 64, page="6" * 64)
     assert shows(build(later_row(hop), [clearing(first)], [first, link, hop]), 65536)
     log = AttemptLog([raw(first), raw(link), raw(hop)])
-    assert {e["epoch"] for e, _ in later_agreements(log, log.entries[0], subject=MID,
-                                                    facet=FACET, first="initial")} \
+    assert {e["epoch"] for e, _ in later_agreements(log, clearing(first), log.entries[0],
+                                                    subject=MID, facet=FACET, first="initial",
+                                                    cutoff=TODAY)} \
         == {AFTER, reread_epoch("initial", LATER_TEXT)}
 
 
@@ -317,9 +351,16 @@ def test_an_agreement_not_after_the_clearing_agreement_releases_nothing():
     first = agreement()
     earlier = later(at="2026-10-09T09:00:00+00:00")  # a later line, an earlier time
     assert not shows(build(later_row(earlier), [clearing(first)], [first, earlier]), 131072)
-    same_time = later(at=AT)
-    assert not shows(build(later_row(same_time), [clearing(first)], [same_time, first]), 131072)
-    assert shows(build(later_row(same_time), [clearing(first)], [first, same_time]), 131072)
+    # Ordered by the clearing line's ``cleared_at`` (10:00), not its agreement's time (09:00).
+    before_line = later(at="2026-10-10T09:30:00+00:00")
+    assert not shows(build(later_row(before_line), [clearing(first)], [first, before_line]),
+                     131072)
+    at_line = later(at="2026-10-10T10:00:00+00:00")
+    assert not shows(build(later_row(at_line), [clearing(first)], [at_line, first]), 131072)
+    assert shows(build(later_row(at_line), [clearing(first)], [first, at_line]), 131072)
+    past_cutoff = later(at="2026-10-25T09:00:00+00:00")  # after the build's day
+    assert not shows(build(later_row(past_cutoff), [clearing(first)], [first, past_cutoff]),
+                     131072)
 
 
 def test_a_disagreement_or_one_family_in_the_later_epoch_releases_nothing():
@@ -487,7 +528,7 @@ def test_a_fact_cleared_twice_is_served_and_re_read(twice):
     released through it. Gate and build agree, and a later page change is read again."""
     d, clock = twice
     assert released_all(d)  # the build releases both: the first through the second clearing
-    assert offering.retention().reason == "quarantined"  # its own page is not re-litigated
+    assert "re-litigated" in offering.retention(request=None).detail  # not on its own page
     clock.at = datetime(2026, 10, 20, 9, tzinfo=UTC)
     out = again()
     assert out.outcome == "changed" and out.record["value"] == 46, (out.reason, out.detail)
@@ -587,3 +628,99 @@ def test_a_re_read_after_the_second_clearing_is_served():
                  values=(65536, 65536), text="e" * 64, page="9" * 64)
     index = twice_build(lambda a1, a2: later_row(link), attempts=lambda a1, a2: [a1, a2, link])
     assert shows(index, 65536)
+
+
+# --- adversarial review round 1 (MODEL-566) -------------------------------------------------------
+
+
+def test_a_re_read_of_the_same_page_in_the_descendant_epoch_releases_nothing():
+    """The descendant epoch's name is predictable; a read logged there of the clearing's own
+    page (its text hash, or its cited region when both logged one) is no link (finding 1)."""
+    first = agreement()
+    same_text = later(text=TEXT)
+    assert not shows(build(later_row(same_text), [clearing(first)], [first, same_text]), 131072)
+    regioned = {**first, "region_sha256": "f" * 64}
+    same_region = {**later(), "region_sha256": "f" * 64}
+    assert not shows(build(later_row(same_region), [clearing(regioned)],
+                           [regioned, same_region]), 131072)
+    moved_region = {**later(), "region_sha256": "e" * 64}
+    assert shows(build(later_row(moved_region), [clearing(regioned)], [regioned, moved_region]),
+                 131072)
+
+
+def test_only_the_latest_valid_clearing_of_a_verdict_counts():
+    """An older clearing's block, and a block descending from it, is not admitted once a later
+    valid clearing of the same verdict exists (finding 3)."""
+    older = agreement()
+    newer = {**agreement(at="2026-10-11T09:00:00+00:00"), "page_sha256": "7" * 64,
+             "text_sha256": "c" * 64}
+    lines = [clearing(older), clearing(newer, cleared_at="2026-10-11T10:00:00+00:00")]
+    logged = [older, newer]
+    assert shows(build(cleared_row(newer), lines, logged), VALUE)
+    assert not shows(build(cleared_row(older), lines, logged), VALUE)
+    assert shows(build(cleared_row(older), lines[:1], logged), VALUE)  # alone, it still counts
+    link = later(at="2026-10-12T09:00:00+00:00")  # after the older clearing only
+    assert not shows(build(later_row(link), lines, [*logged, link]), 131072)
+    assert shows(build(later_row(link), lines[:1], [*logged, link]), 131072)
+
+
+def test_a_verdicts_epoch_comes_only_from_the_records_own_agreement():
+    """Never another setting's attempt on the same board copy, and never a clearing-shaped
+    attempt no line names (finding 4)."""
+    from decision.cited_change import reading_epoch
+    from decision.quarantine_clearing import epoch_after, line_hash, verdict_epoch
+
+    from tests.test_quarantine_clearing import events
+
+    ours = reading_epoch({"model_id_as_evaluated": MID, "effort": None, "harness": None})
+    theirs = reading_epoch({"model_id_as_evaluated": MID, "effort": "low", "harness": None})
+    verdict = mismatch(day="2026-10-12")
+    trail = events(verdict, method="two-readers-cited-change@3",
+                   sources=[{"source_id": "src-cite", "snapshot_ref": f"sha256:{PAGE}"}])
+    kw = dict(history=trail, subject=MID, facet=FACET, first=ours)
+    other = agreement(f"{theirs}:reread:{'1' * 64}")
+    assert verdict_epoch(verdict, log=AttemptLog([raw(other)]), **kw) is None
+    own = agreement(ours)
+    assert verdict_epoch(verdict, log=AttemptLog([raw(own)]), **kw) == f"{ours}:reread:{TEXT}"
+    shaped = agreement(clearing_epoch("initial", "sha256:" + "2" * 64))
+    fact_kw = {**kw, "first": "initial"}
+    assert verdict_epoch(verdict, log=AttemptLog([raw(shaped)]), **fact_kw) is None
+    named = [{"subject": MID, "facet": FACET, "epoch": shaped["epoch"],
+              "agreement": line_hash(raw(shaped))}]
+    assert verdict_epoch(verdict, log=AttemptLog([raw(shaped)]), clearings=named,
+                         **fact_kw) == epoch_after("initial", shaped)
+    wrong = [{**named[0], "agreement": "sha256:" + "3" * 64}]
+    assert verdict_epoch(verdict, log=AttemptLog([raw(shaped)]), clearings=wrong,
+                         **fact_kw) is None
+
+
+def test_a_conflicting_incomplete_answer_blocks_a_readings_re_read(tmp_path, monkeypatch):
+    """The reading gate counts an answer inside an incomplete attempt in the released row's
+    epoch, as the build does (finding 5)."""
+    from decision.cited_change import reading_epoch
+
+    board = reading_gate.Data(tmp_path / "data", monkeypatch)
+    board.row["id"] = reading_gate.ROW_ID
+    board.write()
+    plant(board.root, verification("evidence", reading_gate.ROW_ID, "mismatch",
+                                   day="2026-10-14", value=46.6),
+          effort=reading_gate.READING["effort"], harness=reading_gate.READING["harness"],
+          names=[reading_gate.READING["model_id_as_evaluated"]])
+    kw = dict(subject=reading_gate.SUBJECT, benchmark_id=reading_gate.BENCH,
+              reading=reading_gate.READING, source_id="board")
+    out = cited_reading(**kw, readers=reading_gate.pair(), request=reading_gate.serve(),
+                        clear_quarantine=True)
+    assert out.changed, (out.reason, out.detail)
+    board.row = rewritten_row(reading_gate.SUBJECT, board.row, out)
+    board.write()
+    append(out.record["clearings"], board.root)
+    epoch = reading_epoch(reading_gate.READING, board.row)
+    with (board.root / ATTEMPTS_FILE).open("a") as fh:
+        fh.write(json.dumps({"subject": reading_gate.SUBJECT,
+                             "facet": f"benchmark:{reading_gate.BENCH}", "epoch": epoch,
+                             "complete": False, "harness": True, "readers": [
+                                 {"reader_id": "claude", "family": "anthropic", "version": "1",
+                                  "value": 12.5}]}) + "\n")
+    PAGES[reading_gate.URL] = BOARD_MOVED
+    held = reread_reading(**kw, readers=reading_gate.pair(53.0))
+    assert held.outcome == "flagged" and held.reason == "prior_attempt_disagreed", held

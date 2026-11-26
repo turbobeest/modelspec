@@ -791,17 +791,25 @@ def _epoch_at_verdict(verdict: Mapping[str, Any], *, subject: str, facet: str, f
     import os
 
     from decision.cited_reader import ATTEMPTS_FILE
-    from decision.quarantine_clearing import QUEUE_FILE, AttemptLog, queue_history, verdict_epoch
+    from decision.quarantine_clearing import (
+        CLEARINGS_FILE,
+        QUEUE_FILE,
+        AttemptLog,
+        queue_history,
+        read_clearings,
+        verdict_epoch,
+    )
 
     root = Path(os.environ.get(DATA_DIR_ENV, "").strip() or ".")
     target = str((verdict.get("target") or {}).get("id"))
     try:
         history = queue_history(root / QUEUE_FILE, {target}).get(target, [])
         log = AttemptLog.read(root / ATTEMPTS_FILE)
+        clearings = read_clearings(root / CLEARINGS_FILE)
     except (OSError, ValueError) as error:
         return _refuse("registry_lookup_failed", f"queue or attempt log: {type(error).__name__}")
     derived = verdict_epoch(verdict, history=history, log=log, subject=subject, facet=facet,
-                            first=first, settings=settings)
+                            first=first, settings=settings, clearings=clearings)
     if derived is None:
         return _refuse("quarantined", "the record's epoch when the verdict was made cannot be "
                        f"shown; {QUARANTINED}")
@@ -863,13 +871,35 @@ def _unreleased(held: Held, record: Mapping[str, Any], subject: str, *, now: dat
     return [h for h in held if h not in released], bool(released)
 
 
-def _relitigates(record: Mapping[str, Any], page_bytes: bytes) -> CitedChange | None:
-    """Refuse a read, after a verdict was released, of the page the record already rests on
-    (MODEL-566): a clearing, and each read after it, is not re-litigated in its own epoch. Only a
-    page whose visible text changed since is read again. A clearing of a newer verdict is read in
-    that verdict's own clearing epoch, and is not held to this."""
-    block = _block_of(record)
-    if block is not None and block.get("text_sha256") == text_sha256(page_bytes):
+def _relitigates(record: Mapping[str, Any], page_bytes: bytes, *, own_fetch: bool,
+                 subject: str, facet: str, region: str | None = None) -> CitedChange | None:
+    """Refuse a read, after a verdict was released (MODEL-566), unless the gate fetched the page
+    itself with its own transport (bytes or a transport a caller supplies never re-read a
+    released fact, as MODEL-562 requires) and the page is another than the one the record rests
+    on: its visible text hash differs, and so does its cited-region hash when the agreement that
+    made the record logged one (``quarantine_clearing._moved``, the build's rule). A clearing,
+    and each read after it, is not re-litigated in its own epoch. A clearing of a newer verdict
+    is read in that verdict's own clearing epoch, and is not held to this."""
+    from decision.cited_reader import _attempts_path
+    from decision.quarantine_clearing import AttemptLog, _moved
+
+    if not own_fetch:
+        return _refuse("quarantined", "a released verdict is re-read only on a page the gate "
+                       f"fetched itself; {QUARANTINED}")
+    block = _block_of(record) or {}
+    opener = {"text_sha256": block.get("text_sha256"), "region_sha256": None}
+    try:
+        logged = AttemptLog.read(_attempts_path(None)).entries
+    except (OSError, ValueError, ReaderError) as error:
+        return _refuse("registry_lookup_failed", f"the attempt log: {type(error).__name__}")
+    for entry in reversed(logged):  # the agreement that made the block, by its hashes
+        if (entry.get("subject"), entry.get("facet")) == (subject, facet) \
+                and entry.get("page_sha256") == block.get("sha256") \
+                and entry.get("text_sha256") == block.get("text_sha256") \
+                and entry.get("agreed") is True:
+            opener["region_sha256"] = entry.get("region_sha256")
+            break
+    if not _moved(opener, {"text_sha256": text_sha256(page_bytes), "region_sha256": region}):
         return _refuse("quarantined", "the page is the one the record's read after its clearing "
                        f"rests on; a released verdict is not re-litigated there; {QUARANTINED}")
     return None
@@ -980,7 +1010,7 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
           page: tuple[bytes, tuple[str, ...]] | None = None,
           now: datetime | None = None, accept_not_disclosed: bool = False,
           retaining: bool = False, epoch: str | None = None,
-          clear_quarantine: bool = False) -> CitedChange:
+          clear_quarantine: bool = False, own_page: bool = False) -> CitedChange:
     """The rule-15 gate. ``epoch``, when given, only states which epoch the caller means: the gate
     reads in the filed fact's own epoch (``fact_epoch``) and refuses (``epoch_not_current``) if
     the two differ. A caller never chooses the epoch the gate reads in. ``clear_quarantine`` lets
@@ -1083,6 +1113,7 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     if len(logged) >= MAX_ATTEMPTS:
         return _refuse("attempts_exhausted",
                        f"{len(logged)} attempts at this fact are logged in this epoch")
+    gate_fetched = page is None
     if page is None:
         fetched = _fetch(row["url"], request or _http_once, retaining=retaining)
         if isinstance(fetched, CitedChange):
@@ -1090,7 +1121,10 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         page = fetched
     page_bytes, resolved = page
     if released and clearing is None:
-        refusal = _relitigates(found.fact, page_bytes)
+        # ``own_page``: the bytes are the gate module's own fetch (``reread``), never a caller's.
+        refusal = _relitigates(found.fact, page_bytes, subject=subject, facet=facet,
+                               own_fetch=request is None and (gate_fetched or own_page),
+                               region=_region_sha256(row, page_bytes))
         if refusal is not None:
             return refusal
     if retaining:
@@ -2009,13 +2043,24 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     if any(not a.get("agreed") for a in blocking):
         return _refuse("prior_attempt_disagreed",
                        "an earlier complete attempt at this reading did not agree")
+    if released and clearing is None:
+        # The re-read of a released row counts every answer recorded in its epoch, an answer
+        # inside an incomplete attempt too (MODEL-566 review), as the fact gate does and the
+        # build's ``epoch_problem`` does: two that differ block.
+        recorded = attempts(subject, facet_id, epoch)
+        answered = {canonical(v, facet_id) for v in _incomplete_values(recorded)} | {
+            canonical(a.get("agreed_value"), facet_id) for a in recorded if a.get("complete")}
+        if len(answered) > 1:
+            return _refuse("prior_attempt_disagreed",
+                           "answers recorded in earlier attempts at this reading do not agree")
     if fetched is None:
         fetched = _fetch(url, request or _http_once)
     if isinstance(fetched, CitedChange):
         return fetched
     page_bytes, resolved = fetched
     if released and clearing is None:
-        refusal = _relitigates(found.row, page_bytes)
+        refusal = _relitigates(found.row, page_bytes, subject=subject, facet=facet_id,
+                               own_fetch=request is None)
         if refusal is not None:
             return refusal
     definition = reading_definition(found.benchmark, reading)
@@ -2043,6 +2088,11 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     if canonical(answers[0].value, facet.id) != canonical(answers[1].value, facet.id):
         return _refuse("readers_disagree", "the readers returned different values")
     value = answers[0].value
+    if released and clearing is None and any(
+            canonical(v, facet_id) != canonical(value, facet_id)
+            for v in _incomplete_values(attempts(subject, facet_id, epoch))):
+        return _refuse("prior_attempt_disagreed",
+                       "an answer recorded in an incomplete attempt differs from this agreement")
     mark = {"subject": subject, "benchmark_id": benchmark_id,
             "reading": {k: reading[k] for k in READING_KEYS}}
     if value is None and clearing is not None:
@@ -2246,6 +2296,7 @@ def reread(fact: Mapping[str, Any], *, source_id: str, readers: Sequence[Reader]
         return Reread("current")
     outcome = _gate(subject=subject, facet=facet, source_id=source_id, readers=readers,
                     request=request, allow_unchanged=True, page=fetched, retaining=retaining,
+                    own_page=request is None,
                     accept_not_disclosed=not retaining
                     and found.fact.get("state") == "not_disclosed")
     if not outcome.changed:

@@ -226,10 +226,16 @@ Learned expensively during 2026-09-09/10.
     opens the next re-read epoch. The latest valid clearing is followed: a later valid clearing
     of a newer verdict, based in such an epoch, releases the verdicts each earlier line names. The build
     admits a later block only when it is the one an agreement in such an epoch made
-    (`later_agreements`: a complete agreed harness attempt by two distinct known families,
-    logged after the agreement that opened its epoch, in an epoch with no recorded
-    disagreement). The gate refuses (`quarantined`) a read of the page the record already rests
-    on: a clearing is never re-litigated in its own epoch. A verdict newer than the clearing (on
+    (`later_agreements`: a complete agreed harness attempt by two distinct known families, on
+    another page than the agreement that opened its epoch (its text hash, and its cited-region
+    hash when both logged one), logged after it, at or after the clearing line's `cleared_at`
+    and not after the build's day, in an epoch where no answer, complete or not, disagrees).
+    Only the latest valid line of each verdict counts (by `cleared_at`, then line order). A
+    verdict's epoch is derived only from the record's own agreement: never another setting's,
+    and a clearing's only when a line names it. The gate re-reads a released record only on a
+    page it fetched itself, and refuses (`quarantined`) a read of the page the record already
+    rests on: a clearing is never re-litigated in its own epoch. The reading gate counts
+    incomplete answers there too. A verdict newer than the clearing (on
     any value, `mismatch` or `unreachable`) is not the one the line names, so it holds the fact
     again; a forged or byte-mismatched line, a line for another value or subject, and an
     owner-ruled fact release nothing.
