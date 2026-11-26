@@ -201,11 +201,67 @@ def test_a_tableless_html_board_is_refused_never_opened(data, own):
     assert data.log() == []
 
 
-def test_a_plain_text_board_strips_unzoned_clocks(data, own):
-    own.page = b"Board at 09:15\nOrbit 9 Max 51.2%\nRival 1 40.0%\n"
+PIPE = ("Board at {clock}\nThe leaderboard ranks models by score.\n\n"
+        "| Model | Score |\n|---|---|\n| Orbit 9 Max | {score}% |\n| Rival 1 | 40.0% |\n\n"
+        "{prose}\n")
+
+
+def pipe(score="51.2", clock="09:15", prose="Runs use the max effort."):
+    return PIPE.format(score=score, clock=clock, prose=prose).encode()
+
+
+def test_a_plain_text_board_hashes_its_table_rows_never_its_prose(data, own):
+    own.page = pipe()
     split()
-    own.page = b"Board at 17:42\nOrbit 9 Max 51.2%\nRival 1 40.0%\n"
+    own.page = pipe(clock="17:42", prose="New: an agent track.")
     refused("prior_attempt_disagreed")
+    own.page = pipe(score="53.0")
+    assert read(readers=pair(53.0)).changed
+
+
+@pytest.mark.parametrize("page", [
+    b"Board at 09:15\nOrbit 9 Max 51.2%\nRival 1 40.0%\n",               # prose only
+    b"| Model | Score |\n|---|---|\n",                                       # header only
+    b"| Model | Score |\n|---|---|\n|  |  |\n",                             # empty body
+])
+def test_a_plain_text_board_without_body_rows_is_refused(data, own, page):
+    own.page = page
+    refused("page_unreadable")
+    assert data.log() == []
+
+
+@pytest.mark.parametrize("page", [
+    b"<html><body><table id='rows'><tr><th>Model</th><th>Score</th></tr></table></body></html>",
+    b"<html><body><table id='rows'><thead><tr><th>Model</th><th>Score</th></tr></thead>"
+    b"<tbody><tr><td></td><td> </td></tr></tbody></table></body></html>",
+    b"<html><body><div role='table' id='rows'><div role='row'><span role='columnheader'>Model"
+    b"</span></div></div></body></html>",
+])
+def test_a_header_only_skeleton_is_refused(html_data, own, page):
+    split()
+    own.page = page
+    refused("page_unreadable")
+    assert len(html_data.log()) == 1
+
+
+@pytest.mark.parametrize("split_markup", [
+    b"<td>5<span>1.2</span>%</td>", b"<td><span>51</span><span>.2</span>%</td>",
+    b"<td>\n  51.2%\n</td>", b"<td><b>51.2</b> %</td>",
+])
+def test_markup_that_splits_a_cell_does_not_open_an_epoch(html_data, own, split_markup):
+    split()
+    own.page = board().replace(b"<td>51.2%</td>", split_markup)
+    assert own.page != board()
+    refused("prior_attempt_disagreed")
+    assert len(html_data.log()) == 1
+
+
+def test_the_normalisers_own_cell_text_is_unchanged():
+    from decision.normalise import NORMALISERS, normalise_document
+
+    doc = normalise_document(b"<table><tr><td>5<span>1.2</span></td></tr></table>",
+                             NORMALISERS["html-default"])
+    assert doc.text == "5 1.2"
 
 
 def test_a_changed_cited_region_opens_a_new_epoch_where_two_readers_settle_it(html_data, own):

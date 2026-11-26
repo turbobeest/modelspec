@@ -1323,31 +1323,93 @@ def _outermost(nodes: Sequence[Any]) -> list[Any]:
     return [n for n in nodes if not any(id(a) in ids for a in _ancestors(n))]
 
 
+_DATA_CELL_ROLES = frozenset({"cell", "gridcell"})
+_SPACE_RUN = re.compile(r"\s+")
+_PIPE_RULE = re.compile(r"^\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)*\|?$")
+
+
+def _cell_text(node: Any, rules: Any) -> str:
+    """A cell's text for the hash only (MODEL-555 review): its text nodes run together as the
+    page shows them (``<br>`` and block children are a break), volatile text and clock times
+    stripped, and then every run of whitespace removed, so markup that splits a value into spans
+    (``5<span>1.2</span>``) or spaces it differently hashes as the same visible text. The
+    normaliser's own text (``decision.normalise._inline``) is unchanged."""
+    from decision.normalise import BLOCK, Node, _clean_line
+
+    parts: list[str] = []
+
+    def walk(n: Any) -> None:
+        for child in n.children:
+            if isinstance(child, Node):
+                gap = child.tag == "br" or child.tag in BLOCK
+                if gap:
+                    parts.append(" ")
+                walk(child)
+                if gap:
+                    parts.append(" ")
+            else:
+                parts.append(child)
+
+    walk(node)
+    text = _clean_line(_SPACE_RUN.sub(" ", "".join(parts)), rules)
+    return _SPACE_RUN.sub("", _BOARD_CLOCK.sub(" ", text))
+
+
+def _with_body(rows: list[list[str]], body: list[bool]) -> list[list[str]] | None:
+    """The rows when at least one is a body row with a non-empty data cell; else ``None`` (a
+    header-only skeleton, or a table whose data cells are all empty)."""
+    return rows if rows and any(body) else None
+
+
 def _board_cells(nodes: Sequence[Any], rules: Any) -> list[list[str]] | None:
     """The cell contents of every table row in ``nodes`` (header and body cells, ``<tr>`` with
-    ``<th>``/``<td>``, or ARIA rows and cells), cleaned and folded, row by row. Captions and the
-    copy around a table are never read. ``None`` when ``nodes`` hold no table, or only empty
-    cells (a placeholder)."""
-    from decision.normalise import _clean_line, _inline
+    ``<th>``/``<td>``, or ARIA rows and cells), row by row, as ``_cell_text`` hashes them.
+    Captions and the copy around a table are never read. ``None`` when ``nodes`` hold no table
+    row, or no body row with a non-empty data cell (a placeholder or a header-only skeleton)."""
+
+    def role(e: Any) -> str:
+        return e.attrs.get("role", "").lower()
 
     def cells_of(row: Any) -> list[Any]:
         return [c for c in row.elements()
-                if (c.tag in ("td", "th") or c.attrs.get("role", "").lower() in _CELL_ROLES)
-                and next((a for a in _ancestors(c) if a.tag == "tr"
-                          or a.attrs.get("role", "").lower() in _ROW_ROLES), None) is row]
+                if (c.tag in ("td", "th") or role(c) in _CELL_ROLES)
+                and next((a for a in _ancestors(c) if a.tag == "tr" or role(a) in _ROW_ROLES),
+                         None) is row]
 
     found = [e for n in nodes for e in (n, *n.elements())
-             if e.tag in ("table", "tr") or e.attrs.get("role", "").lower() in
-             _ROW_ROLES | {"table", "grid"}]
-    rows = [e for e in dict.fromkeys(found)
-            if e.tag == "tr" or e.attrs.get("role", "").lower() in _ROW_ROLES]
-    out = []
-    for row in rows:
-        texts = [_fold(_BOARD_CLOCK.sub(" ", _clean_line(_inline(c), rules)))
-                 for c in cells_of(row)]
+             if e.tag == "tr" or role(e) in _ROW_ROLES]
+    out, body = [], []
+    for row in dict.fromkeys(found):
+        cells = cells_of(row)
+        texts = [_cell_text(c, rules) for c in cells]
         if any(texts):
             out.append(texts)
-    return out or None
+            body.append(any(t and (c.tag == "td" or role(c) in _DATA_CELL_ROLES)
+                            for c, t in zip(cells, texts, strict=True)))
+    return _with_body(out, body)
+
+
+def _text_rows(text: str, rules: Any) -> list[list[str]] | None:
+    """The table rows of a plain-text board: its first run of pipe-table lines (``| a | b |``;
+    rule lines such as ``|---|`` are dropped), cells as ``_cell_text`` hashes them; the first
+    row is the header and the rest are body rows. Prose is never hashed: ``None`` when the text
+    holds no such table with a non-empty body row."""
+    from decision.normalise import _clean_line
+
+    out: list[list[str]] = []
+    for line in text.splitlines():
+        line = line.strip()
+        if _PIPE_RULE.match(line) and "-" in line:
+            continue
+        if line.count("|") < 2:
+            if out:
+                break  # the table ended
+            continue
+        texts = [_SPACE_RUN.sub("", _BOARD_CLOCK.sub(" ", _clean_line(c, rules)))
+                 for c in line.strip("|").split("|")]
+        if any(texts):
+            out.append(texts)
+    return _with_body(out, [i > 0 for i in range(len(out))])
 
 
 def board_region_sha256(row: Mapping[str, Any], source_id: str, source: Mapping[str, Any],
@@ -1365,8 +1427,10 @@ def board_region_sha256(row: Mapping[str, Any], source_id: str, source: Mapping[
     caption or the copy around the table. An HTML page is parsed as HTML even under a text
     recipe; page furniture and anything that announces or rotates (banner, alert, status and
     live regions, carousels, tickers) is dropped; update times and clock times, with or without
-    a zone, are stripped. An HTML region with no table has no rows: ``None``. A plain-text page
-    (no markup) is hashed by its cleaned text."""
+    a zone, are stripped, and a cell's whitespace is removed (``_cell_text``). A region needs a
+    body row with a non-empty data cell: an HTML region with no table row, or a header-only
+    skeleton, is ``None``. A plain-text page (no markup) is hashed by its pipe-table rows only
+    (``_text_rows``); prose is never hashed."""
     from decision.normalise import (
         NORMALISERS, Document, Locator, UnsupportedContentError, _nodes_text, normalise_document,
         select_region, select_region_tables,
@@ -1403,8 +1467,9 @@ def board_region_sha256(row: Mapping[str, Any], source_id: str, source: Mapping[
                     matched = [n for n in doc.root.elements() if _matches(n, steps)]
                     region = _board_cells(_outermost(matched), doc.rules) if matched else None
             else:
+                # a text recipe on text with no markup: its table rows only, never its prose
                 text = select_region(doc, where)
-                region = _fold(_BOARD_CLOCK.sub(" ", text)) if text is not None else None
+                region = _text_rows(text, doc.rules) if text is not None else None
             if not region:
                 return None
             parts.append([region_id, region])
