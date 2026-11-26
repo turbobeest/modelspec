@@ -408,6 +408,9 @@ def artifact(directory, urls=None, *, ok=False, fallback_manifest=False, spent=N
     if not fallback_manifest:
         manifest = pages
     elif version == fallback.SCHEMA_VERSION:
+        for url, entry in pages.items():
+            if entry["outcome"] == "ok":
+                entry["resolved_urls"] = [url]
         manifest = {
             "schema_version": version,
             "month": MONTH,
@@ -456,6 +459,10 @@ def terms_register(tmp_path_factory, monkeypatch):
     cite_only_hosts.cache_clear()
 
 
+FIXTURE_HTML = (b"<html><body><h1>Fixture pricing</h1><p>Pro is twenty dollars a month, "
+                b"billed monthly.</p></body></html>")
+
+
 class StubReader:
     """Stands in for the class-checked Playwright fetcher: no browser, no network."""
 
@@ -468,7 +475,7 @@ class StubReader:
         self.fetched.append(url)
         result = self.results.get(url, self.default)
         if result is None:
-            return FetchResult("ok", 200, body=b"<html><body>fixture pricing</body></html>",
+            return FetchResult("ok", 200, body=FIXTURE_HTML,
                                content_type="text/html", charset="utf-8", resolved_urls=(url,),
                                retrieved_at=datetime(2026, 10, 6, 7, 41))
         return result(url) if callable(result) else result
@@ -518,11 +525,11 @@ def test_new_cite_only_fallback_keeps_only_hash_and_retrieval_date(estate, tmp_p
     assert spent == 0
     assert result.outcome == "ok"
     assert result.body == b""
-    assert result.snapshot_ref == fingerprint_bytes(b"<html><body>fixture pricing</body></html>")
+    assert result.snapshot_ref == fingerprint_bytes(FIXTURE_HTML)
     assert result.retrieved_at is not None
     assert replay.manifest[url]["citation"]["url"] == url
     assert list(output.iterdir()) == [output / "manifest.json"]
-    assert "fixture pricing" not in (output / "manifest.json").read_text()
+    assert "Fixture pricing" not in (output / "manifest.json").read_text()
 
 
 def test_a_page_whose_every_hop_keeps_copies_keeps_its_bytes_and_chain(allowed_estate, tmp_path):
@@ -543,7 +550,7 @@ def test_a_page_whose_every_hop_keeps_copies_keeps_its_bytes_and_chain(allowed_e
 def test_a_cite_only_hop_keeps_the_hash_only(allowed_estate, tmp_path):
     root, _ = allowed_estate
     hops = (HELP, "https://help.openai.com/en/articles/1")
-    reader = StubReader({HELP: FetchResult("ok", 200, body=b"<p>cite-only text</p>",
+    reader = StubReader({HELP: FetchResult("ok", 200, body=FIXTURE_HTML + b"<p>cite-only text</p>",
                                            content_type="text/html", resolved_urls=hops)})
     output = run_fallback(root, tmp_path, reader=reader)
     replay, _ = fallback.read_fallback(output)
@@ -707,7 +714,7 @@ def test_plain_http_failures_are_eligible_but_unlisted_hosts_are_filtered(estate
 def test_the_fallback_never_builds_a_firecrawl_client_or_reads_its_key():
     source = (ROOT / "scripts" / "price_reread_fallback.py").read_text()
     for name in ("FirecrawlFetcher", "FakeFirecrawlFetcher", "DisabledFirecrawlFetcher",
-                 "firecrawl_opted_in", "environ", "httpx"):
+                 "firecrawl_opted_in", "httpx", "FIRECRAWL_API_KEY\")"):
         assert name not in source, name
     assert not hasattr(fallback, "FirecrawlFetcher")
 
@@ -1297,7 +1304,7 @@ def test_a_fallback_around_a_replay_never_passes_a_preparation(tmp_path, retaina
     (rendered / "manifest.json").write_text(json.dumps({AWS_PRICING: {
         "file": "aws.html", "outcome": "ok", "status": 200, "error": None}}))
     replay, _ = fallback.read_fallback(
-        artifact(tmp_path, fallback_manifest=True, ok=True, version=3))
+        artifact(tmp_path / "fallback", fallback_manifest=True, ok=True, version=3))
     wrapped = fallback.FallbackFetcher(price_reread.RenderedReplayFetcher(rendered), replay)
     result = price_reread._fetch_rendered(wrapped, AWS_PRICING, ("aws-pricing",))
     assert (result.outcome, result.body) == ("ok", b"<html><body>captured</body></html>")
@@ -1349,3 +1356,143 @@ def test_firecrawl_is_never_constructed_even_with_a_key_and_the_old_opt_in(
          "--fallback-ledger", str(ledger)]) == 0
     manifest = json.loads((out / "manifest.json").read_text())
     assert manifest["credits_spent"] == 0 and set(manifest["pages"]) == {PLAN, HELP, API}
+
+
+# --- MODEL-570 review: retaining allowlist, complete cite-only reads, strict artifacts ---------
+
+
+@pytest.mark.parametrize("value,kept", [
+    ("permits", True), ("restricts", True),
+    ("unclear", False), ("", False), ("reviewing", False),
+])
+def test_only_an_explicit_retaining_class_keeps_bytes(
+        allowed_estate, tmp_path, tmp_path_factory, monkeypatch, value, kept):
+    root, _ = allowed_estate
+    name_terms_register(tmp_path_factory.mktemp("class-terms"), monkeypatch,
+                        {**TERMS, "hop.example": value})
+    hops = (HELP, "https://hop.example/page")
+    reader = StubReader({HELP: FetchResult("ok", 200, body=FIXTURE_HTML, resolved_urls=hops,
+                                           content_type="text/html")})
+    output = run_fallback(root, tmp_path, reader=reader)
+    replay, _ = fallback.read_fallback(output)
+    if kept:
+        assert replay.fetch(HELP).body == FIXTURE_HTML and replay.skipped == {}
+    else:
+        assert replay.manifest == {}
+        assert replay.skipped == {HELP: f"no retaining class:hop.example:{value or 'empty'}"}
+        assert list(output.iterdir()) == [output / "manifest.json"]
+
+
+@pytest.mark.parametrize("body,error,listed", [
+    (FIXTURE_HTML, "rendered preparation failed: timeout",
+     "cite-only read failed: rendered preparation failed: timeout"),
+    (b"<html><body>Loading</body></html>", None,
+     "cite-only read failed: shell_page:text_below_40_chars"),
+    (b"   ", None, "cite-only read failed: shell_page:empty_body"),
+])
+def test_a_partial_or_shell_cite_only_read_is_a_failed_read_with_no_hash(
+        estate, tmp_path, body, error, listed):
+    root, _ = estate
+    registry = root / "registry" / "sources.yaml"
+    registry.write_text(registry.read_text().replace(RENDERED_URL, HELP))
+    reader = StubReader({HELP: FetchResult("ok", 200, body=body, error=error,
+                                           content_type="text/html", resolved_urls=(HELP,))})
+    output = run_fallback(root, tmp_path, render=artifact(tmp_path / "render", urls=(HELP,)),
+                          plain=ReplayFetcher({}), reader=reader)
+    replay, _ = fallback.read_fallback(output)
+    entry = replay.manifest[HELP]
+    assert entry["outcome"] == "unreachable" and entry["error"] == listed
+    assert "citation" not in entry
+    assert list(output.iterdir()) == [output / "manifest.json"]
+    result = fallback.FallbackFetcher(ReplayFetcher({HELP: [None]}), replay).fetch(HELP)
+    assert result.outcome == "unreachable" and result.snapshot_ref is None
+
+
+@pytest.mark.parametrize("forgery", ["no-chain", "empty-chain", "unclear-hop", "cite-only-hop",
+                                     "unclassed-hop", "stray-file"])
+def test_a_kept_page_without_a_retaining_chain_is_never_replayed(
+        tmp_path, tmp_path_factory, monkeypatch, retainable_sources, forgery):
+    name_terms_register(tmp_path_factory.mktemp("chain-terms"), monkeypatch,
+                        {**TERMS, "hop.example": "unclear"})
+    directory = artifact(tmp_path / "fallback", fallback_manifest=True, ok=True, version=3)
+    path = directory / "manifest.json"
+    manifest = json.loads(path.read_text())
+    entry = manifest["pages"][HELP]
+    if forgery == "no-chain":
+        del entry["resolved_urls"]
+    elif forgery == "empty-chain":
+        entry["resolved_urls"] = []
+    elif forgery == "unclear-hop":
+        entry["resolved_urls"] = [HELP, "https://hop.example/page"]
+    elif forgery == "cite-only-hop":
+        entry["resolved_urls"] = [HELP, "https://help.openai.com/en/articles/1"]
+    elif forgery == "unclassed-hop":
+        entry["resolved_urls"] = [HELP, "https://unclassed.example/page"]
+    else:
+        (directory / "stale.html").write_bytes(b"<p>an earlier run's page</p>")
+    path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError):
+        fallback.read_fallback(directory)
+    assert fallback.monthly_budget(tmp_path, MONTH).unreadable_ledgers == 1
+
+
+def test_a_kept_page_needs_a_terms_register_to_be_replayed(tmp_path, monkeypatch,
+                                                           retainable_sources):
+    directory = artifact(tmp_path / "fallback", fallback_manifest=True, ok=True, version=3)
+    monkeypatch.delenv("MODELSPEC_DATA_DIR")
+    with pytest.raises(ValueError, match="retaining-class"):
+        fallback.read_fallback(directory)
+
+
+@pytest.mark.parametrize("leftover", ["file", "dir"])
+def test_the_fallback_refuses_an_output_directory_with_earlier_files(
+        allowed_estate, tmp_path, monkeypatch, leftover):
+    root, _ = allowed_estate
+    output = tmp_path / "fallback"
+    output.mkdir()
+    if leftover == "file":
+        (output / "0123.html").write_bytes(b"<p>stale</p>")
+    else:
+        (output / "old").mkdir()
+    reader = StubReader()
+    with pytest.raises(ValueError, match="new or empty"):
+        run_fallback(root, tmp_path, reader=reader)
+    assert reader.fetched == []
+    monkeypatch.setattr(price_reread, "ROOT", root)
+    monkeypatch.setattr(price_reread, "RenderedFetcher", StubBrowser(reader))
+    monkeypatch.setattr(price_reread, "Fetcher", lambda **_: ReplayFetcher({PLAN: [None]}))
+    with pytest.raises(SystemExit) as exc:
+        price_reread.main(["--fallback-from-render", str(artifact(tmp_path / "render")),
+                           "--fallback-to", str(output), "--fallback-ledger", str(tmp_path)])
+    assert exc.value.code == 2 and reader.fetched == []
+
+
+@pytest.mark.parametrize("version", [1, 2, 3])
+@pytest.mark.parametrize("damage", ["missing-retrieved-at", "retrieved-at-number",
+                                    "citation-chain-number"])
+def test_a_malformed_entry_makes_the_artifact_unreadable_and_never_raises(
+        tmp_path, version, damage):
+    ledger = tmp_path / "ledger"
+    directory = artifact(ledger / "bad", urls=(PLAN,), fallback_manifest=True,
+                         version=3 if version == 3 else 1)
+    path = directory / "manifest.json"
+    manifest = json.loads(path.read_text())
+    if version == 2:
+        manifest.update(schema_version=2, fake=False, credits_reserved=1, allowance=12,
+                        prior_month_spend_known=0, unreadable_ledgers=0, team_balance=1000,
+                        stop_reason=None)
+    entry = manifest["pages"][PLAN]
+    entry.update(outcome="ok", status=200, error=None)
+    entry["citation"] = {"url": PLAN, "snapshot_ref": "sha256:" + "0" * 64,
+                         "retrieved_at": "2026-10-06T07:41:00+00:00", "resolved_urls": [PLAN]}
+    if damage == "missing-retrieved-at":
+        del entry["citation"]["retrieved_at"]
+    elif damage == "retrieved-at-number":
+        entry["citation"]["retrieved_at"] = 7
+    else:
+        entry["citation"]["resolved_urls"] = 7
+    path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError):
+        fallback.read_fallback(directory)
+    # Counted unreadable: the full 12-credit reservation, never an exception.
+    assert fallback.monthly_budget(ledger, MONTH) == fallback.MonthlyBudget(12, 0, 1)

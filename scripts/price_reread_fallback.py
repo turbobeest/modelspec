@@ -18,6 +18,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -33,17 +34,23 @@ from decision.firecrawl import (
     fallback_needed,
 )
 from decision.firecrawl import firecrawl_allowed as fallback_host_allowed
-from decision.normalise import NORMALISERS, canonical_url
+from decision.normalise import (
+    NORMALISERS,
+    UnsupportedContentError,
+    canonical_url,
+    normalise_document,
+)
 from decision.retention import (
-    TermsRegisterUnreadable,
+    CITE_ONLY_CLASSES,
+    DATA_DIR_ENV,
     canonical_host,
     citation_metadata,
-    cite_only_origin_restrictive,
-    classified_hosts,
-    is_classified,
+    is_cite_only_restrictive,
 )
 from decision.sources import (
+    MIN_PAGE_TEXT_CHARS,
     REDIRECT_UNCLASSIFIED,
+    SHELL_PAGE,
     TERMS_REGISTER_UNREADABLE,
     Fetcher,
     FetchMode,
@@ -77,6 +84,10 @@ READER = "playwright"
 FAKE_REASON = "fallback was a fake run"
 LEGACY_REASON = "Firecrawl fallback pages are not replayed (MODEL-570)"
 PLAYWRIGHT_UNAVAILABLE = "Playwright unavailable"
+#: The only register classes whose page bytes may be kept (an allowlist, MODEL-570 review):
+#: ``unclear``, an empty or unknown value, or no class at all keeps nothing.
+RETAINING_CLASSES = frozenset({"permits", "restricts"})
+NO_RETAINING_CLASS = "no retaining class"
 #: Rendered-path refusals of a chain that cannot be walked or kept (decision/sources.py).
 UNWALKABLE_ERRORS = (
     "ambiguous URL",
@@ -130,26 +141,51 @@ def _playwright_line(pages: dict, skipped: dict, fake: bool) -> str:
     return line
 
 
+def _replay(directory: Path, pages: object, **kwargs) -> FallbackReplayFetcher:
+    """Validate every page entry first; any malformed entry is a ValueError, so a month
+    ledger counts the artifact as unreadable instead of raising (MODEL-570 review)."""
+    if not isinstance(pages, dict):
+        raise ValueError("invalid fallback pages")
+    try:
+        return FallbackReplayFetcher(directory, pages=pages, **kwargs)
+    except (KeyError, TypeError, AttributeError, UnicodeError) as exc:
+        raise ValueError(f"invalid fallback page entry: {type(exc).__name__}") from None
+
+
 def _read_playwright(directory: Path, manifest: dict) -> tuple[FallbackReplayFetcher, int]:
     fields = {"schema_version", "month", "credits_spent", "reader", "fake", "pages", "skipped"}
     if set(manifest) != fields:
         raise ValueError("invalid fallback manifest fields")
     pages, skipped, fake = manifest["pages"], manifest["skipped"], manifest["fake"]
+    if type(fake) is not bool or not isinstance(skipped, dict):
+        raise ValueError("invalid fallback pages, skips or spend")
+    replay = _replay(directory, pages, fake=fake, skipped=skipped,
+                     spend_line=_playwright_line(pages, skipped, fake))
     if (
         type(manifest["credits_spent"]) is not int
         or manifest["credits_spent"] != 0
         or manifest["reader"] != READER
-        or type(fake) is not bool
-        or not isinstance(pages, dict)
-        or not isinstance(skipped, dict)
         or any(not fallback_host_allowed(url) for url in (*pages, *skipped))
         or any(canonical_url(url) != url for url in skipped)
         or any(not isinstance(why, str) or not why for why in skipped.values())
         or set(pages) & set(skipped)
     ):
         raise ValueError("invalid fallback pages, skips or spend")
-    return FallbackReplayFetcher(directory, pages=pages, fake=fake, skipped=skipped,
-                                 spend_line=_playwright_line(pages, skipped, fake)), 0
+    kept = set()
+    for url, entry in pages.items():
+        if entry["outcome"] != "ok" or "citation" in entry:
+            continue
+        # A kept page names its whole chain, and every hop of it is retaining-class.
+        chain = entry.get("resolved_urls")
+        if (not isinstance(chain, list) or not chain
+                or any(not isinstance(hop, str) for hop in chain)
+                or _hop_verdict(url, chain) != ("retain", None)):
+            raise ValueError("a kept fallback page needs a retaining-class redirect chain")
+        kept.add(entry["file"])
+    # Nothing ships but the manifest and the kept pages: no stale or refused bytes.
+    if any(child.name not in kept | {"manifest.json"} for child in directory.iterdir()):
+        raise ValueError("fallback artifact holds a file no kept page names")
+    return replay, 0
 
 
 def read_fallback(
@@ -195,6 +231,10 @@ def read_fallback(
     spent = manifest["credits_spent"]
     pages = manifest["pages"]
     fake = manifest.get("fake", False)
+    if type(fake) is not bool:
+        raise ValueError("invalid fallback ledger spend or hosts")
+    # Entries first: a malformed one makes the whole artifact unreadable (a ValueError).
+    _replay(directory, pages, fake=fake, spend_line="", legacy=True)
     if (
         type(spent) is not int
         or not 0 <= spent <= FIRECRAWL_MAX_CREDITS_PER_RUN
@@ -254,8 +294,7 @@ def read_fallback(
             "prior month spend known=unrecorded; unreadable ledgers=unrecorded; "
             "team balance=unread."
         )
-    return FallbackReplayFetcher(directory, pages=pages, fake=fake, spend_line=spend_line,
-                                 legacy=True), spent
+    return _replay(directory, pages, fake=fake, spend_line=spend_line, legacy=True), spent
 
 
 def monthly_budget(ledger: Path, month: str) -> MonthlyBudget:
@@ -314,22 +353,68 @@ def _skip_reason(result: FetchResult) -> str | None:
     return None
 
 
-def _unclassed_hop(url: str, resolved_urls) -> str | None:
-    """Recheck every hop of a read against the terms register (the guard already has):
-    a hop without a class, or an unreadable register, refuses the read."""
+def _register_terms() -> dict[str, str] | None:
+    """The private register's host classes, or None when none is named or it is unreadable."""
+    data_dir = os.environ.get(DATA_DIR_ENV, "").strip()
+    if not data_dir:
+        return None
     try:
-        classes = classified_hosts()
-    except TermsRegisterUnreadable:
-        return TERMS_REGISTER_UNREADABLE
-    if classes is None:
-        return TERMS_REGISTER_UNREADABLE
+        terms = json.loads((Path(data_dir) / "registry" / "source-terms.json")
+                           .read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return terms if isinstance(terms, dict) else None
+
+
+def _host_class(host: str | None, terms: dict) -> str | None:
+    """The class of ``host``: its own entry, else its nearest classed parent domain."""
+    if not host:
+        return None
+    labels = host.split(".")
+    for index in range(len(labels)):
+        value = terms.get(".".join(labels[index:]))
+        if value is not None:
+            return value if isinstance(value, str) else ""
+    return None
+
+
+def _hop_verdict(url: str, resolved_urls) -> tuple[str, str | None]:
+    """``("retain", None)`` when every hop is of a retaining class and none is cite-only;
+    ``("cite", None)`` when every hop is retaining-class or cite-only and one is cite-only;
+    otherwise ``("skip", reason)``: an unreadable register, a hop with no class, or a hop
+    of any other class (``unclear``, empty, unknown) keeps nothing and is listed."""
+    terms = _register_terms()
+    if terms is None:
+        return "skip", TERMS_REGISTER_UNREADABLE
+    cite = False
     for hop in (url, *resolved_urls):
         try:
             host = canonical_host(hop)
         except ValueError:
             host = None
-        if not is_classified(host, classes):
-            return f"{REDIRECT_UNCLASSIFIED}:{host or 'unparseable'}"
+        value = _host_class(host, terms)
+        if value is None:
+            return "skip", f"{REDIRECT_UNCLASSIFIED}:{host or 'unparseable'}"
+        if value in CITE_ONLY_CLASSES or is_cite_only_restrictive(hop):
+            cite = True
+        elif value not in RETAINING_CLASSES:
+            return "skip", f"{NO_RETAINING_CLASS}:{host}:{value or 'empty'}"
+    return ("cite", None) if cite else ("retain", None)
+
+
+def _shell_verdict(body: bytes, normaliser: str) -> str | None:
+    """In memory, before a cite-only page's bytes are dropped: why it is a shell, or None."""
+    if not body.strip():
+        return f"{SHELL_PAGE}:empty_body"
+    rules = NORMALISERS.get(normaliser, NORMALISERS["html-default"])
+    if rules.content != "html":
+        return None
+    try:
+        text = normalise_document(body, rules).text
+    except UnsupportedContentError:
+        return f"{SHELL_PAGE}:unreadable_html"
+    if len(text.strip()) < MIN_PAGE_TEXT_CHARS:
+        return f"{SHELL_PAGE}:text_below_{MIN_PAGE_TEXT_CHARS}_chars"
     return None
 
 
@@ -377,6 +462,10 @@ def fallback_to(
             if entry is None or not fallback_needed(FetchResult(entry["outcome"], entry["status"])):
                 continue
         candidates.setdefault(url, (source.fetch, set()))[1].add(sid)
+    # A fresh directory each run: no byte from an earlier run can ship with this one.
+    if directory.is_symlink() or (directory.exists() and (
+            not directory.is_dir() or any(directory.iterdir()))):
+        raise ValueError("fallback output directory must be new or empty")
     directory.mkdir(parents=True, exist_ok=True)
     pages: dict[str, dict] = {}
     skipped: dict[str, str] = {}
@@ -410,28 +499,34 @@ def fallback_to(
             skipped[url] = why
             checkpoint()
             continue
-        if result.outcome == "ok" and not fake and (
-                why := _unclassed_hop(url, result.resolved_urls)) is not None:
-            skipped[url] = why
-            checkpoint()
-            continue
         name = hashlib.sha256(url.encode("utf-8")).hexdigest() + ".html"
-        restricted = cite_only_origin_restrictive(url, result.resolved_urls)
-        if restricted:
-            (directory / name).unlink(missing_ok=True)
         entry = {"file": name, "outcome": result.outcome, "status": result.status,
                  "error": result.error}
-        if result.outcome == "ok" and not restricted:
-            # Every hop is retaining-class: the bytes may be kept, with the chain.
-            (directory / name).write_bytes(result.body)
-            entry["resolved_urls"] = list(result.resolved_urls)
-        elif result.outcome == "ok":
-            # Cite-only: URL, time and hash only; the bytes never reach the disk.
-            entry["error"] = None
-            entry["citation"] = citation_metadata(
-                url, fingerprint_bytes(result.body),
-                retrieved_at=result.retrieved_at or datetime.now(UTC),
-                resolved_urls=result.resolved_urls)
+        if result.outcome == "ok":
+            verdict, why = _hop_verdict(url, result.resolved_urls)
+            if verdict == "skip":
+                skipped[url] = why
+                checkpoint()
+                continue
+            if verdict == "retain":
+                # Every hop is of a retaining class: the bytes may be kept, with the chain.
+                (directory / name).write_bytes(result.body)
+                entry["resolved_urls"] = list(result.resolved_urls)
+            else:
+                # Cite-only: only a complete read counts, and only as URL, time and hash.
+                # A partial read (preparation error) or a shell is a failed read: its error
+                # is recorded, no hash is kept and no citation date can advance.
+                normaliser = sources[min(sids)].normaliser
+                failure = result.error or _shell_verdict(result.body, normaliser)
+                if failure is not None:
+                    entry = {"file": name, "outcome": "unreachable", "status": result.status,
+                             "error": f"cite-only read failed: {failure}"}
+                else:
+                    entry["error"] = None
+                    entry["citation"] = citation_metadata(
+                        url, fingerprint_bytes(result.body),
+                        retrieved_at=result.retrieved_at or datetime.now(UTC),
+                        resolved_urls=result.resolved_urls)
         pages[url] = entry
         checkpoint()
     checkpoint()
