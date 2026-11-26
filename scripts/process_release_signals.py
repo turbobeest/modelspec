@@ -19,6 +19,7 @@ from pathlib import Path
 
 import httpx
 
+from decision.model import DETERMINISTIC, VerificationActor
 from decision.sources import get_source_response
 from release_signals.contract import ReleaseSignal
 from release_signals.scope import out_of_scope_reason
@@ -35,6 +36,13 @@ from release_signals.pipeline import (
 from scripts import refresh_leaderboards
 
 ROOT = Path(__file__).resolve().parents[1]
+#: The actor a release-signal run's board rows and verification log lines name
+#: (MODEL-511 item 3): this deterministic job, not the weekly refresh.
+BOARD_COLLECTOR = VerificationActor(
+    agent="release-signals",
+    model_family=DETERMINISTIC,
+    method="release-signal-board-rows@1",
+)
 #: An empty or failed Hub read. Out of scope is never inferred from this.
 HUB_METADATA_UNREAD = "Hub metadata could not be read"
 
@@ -286,6 +294,7 @@ def process(
                     )),
                     model_ids=(resolution.model_id,),
                     add_missing=True,
+                    collector=BOARD_COLLECTOR,
                 )
                 if report_path:
                     refresh_leaderboards.write_report_json(report_path, report)

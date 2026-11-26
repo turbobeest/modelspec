@@ -372,7 +372,7 @@ benchmarks:
 
     report = refresh.run(
         observed_at="2026-09-26", dry_run=False, root=root, source_cache=cache,
-        model_ids=("lab/new",), add_missing=True,
+        model_ids=("lab/new",), add_missing=True, collector=refresh.COLLECTOR,
     )
 
     front = yaml.safe_load(card.read_text(encoding="utf-8").split("---", 2)[1])
@@ -442,7 +442,7 @@ sources:
 
     report = refresh.run(
         observed_at="2026-09-26", dry_run=False, root=root, source_cache=cache,
-        model_ids=("lab/new",), add_missing=True,
+        model_ids=("lab/new",), add_missing=True, collector=refresh.COLLECTOR,
     )
 
     after = card.read_text(encoding="utf-8")
@@ -1887,6 +1887,7 @@ sources:
     report = refresh.run(
         observed_at="2026-09-29", dry_run=False, root=root, source_cache=cache,
         model_ids=("lab/reranker-x", "lab/embedder"), add_missing=True,
+        collector=refresh.COLLECTOR,
     )
 
     added = refresh._front(root / "models" / "lab" / "reranker-x.md")["benchmarks"]["evidence"]
@@ -3874,6 +3875,7 @@ benchmarks:
     added = refresh.run(
         observed_at="2026-11-11", dry_run=False, root=root, source_cache=cache,
         model_ids=("lab/new-model",), add_missing=True, arena_latest=True,
+        collector=refresh.COLLECTOR,
     )
 
     assert added.quarantined == [], added.quarantined
@@ -3957,7 +3959,7 @@ benchmarks:
 
     report = refresh.run(
         observed_at="2026-09-26", dry_run=False, root=root, source_cache=cache,
-        model_ids=("lab/new",), add_missing=True,
+        model_ids=("lab/new",), add_missing=True, collector=refresh.COLLECTOR,
     )
 
     assert report.quarantined == [], report.quarantined
