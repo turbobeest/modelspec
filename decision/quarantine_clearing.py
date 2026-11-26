@@ -471,7 +471,7 @@ def _board_base(base: str, derived: str, first: str, settings: Settings | None,
 
     region = is_board_epoch(base, first)
     return settings is not None and derived == first and region is not None \
-        and attempt.get("region_sha256") == region
+        and attempt.get("board_region_sha256") == region
 
 
 def _block(record: Mapping[str, Any]) -> Mapping[str, Any] | None:

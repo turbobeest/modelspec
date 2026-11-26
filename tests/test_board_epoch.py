@@ -156,7 +156,8 @@ def test_an_unchanged_rows_epoch_names_its_board_region(html_data, own):
     [line] = html_data.log()
     region = row_region(html_data, own.pages)
     assert line["epoch"] == f"{BASE}{BOARD_MARK}{region}" == reading_epoch(READING, board=region)
-    assert line["region_sha256"] == region and len(region) == 64
+    assert line["board_region_sha256"] == region and len(region) == 64
+    assert "region_sha256" not in line              # a fact's field (MODEL-562), not the board's
 
 
 def test_a_row_with_a_cited_change_keeps_its_reread_epoch():
@@ -223,6 +224,9 @@ def test_a_plain_text_board_hashes_its_table_rows_never_its_prose(data, own):
     b"Board at 09:15\nOrbit 9 Max 51.2%\nRival 1 40.0%\n",               # prose only
     b"| Model | Score |\n|---|---|\n",                                       # header only
     b"| Model | Score |\n|---|---|\n|  |  |\n",                             # empty body
+    b"| Model | Score |\n| Orbit 9 Max | 51.2% |\n",                        # no separator
+    b"| Model | Score |\n| Orbit-9-Max | 51.2% |\n| Rival 1 | 40.0% |\n",  # a dash, no rule
+    b"Pick A | B | C today.\nOrbit 9 Max | 51.2% | ok\n",                   # prose with pipes
 ])
 def test_a_plain_text_board_without_body_rows_is_refused(data, own, page):
     own.page = page
@@ -246,7 +250,7 @@ def test_a_header_only_skeleton_is_refused(html_data, own, page):
 
 @pytest.mark.parametrize("split_markup", [
     b"<td>5<span>1.2</span>%</td>", b"<td><span>51</span><span>.2</span>%</td>",
-    b"<td>\n  51.2%\n</td>", b"<td><b>51.2</b> %</td>",
+    b"<td>\n  51.2%\n</td>", b"<td><b>51.2</b>%</td>", b"<td>  51.2%</td>",
 ])
 def test_markup_that_splits_a_cell_does_not_open_an_epoch(html_data, own, split_markup):
     split()
@@ -254,6 +258,35 @@ def test_markup_that_splits_a_cell_does_not_open_an_epoch(html_data, own, split_
     assert own.page != board()
     refused("prior_attempt_disagreed")
     assert len(html_data.log()) == 1
+
+
+@pytest.mark.parametrize("before, after", [
+    (b"<td>Orbit 9 Max</td>", b"<td>Orbit 9Max</td>"),
+    (b"<td>51.2%</td>", b"<td>51.2 %</td>"),
+])
+def test_a_space_inside_a_cell_still_counts(html_data, own, before, after):
+    split()
+    own.page = board().replace(before, after)
+    assert read().changed                           # collapsed, not deleted: a new epoch
+
+
+def test_a_head_td_is_never_a_body_cell(html_data, own):
+    split()
+    own.page = (b"<html><body><table id='rows'><thead><tr><td>Orbit 9 Max</td><td>53.0%</td>"
+                b"</tr></thead></table></body></html>")
+    refused("page_unreadable")
+    own.page = (b"<html><body><table id='rows'><thead><tr><td>Model</td><td>Score</td></tr>"
+                b"</thead><tbody></tbody><tr><td>Orbit 9 Max</td><td>53.0%</td></tr>"
+                b"</table></body></html>")
+    refused("page_unreadable")                      # a <tbody> exists: only its rows are body
+    assert len(html_data.log()) == 1
+
+
+def test_rows_outside_the_head_are_the_body_when_there_is_no_tbody(html_data, own):
+    split()
+    own.page = (b"<html><body><table id='rows'><thead><tr><th>Model</th><th>Score</th></tr>"
+                b"</thead><tr><td>Orbit 9 Max</td><td>53.0%</td></tr></table></body></html>")
+    assert read(readers=pair(53.0)).changed
 
 
 def test_the_normalisers_own_cell_text_is_unchanged():
@@ -363,11 +396,19 @@ def test_bytes_a_caller_supplies_cannot_open_an_epoch(html_data, own):
 def test_a_caller_transport_attempt_records_no_region_and_holds_the_row(html_data, own):
     split(request=serve(board()))
     [line] = html_data.log()
-    assert line["epoch"] == BASE and "region_sha256" not in line
+    assert line["epoch"] == BASE and "board_region_sha256" not in line
     refused("prior_attempt_disagreed", request=serve(board(score="53.0")))
     refused("prior_attempt_disagreed")              # the gate's own fetch of the same board
     own.page = board(score="53.0")
     refused("prior_attempt_disagreed")              # nor a changed one: its region is unknown
+
+
+@pytest.mark.parametrize("field, opens", [("board_region_sha256", True),
+                                          ("region_sha256", False)])
+def test_board_epoch_reads_only_the_board_field(field, opens):
+    line = {"epoch": BASE, "complete": True, field: "c" * 64}
+    epoch = board_epoch(base=BASE, lines=[line], region="a" * 64)
+    assert (epoch != BASE) is opens                 # a fact's region hash never names a board
 
 
 def test_board_epoch_never_opens_without_a_region():
@@ -430,7 +471,7 @@ def test_a_source_whose_eligibility_changes_holds_the_row(two, own, change):
 
 
 def legacy(data, page, *, text=True):
-    """A split logged before region hashes: no ``region_sha256``."""
+    """A split logged before region hashes: no ``board_region_sha256``."""
     line = {"subject": SUBJECT, "facet": FACET, "url": URL, "epoch": BASE,
             "page_sha256": sha256(page), "prompt_sha256": "0" * 64,
             "at": "2026-11-02T00:00:00+00:00", "complete": True, "harness": True,
@@ -502,9 +543,10 @@ def test_the_build_takes_a_board_base_only_from_an_agreement_that_read_that_regi
     settings = reading_settings({**READING})
     region = "a" * 64
     board_base = f"{BASE}{BOARD_MARK}{region}"
-    read_it = {"region_sha256": region}
+    read_it = {"board_region_sha256": region}
     assert _board_base(board_base, BASE, BASE, settings, read_it)
-    assert not _board_base(board_base, BASE, BASE, settings, {"region_sha256": "b" * 64})
+    assert not _board_base(board_base, BASE, BASE, settings, {"board_region_sha256": "b" * 64})
+    assert not _board_base(board_base, BASE, BASE, settings, {"region_sha256": region})
     assert not _board_base(board_base, BASE, BASE, settings, {})
     assert not _board_base(board_base, BASE, BASE, None, read_it)          # not a reading
     assert not _board_base(board_base, "reread:" + "c" * 64, BASE, settings, read_it)

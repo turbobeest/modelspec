@@ -58,6 +58,7 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 import urllib.error
 import urllib.request
 from collections.abc import Callable, Mapping, Sequence
@@ -1368,9 +1369,10 @@ _PIPE_RULE = re.compile(r"^\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)*\|?$")
 def _cell_text(node: Any, rules: Any) -> str:
     """A cell's text for the hash only (MODEL-555 review): its text nodes run together as the
     page shows them (``<br>`` and block children are a break), volatile text and clock times
-    stripped, and then every run of whitespace removed, so markup that splits a value into spans
-    (``5<span>1.2</span>``) or spaces it differently hashes as the same visible text. The
-    normaliser's own text (``decision.normalise._inline``) is unchanged."""
+    stripped, every run of whitespace collapsed to one space and the ends stripped
+    (``_collapse``). Markup that splits a value into spans (``5<span>1.2</span>``) or indents it
+    hashes as the same visible text, while ``A B`` and ``AB`` stay apart. The normaliser's own
+    text (``decision.normalise._inline``) is unchanged."""
     from decision.normalise import BLOCK, Node, _clean_line
 
     parts: list[str] = []
@@ -1388,8 +1390,12 @@ def _cell_text(node: Any, rules: Any) -> str:
                 parts.append(child)
 
     walk(node)
-    text = _clean_line(_SPACE_RUN.sub(" ", "".join(parts)), rules)
-    return _SPACE_RUN.sub("", _BOARD_CLOCK.sub(" ", text))
+    return _collapse(_clean_line(_collapse("".join(parts)), rules))
+
+
+def _collapse(text: str) -> str:
+    """Clock times stripped, each whitespace run one space, the ends stripped."""
+    return _SPACE_RUN.sub(" ", _BOARD_CLOCK.sub(" ", text)).strip()
 
 
 def _with_body(rows: list[list[str]], body: list[bool]) -> list[list[str]] | None:
@@ -1402,7 +1408,9 @@ def _board_cells(nodes: Sequence[Any], rules: Any) -> list[list[str]] | None:
     """The cell contents of every table row in ``nodes`` (header and body cells, ``<tr>`` with
     ``<th>``/``<td>``, or ARIA rows and cells), row by row, as ``_cell_text`` hashes them.
     Captions and the copy around a table are never read. ``None`` when ``nodes`` hold no table
-    row, or no body row with a non-empty data cell (a placeholder or a header-only skeleton)."""
+    row, or no body row with a non-empty data cell (a placeholder or a header-only skeleton).
+    A body row is a ``<tbody>`` row or, in a table with no ``<tbody>``, a row outside its
+    ``<thead>``: a ``<td>`` in a ``<thead>`` never makes a body."""
 
     def role(e: Any) -> str:
         return e.attrs.get("role", "").lower()
@@ -1413,6 +1421,22 @@ def _board_cells(nodes: Sequence[Any], rules: Any) -> list[list[str]] | None:
                 and next((a for a in _ancestors(c) if a.tag == "tr" or role(a) in _ROW_ROLES),
                          None) is row]
 
+    def section(row: Any, tag: str) -> bool:
+        """The row sits in a ``tag`` section of its own table."""
+        for up in _ancestors(row):
+            if up.tag == tag:
+                return True
+            if up.tag == "table":
+                return False
+        return False
+
+    def body_row(row: Any) -> bool:
+        table = next((a for a in _ancestors(row) if a.tag == "table"), None)
+        has_body = table is not None and any(
+            e.tag == "tbody" and next((a for a in _ancestors(e) if a.tag == "table"), None)
+            is table for e in table.elements())
+        return section(row, "tbody") if has_body else not section(row, "thead")
+
     found = [e for n in nodes for e in (n, *n.elements())
              if e.tag == "tr" or role(e) in _ROW_ROLES]
     out, body = [], []
@@ -1421,32 +1445,43 @@ def _board_cells(nodes: Sequence[Any], rules: Any) -> list[list[str]] | None:
         texts = [_cell_text(c, rules) for c in cells]
         if any(texts):
             out.append(texts)
-            body.append(any(t and (c.tag == "td" or role(c) in _DATA_CELL_ROLES)
-                            for c, t in zip(cells, texts, strict=True)))
+            body.append(body_row(row) and any(
+                t and (c.tag == "td" or role(c) in _DATA_CELL_ROLES)
+                for c, t in zip(cells, texts, strict=True)))
     return _with_body(out, body)
 
 
+def _pipe_cells(line: str) -> list[str] | None:
+    """The cells of a pipe-table line, or ``None`` for a line with no pipe."""
+    line = line.strip()
+    return line.strip("|").split("|") if "|" in line else None
+
+
 def _text_rows(text: str, rules: Any) -> list[list[str]] | None:
-    """The table rows of a plain-text board: its first run of pipe-table lines (``| a | b |``;
-    rule lines such as ``|---|`` are dropped), cells as ``_cell_text`` hashes them; the first
-    row is the header and the rest are body rows. Prose is never hashed: ``None`` when the text
-    holds no such table with a non-empty body row."""
+    """The table rows of a plain-text board: the first pipe table (``| a | b |``) whose header
+    line is followed by a separator line (``|---|---|``), then its body lines up to the first
+    line that is not a table line. Cells are cleaned and collapsed as ``_cell_text`` does.
+    Prose is never hashed, pipes or not: ``None`` when the text holds no such table with a
+    non-empty body row. ``text`` is the page's own text, lines intact (the normaliser drops a
+    separator line as punctuation)."""
     from decision.normalise import _clean_line
 
-    out: list[list[str]] = []
-    for line in text.splitlines():
-        line = line.strip()
-        if _PIPE_RULE.match(line) and "-" in line:
+    lines = text.splitlines()
+    for i in range(len(lines) - 1):
+        header = _pipe_cells(lines[i])
+        if header is None or not _PIPE_RULE.match(lines[i + 1].strip()) \
+                or "-" not in lines[i + 1] or _PIPE_RULE.match(lines[i].strip()):
             continue
-        if line.count("|") < 2:
-            if out:
-                break  # the table ended
-            continue
-        texts = [_SPACE_RUN.sub("", _BOARD_CLOCK.sub(" ", _clean_line(c, rules)))
-                 for c in line.strip("|").split("|")]
-        if any(texts):
-            out.append(texts)
-    return _with_body(out, [i > 0 for i in range(len(out))])
+        out = [[_collapse(_clean_line(c, rules)) for c in header]]
+        for line in lines[i + 2:]:
+            cells = _pipe_cells(line)
+            if cells is None or _PIPE_RULE.match(line.strip()):
+                break
+            texts = [_collapse(_clean_line(c, rules)) for c in cells]
+            if any(texts):
+                out.append(texts)
+        return _with_body(out, [k > 0 for k in range(len(out))])
+    return None
 
 
 def board_region_sha256(row: Mapping[str, Any], source_id: str, source: Mapping[str, Any],
@@ -1503,10 +1538,13 @@ def board_region_sha256(row: Mapping[str, Any], source_id: str, source: Mapping[
                     steps = _parse_selector(where.value)
                     matched = [n for n in doc.root.elements() if _matches(n, steps)]
                     region = _board_cells(_outermost(matched), doc.rules) if matched else None
+            elif kind == "page" and not where.value:
+                # a text recipe on text with no markup: its pipe table's rows, never its prose,
+                # read from the page's own lines (NFKC, newlines unified)
+                raw = unicodedata.normalize("NFKC", page_bytes.decode("utf-8", "replace"))
+                region = _text_rows(raw.replace("\r\n", "\n").replace("\r", "\n"), doc.rules)
             else:
-                # a text recipe on text with no markup: its table rows only, never its prose
-                text = select_region(doc, where)
-                region = _text_rows(text, doc.rules) if text is not None else None
+                region = None  # a text page has no element to locate: nothing to hash
             if not region:
                 return None
             parts.append([region_id, region])
@@ -1609,7 +1647,7 @@ def board_epoch(*, base: str, lines: Sequence[Mapping[str, Any]], region: str | 
     for entry in lines:
         if entry.get("epoch") != base or entry.get("complete") is not True:
             continue
-        logged = entry.get("region_sha256")
+        logged = entry.get("board_region_sha256")
         if not (isinstance(logged, str) and _HEX64.fullmatch(logged)) or logged == region:
             return base
     return f"{base}{BOARD_MARK}{region}"
@@ -1890,7 +1928,7 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
             answers = read_page(subject=subject, url=url, facet_id=facet_id,
                                 subject_name=found.subject_name, page_bytes=page_bytes,
                                 readers=readers, epoch=epoch, definition=definition,
-                                region_sha256=region)
+                                board_region_sha256=region)
             break
         except ReaderError:
             continue
