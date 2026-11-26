@@ -46,7 +46,8 @@ from decision.model import CitedRegion as CitedRegion
 from decision.model import RenderedInteraction, Source, SourceSnapshot
 from decision.retention import (
     TermsRegisterUnreadable, canonical_host, citation_metadata, classified_hosts, ending_at_final,
-    cite_only_origin_restrictive, is_classified, registered_source_hosts, cite_only_origin_status,
+    cite_only_origin_restrictive, is_cite_only_restrictive, is_classified,
+    registered_source_hosts, cite_only_origin_status,
     record_origin_status, require_source_url,
 )
 from decision.normalise import (
@@ -226,6 +227,10 @@ REDIRECT_UNCLASSIFIED = "redirect_unclassified"
 TERMS_REGISTER_UNREADABLE = "terms_register_unreadable"
 
 
+def _refusal_error(stop: UnclassifiedRedirectError) -> str:
+    return TERMS_REGISTER_UNREADABLE if stop.unreadable else f"{REDIRECT_UNCLASSIFIED}:{stop.host}"
+
+
 def refusal_reason(result: Any) -> str | None:
     """Why a fetch was refused at the terms register (``redirect_unclassified:<host>`` or
     ``terms_register_unreadable``), or None when it was not refused for that."""
@@ -249,13 +254,18 @@ def named_refusal(reason: str, source_id: str) -> str:
     return f"{REDIRECT_UNCLASSIFIED}:{source_id}:{reason.partition(':')[2]}"
 
 
-def _require_classified_request(start: str | None, url: str, *, first: bool) -> None:
+def _require_classified_request(start: str | None, url: str, *, first: bool,
+                                strict: bool = False) -> None:
     """Refuse, before the request, a host the terms register does not class.
 
     With no data directory nothing is refused. A redirect within the start host
     passes; every other host needs a class (the host or a parent domain), and so does
     the first request when its host is the host of a registered source. With an unreadable
     register (terms or sources) every other host is refused.
+
+    ``strict`` (the rendered path, MODEL-565) drops both exemptions: every host, the first
+    included and whether or not a registered source lives there, needs a class, and no
+    data directory refuses every request.
     """
     try:
         classes = classified_hosts()
@@ -263,11 +273,17 @@ def _require_classified_request(start: str | None, url: str, *, first: bool) -> 
     except TermsRegisterUnreadable:
         classes, unreadable = frozenset(), True
     if classes is None:
-        return
+        if not strict:
+            return
+        classes, unreadable = frozenset(), True
     try:
         host = canonical_host(url)
     except ValueError:
         host = None
+    if strict:
+        if not unreadable and is_classified(host, classes):
+            return
+        raise UnclassifiedRedirectError(host or "unparseable", unreadable=unreadable)
     if host is not None and not first and host == start:
         return
     if first:
@@ -403,9 +419,7 @@ class Fetcher:
             except ExcludedSource:
                 return FetchResult("unreachable", error="excluded source")
             except UnclassifiedRedirectError as stop:
-                return FetchResult("unreachable", error=(
-                    TERMS_REGISTER_UNREADABLE if stop.unreadable
-                    else f"{REDIRECT_UNCLASSIFIED}:{stop.host}"))
+                return FetchResult("unreachable", error=_refusal_error(stop))
             except httpx.TooManyRedirects:
                 return FetchResult("unreachable", error="source redirect limit reached")
             except httpx.TimeoutException as exc:
@@ -735,6 +749,167 @@ def rendered_preparation(source_ids: Iterable[str],
     return CitedRegionWait(selectors) if selectors else None
 
 
+_REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
+MAX_RENDERED_REDIRECTS = 20
+
+
+def _redirect_target(url: str, response: Any) -> str | None:
+    """The absolute target of a redirect response, or None when it is not one."""
+    from urllib.parse import urljoin
+
+    location = response.headers.get("location") if response.status in _REDIRECT_STATUSES else None
+    return urljoin(url, location) if location else None
+
+
+def _ambiguous_url(url: str) -> str | None:
+    """Why a URL could be read two ways, or None (MODEL-565).
+
+    The class check must see the host the browser will ask, so a URL any parser could
+    read differently is refused before its host is looked up: userinfo, a backslash, a
+    control or whitespace character, a percent sign in the host, a host that is not
+    already lower-case ASCII (IDNA or case would change it), a trailing dot or an
+    empty label.
+    """
+    if any(char.isspace() or ord(char) < 0x21 or ord(char) == 0x7F or char == "\\"
+           for char in url):
+        return "ambiguous URL"
+    try:
+        parts = urlsplit(url)
+        port_free = parts.netloc.rpartition(":")[0] if parts.port else parts.netloc
+    except ValueError:
+        return "ambiguous URL"
+    host = port_free.removesuffix(":")
+    if (parts.scheme not in {"http", "https"} or "@" in parts.netloc or not host
+            or "%" in host or host != host.lower() or not host.isascii()
+            or host.endswith(".") or ".." in host or host.startswith(".")):
+        return "ambiguous URL"
+    try:
+        if host.encode("idna").decode("ascii") != host or canonical_host(url) != host:
+            return "ambiguous URL"
+    except (UnicodeError, ValueError):
+        return "ambiguous URL"
+    return None
+
+
+def _stop_navigation(route: Any) -> None:
+    """End a main-frame request with an empty document. Nothing is sent to its host, and the
+    fetcher never reads the document: it refuses the fetch or navigates on. (Chromium can hang
+    closing a page whose main frame was aborted twice, so it is not aborted.)"""
+    route.fulfill(status=200, body="", content_type="text/html")
+
+
+class _RenderedRequestGuard:
+    """Admit each request a rendered page makes, and each redirect hop, before it is sent.
+
+    Chromium follows a redirect without calling a route handler, so an admitted request is
+    sent by Playwright with redirects off (MODEL-565). Each check reads the URL as the
+    browser gives it (``route.request.url``). A main-frame redirect is stopped and its
+    target handed back to ``RenderedFetcher.fetch``, which navigates to it as a new
+    request, checked here like the first. Any other request (subresources, frames, popups)
+    that answers with a redirect is aborted: no URL rebuilt here is ever sent. A request to an
+    excluded host or one the terms register does not class is never sent: the rule is the
+    plain path's (``_require_classified_request``). On the main frame that refuses the fetch.
+    """
+
+    def __init__(self, page: Any, start: str | None, timeout: float) -> None:
+        self.page = page
+        self.start = start
+        self.timeout_ms = timeout * 1000
+        self.hops: list[str] = []  # main-frame URLs requested, in order
+        self.pending: str | None = None  # a main-frame redirect target, not yet requested
+        self.refused: str | None = None  # why a main-frame request was not sent
+
+    def refusal(self, url: str) -> str | None:
+        if (ambiguous := _ambiguous_url(url)) is not None:
+            return ambiguous
+        try:
+            require_allowed_source_urls(url)
+            _require_classified_request(self.start, url, first=False, strict=True)
+        except ExcludedSource:
+            return "excluded source"
+        except UnclassifiedRedirectError as stop:
+            return _refusal_error(stop)
+        return None
+
+    def retaining(self) -> bool:
+        """Whether the capture may be kept as bytes: no main-frame hop is cite-only. Before
+        the first hop it counts as kept, the stricter reading."""
+        return not self.hops or not cite_only_origin_restrictive(self.hops[0], self.hops[1:])
+
+    def subresource_refusal(self, url: str) -> str | None:
+        """A page whose bytes are kept takes nothing from a cite-only host, so no text from
+        one can reach its capture (MODEL-565). A cite-only page keeps no bytes at all."""
+        refused = self.refusal(url)
+        if refused is None and self.retaining() and is_cite_only_restrictive(url):
+            return "cite-only subresource of a retained page"
+        return refused
+
+    def _main_frame(self, request: Any) -> bool:
+        from playwright.sync_api import Error
+
+        try:
+            frame = request.frame
+            return (request.is_navigation_request() and frame.parent_frame is None
+                    and frame.page == self.page)
+        except Error:  # a popup's first request can come before its page exists
+            return False
+
+    def __call__(self, route: Any) -> None:
+        from playwright.sync_api import Error
+
+        request = route.request
+        url = request.url
+        if urlsplit(url).scheme not in {"http", "https"}:
+            route.fallback()  # data:, blob: and the like reach no host
+            return
+        main = self._main_frame(request)
+        check = self.refusal if main else self.subresource_refusal
+        try:
+            if (refused := check(url)) is not None:
+                if main:
+                    self.refused = self.refused or refused
+                    _stop_navigation(route)
+                else:
+                    route.abort()
+                return
+            if main:
+                self.hops.append(url)
+            response = route.fetch(max_redirects=0, timeout=self.timeout_ms)
+            target = _redirect_target(url, response)
+            if target is None:
+                route.fulfill(response=response)
+            elif main and (refused := _ambiguous_url(target)) is None:
+                # The browser asks for the target as a new navigation; this handler then
+                # checks the URL as the browser parsed it.
+                self.pending = target
+                _stop_navigation(route)
+            elif main:
+                self.refused = self.refused or refused
+                _stop_navigation(route)
+            else:
+                route.abort()
+        except Error:
+            try:
+                route.abort()
+            except Error:
+                pass
+
+    def web_socket(self, socket: Any) -> None:
+        # A refused socket is never connected: Playwright then answers it itself and nothing
+        # reaches the host. (Closing it from the handler can hang the dispatcher.)
+        url = re.sub(r"^ws", "http", socket.url)
+        if self.subresource_refusal(url) is None:
+            socket.connect_to_server()
+
+
+#: Runs in every frame before the page's own scripts: no peer connection can be made.
+_NO_WEBRTC = """for (const name of ['RTCPeerConnection', 'webkitRTCPeerConnection',
+                    'RTCDataChannel', 'RTCIceCandidate', 'RTCSessionDescription']) {
+    try { Object.defineProperty(globalThis, name, {value: undefined, writable: false,
+                                                   configurable: false}); } catch (e) {}
+}"""
+
+
 class RenderedFetcher:
     """Opt-in local Chromium fetches, sharing one browser for a context-managed run.
 
@@ -742,12 +917,27 @@ class RenderedFetcher:
     effort: pages with persistent connections still yield their rendered HTML.
     An optional preparation runs before capture, within one timeout budget.
     Registry recipe failures return no HTML. Legacy preparations retain their
-    partial HTML with an error for the caller to report.
+    partial HTML with an error for the caller to report. Every request and redirect hop,
+    from any page of the context, is admitted before it is sent (``_RenderedRequestGuard``),
+    and with no terms register named nothing is fetched (MODEL-565).
     """
 
     def __init__(self, *, timeout: float = 20.0, idle_timeout: float = 5.0) -> None:
         self.timeout = timeout
         self.idle_timeout = idle_timeout
+        self._guard: _RenderedRequestGuard | None = None
+
+    def _route(self, route: Any) -> None:
+        # One route for the context's whole life, so popups are covered too. Outside a
+        # fetch no page has a reason to ask anything: refuse.
+        if self._guard is None:
+            route.abort()
+        else:
+            self._guard(route)
+
+    def _web_socket(self, socket: Any) -> None:
+        if self._guard is not None:  # outside a fetch a socket is never connected
+            self._guard.web_socket(socket)
 
     def __enter__(self) -> RenderedFetcher:
         from playwright.sync_api import sync_playwright
@@ -756,13 +946,28 @@ class RenderedFetcher:
         try:
             # Keep Playwright's sandbox default. CI isolation comes from the
             # separate read-only render job, which has no repository write token.
-            self._browser = self._playwright.chromium.launch(headless=True)
+            # DNS prefetch and preconnect reach a host without a request, so no route sees
+            # them (MODEL-565): switch both off. A host the guard refuses then gets neither a
+            # request nor, as far as these switches reach, a lookup or a connection.
+            # WebRTC can send STUN or TURN traffic that no route sees: UDP that is not
+            # proxied is refused, and the page never gets RTCPeerConnection (init script).
+            self._browser = self._playwright.chromium.launch(headless=True, args=[
+                "--dns-prefetch-disable",
+                "--disable-features=PreconnectToSearch,NetworkPrediction,"
+                "LoadingPredictorUseLocalPredictions,SpeculationRulesPrefetchFuture",
+                "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
+                "--webrtc-ip-handling-policy=disable_non_proxied_udp",
+            ])
             self._context = self._browser.new_context(
                 user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
                 viewport={"width": 1280, "height": 800},
                 service_workers="block",
             )
+            self._context.add_init_script(_NO_WEBRTC)
+            # Registered first, so a recipe's read-only route (added later) runs before it.
+            self._context.route("**/*", self._route)
+            self._context.route_web_socket("**/*", self._web_socket)
         except Exception:
             self._playwright.stop()
             raise
@@ -774,13 +979,51 @@ class RenderedFetcher:
         finally:
             self._playwright.stop()
 
+    def _guarded_goto(self, page: Any, url: str, guard: _RenderedRequestGuard) -> Any:
+        """Navigate, following main-frame redirects one checked request at a time."""
+        from playwright.sync_api import Error
+
+        deadline = None  # set at the first redirect: the hops share one timeout
+        for _ in range(MAX_RENDERED_REDIRECTS + 1):
+            guard.pending = None
+            timeout = (self.timeout * 1000 if deadline is None
+                       else max(1.0, (deadline - time.monotonic()) * 1000))
+            try:
+                response = page.goto(url, wait_until="load", timeout=timeout)
+            except Error:
+                if guard.refused is None and guard.pending is None:
+                    raise
+                response = None
+            if guard.refused is not None or guard.pending is None:
+                return response
+            if deadline is None:
+                deadline = time.monotonic() + self.timeout
+            url = guard.pending
+        raise Error("source redirect limit reached")
+
     def fetch(self, url: str, *, prepare: RenderedPreparation | None = None) -> FetchResult:
         from playwright.sync_api import Error, TimeoutError
 
         page = None
         try:
-            page = self._context.new_page()
-            response = page.goto(url, wait_until="load", timeout=self.timeout * 1000)
+            require_allowed_source_urls(url)
+        except ExcludedSource:
+            return FetchResult("unreachable", error="excluded source")
+        if _ambiguous_url(url) is not None:
+            return FetchResult("unreachable", error="ambiguous URL")
+        try:
+            # Every host, the first included, needs a class; no register refuses (MODEL-565).
+            _require_classified_request(None, url, first=True, strict=True)
+        except UnclassifiedRedirectError as stop:
+            return FetchResult("unreachable", error=_refusal_error(stop))
+        context = self._context
+        before = list(getattr(context, "pages", ()))
+        try:
+            page = context.new_page()
+            guard = self._guard = _RenderedRequestGuard(page, canonical_host(url), self.timeout)
+            response = self._guarded_goto(page, url, guard)
+            if guard.refused is not None:
+                return FetchResult("unreachable", error=guard.refused)
             if response is None:
                 return FetchResult("unreachable", error="no HTTP response")
             if not 200 <= response.status < 300:
@@ -790,35 +1033,70 @@ class RenderedFetcher:
                 page.wait_for_load_state("networkidle", timeout=self.idle_timeout * 1000)
             except TimeoutError:
                 pass
-            guard = (_read_only_interactions(page, prepare, self.timeout) if isinstance(prepare, RenderedInteractions)
-                     else nullcontext())
-            with guard:
+            interactions = (_read_only_interactions(page, prepare, self.timeout)
+                            if isinstance(prepare, RenderedInteractions) else nullcontext())
+            with interactions:
                 preparation_error = None
                 if prepare is not None:
                     try:
                         prepare(page, self.timeout)
                     except Error as exc:
                         preparation_error = f"rendered preparation failed: {exc}"
-                redirects = []
-                request = response.request
-                while request is not None:
-                    redirects.append(str(request.url))
-                    request = request.redirected_from
-                return FetchResult("ok", response.status, body=page.content().encode("utf-8"),
+                # Serialise first, then read where the page is: a navigation between the two
+                # reads, or a final URL the register would not admit, refuses the capture.
+                seen = (str(page.url), len(guard.hops))
+                body = page.content().encode("utf-8")
+                final = str(page.url)
+                if (final, len(guard.hops)) != seen:
+                    return FetchResult("unreachable", error="navigation during capture")
+                if guard.refused is not None:
+                    return FetchResult("unreachable", error=guard.refused)
+                if guard.pending is not None:
+                    return FetchResult("unreachable", error="redirect after load not followed")
+                if (refused := guard.refusal(final)) is not None:
+                    return FetchResult("unreachable", error=refused)
+                if guard.retaining() and is_cite_only_restrictive(final):
+                    return FetchResult("unreachable", error="final URL is cite-only")
+                if guard.hops:
+                    # Every main-frame request in order, repeats kept: each was admitted
+                    # before it was sent. The page's own URL last (MODEL-525): a script
+                    # can move it without a request.
+                    resolved = (*guard.hops, *((final,) if final != guard.hops[-1] else ()))
+                else:  # a page that was not routed (a test double)
+                    redirects = []
+                    request = response.request
+                    while request is not None:
+                        redirects.append(str(request.url))
+                        request = request.redirected_from
+                    resolved = ending_at_final((*reversed(redirects), str(response.url), final))
+                return FetchResult("ok", response.status, body=body,
                                    content_type="text/html", charset="utf-8",
-                                   error=preparation_error,
-                                   # The page's own URL last: a script can move it back
-                                   # to an earlier hop (MODEL-525).
-                                   resolved_urls=ending_at_final((*reversed(redirects),
-                                                                  str(response.url), str(page.url))),
+                                   error=preparation_error, resolved_urls=resolved,
                                    retrieved_at=datetime.now(UTC))
         except RenderedInteractionError as exc:
             return FetchResult("unreachable", response.status, error=str(exc))
         except Error as exc:
+            if self._guard is not None and self._guard.refused is not None:
+                return FetchResult("unreachable", error=self._guard.refused)
             return FetchResult("unreachable", error=str(exc))
         finally:
-            if page is not None:
-                page.close()
+            try:
+                if page is not None:
+                    page.close()
+                # Then every page the fetch opened, until none is left: closing one popup
+                # can open another. Only after that is the guard lifted; outside a fetch
+                # the context's route refuses every request.
+                for _ in range(100):
+                    opened = [other for other in getattr(context, "pages", ())
+                              if other not in before]
+                    if not opened:
+                        break
+                    for other in opened:
+                        other.close()
+                else:
+                    context.close()
+            finally:
+                self._guard = None
 
 
 # --- shell pages ---------------------------------------------------------------------------------

@@ -15,6 +15,20 @@ from decision.sources import (
 )
 
 
+def name_terms_register(directory, monkeypatch, terms):
+    """A synthetic private register in ``directory``, named for this test (MODEL-565)."""
+    import json as _json
+
+    from decision.retention import cite_only_hosts
+
+    (directory / "registry").mkdir(parents=True, exist_ok=True)
+    (directory / "registry" / "source-terms.json").write_text(_json.dumps(terms))
+    (directory / "registry" / "sources.yaml").write_text(
+        '{"schema_version": 1, "sources": []}')
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(directory))
+    cite_only_hosts.cache_clear()
+
+
 class PageError(Exception):
     pass
 
@@ -92,6 +106,16 @@ def fake_playwright(monkeypatch):
     sync_api.TimeoutError = PageTimeout
     monkeypatch.setitem(sys.modules, "playwright", package)
     monkeypatch.setitem(sys.modules, "playwright.sync_api", sync_api)
+
+
+@pytest.fixture(autouse=True)
+def terms_register(tmp_path, monkeypatch):
+    # The rendered path fetches nothing without a terms register (MODEL-565).
+    name_terms_register(tmp_path / "terms", monkeypatch,
+                        {"aws.amazon.com": "restricts", "app.example": "permits"})
+    yield
+    from decision.retention import cite_only_hosts
+    cite_only_hosts.cache_clear()
 
 
 def fetch(page, *, prepare=True, timeout=20):
@@ -235,3 +259,106 @@ def test_a_named_preparation_wins_and_page_regions_need_no_wait():
         is RENDERED_PREPARATIONS["aws-pricing"]
     assert rendered_preparation(["plain"], sources) is None
     assert rendered_preparation(["unregistered"], sources) is None
+
+
+# --- MODEL-565: the start host is checked before a page is opened -----------------------------
+
+
+@pytest.mark.parametrize(("terms", "expected"), [
+    ('{"other.example": "permits"}', "redirect_unclassified:aws.amazon.com"),
+    ("not json", "terms_register_unreadable"),
+    (None, "terms_register_unreadable"),  # no register named: fail closed
+])
+def test_rendered_fetch_refuses_the_start_host_before_opening_a_page(tmp_path, monkeypatch,
+                                                                      terms, expected):
+    from decision.retention import cite_only_hosts
+
+    (tmp_path / "registry").mkdir()
+    if terms is None:
+        monkeypatch.delenv("MODELSPEC_DATA_DIR")
+    else:
+        (tmp_path / "registry" / "source-terms.json").write_text(terms)
+        monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))
+    # No registered source here: an unregistered start host still needs a class.
+    (tmp_path / "registry" / "sources.yaml").write_text('{"schema_version": 1, "sources": []}')
+    cite_only_hosts.cache_clear()
+    renderer = RenderedFetcher()
+    renderer._context = SimpleNamespace(new_page=lambda: pytest.fail("a page was opened"))
+    try:
+        result = renderer.fetch("https://aws.amazon.com/bedrock/pricing/")
+    finally:
+        cite_only_hosts.cache_clear()
+    assert (result.outcome, result.error) == ("unreachable", expected)
+
+
+
+@pytest.mark.parametrize("url", [
+    "http://a.test\\@b.test/",
+    "https://user@aws.amazon.com/bedrock/pricing/",
+    "https://aws%2eamazon.com/bedrock/pricing/",
+    "https://aws.amazon%2Ecom/bedrock/pricing/",
+    "https://bücher.test/",
+    "https://xn--bcher-kva.test./",
+    "https://aws.amazon.com./bedrock/pricing/",
+    "https://AWS.amazon.com/bedrock/pricing/",
+    "https://aws..amazon.com/bedrock/pricing/",
+    "https://aws.amazon.com/bedrock pricing/",
+    "https://aws.amazon.com/\tbedrock/",
+])
+def test_a_url_another_parser_could_read_differently_is_refused_before_a_page_opens(url):
+    from decision.sources import _ambiguous_url
+
+    assert _ambiguous_url(url) == "ambiguous URL"
+    renderer = RenderedFetcher()
+    renderer._context = SimpleNamespace(new_page=lambda: pytest.fail("a page was opened"))
+    assert (renderer.fetch(url).outcome, renderer.fetch(url).error) == ("unreachable", "ambiguous URL")
+
+
+@pytest.mark.parametrize("url", [
+    "https://aws.amazon.com/bedrock/pricing/", "https://aws.amazon.com:443/bedrock/pricing/",
+    "https://xn--bcher-kva.test/", "http://127.0.0.1:8080/page",
+])
+def test_a_url_the_browser_reads_as_written_is_not_ambiguous(url):
+    from decision.sources import _ambiguous_url
+
+    assert _ambiguous_url(url) is None
+
+
+@pytest.mark.parametrize("change", ["url", "hop"])
+def test_a_navigation_during_capture_refuses_it(change):
+    page = FakePage()
+    renderer = RenderedFetcher(timeout=20)
+    renderer._context = SimpleNamespace(new_page=lambda: page)
+    serialise = page.content
+
+    def content():
+        body = serialise()
+        if change == "url":
+            page.url = "https://aws.amazon.com/elsewhere"
+        else:
+            renderer._guard.hops.append("https://aws.amazon.com/elsewhere")
+        return body
+
+    page.content = content
+    result = renderer.fetch("https://aws.amazon.com/bedrock/pricing/")
+    assert (result.outcome, result.body, result.error) == (
+        "unreachable", b"", "navigation during capture")
+
+
+def test_a_final_url_on_a_cite_only_host_refuses_a_retained_capture(tmp_path, monkeypatch):
+    name_terms_register(tmp_path / "cite", monkeypatch,
+                        {"aws.amazon.com": "restricts", "mirror.example": "cite-only"})
+    page = FakePage()
+    renderer = RenderedFetcher(timeout=20)
+    renderer._context = SimpleNamespace(new_page=lambda: page)
+
+    def goto(url, **kwargs):
+        response = FakePage.goto(page, url, **kwargs)
+        renderer._guard.hops.append(url)  # what the routed request records
+        page.url = "https://mirror.example/pushed"  # a same-document change, no request
+        return response
+
+    page.goto = goto
+    result = renderer.fetch("https://aws.amazon.com/bedrock/pricing/")
+    assert (result.outcome, result.body, result.error) == (
+        "unreachable", b"", "final URL is cite-only")

@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import json
 import time
+from types import SimpleNamespace
 
 import pytest
 
-from decision.sources import RenderedFetcher, load_sources, rendered_preparation
+from decision.sources import (
+    MAX_RENDERED_REDIRECTS, RenderedFetcher, load_sources, rendered_preparation,
+)
 
 
 RECIPE = [
@@ -125,10 +128,22 @@ def test_registry_rejects_unsafe_or_incomplete_recipes(tmp_path, recipe, overrid
 
 
 @pytest.fixture
-def browser():
+def browser(tmp_path, monkeypatch):
     pytest.importorskip("playwright.sync_api")
+    from decision.retention import cite_only_hosts
+
+    # The rendered path fetches nothing without a terms register (MODEL-565). These
+    # fixtures fulfil every request in a test route, which runs before the guard's.
+    (tmp_path / "terms" / "registry").mkdir(parents=True)
+    (tmp_path / "terms" / "registry" / "source-terms.json").write_text(
+        json.dumps({"fixture.example": "permits"}))
+    (tmp_path / "terms" / "registry" / "sources.yaml").write_text(
+        '{"schema_version": 1, "sources": []}')
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path / "terms"))
+    cite_only_hosts.cache_clear()
     with RenderedFetcher(timeout=1, idle_timeout=0.01) as renderer:
         yield renderer
+    cite_only_hosts.cache_clear()
 
 
 HTML = """<!doctype html>
@@ -474,3 +489,226 @@ def test_azure_recipe_refuses_wrong_table_selection(tmp_path, browser, overrides
     result = render_fixture(browser, sources, html)
     assert result.outcome == "unreachable"
     assert result.body == b""
+
+
+# --- MODEL-565: every rendered request and redirect hop is admitted before it is sent ---------
+
+CLASSED, OTHER, UNCLASSED, CITE_ONLY = "127.0.0.1", "127.0.0.2", "127.0.0.3", "127.0.0.4"
+
+
+@pytest.fixture
+def hosts(tmp_path, monkeypatch):
+    """Three loopback hosts on synthetic servers; the terms register classes the first two."""
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    from decision.retention import cite_only_hosts
+
+    hits, servers, ports = [], [], {}
+
+    def url(host, path):
+        return f"http://{host}:{ports[host]}{path}"
+
+    redirects = {
+        "/to-other": (OTHER, "/page"), "/to-unclassed": (UNCLASSED, "/page"),
+        "/to-other-then-unclassed": (OTHER, "/to-unclassed"),
+        "/script-to-unclassed": (UNCLASSED, "/s.js"),
+        "/loop-a": (OTHER, "/loop-b"), "/loop-b": (CLASSED, "/loop-a"),
+        "/back": (CLASSED, "/again"),
+    }
+    served = {}
+
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *args):
+            pass
+
+        def do_GET(self):
+            host = self.server.server_address[0]
+            hits.append(host + self.path)
+            served[self.path] = served.get(self.path, 0) + 1
+            if self.path == "/again" and served[self.path] == 1:
+                self.path = "/again-first"
+                redirects[self.path] = (OTHER, "/back")
+            if self.path == "/slow.png":
+                time.sleep(1)  # holds the load event while a popup opens
+            if self.path == "/to-tricky":  # a browser reads the backslash as a slash
+                self.send_response(302)
+                self.send_header("Location", url(CLASSED, "") + "\\@" + url(UNCLASSED, "/page")[7:])
+                self.end_headers()
+                return
+            if self.path in redirects:
+                self.send_response(302)
+                self.send_header("Location", url(*redirects[self.path]))
+                self.end_headers()
+                return
+            if self.path.endswith(".js"):
+                body = f"document.body.setAttribute('data-from-{host[-1]}', '1');"
+                kind = "text/javascript"
+            else:
+                body, kind = pages.get(self.path, "<div id=prices>$4.00</div>"), "text/html"
+            data = body.encode()
+            self.send_response(200)
+            self.send_header("Content-Type", kind)
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+    pages = {}
+    for host in (CLASSED, OTHER, UNCLASSED, CITE_ONLY):
+        try:
+            server = ThreadingHTTPServer((host, 0), Handler)
+        except OSError:
+            pytest.skip(f"loopback address {host} is not available")
+        servers.append(server)
+        ports[host] = server.server_address[1]
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+    registry_dir = tmp_path / "data" / "registry"
+    registry_dir.mkdir(parents=True)
+    (registry_dir / "source-terms.json").write_text(
+        json.dumps({CLASSED: "permits", OTHER: "restricts", CITE_ONLY: "cite-only"}))
+    # The unclassed host is no registered source's: its start must be refused anyway.
+    (registry_dir / "sources.yaml").write_text(json.dumps({"schema_version": 1, "sources": [
+        {"url": url(CLASSED, "/page")}]}))
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path / "data"))
+    cite_only_hosts.cache_clear()
+    try:
+        yield SimpleNamespace(url=url, hits=hits, pages=pages)
+    finally:
+        for server in servers:
+            server.shutdown()
+            server.server_close()
+        cite_only_hosts.cache_clear()
+
+
+@pytest.fixture
+def guarded():
+    pytest.importorskip("playwright.sync_api")
+    with RenderedFetcher(timeout=5, idle_timeout=0.2) as renderer:
+        yield renderer
+
+
+def unclassed_hits(hosts):
+    return [hit for hit in hosts.hits if hit.startswith(UNCLASSED)]
+
+
+def test_unclassed_start_host_is_refused_before_any_request(hosts, guarded):
+    result = guarded.fetch(hosts.url(UNCLASSED, "/page"))
+    assert (result.outcome, result.error) == ("unreachable", f"redirect_unclassified:{UNCLASSED}")
+    assert hosts.hits == []
+
+
+@pytest.mark.parametrize("path", ["/to-unclassed", "/to-other-then-unclassed"])
+def test_redirect_to_an_unclassed_host_is_never_requested(hosts, guarded, path):
+    result = guarded.fetch(hosts.url(CLASSED, path))
+    assert (result.outcome, result.body) == ("unreachable", b"")
+    assert result.error == f"redirect_unclassified:{UNCLASSED}"
+    assert unclassed_hits(hosts) == []
+    assert hosts.hits[0] == CLASSED + path
+
+
+def test_redirects_between_classed_hosts_are_followed_and_recorded_hop_by_hop(hosts, guarded):
+    result = guarded.fetch(hosts.url(CLASSED, "/to-other"))
+    assert result.outcome == "ok", result.error
+    assert b"$4.00" in result.body
+    assert result.resolved_urls == (hosts.url(CLASSED, "/to-other"), hosts.url(OTHER, "/page"))
+    assert hosts.hits == [CLASSED + "/to-other", OTHER + "/page"]
+
+
+def test_subresources_frames_and_their_redirects_never_reach_an_unclassed_host(hosts, guarded):
+    hosts.pages["/page"] = (
+        f'<div id="prices">$4.00</div><img src="{hosts.url(UNCLASSED, "/pixel.png")}">'
+        f'<iframe src="{hosts.url(UNCLASSED, "/frame")}"></iframe>'
+        f'<script src="{hosts.url(OTHER, "/ok.js")}"></script>'
+        f'<script src="{hosts.url(CLASSED, "/script-to-unclassed")}"></script>'
+        f'<script>fetch("{hosts.url(UNCLASSED, "/data")}").catch(() => {{}})</script>')
+    result = guarded.fetch(hosts.url(CLASSED, "/page"))
+    assert result.outcome == "ok", result.error
+    assert b'data-from-2="1"' in result.body  # the classed host's script ran
+    assert unclassed_hits(hosts) == []
+    assert CLASSED + "/script-to-unclassed" in hosts.hits
+
+
+def test_a_navigation_after_load_to_an_unclassed_host_refuses_the_capture(hosts, guarded):
+    hosts.pages["/page"] = (
+        '<div id="prices">$4.00</div>'
+        f'<script>setTimeout(() => location.href = "{hosts.url(UNCLASSED, "/page")}", 0)</script>')
+    result = guarded.fetch(hosts.url(CLASSED, "/page"))
+    assert (result.outcome, result.body) == ("unreachable", b"")
+    assert result.error == f"redirect_unclassified:{UNCLASSED}"
+    assert unclassed_hits(hosts) == []
+
+
+def test_with_no_terms_register_nothing_is_fetched(hosts, guarded, monkeypatch):
+    monkeypatch.delenv("MODELSPEC_DATA_DIR")
+    result = guarded.fetch(hosts.url(CLASSED, "/page"))
+    assert (result.outcome, result.error) == ("unreachable", "terms_register_unreadable")
+    assert hosts.hits == []
+
+
+def test_a_redirect_loop_stops_at_the_limit_without_leaving_classed_hosts(hosts, guarded):
+    result = guarded.fetch(hosts.url(CLASSED, "/loop-a"))
+    assert (result.outcome, result.body) == ("unreachable", b"")
+    assert "redirect limit" in result.error
+    assert unclassed_hits(hosts) == []
+    assert len(hosts.hits) == MAX_RENDERED_REDIRECTS + 1
+
+
+def test_the_hop_chain_keeps_a_url_requested_twice(hosts, guarded):
+    result = guarded.fetch(hosts.url(CLASSED, "/again"))
+    assert result.outcome == "ok", result.error
+    assert result.resolved_urls == (hosts.url(CLASSED, "/again"), hosts.url(OTHER, "/back"),
+                                    hosts.url(CLASSED, "/again"))
+
+
+def test_a_popup_and_its_websocket_are_checked_and_the_popup_closes_with_the_fetch(
+        hosts, guarded):
+    hosts.pages["/page"] = (
+        f'<div id="prices">$4.00</div><script>window.open("{hosts.url(OTHER, "/popup")}")</script>'
+        f'<img src="{hosts.url(CLASSED, "/slow.png")}">')
+    hosts.pages["/popup"] = (
+        f'<script>window.open("{hosts.url(OTHER, "/popup-2")}")</script>'
+        f'<img src="{hosts.url(UNCLASSED, "/pixel.png")}">'
+        f'<script>new WebSocket("ws://{UNCLASSED}:{hosts.url(UNCLASSED, "").rsplit(":", 1)[1]}/ws")'
+        '</script>')
+    result = guarded.fetch(hosts.url(CLASSED, "/page"))
+    assert result.outcome == "ok", result.error
+    assert OTHER + "/popup" in hosts.hits  # the popup ran, through the guard
+    assert OTHER + "/popup-2" in hosts.hits  # and opened one of its own
+    assert unclassed_hits(hosts) == []  # neither its image nor its WebSocket was sent
+    assert guarded._context.pages == []
+
+
+def test_a_retained_page_takes_no_frame_or_fetch_from_a_cite_only_host(hosts, guarded):
+    hosts.pages["/page"] = (
+        '<div id="prices">$4.00</div>'
+        f'<iframe src="{hosts.url(CITE_ONLY, "/frame")}"></iframe>'
+        f'<script>fetch("{hosts.url(CITE_ONLY, "/data")}").then(r => r.text())'
+        '.then(t => document.body.append(t)).catch(() => {})</script>'
+        f'<img src="{hosts.url(CLASSED, "/slow.png")}">')
+    result = guarded.fetch(hosts.url(CLASSED, "/page"))
+    assert result.outcome == "ok", result.error
+    assert [hit for hit in hosts.hits if hit.startswith(CITE_ONLY)] == []
+
+
+def test_a_cite_only_page_keeps_no_bytes_so_its_own_host_serves_its_parts(hosts, guarded):
+    hosts.pages["/page"] = (f'<div id="prices">$4.00</div><img src="{hosts.url(CITE_ONLY, "/a.png")}">'
+                            f'<img src="{hosts.url(UNCLASSED, "/b.png")}">')
+    result = guarded.fetch(hosts.url(CITE_ONLY, "/page"))
+    assert result.outcome == "ok", result.error
+    assert CITE_ONLY + "/a.png" in hosts.hits
+    assert unclassed_hits(hosts) == []
+
+
+def test_pages_get_no_webrtc(hosts, guarded):
+    hosts.pages["/page"] = (
+        '<div id="rtc"></div><script>document.querySelector("#rtc").textContent ='
+        ' [typeof RTCPeerConnection, typeof webkitRTCPeerConnection].join("/")</script>')
+    result = guarded.fetch(hosts.url(CLASSED, "/page"))
+    assert result.outcome == "ok", result.error
+    assert b'<div id="rtc">undefined/undefined</div>' in result.body
+
+
+def test_a_redirect_another_parser_could_read_differently_is_refused(hosts, guarded):
+    result = guarded.fetch(hosts.url(CLASSED, "/to-tricky"))
+    assert (result.outcome, result.error) == ("unreachable", "ambiguous URL")
+    assert hosts.hits == [CLASSED + "/to-tricky"]
