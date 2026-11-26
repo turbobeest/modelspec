@@ -208,7 +208,8 @@ def log_attempt(entry: dict, *, data_dir: str | Path | None = None) -> None:
 def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_bytes: bytes,
               readers: Sequence[Reader], epoch: str = "initial",
               data_dir: str | Path | None = None,
-              definition: str | None = None) -> list[ReaderAnswer]:
+              definition: str | None = None,
+              region_sha256: str | None = None) -> list[ReaderAnswer]:
     """Ask each reader the same prompt; record the hash of what was sent and the manifest.
 
     Every attempt, complete or not, is appended to the attempt log (``ATTEMPTS_FILE``)
@@ -227,6 +228,10 @@ def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_
              "at": datetime.now(UTC).replace(microsecond=0).isoformat(), "complete": False,
              "harness": True,
              "agreed": None, "readers": []}
+    if region_sha256 is not None:
+        # MODEL-562: the hash of the source's cited regions on this page, so a ruling on this
+        # attempt names its ruled region (``decision.ruling_reread.resolved_region``).
+        entry["region_sha256"] = region_sha256
     try:
         for reader in readers:
             try:
