@@ -45,6 +45,7 @@ from tests.test_quarantine_clearing import (
     EPOCH,
     FACET,
     MID,
+    PAGE,
     TEXT,
     VALUE,
     VERDICT,
@@ -127,7 +128,7 @@ def test_a_released_verdict_lets_two_readers_re_read_a_changed_page(cleared):
     assert released_now(d)  # the build admits the cleared block
     out = again()
     assert out.outcome == "changed" and out.record["value"] == 46, (out.reason, out.detail)
-    assert d.log()[-1]["epoch"] == reread_epoch("initial", block["text_sha256"])
+    assert d.log()[-1]["epoch"] == f"{block['clearing_epoch']}:reread:{block['text_sha256']}"
     assert "clearing_epoch" not in out.record["derivation"]["cited_change"]
     assert "SECRET-PAGE-MARKER" not in json.dumps(out.record)
     # Written, the later block is admitted by the build too, and is re-read in its own epoch.
@@ -247,12 +248,14 @@ def test_a_cleared_reading_is_re_read_on_a_changed_board(tmp_path, monkeypatch):
 # --- the build: the block a later agreement made after the clearing epoch -------------------------
 
 LATER_TEXT, LATER_PAGE, LATER_AT = "b" * 64, "5" * 64, "2026-10-12T09:00:00+00:00"
+#: The epoch the cleared record is re-read in: its clearing epoch, with the text it read.
+AFTER = f"{EPOCH}:reread:{TEXT}"
 
 
 def later(epoch=None, *, at=LATER_AT, values=(131072, 131072), text=LATER_TEXT,
           page=LATER_PAGE, families=("openai", "anthropic"), **kw):
     """An agreement in an epoch after the clearing's: by default the cleared record's own."""
-    entry = agreement(epoch or reread_epoch("initial", TEXT), at=at, values=values,
+    entry = agreement(epoch or AFTER, at=at, values=values,
                       families=families, **kw)
     return {**entry, "text_sha256": text, "page_sha256": page}
 
@@ -282,9 +285,9 @@ def test_the_build_admits_a_block_a_later_agreement_made_after_the_clearing():
                 values=(65536, 65536), text="c" * 64, page="6" * 64)
     assert shows(build(later_row(hop), [clearing(first)], [first, link, hop]), 65536)
     log = AttemptLog([raw(first), raw(link), raw(hop)])
-    assert {e["epoch"] for e in later_agreements(log, log.entries[0], subject=MID, facet=FACET,
-                                                 first="initial")} \
-        == {reread_epoch("initial", TEXT), reread_epoch("initial", LATER_TEXT)}
+    assert {e["epoch"] for e, _ in later_agreements(log, log.entries[0], subject=MID,
+                                                    facet=FACET, first="initial")} \
+        == {AFTER, reread_epoch("initial", LATER_TEXT)}
 
 
 def test_the_later_block_needs_a_valid_clearing_line():
@@ -299,10 +302,11 @@ def test_the_later_block_needs_a_valid_clearing_line():
     assert not shows(build(row, [clearing(first)], [respelled, link]), 131072)
 
 
-@pytest.mark.parametrize("epoch", [EPOCH, "initial", "reread:" + "9" * 64,
+@pytest.mark.parametrize("epoch", [EPOCH, "initial", "reread:" + "9" * 64, "reread:" + TEXT,
                                    "made-up:reread:" + TEXT])
 def test_an_agreement_outside_the_epochs_after_the_clearing_releases_nothing(epoch):
-    """The clearing epoch itself (no re-litigation), its base, an unrelated re-read epoch and a
+    """The clearing epoch itself (no re-litigation), its base, an unrelated re-read epoch, the
+    plain re-read epoch of the clearing's page (not under the clearing epoch) and a
     reading-shaped epoch are not after the clearing."""
     first = agreement()
     link = later(epoch)
@@ -391,12 +395,13 @@ def test_a_later_reading_block_is_admitted_in_the_readings_own_epochs():
         entry["url"] = first["url"]
         return entry
 
-    good = link_in(reread_epoch(reading_epoch(settings), TEXT))
+    good = link_in(f"{first['epoch']}:reread:{TEXT}")
     assert reading_build(row_for(good), [verdict], [clearing(first, verdict)], [first, good])
     assert reading_build(row_for(good), [verdict], [], [first, good]) == ()
-    fact_shaped = link_in(reread_epoch("initial", TEXT))
-    assert reading_build(row_for(fact_shaped), [verdict], [clearing(first, verdict)],
-                         [first, fact_shaped]) == ()
+    for epoch in (reread_epoch("initial", TEXT), reread_epoch(reading_epoch(settings), TEXT)):
+        wrong = link_in(epoch)
+        assert reading_build(row_for(wrong), [verdict], [clearing(first, verdict)],
+                             [first, wrong]) == ()
     own = link_in(first["epoch"])
     assert reading_build(row_for(own), [verdict], [clearing(first, verdict)], [first, own]) == ()
 
@@ -405,3 +410,180 @@ def test_the_cleared_block_itself_is_still_admitted():
     """MODEL-552's own path is unchanged."""
     first = agreement()
     assert shows(build(cleared_row(first), [clearing(first)], [first]), VALUE)
+
+
+# --- cleared twice: the latest valid clearing is followed -----------------------------------------
+
+
+class Clock:
+    """The gate's and the harness's clock, set by the test (``datetime.now`` only)."""
+
+    def __init__(self, monkeypatch):
+        import decision.cited_change as gate_module
+        import decision.cited_reader as reader_module
+
+        self.at = datetime(2026, 10, 1, 9, tzinfo=UTC)
+        clock = self
+
+        class Fixed(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                at = cls.fromisoformat(clock.at.isoformat())
+                return at if tz is not None else at.replace(tzinfo=None)
+
+        for module in (gate_module, reader_module):
+            monkeypatch.setattr(module, "datetime", Fixed)
+
+
+def checked(d, verdict, at):
+    """A verdict and only its check in the queue: the claim it checked is the writer's last."""
+    log = d.root / "verification/log.jsonl"
+    with log.open("a") as fh:
+        fh.write(json.dumps(verdict) + "\n")
+    with (d.root / QUEUE_FILE).open("a") as fh:
+        fh.write(json.dumps({"event": "checked", "at": at, "target": {
+            "kind": "fact", "id": offering.FACT_ID}, "outcome": verdict["outcome"]}) + "\n")
+    return verdict
+
+
+def released_all(d) -> bool:
+    """Every held verdict released, by the build's own predicate over the gate-written files."""
+    from decision.cited_change import quarantine_rows
+
+    held = [row for _, row in quarantine_rows([offering.FACT_ID], filed(d), d.root)]
+    common = dict(clearings=read_clearings(d.root / CLEARINGS_FILE),
+                  log=AttemptLog.read(d.root / ATTEMPTS_FILE),
+                  sources={s["id"]: s["url"] for s in d.sources},
+                  history=queue_history(d.root / QUEUE_FILE, {offering.FACT_ID}),
+                  cutoff=datetime(2026, 12, 31).date(), held=held)
+    return bool(held) and all(fact_released(filed(d), offering.SUBJECT, verdict=row, **common)
+                              for row in held)
+
+
+@pytest.fixture
+def twice(tmp_path, monkeypatch):
+    """Cleared on 1 October (a mismatch on 45); a new mismatch on the cleared value, checked on
+    5 October against the writer's claim; cleared again on 8 October, on the same page."""
+    clock = Clock(monkeypatch)
+    d = offering.Data(tmp_path / "data", monkeypatch)
+    plant(d.root, verification("fact", offering.FACT_ID, "mismatch", day="2026-09-20", value=45))
+    first = offering.retention(clear_quarantine=True)
+    assert first.changed, (first.reason, first.detail)
+    writer.apply(first, data_dir=d.root)
+    checked(d, verification("fact", offering.FACT_ID, "mismatch", day="2026-10-05", value=30),
+            "2026-10-05T21:00:00+00:00")
+    clock.at = datetime(2026, 10, 8, 9, tzinfo=UTC)
+    assert offering.retention().reason == "quarantined"  # the new verdict holds
+    assert not released_all(d)
+    second = offering.retention(clear_quarantine=True)
+    assert second.changed, (second.reason, second.detail)
+    writer.apply(second, data_dir=d.root)
+    assert len(read_clearings(d.root / CLEARINGS_FILE)) == 2
+    return d, clock
+
+
+def test_a_fact_cleared_twice_is_served_and_re_read(twice):
+    """The verdict between the two clearings is the one the second clears; the first verdict is
+    released through it. Gate and build agree, and a later page change is read again."""
+    d, clock = twice
+    assert released_all(d)  # the build releases both: the first through the second clearing
+    assert offering.retention().reason == "quarantined"  # its own page is not re-litigated
+    clock.at = datetime(2026, 10, 20, 9, tzinfo=UTC)
+    out = again()
+    assert out.outcome == "changed" and out.record["value"] == 46, (out.reason, out.detail)
+    writer.apply(CitedChange("cited_change", None, "", out.record), data_dir=d.root)
+    assert released_all(d)
+
+
+def test_a_verdict_between_the_two_clearings_that_no_line_names_holds(twice):
+    d, clock = twice
+    checked(d, verification("fact", offering.FACT_ID, "mismatch", day="2026-10-06", value=65536),
+            "2026-10-06T21:00:00+00:00")
+    assert not released_all(d)
+    clock.at = datetime(2026, 10, 20, 9, tzinfo=UTC)
+    assert again().reason == "quarantined"
+
+
+def test_a_verdict_newer_than_the_latest_clearing_holds(twice):
+    d, clock = twice
+    checked(d, verification("fact", offering.FACT_ID, "mismatch", day="2026-10-09", value=30),
+            "2026-10-09T21:00:00+00:00")
+    clock.at = datetime(2026, 10, 20, 9, tzinfo=UTC)
+    assert not released_all(d) and again().reason == "quarantined"
+
+
+def test_without_the_first_line_the_second_clearing_does_not_release_the_first_verdict(twice):
+    d, clock = twice
+    rewrite_line(d, CLEARINGS_FILE, lambda lines: lines[1:])
+    clock.at = datetime(2026, 10, 20, 9, tzinfo=UTC)
+    assert not released_all(d) and again().reason == "quarantined"
+
+
+# the build, synthetic: v1 cleared by C1 (A1), v2 on the cleared value cleared by C2 (A2)
+
+V1 = mismatch(value=131072)
+#: The epoch the record the first clearing made is re-read in.
+AFTER1 = f"{clearing_epoch('initial', verdict_sha256(V1))}:reread:{TEXT}"
+SECOND_TEXT, SECOND_PAGE, SECOND_AT = "d" * 64, "8" * 64, "2026-10-14T09:00:00+00:00"
+
+
+def second_verdict(day="2026-10-12", value=VALUE):
+    return mismatch(value=value, day=day)
+
+
+def twice_build(row, *, clearings=None, extra_log=(), attempts=None, v2=None):
+    from tests.test_quarantine_clearing import events
+
+    v2 = v2 or second_verdict()
+    a1 = agreement(clearing_epoch("initial", verdict_sha256(V1)))
+    a2 = {**agreement(clearing_epoch(AFTER1, verdict_sha256(v2)),
+                      at=SECOND_AT), "page_sha256": SECOND_PAGE, "text_sha256": SECOND_TEXT}
+    lines = [clearing(a1, V1), clearing(a2, v2, cleared_at="2026-10-14T10:00:00+00:00")]
+    history = {f"{MID}#{FACET}": [
+        *events(V1),
+        *events(v2, method="two-readers-cited-change@3",
+                sources=[{"source_id": "src-cite", "snapshot_ref": f"sha256:{PAGE}"}])]}
+    for extra in extra_log:
+        history[f"{MID}#{FACET}"] += events(extra)
+    return build(row(a1, a2) if callable(row) else row,
+                 lines if clearings is None else clearings(lines),
+                 [a1, a2] if attempts is None else attempts(a1, a2),
+                 log=(V1, v2, *extra_log), history=history)
+
+
+def second_row(a1, a2):
+    return cleared_row(a2, base=AFTER1)
+
+
+def test_the_build_serves_a_fact_cleared_twice():
+    assert shows(twice_build(second_row), VALUE)
+
+
+def test_the_build_needs_both_lines_for_a_fact_cleared_twice():
+    assert not shows(twice_build(second_row, clearings=lambda lines: lines[1:]), VALUE)
+    assert not shows(twice_build(second_row, clearings=lambda lines: lines[:1]), VALUE)
+    def forged(lines):
+        return [lines[0], {**lines[1], "verdict_sha256": "sha256:" + "0" * 64}]
+
+    assert not shows(twice_build(second_row, clearings=forged), VALUE)
+
+
+def test_a_second_clearing_logged_before_the_first_releases_nothing():
+    assert not shows(twice_build(second_row, attempts=lambda a1, a2: [a2, a1]), VALUE)
+
+
+def test_the_build_holds_a_verdict_between_or_after_the_clearings_that_no_line_names():
+    between = mismatch(value=65536, day="2026-10-13")
+    assert not shows(twice_build(second_row, extra_log=(between,)), VALUE)
+    newer = mismatch(value=65536, day="2026-10-16")
+    assert not shows(twice_build(second_row, extra_log=(newer,)), VALUE)
+    again_v2 = second_verdict(day="2026-10-16")  # a newer verdict on the cleared value itself
+    assert not shows(twice_build(second_row, extra_log=(again_v2,)), VALUE)
+
+
+def test_a_re_read_after_the_second_clearing_is_served():
+    link = later(f"{clearing_epoch(AFTER1, verdict_sha256(second_verdict()))}:reread:"
+                 f"{SECOND_TEXT}", at="2026-10-16T09:00:00+00:00",
+                 values=(65536, 65536), text="e" * 64, page="9" * 64)
+    index = twice_build(lambda a1, a2: later_row(link), attempts=lambda a1, a2: [a1, a2, link])
+    assert shows(index, 65536)

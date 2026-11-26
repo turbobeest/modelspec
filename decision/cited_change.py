@@ -853,7 +853,7 @@ def _unreleased(held: Held, record: Mapping[str, Any], subject: str, *, now: dat
     urls = {str(k): str(v.get("url")) for k, v in sources.items()
             if isinstance(v, Mapping) and v.get("url")}
     common = dict(clearings=clearings, log=log, sources=urls, history=history,
-                  cutoff=now.astimezone(UTC).date())
+                  cutoff=now.astimezone(UTC).date(), held=[row for _, row in held])
     try:
         released = [h for h in mismatches if (
             reading_released(record, subject, verdict=h[1], owns=owns, **common)
@@ -866,7 +866,8 @@ def _unreleased(held: Held, record: Mapping[str, Any], subject: str, *, now: dat
 def _relitigates(record: Mapping[str, Any], page_bytes: bytes) -> CitedChange | None:
     """Refuse a read, after a verdict was released, of the page the record already rests on
     (MODEL-566): a clearing, and each read after it, is not re-litigated in its own epoch. Only a
-    page whose visible text changed since is read again."""
+    page whose visible text changed since is read again. A clearing of a newer verdict is read in
+    that verdict's own clearing epoch, and is not held to this."""
     block = _block_of(record)
     if block is not None and block.get("text_sha256") == text_sha256(page_bytes):
         return _refuse("quarantined", "the page is the one the record's read after its clearing "
@@ -1088,7 +1089,7 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
             return fetched
         page = fetched
     page_bytes, resolved = page
-    if released:
+    if released and clearing is None:
         refusal = _relitigates(found.fact, page_bytes)
         if refusal is not None:
             return refusal
@@ -1372,7 +1373,10 @@ def reading_epoch(reading: Mapping[str, Any], row: Mapping[str, Any] | None = No
     base = "reading:" + sha256(canonical({k: reading.get(k) for k in READING_KEYS}, "_"))[:16]
     block = _block_of(row) if row is not None else None
     if block:
-        return f"{base}:reread:{block.get('text_sha256') or block.get('sha256')}"
+        text = block.get('text_sha256') or block.get('sha256')
+        cleared = block.get("clearing_epoch")  # as ``fact_epoch`` (MODEL-566)
+        return f"{cleared}:reread:{text}" if isinstance(cleared, str) and cleared \
+            else f"{base}:reread:{text}"
     return f"{base}{BOARD_MARK}{board}" if board else base
 
 
@@ -2010,7 +2014,7 @@ def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any]
     if isinstance(fetched, CitedChange):
         return fetched
     page_bytes, resolved = fetched
-    if released:
+    if released and clearing is None:
         refusal = _relitigates(found.row, page_bytes)
         if refusal is not None:
             return refusal
@@ -2098,7 +2102,13 @@ def fact_epoch(fact: Mapping[str, Any]) -> str:
     block = cited_change_block(fact)
     if block is None:
         return "initial"
-    return f"reread:{block.get('text_sha256') or block.get('sha256')}"
+    text = block.get('text_sha256') or block.get('sha256')
+    cleared = block.get("clearing_epoch")
+    # A block a quarantine clearing made (MODEL-566) is re-read in an epoch named by its
+    # clearing epoch: never one a read before the clearing used, so a later clearing's base
+    # epoch is never the epoch the record is re-read in after it.
+    return f"{cleared}:reread:{text}" if isinstance(cleared, str) and cleared \
+        else f"reread:{text}"
 
 
 REREAD_INTERVAL = timedelta(days=7)

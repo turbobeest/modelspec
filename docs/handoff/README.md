@@ -220,8 +220,11 @@ Learned expensively during 2026-09-09/10.
     verdict stays logged, but a valid line releases it: it no longer holds the fact or row in
     the epochs after the clearing epoch, in the gate and in the build alike
     (`quarantine_clearing.fact_released`, `reading_released`, reusing the line checks above).
-    The cleared record sits in the re-read epoch its block's text hash names; a changed page is
-    read there by two readers, and their agreement opens the next re-read epoch. The build
+    The cleared record sits in a re-read epoch named under its clearing epoch
+    (`<clearing epoch>:reread:<text hash>`, `fact_epoch`, `reading_epoch`), never one a read
+    before the clearing used; a changed page is read there by two readers, and their agreement
+    opens the next re-read epoch. The latest valid clearing is followed: a later valid clearing
+    of a newer verdict, based in such an epoch, releases the verdicts each earlier line names. The build
     admits a later block only when it is the one an agreement in such an epoch made
     (`later_agreements`: a complete agreed harness attempt by two distinct known families,
     logged after the agreement that opened its epoch, in an epoch with no recorded

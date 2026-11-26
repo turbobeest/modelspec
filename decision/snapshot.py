@@ -1053,17 +1053,26 @@ class _Compiler:
         winner = self._verification("fact", rid, inline, value, facet)
         if winner is None or winner.get("outcome") != "mismatch":
             return False
-        return self._fact_released(subject, record, winner)
+        from decision.cited_change import held_rows
+
+        ids = tuple(dict.fromkeys(i for i in (rid, f"{subject}#{facet}")
+                                  if isinstance(i, str) and i))
+        try:
+            held = [row for _, row in held_rows(self.log, ids, record)]
+        except (KeyError, TypeError, AttributeError):
+            return False
+        return self._fact_released(subject, record, winner, held)
 
     def _fact_released(self, subject: str, record: Mapping[str, Any],
-                       verdict: Mapping[str, Any]) -> bool:
-        """``decision.quarantine_clearing.fact_released``, as the gate asks it."""
+                       verdict: Mapping[str, Any], held: Sequence[Mapping[str, Any]]) -> bool:
+        """``decision.quarantine_clearing.fact_released``, as the gate asks it, with every
+        verdict that holds the fact (a later clearing of one is followed, MODEL-566)."""
         from decision.quarantine_clearing import fact_released
 
         return verdict.get("outcome") == "mismatch" and fact_released(
             record, subject, verdict=verdict, clearings=self.quarantine_clearings,
             log=self._clearing_log(), sources=self.sources,
-            history=self.inputs.clearing_history, cutoff=self._clearing_cutoff())
+            history=self.inputs.clearing_history, cutoff=self._clearing_cutoff(), held=held)
 
     def _fact_hold(self, subject: str, record: Mapping[str, Any], rid: Any, inline: Any,
                    value: Any, facet: Any) -> str | None:
@@ -1092,7 +1101,8 @@ class _Compiler:
             # A verdict a valid clearing line released holds the fact no more: not the block the
             # clearing made, nor one a later agreement made after its epoch (MODEL-566). Any
             # other verdict, a newer one included, still holds it.
-            held = [h for h in held if not self._fact_released(subject, record, h[1])]
+            rows = [h[1] for h in held]
+            held = [h for h in held if not self._fact_released(subject, record, h[1], rows)]
         if not held:
             return None
         return f"quarantined ({held[0][1].get('outcome')})"
@@ -1121,10 +1131,12 @@ class _Compiler:
             from decision.quarantine_clearing import reading_released
 
             # As for a fact (MODEL-566): a released verdict holds the row no more.
+            rows = [h[1] for h in held]
             held = [h for h in held if not (h[1].get("outcome") == "mismatch" and reading_released(
                 e, subject, verdict=h[1], owns=owns, clearings=self.quarantine_clearings,
                 log=self._clearing_log(), sources=self.sources,
-                history=self.inputs.clearing_history, cutoff=self._clearing_cutoff()))]
+                history=self.inputs.clearing_history, cutoff=self._clearing_cutoff(),
+                held=rows))]
         if not held:
             return None
         return f"quarantined ({held[0][1].get('outcome')})"
