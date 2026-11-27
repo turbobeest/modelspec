@@ -360,11 +360,19 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
     ``first`` is returned only when no disqualifier applies (``first_epoch_disqualified``), for
     a paired ordinary claim too: a later value by the end of the day, a rule-15, ruling, retired
     or undated claim, or an attempt."""
+    # A fact's first epoch is its facet's (``cited_reader.epoch_root``, MODEL-491 E6): the epoch a
+    # record that never left it is in, by the pinned registry, never by a data line.
+    if first == "initial" and settings is None:
+        from decision.cited_reader import epoch_root
+
+        start = epoch_root(facet, verdict.get("date") or "")  # the version at the verdict
+    else:
+        start = first
     pair = verdict_pair(verdict, history)
     if pair is None:
         if never_left_first(verdict, history=history, log=log, subject=subject, facet=facet,
                             settings=settings):
-            return first
+            return start
         return None
     filed_event, checked = pair
     claim = filed_event["claim"]
@@ -376,7 +384,7 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
     if not method.startswith(_RULE_15):
         disqualified = first_epoch_disqualified(verdict, history=history, log=log,
                                                 subject=subject, facet=facet)
-        return None if disqualified else first
+        return None if disqualified else start
     copies = {str(ref.get("snapshot_ref")) for ref in claim.get("sources") or ()
               if isinstance(ref, Mapping)}
     filed_at, checked_at = _event_at(filed_event), _event_at(checked)
@@ -653,13 +661,43 @@ def line_problem(entry: Any, *, verdict: Mapping[str, Any], subject: str, facet:
                             first=first, settings=settings, clearings=clearings)
     if derived is None:
         return "the record's epoch at the verdict cannot be shown", None
-    if base != derived and not _board_base(base, derived, first, settings, attempt):
+    if settings is None and first == "initial" and first_root(derived, facet=facet,
+                                                              verdict=verdict):
+        # A plain record still in its first epoch at the verdict (E6): its clearing is read in the
+        # first epoch in force on the agreement's own day, always, whether or not a version moved
+        # it since the verdict. An agreement in an older first epoch is in the wrong one.
+        if not first_moved(derived, base, facet=facet, verdict=verdict,
+                           at=attempt.get("at") or ""):
+            return "the clearing's base is not the first epoch in force on its agreement's day", \
+                None
+    elif base != derived and not _board_base(base, derived, first, settings, attempt):
         return "the clearing's base epoch is not the record's epoch at the verdict", None
     for epoch in (entry["epoch"], base):
         problem = epoch_problem(log.keyed(subject, facet, epoch), entry["value"], facet)
         if problem is not None:
             return problem, None
     return "", attempt
+
+
+def first_root(derived: str, *, facet: str, verdict: Mapping[str, Any]) -> bool:
+    """Whether ``derived`` is a plain fact's first epoch on the verdict's day (MODEL-491, E6):
+    the record had not left its first epoch when the verdict was made."""
+    from decision.cited_reader import epoch_root
+
+    return derived == epoch_root(facet, verdict.get("date") or "")
+
+
+def first_moved(derived: str, base: str, *, facet: str, verdict: Mapping[str, Any],
+                at: Any) -> bool:
+    """Whether ``base`` is a plain fact's first epoch on the day of ``at`` (now when ``None``) and
+    ``derived`` its first epoch on the verdict's day (MODEL-491, E6): the record never left its
+    first epoch, and a definition version in force since moved it. Both are the registry's
+    (``cited_reader.epoch_root``), so an old clearing is judged by the version in force when its
+    agreement was made, never against a newer one."""
+    from decision.cited_reader import epoch_root
+
+    return derived == epoch_root(facet, verdict.get("date") or "") \
+        and base == epoch_root(facet, at)
 
 
 def _board_base(base: str, derived: str, first: str, settings: Settings | None,

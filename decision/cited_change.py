@@ -80,7 +80,8 @@ from schema.yaml_loader import load_yaml_unique
 
 from decision.cited_reader import (
     INPUT_FIELDS, MAX_PAGE_CHARS, Reader, ReaderAnswer, ReaderError, attempts, build_prompt,
-    canonical, facet_definition, input_manifest, normalised_text, read_page, sha256, text_sha256,
+    canonical, epoch_root, facet_definition, input_manifest, normalised_text, read_page, sha256,
+    text_sha256,
 )
 from decision.model import _LINEAGES, _NO_LINEAGE, DETERMINISTIC, model_family
 from decision.retention import (
@@ -820,6 +821,16 @@ def _epoch_at_verdict(verdict: Mapping[str, Any], *, subject: str, facet: str, f
     if derived is None:
         return _refuse("quarantined", "the record's epoch when the verdict was made cannot be "
                        f"shown; {QUARANTINED}")
+    from decision.quarantine_clearing import first_moved, first_root
+
+    # A plain record still in its first epoch at the verdict (E6) is always read in the first
+    # epoch in force today, as the build checks it against the agreement's day.
+    if settings is None and first == "initial" \
+            and first_root(derived, facet=facet, verdict=verdict):
+        if not first_moved(derived, base, facet=facet, verdict=verdict, at=None):
+            return _refuse("epoch_not_current",
+                           "the record's epoch now is not today's first epoch")
+        return None
     # A board row filed in its settings epoch is in a board epoch of it once the gate names one
     # (MODEL-555): the board moved since, and the clearing extends the epoch the row is in now.
     if derived != base and not (derived == first and is_board_epoch(base, first)):
@@ -2554,10 +2565,22 @@ def cited_change_block(fact: Mapping[str, Any]) -> Mapping[str, Any] | None:
 
 def fact_epoch(fact: Mapping[str, Any]) -> str:
     """The attempt-log epoch a fact is in: after a cited change, the re-read epoch its recorded
-    text hash names; otherwise ``initial``. ``reread`` reads in this epoch."""
+    text hash names; otherwise its facet's first epoch (``cited_reader.epoch_root``, MODEL-491
+    E6): the one in force now, or for a ruled fact the one in force when it was ruled (its
+    ruling block's ``ruled_at``, which the build binds to the ruling line), so a ruling is read in
+    the epoch of the split it resolved and a later version never moves it. ``reread`` reads in
+    this epoch."""
+    if not isinstance(fact, Mapping):
+        return "initial"
     block = cited_change_block(fact)
     if block is None:
-        return "initial"
+        from decision.owner_ruling import ruling_block
+
+        ruling = ruling_block(fact)
+        facet = str(fact.get("facet"))
+        if ruling is not None:
+            return epoch_root(facet, ruling.get("ruled_at") or "")  # no day: the oldest
+        return epoch_root(facet)
     text = block.get('text_sha256') or block.get('sha256')
     cleared = block.get("clearing_epoch")
     # A block a quarantine clearing made (MODEL-566) is re-read in an epoch named by its

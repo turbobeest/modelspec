@@ -14,7 +14,7 @@ from datetime import UTC, date, datetime
 import pytest
 import yaml
 from decision.cited_change import REFUSALS, cited_change, cited_reading
-from decision.cited_reader import ATTEMPTS_FILE
+from decision.cited_reader import ATTEMPTS_FILE, epoch_root
 from decision.quarantine_clearing import (
     CLEARINGS_FILE,
     FIELDS,
@@ -32,6 +32,7 @@ from tests import test_cited_reading as reading_gate
 from tests.snapshot_records import verification
 
 
+
 @pytest.fixture(autouse=True)
 def offline(monkeypatch):
     monkeypatch.setattr(socket.socket, "connect", lambda *a: pytest.fail("Network attempted"))
@@ -40,6 +41,9 @@ def offline(monkeypatch):
 # --- the gate, for a card fact -------------------------------------------------------------------
 
 FACT_ID = f"{fact_gate.SUBJECT}#{fact_gate.FACET}"
+#: The fixture facet's first epoch in force now, which the gate reads a plain fact in (E6: ``def2``
+#: for model.context_window); verdicts and agreements dated before keep ``initial``.
+NOW_FIRST = epoch_root(fact_gate.FACET)
 
 
 @pytest.fixture
@@ -129,12 +133,12 @@ def test_a_fresh_agreement_clears_the_one_held_mismatch_and_names_both(data):
     [entry] = out.record["clearings"]
     assert set(entry) == set(FIELDS)
     logged = data.log()
-    epoch = clearing_epoch("initial", verdict_sha256(verdict))
+    epoch = clearing_epoch(NOW_FIRST, verdict_sha256(verdict))
     assert [a["epoch"] for a in logged] == [epoch]  # read in the verdict's clearing epoch
     raw = (data.root / ATTEMPTS_FILE).read_text().splitlines()[-1]
     assert entry["epoch"] == epoch and entry["agreement"] == line_hash(raw)
     block = out.record["derivation"]["cited_change"]
-    assert block["previous_epoch"] == "initial" and block["clearing_epoch"] == epoch
+    assert block["previous_epoch"] == NOW_FIRST and block["clearing_epoch"] == epoch
     assert entry["target"] == verdict["target"]
     assert entry["verdict_sha256"] == verdict_sha256(verdict)
     assert entry["verdict_date"] == "2026-09-20" and entry["value"] == 262144
@@ -179,21 +183,21 @@ def test_same_family_readers_are_refused_by_the_gate(data):
 
 def test_a_disagreement_in_the_clearing_epoch_blocks(data):
     verdict = held_mismatch(data)
-    seed(data, epoch=clearing_epoch("initial", verdict_sha256(verdict)), complete=True,
+    seed(data, epoch=clearing_epoch(NOW_FIRST, verdict_sha256(verdict)), complete=True,
          agreed=False, harness=True, at="2026-09-21T09:00:00+00:00")
     refused("prior_attempt_disagreed")
 
 
 def test_a_disagreement_in_the_facts_own_epoch_blocks(data):
     held_mismatch(data)
-    seed(data, epoch="initial", complete=True, agreed=False, harness=True,
+    seed(data, epoch=NOW_FIRST, complete=True, agreed=False, harness=True,
          at="2026-09-21T09:00:00+00:00")
     refused("prior_attempt_disagreed")
 
 
 def test_an_answer_in_an_incomplete_attempt_that_differs_blocks(data):
     verdict = held_mismatch(data)
-    seed(data, epoch=clearing_epoch("initial", verdict_sha256(verdict)), complete=False,
+    seed(data, epoch=clearing_epoch(NOW_FIRST, verdict_sha256(verdict)), complete=False,
          at="2026-09-21T09:00:00+00:00",
          readers=[{"reader_id": "codex", "family": "gpt-5", "version": "1", "value": 1}])
     refused("prior_attempt_disagreed")
@@ -1261,8 +1265,8 @@ def test_the_gate_clears_a_first_collection_mismatch(data):
     out = run()
     assert out.changed and len(out.record["clearings"]) == 1
     block = out.record["derivation"]["cited_change"]
-    assert block["previous_epoch"] == "initial"
-    assert block["clearing_epoch"] == clearing_epoch("initial", verdict_sha256(verdict))
+    assert block["previous_epoch"] == NOW_FIRST
+    assert block["clearing_epoch"] == clearing_epoch(NOW_FIRST, verdict_sha256(verdict))
 
 
 def test_a_rule_15_claim_on_the_verdicts_day_shows_nothing(data):

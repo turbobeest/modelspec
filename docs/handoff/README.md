@@ -78,6 +78,25 @@ Learned expensively during 2026-09-09/10.
     for its own epoch. A new version opens no epoch: a disagreement logged under
     version 1 still blocks that epoch. A clearing epoch is named by its verdict
     alone, so a read there under version 2 is allowed.
+
+    `model.context_window` is version 2 too (MODEL-491, 2026-11-27; the
+    orchestrator's convention of 2026-11-25): the context window the lab states
+    for the model, and, when the lab states separate input and output token
+    limits, the input token limit, never their sum. Version 1 read "input and
+    output together". `tests/test_context_window_definition.py` pins the text.
+    Unlike weights_openness, this version opens the facet's first epoch afresh
+    (E6): `epoch_versions: [{version: 2, since: 2026-11-27}]` in
+    `registry/facets.yaml` names a plain record's first epoch `def2` from that
+    UTC day (`cited_reader.epoch_root(facet, at)`, the one helper the gate, the
+    build and the writers use). Everything is judged by the version in force on
+    the day it was made: a verdict by its date, a ruling by its `ruled_at` (a
+    ruling is filed and read in its split's epoch), a clearing or
+    reconfirmation by its agreement's time. So a record still in its first
+    epoch is read under the new definition, the splits logged under version 1
+    stay in `initial`, and an old clearing, ruling or reconfirmation is never
+    re-judged against a newer version. A fact with a cited-change block keeps
+    its page's epoch. The version comes from the pinned registry only, never
+    from a data line.
 13. **User cap when a provider's terms state none** (MODEL-490, decided by the
     owner, 2026-11-14). `licence.user_cap` is `unbounded`, as the facet
     definition says, when the provider's commercial terms were read in full and

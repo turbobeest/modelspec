@@ -127,7 +127,7 @@
     {
       "id": "model.context_window",
       "label": "Context window",
-      "definition": "The maximum number of tokens the model accepts in one request, input and output together, as documented by its lab for its largest supported configuration. A provider that serves a smaller window records that on the offering, not here.",
+      "definition": "The context window the lab states for this model, in tokens, for its largest supported configuration. When the lab states separate input and output token limits, it is the input token limit; never add the two (the output limit is `model.max_output_tokens`). A provider that serves a smaller window records that on the offering, not here.",
       "subject": "model",
       "value_type": "number",
       "unit": "tokens",

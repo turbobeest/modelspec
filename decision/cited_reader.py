@@ -84,6 +84,47 @@ def page_text(page_bytes: bytes) -> str:
     return normalised_text(page_bytes)[:MAX_PAGE_CHARS]
 
 
+def epoch_root(facet_id: str, at: object = None) -> str:
+    """The rule-15 first epoch of a record of this facet on the UTC day of ``at`` (now when
+    ``None``; a date, a datetime or ISO text), MODEL-491 E6: ``initial``, or ``def<v>`` for the
+    latest of the facet's registry ``epoch_versions`` in force that day. The one place the gate,
+    the build and the writers derive it: from ``registry/facets.yaml`` at the engine in use, never
+    from a data line, so a verdict, ruling, clearing or reconfirmation is judged by the version in
+    force when it was made. A facet that is not in the registry (a board reading) is ``initial``,
+    and so is a time that cannot be read (the oldest epoch: a record never gains by it)."""
+    from datetime import date as _date
+
+    from decision.registry import default
+
+    try:
+        versions = default().facet(facet_id).epoch_versions
+    except KeyError:
+        return "initial"
+    if not versions:
+        return "initial"
+    if at is None:
+        day = datetime.now(UTC).date()
+    elif isinstance(at, datetime):
+        day = (at if at.tzinfo else at.replace(tzinfo=UTC)).astimezone(UTC).date()
+    elif isinstance(at, _date):
+        day = at
+    else:
+        try:
+            parsed = datetime.fromisoformat(str(at).replace("Z", "+00:00"))
+        except ValueError:
+            try:
+                day = _date.fromisoformat(str(at))
+            except ValueError:
+                return "initial"
+        else:
+            day = (parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)).astimezone(UTC).date()
+    root = "initial"
+    for version, since in versions:
+        if since <= day:
+            root = f"def{version}"
+    return root
+
+
 def facet_definition(facet_id: str) -> str:
     from decision.registry import default
 
