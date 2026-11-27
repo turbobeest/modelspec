@@ -140,6 +140,24 @@ def blocks_rule_15(entry: Any) -> bool:
     return isinstance(entry, Mapping) and bool(entry.get("complete")) and not entry.get("agreed")
 
 
+def legacy_split_ids(root: str | Path | None = None) -> frozenset[str]:
+    """The ``attempt_id`` of each line of the attempt log's pinned legacy prefix
+    (``hold_evidence.read_legacy``, from the log's raw bytes) in the data checkout ``root``, or
+    in the active data directory (``MODELSPEC_DATA_DIR``) when ``root`` is ``None``; empty when
+    there is none. The one source of the legacy splits a ruling may rest on, for the build, the
+    filer and the owner-rulings check alike (MODEL-491)."""
+    import os
+
+    from decision.cited_reader import ATTEMPTS_FILE
+    from decision.hold_evidence import legacy_ids, read_legacy
+
+    if root is None:
+        root = os.environ.get("MODELSPEC_DATA_DIR", "").strip() or None
+    if root is None:
+        return frozenset()
+    return legacy_ids(read_legacy(root, ATTEMPTS_FILE))
+
+
 def is_split(entry: Any, facet_id: str, *, legacy: Collection[str] = frozenset()) -> bool:
     """A split the owner may rule past: ``split_status`` is ``"split"``, and the gate tagged the
     line ``split`` under its hash, or the line is one of the attempt log's pinned legacy prefix
@@ -429,13 +447,15 @@ def _at(entry: Mapping[str, Any]) -> datetime | None:
 def ruling_problem(ruling: Any, *, attempts: Sequence[Mapping[str, Any]],
                    sources: Mapping[str, str], today: date | None = None,
                    max_score: Any = None, cited: Collection[str] = (),
-                   legacy: Collection[str] = frozenset()) -> tuple[str, str] | None:
+                   legacy: Collection[str] | None = None) -> tuple[str, str] | None:
     """``(reason, detail)`` when the line is not a valid ruling, else ``None``. ``sources``
     maps registered source ids to URLs. Details carry counts and field names only. A ruling on a
     board reading (facet ``benchmark:<id>``, MODEL-569) states a score in the board's range
     (``decision.board_ruling.value_problem``; ``max_score`` is the board's); every other check
     is the fact ruling's. ``cited`` names the sources the fact cites: a ruling may cite those
-    beyond the pages its resolved attempts read (none, by default)."""
+    beyond the pages its resolved attempts read (none, by default). ``legacy`` names the untagged
+    legacy splits a fact ruling may rest on; ``None`` reads them from the active data directory
+    (``legacy_split_ids``), as the owner-rulings check calls it."""
     from decision.board_ruling import is_board_facet, value_problem
     from decision.cited_change import _facet, _value_fits
     from decision.retention import cite_only_status
@@ -481,13 +501,15 @@ def ruling_problem(ruling: Any, *, attempts: Sequence[Mapping[str, Any]],
     if len(found) != len(resolves):
         return "no_disagreement", \
             f"{len(resolves) - len(found)} resolved id(s) name no logged attempt"
+    if legacy is None and not is_board_facet(ruling["facet"]):
+        legacy = legacy_split_ids()
     for entry in found.values():
         if (entry.get("subject"), entry.get("facet"), entry.get("epoch")) != key:
             return "no_disagreement", "a resolved attempt is for another subject, facet or epoch"
         # A fact's split is what the fact gate counts (MODEL-491); a board reading keeps the
         # harness-only test of MODEL-569.
         split = disagreed(entry, ruling["facet"]) if is_board_facet(ruling["facet"]) \
-            else is_split(entry, ruling["facet"], legacy=legacy)
+            else is_split(entry, ruling["facet"], legacy=legacy or frozenset())
         if not split:
             return "no_disagreement", "a resolved attempt is not one the gate counts as a split"
         at = _at(entry)
@@ -525,7 +547,7 @@ def admits(fact: Mapping[str, Any], subject: str, *, rulings: Sequence[Mapping[s
            today: date | None = None,
            reopened: Collection[tuple[str, str]] = frozenset(),
            history: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
-           legacy: Collection[str] = frozenset()) -> bool:
+           legacy: Collection[str] | None = None) -> bool:
     """Whether a fact carrying ``derivation.owner_ruling`` stands on a valid ruling.
 
     ``subject`` is the fact's owner as the build places it (the card's model id, or the
@@ -701,11 +723,8 @@ def read_ruling_inputs(root: Path, *, verdicts: bool = True) -> RulingInputs:
     from decision.ruling_reread import Records
 
     claims, history = ruling_claim_events(root / "verification/queue/events.jsonl")
-    from decision.hold_evidence import legacy_ids, read_legacy
-
     return RulingInputs(tuple(rulings), tuple(read_lines(root / ATTEMPTS_FILE)), claims, ranked,
-                        history, frozenset(Records.read(root).reopened),
-                        legacy_ids(read_legacy(root, ATTEMPTS_FILE)))
+                        history, frozenset(Records.read(root).reopened), legacy_split_ids(root))
 
 
 def ruling_refused(fact: Mapping[str, Any], subject: str, *, cited: bool, inputs: RulingInputs,

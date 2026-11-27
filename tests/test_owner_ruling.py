@@ -14,6 +14,7 @@ import yaml
 
 from decision.cited_change import _gate, cited_change
 from decision.cited_reader import ATTEMPTS_FILE, log_attempt
+from decision.hold_evidence import read_legacy as _real_read_legacy
 from decision.owner_ruling import (
     FIELDS,
     OWNERS,
@@ -23,6 +24,7 @@ from decision.owner_ruling import (
     blocks_rule_15,
     disagreed,
     fact_epoch,
+    legacy_split_ids,
     ruling_problem,
     split_status,
 )
@@ -1401,3 +1403,51 @@ def test_a_past_cutoff_ruled_fact_with_an_invalid_citation_names_no_source_in_it
     reason, urls = compiled.rejected[(MID, FACET)]
     assert reason == "invalid_citation" and urls == ()
     assert CITE not in json.dumps([str(g) for g in compiled.gaps([MID])])
+
+
+# --- MODEL-491: the owner-rulings check reads legacy splits as the build does ---------------------
+
+def _check_root(tmp_path, attempt):
+    root = tmp_path / "check"
+    (root / "verification").mkdir(parents=True)
+    (root / ATTEMPTS_FILE).write_text(json.dumps(attempt, sort_keys=True) + "\n")
+    return root
+
+
+def test_the_check_passes_a_ruling_on_a_legacy_prefix_split(tmp_path, monkeypatch):
+    # The owner-rulings check calls ruling_problem with no legacy set, inside the data directory:
+    # it reads the legacy splits through owner_ruling.legacy_split_ids, as the build does.
+    import hashlib
+
+    import decision.hold_evidence as he
+    from decision.retention import using_data_dir
+
+    monkeypatch.setattr(he, "read_legacy", _real_read_legacy)
+    attempt = _attempt()
+    ruling = _ruling(attempt)
+    root = _check_root(tmp_path, attempt)
+    data = (root / ATTEMPTS_FILE).read_bytes()
+    monkeypatch.setattr(he, "LEGACY_PREFIXES",
+                        {ATTEMPTS_FILE: (len(data), hashlib.sha256(data).hexdigest())})
+    with using_data_dir(root):
+        assert legacy_split_ids() == {attempt_id(attempt)}
+        assert ruling_problem(ruling, attempts=[attempt], sources={"src-cite": CITE}) is None
+
+
+def test_the_check_refuses_an_untagged_split_outside_the_prefix(tmp_path, monkeypatch):
+    import decision.hold_evidence as he
+    from decision.retention import using_data_dir
+
+    monkeypatch.setattr(he, "read_legacy", _real_read_legacy)  # the real, pinned prefix only
+    attempt = _attempt()
+    ruling = _ruling(attempt)
+    root = _check_root(tmp_path, attempt)
+    with using_data_dir(root):
+        assert legacy_split_ids() == frozenset()
+        problem = ruling_problem(ruling, attempts=[attempt], sources={"src-cite": CITE})
+    assert problem is not None and problem[0] == "no_disagreement"
+    # The same split, tagged by the gate, needs no prefix.
+    tagged = {**attempt, "kind": "split"}
+    with using_data_dir(_check_root(tmp_path / "t", tagged)):
+        assert ruling_problem(_ruling(tagged), attempts=[tagged],
+                              sources={"src-cite": CITE}) is None
