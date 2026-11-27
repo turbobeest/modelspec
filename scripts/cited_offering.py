@@ -15,6 +15,12 @@ fact's one held mismatch (MODEL-552, ``decision.quarantine_clearing``): the clea
 returns is appended to ``verification/quarantine-clearings.jsonl`` after the claim, and the build
 admits the value only through it. The output is the outcome, the reason and the readers' values;
 never page text.
+
+``--allow-unchanged`` (MODEL-572, ``decision.reconfirmation``): an agreement on the filed value
+and state of a fact with no cited-change block files its record and read date; the value and
+state stay as filed. Such a record may be written for a card fact too (``--subject`` a model
+id): its one block in the card's front matter is replaced (``file_owner_ruling.replace_fact``,
+every other byte kept) and its claim is filed under its location id, ``<model>#<facet>``.
 """
 
 from __future__ import annotations
@@ -103,12 +109,19 @@ def new_fact(old: dict[str, Any], record: dict[str, Any]) -> dict[str, Any]:
     return fact
 
 
+def _fact_id(record: dict[str, Any], found: Lookup) -> str:
+    """An offering fact's stored id; a card fact's location id (``<model>#<facet>``)."""
+    if found.kind == "model":
+        return f"{record['subject']}#{record['facet']}"
+    return found.fact["id"]
+
+
 def claim(record: dict[str, Any], found: Lookup) -> Claim:
     from decision.registry import default
 
     facet = default().facet(record["facet"])
     return Claim(
-        target=TargetRef(kind="fact", id=found.fact["id"]), subject=record["subject"],
+        target=TargetRef(kind="fact", id=_fact_id(record, found)), subject=record["subject"],
         names=found.names, field=record["facet"], value=record["value"],
         collector=VerificationActor(agent=AGENT, model_family=DETERMINISTIC, method=RULE),
         sources=(source_ref(record),), unit=facet.unit, label=facet.label,
@@ -163,17 +176,33 @@ def check_rewrite(before: str, after: str, fact_id: str, fact: dict[str, Any]) -
 
 
 def apply(outcome: CitedChange, *, data_dir: str | Path) -> Path:
-    """Write a ``cited_change`` outcome for an offering fact: the file, then the claim."""
+    """Write a ``cited_change`` outcome for an offering fact (or a reconfirmation of a card
+    fact): the file, then the claim."""
+    from decision.reconfirmation import is_reconfirmation, reconfirmation_problem
+
     if not outcome.changed or outcome.record is None:
         raise WriteRefused("only a cited_change is written")
     record = {k: v for k, v in outcome.record.items() if k != "clearings"}
     found = lookup(record["subject"], record["facet"], data_dir)
-    if found.kind != "offering" or found.path is None:
-        raise WriteRefused("not an offering fact")
+    if found.path is None or found.kind not in {"offering", "model"}:
+        raise WriteRefused("not an offering or card fact")
     fact = new_fact(dict(found.fact), record)
+    if is_reconfirmation(fact) and reconfirmation_problem(fact) is not None:
+        raise WriteRefused("the reconfirmation would not stand in the build")
     before = found.path.read_text(encoding="utf-8")
-    after = rewrite(before, found.fact["id"], fact)
-    check_rewrite(before, after, found.fact["id"], fact)
+    if found.kind == "model":
+        if not is_reconfirmation(fact):
+            raise WriteRefused("a card fact is written here only for a reconfirmation")
+        from scripts.file_owner_ruling import Refused, replace_fact
+
+        try:
+            after = replace_fact(before, card=True, row_id=None, facet=record["facet"],
+                                 fact=fact, expect=dict(found.fact))
+        except Refused as error:
+            raise WriteRefused(str(error)) from None
+    else:
+        after = rewrite(before, found.fact["id"], fact)
+        check_rewrite(before, after, found.fact["id"], fact)
     filed = claim(record, found)
     found.path.write_text(after, encoding="utf-8")
     at = datetime.fromisoformat(record["source"]["retrieved_at"])
@@ -201,7 +230,8 @@ def _readers_seen(outcome: CitedChange, data_dir: Path, subject: str, facet: str
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--data-dir", required=True, type=Path)
-    ap.add_argument("--subject", required=True, help="the offering id")
+    ap.add_argument("--subject", required=True,
+                    help="the offering id (or a model id, with --allow-unchanged)")
     ap.add_argument("--facet", required=True)
     ap.add_argument("--source", required=True, help="the registered source id to read")
     ap.add_argument("--accept-not-disclosed", action="store_true",
@@ -210,6 +240,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--clear-quarantine", action="store_true",
                     help="let a fresh agreement clear the fact's one held mismatch, within the "
                          "MODEL-552 limits, and append the clearing line")
+    ap.add_argument("--allow-unchanged", action="store_true",
+                    help="file the record of an agreement on the filed value and state of a fact "
+                         "with no cited-change block (MODEL-572); the value does not change")
     ap.add_argument("--no-write", action="store_true",
                     help="run the gate (it still logs its attempt) but write nothing")
     args = ap.parse_args(argv)
@@ -217,7 +250,8 @@ def main(argv: list[str] | None = None) -> int:
     outcome = cited_change(subject=args.subject, facet=args.facet, source_id=args.source,
                            readers=default_readers(),
                            accept_not_disclosed=args.accept_not_disclosed,
-                           clear_quarantine=args.clear_quarantine)
+                           clear_quarantine=args.clear_quarantine,
+                           allow_unchanged=args.allow_unchanged)
     written = None
     if outcome.changed and not args.no_write:
         written = str(apply(outcome, data_dir=args.data_dir).relative_to(args.data_dir))

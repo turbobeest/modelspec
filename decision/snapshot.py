@@ -1324,6 +1324,7 @@ class _Compiler:
             raise SnapshotBuildError(f"facet {facet_id!r} is used on both a {seen} and a {kind}")
 
     def _add_facts(self, sid: str, kind: str, facts: Iterable[Any]) -> None:
+        from decision.reconfirmation import is_reconfirmation, reconfirmation_problem
         from decision.retained_correction import is_correction
 
         row = self.facts.setdefault(sid, {})
@@ -1355,6 +1356,11 @@ class _Compiler:
                 continue
             if state == "known" and self._repeats_a_member(facet_id, f.get("value")):
                 self._reject((sid, facet_id), "quarantined (repeated member)", source_ids)
+                continue
+            if is_reconfirmation(f) and reconfirmation_problem(f) is not None:
+                # A block that claims a reconfirmation (MODEL-572) stands only on the gate's own
+                # test: a value, state or reader edited under it keeps the fact out.
+                self._reject((sid, facet_id), "quarantined (reconfirmation)", source_ids)
                 continue
             measurement = self._measurement(sid, facet_id, f.get("measurement"))
             try:

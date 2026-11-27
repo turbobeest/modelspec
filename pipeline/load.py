@@ -266,6 +266,7 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
         ruling_refused,
         served_fact,
     )
+    from decision.reconfirmation import is_reconfirmation, reconfirmation_problem
     from decision.retained_correction import is_correction
     from decision.sources import configured_copy_store, load_sources
 
@@ -313,6 +314,11 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
                     logger.warning("%s: a fact's owner ruling does not stand; withheld", model_id)
                     withheld.append(str(fact.get("facet")))
                     continue
+            if is_reconfirmation(fact) and reconfirmation_problem(fact) is not None:
+                # The snapshot's own test (MODEL-572): a reconfirmation that fails it is withheld.
+                logger.warning("%s: a fact's reconfirmation does not stand; withheld", model_id)
+                withheld.append(str(fact.get("facet")))
+                continue
             if is_correction(fact):
                 # A retained-page correction (MODEL-573) is shown, as cited, only when the
                 # snapshot's own test admits it, whatever its references are; otherwise it is
