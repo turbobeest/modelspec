@@ -88,8 +88,9 @@ def entry_problem(entry: Mapping[str, Any], *, fact: Mapping[str, Any] | None, l
     (``quarantine_clearing.AttemptLog``) and ``verdicts`` the verification log ranked by the
     build's own rule."""
     from decision.cited_change import _check_identities, fact_epoch
+    from decision.cited_reader import logged_filed_value
     from decision.hold_evidence import hold_kind
-    from decision.model import fact_verification_value, matching_value_hashes, value_hash
+    from decision.model import fact_verification_value, matching_value_hashes
     from decision.owner_ruling import loads
     from decision.quarantine_clearing import _canonical, line_hash
     from decision.retained_correction import _unordered
@@ -153,13 +154,14 @@ def entry_problem(entry: Mapping[str, Any], *, fact: Mapping[str, Any] | None, l
     if attempt.get("epoch") != fact_epoch(fact) and not _clearing_read(attempt, entry, fact,
                                                                        verdicts):
         return "the attempt was not read in the fact's epoch or a holding verdict's clearing epoch"
+    # The value the gate logs for this fact now (``cited_reader.logged_filed_value``, the very
+    # function ``read_page`` writes it with): a legacy line is bound to the fact's current value
+    # only by the value it logged, and the gate logs one on every read of a known fact.
+    logged, current = logged_filed_value(fact)
     if "filed_value" in attempt:
-        if not matching_value_hashes(value, [value_hash(attempt["filed_value"])],
-                                     unordered=unordered):
+        if not logged or _canonical(attempt["filed_value"], facet) != _canonical(current, facet):
             return "the attempt was read against another value of the fact"
-    elif "kind" not in attempt or fact.get("state") == "known":
-        # A legacy line is bound to the fact's current value only by the value it logged, and
-        # the gate logs the filed value on every tagged split or silent read of a known fact.
+    elif "kind" not in attempt or logged:
         return "the attempt was not read against this fact's value"
     return None
 

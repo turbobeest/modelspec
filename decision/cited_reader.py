@@ -247,6 +247,16 @@ def log_attempt(entry: dict, *, data_dir: str | Path | None = None) -> None:
         fh.write(json.dumps(entry, sort_keys=True, ensure_ascii=False) + "\n")
 
 
+def logged_filed_value(filed: Mapping[str, Any] | None) -> tuple[bool, Any]:
+    """``(True, value)`` when ``read_page`` logs ``filed_value`` for a read of this fact, the
+    value as it is filed (a known fact's ``value``, never a projection with its dates);
+    ``(False, None)`` when it logs none. Every reader of ``filed_value`` compares through this
+    one function (MODEL-491)."""
+    if filed is not None and filed.get("state") == "known" and "value" in filed:
+        return True, filed["value"]
+    return False, None
+
+
 def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_bytes: bytes,
               readers: Sequence[Reader], epoch: str = "initial",
               data_dir: str | Path | None = None,
@@ -285,10 +295,11 @@ def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_
     if board_region_sha256 is not None:
         # MODEL-555: the row's board region (``cited_change.row_region_sha256``), its own field.
         entry["board_region_sha256"] = board_region_sha256
-    if filed is not None and filed.get("state") == "known" and "value" in filed:
+    logged, filed_value = logged_filed_value(filed)
+    if logged:
         # MODEL-491 E2: the value the fact was filed with when it was read, so a correction made
         # from this attempt names the value it replaced from the log, never from its own record.
-        entry["filed_value"] = filed["value"]
+        entry["filed_value"] = filed_value
     if own_fetch:
         # MODEL-573: the gate fetched these bytes itself, with its own transport; a caller's
         # bytes or transport never set it. A retained-page correction rests only on such a read.

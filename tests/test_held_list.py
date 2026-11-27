@@ -425,3 +425,28 @@ def test_a_clearing_epoch_is_the_facts_own_for_a_verdict_on_its_value(bad):
     cleared = attempt()
     cleared["epoch"] = clearing_epoch(base, verdict_sha256(verdict))
     refused([held_fact()], [cleared], [listing(cleared)], log=log)
+
+
+# --- #1205 Codex round 3: a dated price is compared as the gate logs it ------------------------
+
+@pytest.mark.parametrize("filed, ok", [(2.5, True), (3.0, False)])
+def test_a_dated_price_split_is_compared_through_the_gates_logged_value(filed, ok):
+    # The gate logs a dated price's raw value (``cited_reader.logged_filed_value``); its value
+    # hash binds the effective dates too. The listing binds that hash, the line the raw price.
+    from decision.cited_change import fact_epoch
+    from decision.model import fact_verification_value, value_hash
+
+    oid, facet = "openai/openai/gpt-x/global/standard", "offering.price.input"
+    price = {"id": f"{oid}#{facet}", "facet": facet, "value": 2.5, "state": "known",
+             "effective_from": "2026-10-01", "effective_until": None}
+    split = attempt(facet=facet, values=(2.5, 3.0), filed=filed)
+    split["subject"], split["epoch"] = oid, fact_epoch(price)
+    entry = line(subject=oid, facet=facet, value_hash=value_hash(fact_verification_value(price)),
+                 reason="split", attempt_line=raw(split), at=AT)
+    listed, problems = standing([entry], fact_at=lambda s, f: price if f == facet else None,
+                                log=AttemptLog([raw(split)]), verdicts={})
+    if ok:
+        assert problems == [] and listed == {(oid, facet)}
+    else:
+        assert listed == set() and problems == ["the attempt was read against another value of "
+                                                "the fact"]
