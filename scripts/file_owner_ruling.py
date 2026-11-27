@@ -324,9 +324,9 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
                       "logged for this subject, facet and epoch")
     # By default the ruling resolves each well-formed split (``split_status``); a malformed
     # look-alike still blocks the gate, which fails closed, but no ruling resolves it.
-    from decision.hold_evidence import legacy_ids, read_legacy
+    from decision.owner_ruling import legacy_split_ids
 
-    legacy = legacy_ids(read_legacy(root, ATTEMPTS_FILE))
+    legacy = legacy_split_ids(root)
     disagreeing = [attempt_id(a) for a in splits if is_split(a, facet, legacy=legacy)]
     if not disagreeing and not resolves:
         raise Refused("no_disagreement", f"{len(splits)} logged split(s) for this subject, facet "

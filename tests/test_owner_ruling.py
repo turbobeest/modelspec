@@ -14,6 +14,7 @@ import yaml
 
 from decision.cited_change import _gate, cited_change
 from decision.cited_reader import ATTEMPTS_FILE, log_attempt
+from decision.hold_evidence import legacy_lines as _real_legacy_lines
 from decision.owner_ruling import (
     FIELDS,
     OWNERS,
@@ -23,6 +24,7 @@ from decision.owner_ruling import (
     blocks_rule_15,
     disagreed,
     fact_epoch,
+    legacy_split_ids,
     ruling_problem,
     split_status,
 )
@@ -1401,3 +1403,73 @@ def test_a_past_cutoff_ruled_fact_with_an_invalid_citation_names_no_source_in_it
     reason, urls = compiled.rejected[(MID, FACET)]
     assert reason == "invalid_citation" and urls == ()
     assert CITE not in json.dumps([str(g) for g in compiled.gaps([MID])])
+
+
+# --- MODEL-491: the owner-rulings check reads legacy splits as the build does ---------------------
+
+def _check_root(tmp_path, attempt, *extra):
+    root = tmp_path
+    (root / "verification").mkdir(parents=True)
+    (root / ATTEMPTS_FILE).write_text("".join(json.dumps(a, sort_keys=True) + "\n"
+                                              for a in (attempt, *extra)))
+    return root
+
+
+def _pin(monkeypatch, *roots):
+    import hashlib
+
+    import decision.hold_evidence as he
+
+    monkeypatch.setattr(he, "legacy_lines", _real_legacy_lines)  # the real prefix rule only
+    data = (roots[0] / ATTEMPTS_FILE).read_bytes() if roots else b"unpinned"
+    monkeypatch.setattr(he, "LEGACY_PREFIXES",
+                        {ATTEMPTS_FILE: (len(data), hashlib.sha256(data).hexdigest())})
+
+
+def _checked(root, ruling):
+    """The owner-rulings check's own call: the attempt log as read_lines reads it, no legacy."""
+    from decision.owner_ruling import read_lines
+
+    return ruling_problem(ruling, attempts=read_lines(root / ATTEMPTS_FILE),
+                          sources={"src-cite": CITE})
+
+
+def test_the_check_passes_a_ruling_on_a_legacy_prefix_split(tmp_path, monkeypatch):
+    attempt = _attempt()
+    root = _check_root(tmp_path / "checked", attempt)
+    _pin(monkeypatch, root)
+    assert legacy_split_ids(root) == {attempt_id(attempt)}
+    assert _checked(root, _ruling(attempt)) is None
+
+
+def test_the_check_refuses_an_untagged_split_outside_the_prefix(tmp_path, monkeypatch):
+    attempt = _attempt()
+    root = _check_root(tmp_path / "checked", attempt)
+    _pin(monkeypatch)  # the prefix pinned is not this log's
+    assert legacy_split_ids(root) == frozenset()
+    problem = _checked(root, _ruling(attempt))
+    assert problem is not None and problem[0] == "no_disagreement"
+    # The same split, tagged by the gate, needs no prefix.
+    tagged = {**attempt, "kind": "split"}
+    assert _checked(_check_root(tmp_path / "tagged", tagged), _ruling(tagged)) is None
+
+
+@pytest.mark.parametrize("pinned", ["checked", "env"])
+def test_the_check_takes_legacy_splits_from_the_checked_root_never_the_env(tmp_path, monkeypatch,
+                                                                          pinned):
+    # Codex review of #1207: MODELSPEC_DATA_DIR naming another checkout neither accepts nor
+    # refuses a ruling: the ids come from the very log being checked.
+    from decision.retention import using_data_dir
+
+    attempt = _attempt()
+    checked = _check_root(tmp_path / "checked", attempt)
+    # The other log starts with another line, so reading its prefix would refuse what the checked
+    # log's pin accepts, and accept what it refuses.
+    other = _check_root(tmp_path / "other", _attempt(epoch="other"), attempt)
+    _pin(monkeypatch, checked if pinned == "checked" else other)
+    with using_data_dir(other):  # the env names the other checkout
+        problem = _checked(checked, _ruling(attempt))
+    if pinned == "checked":
+        assert problem is None
+    else:  # pinned in the other checkout only: the checked log has no legacy split
+        assert problem is not None and problem[0] == "no_disagreement"
