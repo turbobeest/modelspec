@@ -272,7 +272,7 @@ def replaced_value_mismatch(fact: Mapping[str, Any], key: Sequence[str],
     day = str(row.get("date") or "9999")
     for entry in log.entries[:index + 1]:
         if (entry.get("subject"), entry.get("facet")) != (subject, facet) \
-                or "filed_value" not in entry:
+                or "filed_value" not in entry or entry.get("kind") in ("split", "silent"):
             continue
         replaced = entry["filed_value"]
         if replaced is None or _canonical(replaced, facet) == _canonical(value, facet):

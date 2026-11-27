@@ -1099,7 +1099,8 @@ class _Compiler:
                 listed, problems = standing(
                     self.inputs.held, fact_at=lambda s, fa: facts.get((s, fa)),
                     log=self._clearing_log(), verdicts=self.log,
-                    clearings=self.quarantine_clearings)
+                    clearings=self.quarantine_clearings, sources=self.sources,
+                    history=self.inputs.clearing_history, cutoff=self._clearing_cutoff())
                 if problems:
                     raise SnapshotBuildError(
                         f"held list: {len(problems)} listing(s) do not resolve "

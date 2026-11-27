@@ -418,10 +418,15 @@ def _held_standing(root: Path, directory: Path) -> set[tuple[str, str]]:
         for fact in front.get("facts") or []:
             if model_id and isinstance(fact, dict):
                 facts[(str(model_id), str(fact.get("facet")))] = fact
-    log, verdicts, _cutoff = _correction_inputs(root, None)
-    clearings, _history = _clearing_inputs(root)
+    from decision.sources import load_sources
+
+    log, verdicts, cutoff = _correction_inputs(root, None)
+    clearings, history = _clearing_inputs(root)
+    sources = {sid: str(source.url) for sid, source in
+               load_sources(root / "registry" / "sources.yaml").items()}
     listed, problems = standing(entries, fact_at=lambda s, f: facts.get((s, f)), log=log,
-                                verdicts=verdicts, clearings=clearings)
+                                verdicts=verdicts, clearings=clearings, sources=sources,
+                                history=history, cutoff=cutoff)
     if problems:
         raise LoadError(f"held list: {len(problems)} listing(s) do not resolve "
                         f"({summary(problems)})")

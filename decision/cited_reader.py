@@ -255,7 +255,8 @@ def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_
               board_region_sha256: str | None = None,
               own_fetch: bool = False,
               filed: Mapping[str, Any] | None = None,
-              kind: Callable[[Mapping[str, Any]], str | None] | None = None
+              kind: Callable[[Mapping[str, Any]], str | None] | None = None,
+              filed_kinds: Sequence[str] | None = None
               ) -> list[ReaderAnswer]:
     """Ask each reader the same prompt; record the hash of what was sent and the manifest.
 
@@ -317,5 +318,9 @@ def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_
         made = kind(entry)
         if made is not None:
             entry["kind"] = made
+    if filed_kinds is not None and entry.get("kind") not in filed_kinds:
+        # MODEL-491: the filed value stays only on a line of a kind that names it (a split or
+        # silent read a held listing rests on), so no other line gains a replaced value.
+        entry.pop("filed_value", None)
     log_attempt(entry, data_dir=data_dir)
     return answers

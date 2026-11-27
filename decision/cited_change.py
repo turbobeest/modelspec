@@ -1274,10 +1274,11 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
                                 subject_name=found.subject_name, page_bytes=page_bytes,
                                 readers=readers, epoch=epoch, definition=found.definition,
                                 region_sha256=_region_sha256(row, page_bytes),
-                                own_fetch=own_fetch, filed=found.fact if retaining else None,
-                                kind=(_retained_kind(found.fact, facet_def, correct=correct,
-                                                     clearing=clearing is not None)
-                                      if retaining else None))
+                                own_fetch=own_fetch, filed=found.fact,
+                                kind=_read_kind(found.fact, facet_def, correct=correct,
+                                                clearing=clearing is not None,
+                                                retaining=retaining),
+                                filed_kinds=None if retaining else ("split", "silent"))
             break
         except ReaderError:
             continue
@@ -1416,6 +1417,27 @@ def _reconfirmed(found: Lookup, record: dict[str, JsonValue], *, subject: str, e
         return _refuse("reconfirmation_not_admitted", problem)
     record["read_against"] = fact_sha256(found.fact)
     return CitedChange("cited_change", None, "", record)
+
+
+def _read_kind(fact: Mapping[str, Any], facet_def: Any, *, correct: bool, clearing: bool,
+               retaining: bool) -> Callable[[Mapping[str, Any]], str | None]:
+    """What a complete read shows, written into its attempt line by ``read_page`` (``kind``)
+    under the line's hash, so nothing later infers it (MODEL-491): ``split`` when the two
+    readers disagreed, ``silent`` when both agreed the page states nothing; on a retaining page
+    an agreed value is ``_retained_kind``'s. A held listing rests only on such a tag
+    (``decision.held_list``)."""
+    retained = _retained_kind(fact, facet_def, correct=correct, clearing=clearing)
+
+    def kind(entry: Mapping[str, Any]) -> str | None:
+        if entry.get("complete") is not True:
+            return None
+        if entry.get("agreed") is False:
+            return "split"
+        if entry.get("agreed") is True and entry.get("agreed_value") is None:
+            return "silent"
+        return retained(entry) if retaining else None
+
+    return kind
 
 
 def _retained_kind(fact: Mapping[str, Any], facet_def: Any, *, correct: bool,
