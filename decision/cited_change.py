@@ -821,15 +821,19 @@ def _epoch_at_verdict(verdict: Mapping[str, Any], *, subject: str, facet: str, f
     if derived is None:
         return _refuse("quarantined", "the record's epoch when the verdict was made cannot be "
                        f"shown; {QUARANTINED}")
-    from decision.quarantine_clearing import first_moved
+    from decision.quarantine_clearing import first_moved, first_root
 
+    # A plain record still in its first epoch at the verdict (E6) is always read in the first
+    # epoch in force today, as the build checks it against the agreement's day.
+    if settings is None and first == "initial" \
+            and first_root(derived, facet=facet, verdict=verdict):
+        if not first_moved(derived, base, facet=facet, verdict=verdict, at=None):
+            return _refuse("epoch_not_current",
+                           "the record's epoch now is not today's first epoch")
+        return None
     # A board row filed in its settings epoch is in a board epoch of it once the gate names one
     # (MODEL-555): the board moved since, and the clearing extends the epoch the row is in now.
-    # A plain fact's first epoch moves with a definition version in force since the verdict
-    # (E6): the clearing is read in today's first epoch.
-    if derived != base and not (derived == first and is_board_epoch(base, first)) \
-            and not (settings is None and first_moved(derived, base, facet=facet,
-                                                      verdict=verdict, at=None)):
+    if derived != base and not (derived == first and is_board_epoch(base, first)):
         return _refuse("epoch_not_current",
                        "the record's epoch now is not its epoch when the verdict was made")
     return None

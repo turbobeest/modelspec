@@ -195,7 +195,7 @@ def test_a_clearing_in_the_new_epoch_ignores_a_version_1_split_and_names_def2(da
 
 
 def test_the_version_in_force_is_the_one_on_the_day_a_thing_was_made():
-    from datetime import date, datetime, timezone
+    from datetime import date, datetime
 
     from decision.cited_reader import epoch_root
 
@@ -283,3 +283,43 @@ def test_a_ruling_on_a_def2_split_is_read_in_def2():
     ruling = owner._ruling(attempt, epoch="def2", ruled_at="2026-11-20")
     assert owner._build(owner._ruled_fact(ruling), [ruling], [attempt],
                         as_of=date(2026, 11, 27)).fact(owner.MID, FACET).state != "known"
+
+
+def test_an_initial_clearing_agreement_made_after_def2_took_effect_is_refused(data):
+    """Codex on #1200: the agreement must sit in the first epoch in force on its own day, even when
+    the verdict's epoch is that same old one, so an initial agreement made after def2 took effect
+    clears nothing; the same agreement made before it does."""
+    from datetime import date, datetime
+
+    from decision.quarantine_clearing import (
+        AttemptLog,
+        clearing_epoch,
+        line,
+        line_problem,
+        verdict_sha256,
+    )
+    from tests import test_quarantine_clearing as qc
+
+    verdict = qc.held_mismatch(data)
+    target = verdict["target"]
+    for base, at, ok in (("initial", "2026-11-20T09:00:00+00:00", True),
+                         ("initial", "2026-11-28T09:00:00+00:00", False),
+                         ("def2", "2026-11-28T09:00:00+00:00", True),
+                         ("def2", "2026-11-20T09:00:00+00:00", False)):
+        epoch = clearing_epoch(base, verdict_sha256(verdict))
+        attempt = {"subject": gate.SUBJECT, "facet": FACET, "epoch": epoch, "url": gate.URL,
+                   "complete": True, "agreed": True, "agreed_value": 262144, "harness": True,
+                   "page_sha256": "3" * 64, "text_sha256": "a" * 64, "prompt_sha256": "4" * 64,
+                   "at": at, "readers": [
+                       {"reader_id": "a", "family": "openai", "version": "1", "value": 262144},
+                       {"reader_id": "b", "family": "anthropic", "version": "1",
+                        "value": 262144}]}
+        raw = json.dumps(attempt, sort_keys=True, ensure_ascii=False)
+        when = datetime.fromisoformat(at).astimezone(UTC).replace(hour=10)
+        entry = line(key=(target["kind"], target["id"], target["value_hash"]), verdict=verdict,
+                     subject=gate.SUBJECT, facet=FACET, epoch=epoch, attempt_line=raw,
+                     value=262144, at=when)
+        problem, _ = line_problem(entry, verdict=verdict, subject=gate.SUBJECT, facet=FACET,
+                                  ids=lambda rid: True, log=AttemptLog([raw]), first="initial",
+                                  history=qc.events(verdict), cutoff=date(2026, 12, 31))
+        assert (problem == "") is ok, (base, at, problem)

@@ -661,16 +661,30 @@ def line_problem(entry: Any, *, verdict: Mapping[str, Any], subject: str, facet:
                             first=first, settings=settings, clearings=clearings)
     if derived is None:
         return "the record's epoch at the verdict cannot be shown", None
-    if base != derived and not _board_base(base, derived, first, settings, attempt) \
-            and not (settings is None and first == "initial"
-                     and first_moved(derived, base, facet=facet, verdict=verdict,
-                                     at=attempt.get("at") or "")):
+    if settings is None and first == "initial" and first_root(derived, facet=facet,
+                                                              verdict=verdict):
+        # A plain record still in its first epoch at the verdict (E6): its clearing is read in the
+        # first epoch in force on the agreement's own day, always, whether or not a version moved
+        # it since the verdict. An agreement in an older first epoch is in the wrong one.
+        if not first_moved(derived, base, facet=facet, verdict=verdict,
+                           at=attempt.get("at") or ""):
+            return "the clearing's base is not the first epoch in force on its agreement's day", \
+                None
+    elif base != derived and not _board_base(base, derived, first, settings, attempt):
         return "the clearing's base epoch is not the record's epoch at the verdict", None
     for epoch in (entry["epoch"], base):
         problem = epoch_problem(log.keyed(subject, facet, epoch), entry["value"], facet)
         if problem is not None:
             return problem, None
     return "", attempt
+
+
+def first_root(derived: str, *, facet: str, verdict: Mapping[str, Any]) -> bool:
+    """Whether ``derived`` is a plain fact's first epoch on the verdict's day (MODEL-491, E6):
+    the record had not left its first epoch when the verdict was made."""
+    from decision.cited_reader import epoch_root
+
+    return derived == epoch_root(facet, verdict.get("date") or "")
 
 
 def first_moved(derived: str, base: str, *, facet: str, verdict: Mapping[str, Any],
