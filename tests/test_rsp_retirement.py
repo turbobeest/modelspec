@@ -22,10 +22,12 @@ NULL_FACET = "feature.tool_calling"
 NULL_FID = f"{MID}#{NULL_FACET}"
 
 
-def row(method, *, outcome="verified", day="2026-09-25", value=128000, fid=FID):
+def row(method, *, outcome="verified", day="2026-09-25", value=128000, fid=FID,
+        agent="codex-model-143"):
     v = verification("fact", fid, outcome, day=day, value=value)
     v["method"] = method
     v["verifier"] = {**v["verifier"], "method": method}
+    v["collector"] = {**v["collector"], "agent": agent}
     return v
 
 
@@ -79,6 +81,14 @@ def test_a_label_matcher_never_verifies_a_null_value(matcher):
     other = row("absence-reading@1", value=None, fid=NULL_FID)
     assert verification_row_counts(other)
     assert shown([null], [other]).fact(MID, NULL_FACET).state == "not_disclosed"
+
+
+@pytest.mark.parametrize("change", ["later_day", "other_collector"])
+def test_a_later_absence_reading_by_a_label_matcher_still_counts(change):
+    # E5 is MODEL-143 round 1 only: a later absence reading by the same readers is not affected.
+    kw = {"day": "2026-11-24"} if change == "later_day" else {"agent": "model-491-builder"}
+    for matcher in ("model-page-label-match@1", "key-value-match@1"):
+        assert verification_row_counts(row(matcher, value=None, fid=NULL_FID, **kw))
 
 
 def test_a_label_matchers_mismatch_on_a_null_still_holds():

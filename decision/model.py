@@ -133,9 +133,11 @@ def verification_counts(outcome: str, collector: str, verifier: str) -> bool:
 #: Methods whose rows never verify a value (MODEL-491). ``retained-source-proof@1`` (MODEL-143
 #: round 2) "proved" hard-coded values by keyword presence, and compared nothing with the page.
 RETIRED_METHODS = frozenset({"retained-source-proof@1"})
-#: Readers that match a label on a page. One that "verified" a null value matched the page naming
-#: the model, not a value, so it is no verification of a null or ``not_disclosed`` fact (E5).
+#: Readers that match a label on a page (E5). In MODEL-143 round 1 (collector ``codex-model-143``,
+#: 2026-09-25) the claims were filed with a null value, so these readers "verified" a null on any
+#: page that named the model: no verification of a null or ``not_disclosed`` fact.
 LABEL_MATCHERS = frozenset({"model-page-label-match@1", "key-value-match@1"})
+ROUND_ONE = ("codex-model-143", "2026-09-25")
 _NULL_HASH = "sha256:74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
 
 
@@ -146,8 +148,9 @@ def verification_row_counts(row: Any, *, retire: bool = True) -> bool:
     - A same-family ``verified`` row is no second key (``verification_counts``).
     - A row of a retired method (``RETIRED_METHODS``) never counts, whatever its outcome. The
       method is the row's, or its verifier's.
-    - A label matcher's ``verified`` row bound to the null value never counts (E5). It matched the
-      page naming the model, which shows nothing about a value the page does not state.
+    - A MODEL-143 round-1 label matcher's ``verified`` row bound to the null value never counts
+      (E5, ``ROUND_ONE``): it matched the page naming the model, which shows nothing about a value
+      the page does not state. Later absence readings by the same readers are not affected.
 
     ``retire=False`` keeps the rule before MODEL-491 (the same-family rule only). That is for the
     engine's frozen public data image alone, which is frozen as filed and reproduced byte for
@@ -173,7 +176,8 @@ def verification_row_counts(row: Any, *, retire: bool = True) -> bool:
     target = get("target")
     value_hash_ = target.get("value_hash") if isinstance(target, Mapping) \
         else getattr(target, "value_hash", None)
-    if outcome == "verified" and methods & LABEL_MATCHERS and str(value_hash_ or "") == _NULL_HASH:
+    if outcome == "verified" and methods & LABEL_MATCHERS and str(value_hash_ or "") == _NULL_HASH \
+            and (field(collector, "agent"), str(get("date") or "")) == ROUND_ONE:
         return False
     return True
 
