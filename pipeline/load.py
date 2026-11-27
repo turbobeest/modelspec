@@ -314,8 +314,17 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
                     logger.warning("%s: a fact's owner ruling does not stand; withheld", model_id)
                     withheld.append(str(fact.get("facet")))
                     continue
-            if is_reconfirmation(fact) and reconfirmation_problem(fact) is not None:
-                # The snapshot's own test (MODEL-572): a reconfirmation that fails it is withheld.
+            if is_reconfirmation(fact):
+                # The snapshot's own test (MODEL-572), its hold included: a reconfirmation that
+                # fails it is withheld.
+                if corrections is None:
+                    corrections = _correction_inputs(root, as_of)
+                log, verdicts, cutoff = corrections
+                stands = reconfirmation_problem(fact, str(model_id), log=log, verdicts=verdicts,
+                                                sources=sources, cutoff=cutoff) is None
+            else:
+                stands = True
+            if not stands:
                 logger.warning("%s: a fact's reconfirmation does not stand; withheld", model_id)
                 withheld.append(str(fact.get("facet")))
                 continue

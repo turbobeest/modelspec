@@ -17,23 +17,31 @@ first-party cite-only page, no disagreement logged in the fact's epoch, no held 
 * the agreed value and state are the filed ones; an agreed other value is refused
   (``value_differs``) and files nothing. A change goes through the normal path.
 
-The record is the normal ``RULE`` block with ``reconfirmed: true`` and ``previous_state``. The
-gate asks ``reconfirmation_problem`` of the fact as a writer files it, and so do the build
-(``decision.snapshot``) and the site loader (``pipeline.load``): one test. A fact whose block
-claims a reconfirmation and fails it is kept out of the build. Nothing here writes.
+The record is the normal ``RULE`` block with ``reconfirmed: true``, ``previous_state``, the epoch
+it was read in and the agreement by the hash of its exact line in the attempt log (as a MODEL-573
+correction names its agreement). The gate asks ``reconfirmation_problem`` of the fact as a writer
+files it (``filed``), and so do the build (``decision.snapshot``) and the site loader
+(``pipeline.load``): one test. It checks the served value against the logged attempt line, never
+against the fact's own fields, and holds the fact while any of its values has an unresolved
+verdict (``cited_change.held_rows``, the build's hold). A fact whose block claims a
+reconfirmation and fails it is kept out. The writer files every source the fact cited before in
+``checked_sources``, so no source leaves its provenance. Nothing here writes.
 """
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+import hashlib
+import json
+from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime
-from types import SimpleNamespace
 from typing import Any
 
 #: The block key that marks a reconfirmation.
 MARK = "reconfirmed"
 DECIDED_BY = "orchestrator 2026-11-26 (MODEL-572, J11)"
 STATES = frozenset({"known", "not_disclosed"})
+#: A fact with no cited-change block and no ruling is read in this epoch (``fact_epoch``).
+EPOCH = "initial"
 
 
 def _block(fact: Mapping[str, Any]) -> Mapping[str, Any] | None:
@@ -48,11 +56,25 @@ def is_reconfirmation(fact: Mapping[str, Any]) -> bool:
     return block is not None and MARK in block
 
 
-def _day(value: Any) -> date | None:
-    try:
-        return date.fromisoformat(value) if isinstance(value, str) else None
-    except ValueError:
-        return None
+def fact_sha256(fact: Mapping[str, Any]) -> str:
+    """The fact as the gate read it, in one spelling: a writer refuses a record read against
+    another (a stale reconfirmation never overwrites a newer value, state or block)."""
+    text = json.dumps(fact, sort_keys=True, ensure_ascii=False, separators=(",", ":"),
+                      default=str)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def filed(old: Mapping[str, Any], record: Mapping[str, Any]) -> dict[str, Any]:
+    """The fact as a writer files a reconfirmation: ``retained_correction.filed_fact`` (value,
+    state, the one source read, the block), with every source the fact cited before kept in
+    ``checked_sources``."""
+    from decision.retained_correction import filed_fact
+
+    fact = filed_fact(old, record)
+    before = [s.get("source_id") for s in old.get("sources") or () if isinstance(s, Mapping)]
+    fact["checked_sources"] = list(dict.fromkeys(
+        i for i in (*(old.get("checked_sources") or ()), *before) if isinstance(i, str) and i))
+    return fact
 
 
 def _retrieved_day(value: Any) -> date | None:
@@ -65,50 +87,87 @@ def _retrieved_day(value: Any) -> date | None:
     return when.astimezone(UTC).date()
 
 
-def reconfirmation_problem(fact: Mapping[str, Any]) -> str | None:
-    """Why ``fact`` is not a reconfirmation this rule admits, or ``None``. ``fact`` is the fact as
-    filed: its value, state, sources and ``derivation.cited_change`` block."""
-    from decision.cited_change import RULE, _check_identities
-    from decision.cited_reader import canonical
+def reconfirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
+                           verdicts: Mapping[tuple[str, str, str], Any],
+                           sources: Mapping[str, str], cutoff: date,
+                           ids: Sequence[str] = ()) -> str | None:
+    """Why ``fact`` is not a reconfirmation this rule admits, or ``None``.
+
+    ``log`` is the attempt log (``quarantine_clearing.AttemptLog``), ``verdicts`` the verification
+    log ranked by the build's own rule, ``sources`` the source registry's URLs, ``cutoff`` the
+    last day the caller may know, ``ids`` further identities the fact may carry in the
+    verification log (its location id and stored id are always checked)."""
+    from decision.cited_change import RULE, fact_epoch, held_rows
+    from decision.quarantine_clearing import (
+        _at,
+        _block_is,
+        agreement_problem,
+        epoch_problem,
+        line_hash,
+    )
+    from decision.retention import cite_only_status
 
     block = _block(fact)
-    if block is None:
-        return "the fact carries no cited-change block"
-    if block.get(MARK) is not True:
+    if block is None or block.get(MARK) is not True:
         return "the block does not mark a reconfirmation"
-    if block.get("rule") != RULE or block.get("decided_by") is None:
+    if block.get("rule") != RULE:
         return "a reconfirmation is made only by the cite-only rule"
-    derivation = fact.get("derivation")
-    if set(derivation) != {"cited_change"}:
-        return "a reconfirmation carries no owner's ruling or other derivation"
-    if any(key in block for key in ("clearing_epoch", "clearing", "epoch", "agreement")):
-        return "a reconfirmation is no clearing and no correction"
+    if set(fact["derivation"]) != {"cited_change"} or "clearing_epoch" in block:
+        return "a reconfirmation carries no owner's ruling, clearing or other derivation"
     facet, state, value = fact.get("facet"), fact.get("state"), fact.get("value")
-    if not isinstance(facet, str) or state not in STATES:
-        return "a reconfirmation is of a known or not_disclosed fact"
-    if block.get("previous_state") != state:
-        return "the state is not the filed state"
-    if (state == "not_disclosed") != (value is None):
-        return "a not_disclosed fact has no value, and a known fact has one"
-    if canonical(value, facet) != canonical(block.get("previous_value"), facet):
-        return "the value is not the filed value"
-    readers = block.get("readers")
-    if not isinstance(readers, list) or len(readers) != 2 \
-            or not all(isinstance(r, Mapping) for r in readers):
-        return "a reconfirmation names two readers"
-    # The gate's own identity check (``cited_change._check_identities``), on the recorded readers.
-    if _check_identities([SimpleNamespace(**{n: r.get(n) for n in
-                                             ("reader_id", "family", "version")})
-                          for r in readers]) is not None:
-        return "the readers are not of two distinct known families"
-    if any(canonical(r.get("value"), facet) != canonical(value, facet) for r in readers):
-        return "a reader's answer is not the filed value"
-    if state == "not_disclosed" and any(r.get("finding") != "not_stated" for r in readers):
+    if not isinstance(facet, str) or state not in STATES \
+            or (state == "not_disclosed") != (value is None):
+        return "a reconfirmation is of a known fact with a value or a not_disclosed one"
+    every = tuple(dict.fromkeys(str(i) for i in (*ids, fact.get("id"), f"{subject}#{facet}")
+                                if isinstance(i, str) and i))
+    try:
+        held = held_rows(verdicts, every, fact)
+    except (KeyError, TypeError, AttributeError, ValueError):
+        return "the fact's verification record cannot be read"
+    if held:
+        return f"{len(held)} value(s) of the fact hold an unresolved verdict"
+    epoch, agreement = block.get("epoch"), block.get("agreement")
+    if epoch != EPOCH or not isinstance(agreement, str):
+        return "the block names no agreement in the epoch a plain fact is read in"
+    # The agreement by its exact bytes, at its first position (as a MODEL-573 correction).
+    found = [n for n, raw in enumerate(log.lines) if line_hash(raw) == agreement]
+    if not found:
+        return "the agreement is not a line of the attempt log"
+    index = found[0]
+    attempt = log.entries[index]
+    if (attempt.get("subject"), attempt.get("facet"), attempt.get("epoch")) \
+            != (subject, facet, epoch):
+        return "the agreement is not this fact's, in the epoch the block names"
+    # The served value is the logged agreement's, never the block's own fields.
+    problem = agreement_problem(attempt, value, facet)
+    if problem is not None:
+        return problem
+    if cite_only_status(attempt.get("url")) is not True:
+        return "the agreement did not read a cite-only page"
+    if not _block_is(fact, block, attempt, sources=sources):
+        return "the record is not the block that agreement made"
+    if state == "not_disclosed" and any(r.get("finding") != "not_stated"
+                                        for r in block.get("readers") or ()):
         return "a not_disclosed reconfirmation records each reader's finding"
-    read = _day(block.get("read_date"))
-    sources = fact.get("sources")
-    if read is None or not isinstance(sources, list) or len(sources) != 1 \
-            or not isinstance(sources[0], Mapping) \
-            or _retrieved_day(sources[0].get("retrieved_at")) != read:
+    at = _at(attempt.get("at"))
+    if at is None or at.astimezone(UTC).date() > cutoff:
+        return "the agreement is after this build's cutoff"
+    refs = fact.get("sources")
+    if not isinstance(refs, list) or len(refs) != 1 or not isinstance(refs[0], Mapping) \
+            or _retrieved_day(refs[0].get("retrieved_at")) is None \
+            or str(block.get("read_date")) != _retrieved_day(refs[0]["retrieved_at"]).isoformat():
         return "the fact cites the one page read, at its read date"
+    problem = epoch_problem(log.keyed(subject, facet, epoch), value, facet)
+    if problem is not None:
+        return problem
+    own = fact_epoch(fact)
+    seen = {line_hash(raw) for raw in log.lines[:index + 1]}
+    for raw, later in zip(log.lines[index + 1:], log.entries[index + 1:], strict=True):
+        digest = line_hash(raw)
+        if digest in seen:
+            continue
+        seen.add(digest)
+        if (later.get("subject"), later.get("facet")) == (subject, facet) \
+                and later.get("epoch") not in {epoch, own}:
+            return "an attempt in a later epoch was logged after the agreement"
     return None

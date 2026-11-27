@@ -16,8 +16,7 @@ import pytest
 import yaml
 from decision.cited_change import REFUSALS, cited_change, fact_epoch
 from decision.cited_reader import ATTEMPTS_FILE
-from decision.reconfirmation import MARK, is_reconfirmation, reconfirmation_problem
-from decision.retained_correction import filed_fact
+from decision.reconfirmation import MARK, filed, is_reconfirmation, reconfirmation_problem
 
 from tests import test_cited_change as gate
 from tests.test_cited_change import FACET, SUBJECT, URL, pair, reader, seed, serve
@@ -67,8 +66,23 @@ def licence_run(values=None, **kw):
                readers=pair(values), **kw)
 
 
+def problem(data, fact):
+    """The one test, with the logs and registry the build reads from the data directory."""
+    from datetime import UTC, datetime
+
+    from decision.owner_ruling import read_json_lines
+    from decision.quarantine_clearing import AttemptLog
+    from decision.snapshot import _Compiler
+
+    verdicts = _Compiler._verification_log(read_json_lines(data.root / "verification/log.jsonl"))
+    urls = {s["id"]: s["url"] for s in data.sources}
+    return reconfirmation_problem(fact, SUBJECT, log=AttemptLog.read(data.root / ATTEMPTS_FILE),
+                                  verdicts=verdicts, sources=urls,
+                                  cutoff=datetime.now(UTC).date())
+
+
 def file_record(data, record):
-    fact = filed_fact(data.fact, record)
+    fact = filed(data.fact, record)
     data.fact.clear()
     data.fact.update(fact)
     data.write()
@@ -83,8 +97,8 @@ def test_an_agreement_on_the_filed_value_files_its_record_and_date(data):
     block = out.record["derivation"]["cited_change"]
     assert block[MARK] is True and block["previous_state"] == "known"
     assert block["previous_value"] == FILED and block["read_date"]
-    fact = filed_fact(data.fact, out.record)
-    assert is_reconfirmation(fact) and reconfirmation_problem(fact) is None
+    fact = filed(data.fact, out.record)
+    assert is_reconfirmation(fact) and problem(data, fact) is None
     assert data.log()[-1]["agreed"] is True
 
 
@@ -101,7 +115,7 @@ def test_a_not_disclosed_licence_fact_is_reconfirmed_on_a_silent_page(data):
     block = out.record["derivation"]["cited_change"]
     assert block[MARK] is True and block["previous_state"] == "not_disclosed"
     assert {r["finding"] for r in block["readers"]} == {"not_stated"}
-    assert reconfirmation_problem(filed_fact(data.fact, out.record)) is None
+    assert problem(data, filed(data.fact, out.record)) is None
 
 
 def test_a_licence_fact_meets_the_normal_paths_silence_rules(data):
@@ -183,13 +197,12 @@ def test_a_ruled_fact_or_a_clearing_is_refused_before_any_read(data):
 
 
 def _filed(data):
-    return filed_fact(data.fact, run().record)
+    return filed(data.fact, run().record)
 
 
 @pytest.mark.parametrize("edit", [
     lambda f: f.update(value=262144),
     lambda f: f.update(state="not_disclosed", value=None),
-    lambda f: f["derivation"]["cited_change"].update(previous_value=262144),
     lambda f: f["derivation"]["cited_change"]["readers"][1].update(value=262144),
     lambda f: f["derivation"]["cited_change"]["readers"][1].update(family="gpt-5"),
     lambda f: f["derivation"]["cited_change"]["readers"].pop(),
@@ -201,22 +214,22 @@ def _filed(data):
 ])
 def test_an_edited_reconfirmation_fails_the_test(data, edit):
     fact = _filed(data)
-    assert reconfirmation_problem(fact) is None
+    assert problem(data, fact) is None
     edited = copy.deepcopy(fact)
     edit(edited)
-    assert reconfirmation_problem(edited) is not None
+    assert problem(data, edited) is not None
 
 
 def test_an_edited_licence_reconfirmation_fails_the_test(data):
     licence(data)
-    fact = filed_fact(data.fact, licence_run().record)
-    assert reconfirmation_problem(fact) is None
+    fact = filed(data.fact, licence_run().record)
+    assert problem(data, fact) is None
     for edit in ({"value": "permitted", "state": "known"}, {"value": "permitted"}):
-        assert reconfirmation_problem({**fact, **edit}) is not None
+        assert problem(data, {**fact, **edit}) is not None
     readers = copy.deepcopy(fact)
     for r in readers["derivation"]["cited_change"]["readers"]:
         r.pop("finding")
-    assert reconfirmation_problem(readers) is not None
+    assert problem(data, readers) is not None
 
 
 def _build(data):
@@ -251,7 +264,7 @@ def test_the_build_and_the_site_serve_a_reconfirmation_and_withhold_an_edited_on
     # It is the one test that keeps it out: without it the edited value would be served.
     import decision.reconfirmation as rule
 
-    monkeypatch.setattr(rule, "reconfirmation_problem", lambda fact: None)
+    monkeypatch.setattr(rule, "reconfirmation_problem", lambda *a, **k: None)
     index, card = _build(data)
     assert index.fact(SUBJECT, FACET).value == 262144 and card.withheld_facets == ()
 
@@ -268,7 +281,7 @@ def test_the_writer_files_a_card_reconfirmation_and_its_claim(data):
     after = (data.root / "models/xai/grok-x.md").read_text()
     front = yaml.safe_load(after.split("---", 2)[1])
     (fact,) = front["facts"]
-    assert fact["value"] == FILED and reconfirmation_problem(fact) is None
+    assert fact["value"] == FILED and problem(data, fact) is None
     assert after.endswith("---\nbody\n") and before != after
     events = [json.loads(x) for x in
               (data.root / "verification/queue/events.jsonl").read_text().splitlines()]
@@ -287,3 +300,87 @@ def test_the_writer_files_a_card_reconfirmation_and_its_claim(data):
     assert change.changed
     with pytest.raises(WriteRefused):
         apply(change, data_dir=data.root)
+
+
+# --- review round (Codex): stale writes, the logged line, provenance, the hold ------------------
+
+
+@pytest.mark.parametrize("change", [
+    lambda f: f.update(value=262144),
+    lambda f: f.update(state="not_disclosed", value=None),
+    lambda f: f.update(derivation={"cited_change": {"rule": "x"}}),
+    lambda f: f.update(checked_sources=["hf"]),
+])
+def test_a_stale_reconfirmation_never_overwrites_a_newer_fact(data, change):
+    from scripts.cited_offering import WriteRefused, apply
+
+    out = run()
+    change(data.fact)
+    data.write()
+    before = (data.root / "models/xai/grok-x.md").read_text()
+    with pytest.raises(WriteRefused, match="changed since the gate read it"):
+        apply(out, data_dir=data.root)
+    assert (data.root / "models/xai/grok-x.md").read_text() == before
+    assert not (data.root / "verification/queue/events.jsonl").exists()
+
+
+def test_the_served_value_is_the_logged_agreements_not_the_facts_own_fields(data):
+    fact = _filed(data)
+    assert problem(data, fact) is None
+    # A forgery that is consistent with itself: value, prior value and both answers edited.
+    forged = copy.deepcopy(fact)
+    forged["value"] = 262144
+    block = forged["derivation"]["cited_change"]
+    block["previous_value"] = 262144
+    for r in block["readers"]:
+        r["value"] = 262144
+    assert problem(data, forged) is not None
+    # The logged line itself: gone, or edited, admits nothing.
+    lines = (data.root / ATTEMPTS_FILE).read_text().splitlines()
+    (data.root / ATTEMPTS_FILE).write_text(lines[-1].replace("131072", "131073") + "\n")
+    assert problem(data, fact) is not None
+    (data.root / ATTEMPTS_FILE).write_text("")
+    assert problem(data, fact) is not None
+
+
+def test_a_later_disagreement_in_the_epoch_undoes_the_reconfirmation(data):
+    fact = _filed(data)
+    seed(data, harness=True, agreed=False)
+    assert problem(data, fact) is not None
+
+
+def test_every_source_the_fact_cited_stays_in_its_provenance(data):
+    from scripts.cited_offering import apply
+
+    other = "https://docs.x.ai/docs/models/grok-x-limits"
+    data.sources.append(dict(data.sources[0], id="s2", url=other))
+    data.sources.append(dict(data.sources[0], id="s3", url=other + "-more"))
+    data.fact["sources"].append(dict(source_id="s3", snapshot_ref="sha256:" + "2" * 64,
+                                     cited_regions=["page"]))
+    data.fact["checked_sources"] = ["s2"]
+    data.write()
+    apply(run(), data_dir=data.root)
+    front = yaml.safe_load((data.root / "models/xai/grok-x.md").read_text().split("---", 2)[1])
+    (fact,) = front["facts"]
+    assert [s["source_id"] for s in fact["sources"]] == ["s1"]
+    assert fact["checked_sources"] == ["s2", "s1", "s3"]
+    assert problem(data, fact) is None
+    events = [json.loads(x) for x in
+              (data.root / "verification/queue/events.jsonl").read_text().splitlines()]
+    assert events[0]["claim"]["sources"] == fact["sources"]
+
+
+@pytest.mark.parametrize("outcome", ["unreachable", "mismatch"])
+def test_a_later_unresolved_verdict_holds_the_fact_on_the_site_as_in_the_build(data, outcome):
+    from tests.snapshot_records import verification
+
+    file_record(data, run().record)
+    index, card = _build(data)
+    assert index.fact(SUBJECT, FACET).value == FILED and card.withheld_facets == ()
+    path = data.root / "verification/log.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(verification("fact", f"{SUBJECT}#{FACET}", outcome,
+                                            value=FILED)) + "\n")
+    index, card = _build(data)
+    assert index.fact(SUBJECT, FACET).state != "known"
+    assert card.cited_facts == [] and card.withheld_facets == (FACET,)

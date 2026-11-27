@@ -1250,7 +1250,8 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         for entry in record["derivation"]["cited_change"]["readers"]:
             entry["finding"] = "not_stated"
         if reconfirm:
-            return _reconfirmed(found, record)
+            return _reconfirmed(found, record, subject=subject, epoch=epoch, answers=answers,
+                                now=now)
         return cleared(CitedChange("cited_change", None, "", record))
     if accept_not_disclosed and any(a.get("agreed") and a.get("agreed_value") is None
                                     for a in history):
@@ -1271,7 +1272,8 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
                            "reconfirmation changes nothing, and a change takes the normal path")
         return _reconfirmed(found, _record(
             subject, facet, filed, row, source_id, now, sha256(page_bytes),
-            text_sha256(page_bytes), answers, filed, found.registered_ids, resolved))
+            text_sha256(page_bytes), answers, filed, found.registered_ids, resolved),
+            subject=subject, epoch=epoch, answers=answers, now=now)
     # A clearing re-files the filed value too: it is the agreement, not a change, that clears.
     if not (allow_unchanged or clearing is not None) and same:
         return _refuse("value_unchanged", "the agreed value is the filed value")
@@ -1281,18 +1283,41 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         found.registered_ids, resolved)))
 
 
-def _reconfirmed(found: Lookup, record: dict[str, JsonValue]) -> CitedChange:
-    """The reconfirmation record (MODEL-572), if the fact as a writer files it passes the build's
-    own test (``decision.reconfirmation.reconfirmation_problem``); otherwise a refusal."""
-    from decision.reconfirmation import MARK, reconfirmation_problem
-    from decision.retained_correction import filed_fact
+def _reconfirmed(found: Lookup, record: dict[str, JsonValue], *, subject: str, epoch: str,
+                 answers: Sequence[ReaderAnswer], now: datetime) -> CitedChange:
+    """The reconfirmation record (MODEL-572), or a refusal. The block names the epoch it was read
+    in and the agreement just logged by its exact line; the fact, as a writer files it
+    (``reconfirmation.filed``), must pass the build's own test (``reconfirmation_problem``).
+    ``read_against`` names the fact as read, so a writer refuses a stale record."""
+    from decision.cited_reader import _attempts_path
+    from decision.owner_ruling import loads
+    from decision.quarantine_clearing import AttemptLog, line_hash
+    from decision.reconfirmation import MARK, fact_sha256, filed, reconfirmation_problem
 
     block = record["derivation"]["cited_change"]
     block[MARK] = True
     block["previous_state"] = found.fact.get("state")
-    problem = reconfirmation_problem(filed_fact(found.fact, record))
+    try:
+        raws = [raw for raw in _attempts_path(None).read_text(encoding="utf-8").split("\n")
+                if raw.strip()]
+        logged = attempts(subject, str(record["facet"]), epoch)
+        if not raws or not logged or loads(raws[-1]) != logged[-1] \
+                or logged[-1].get("prompt_sha256") != answers[0].prompt_sha256:
+            return _refuse("registry_lookup_failed",
+                           "the agreement just logged is not the attempt log's last line")
+        block["epoch"], block["agreement"] = epoch, line_hash(raws[-1])
+        verdicts = _ranked_verdicts()
+        log = AttemptLog(raws)
+    except (OSError, ValueError, LookupFailed) as error:
+        return _refuse("registry_lookup_failed", f"the logs cannot be read: {type(error).__name__}")
+    urls = {str(k): str(v.get("url")) for k, v in found.sources.items()
+            if isinstance(v, Mapping) and v.get("url")}
+    problem = reconfirmation_problem(filed(found.fact, record), subject, log=log,
+                                     verdicts=verdicts, sources=urls,
+                                     cutoff=now.astimezone(UTC).date(), ids=found.fact_ids)
     if problem is not None:
         return _refuse("reconfirmation_not_admitted", problem)
+    record["read_against"] = fact_sha256(found.fact)
     return CitedChange("cited_change", None, "", record)
 
 

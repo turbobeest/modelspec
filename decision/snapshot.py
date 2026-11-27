@@ -1357,9 +1357,12 @@ class _Compiler:
             if state == "known" and self._repeats_a_member(facet_id, f.get("value")):
                 self._reject((sid, facet_id), "quarantined (repeated member)", source_ids)
                 continue
-            if is_reconfirmation(f) and reconfirmation_problem(f) is not None:
+            if is_reconfirmation(f) and reconfirmation_problem(
+                    f, sid, log=self._clearing_log(), verdicts=self.log, sources=self.sources,
+                    cutoff=self._clearing_cutoff()) is not None:
                 # A block that claims a reconfirmation (MODEL-572) stands only on the gate's own
-                # test: a value, state or reader edited under it keeps the fact out.
+                # test, against its logged agreement and the build's hold: a value, state or
+                # reader edited under it, or a later unresolved verdict, keeps the fact out.
                 self._reject((sid, facet_id), "quarantined (reconfirmation)", source_ids)
                 continue
             measurement = self._measurement(sid, facet_id, f.get("measurement"))
@@ -2483,11 +2486,13 @@ def collect_repo(root: Path) -> SnapshotInputs:
         ruling_reopened = ruling_inputs.reopened
     attempt_lines: list[str] = []
     clearing_history: dict[str, list[dict[str, Any]]] = {}
+    from decision.reconfirmation import is_reconfirmation
     from decision.retained_correction import is_correction
 
-    # A retained-page correction (MODEL-573) is admitted only through its line in the attempt
-    # log, so the log is read whenever a fact carries one.
-    corrections = any(is_correction(f) for row in [*models, *offerings, *subscriptions]
+    # A retained-page correction (MODEL-573) or a reconfirmation (MODEL-572) is admitted only
+    # through its line in the attempt log, so the log is read whenever a fact carries one.
+    corrections = any(is_correction(f) or is_reconfirmation(f)
+                      for row in [*models, *offerings, *subscriptions]
                       for f in row.get("facts") or [] if isinstance(f, Mapping))
     if corrections and not quarantine_clearings:
         from decision.cited_reader import ATTEMPTS_FILE

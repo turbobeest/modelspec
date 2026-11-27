@@ -41,6 +41,7 @@ import yaml
 
 from decision.cited_change import RULE, CitedChange, Lookup, cited_change, lookup
 from decision.cited_reader import Reader
+from decision.reconfirmation import MARK
 from decision.model import DETERMINISTIC, SourceRef, TargetRef, VerificationActor
 from decision.verify import Claim, ClaudeCLICompletion, Queue, Result
 
@@ -175,23 +176,50 @@ def check_rewrite(before: str, after: str, fact_id: str, fact: dict[str, Any]) -
         raise WriteRefused("the rewrite did not land the record")
 
 
+def _reconfirmed_fact(record: dict[str, Any], found: Lookup, data_dir: Path) -> dict[str, Any]:
+    """The fact a reconfirmation files (``reconfirmation.filed``), or a refusal: the fact on disk
+    must still be the one the gate read (its value, state and block, by ``read_against``), and
+    the filed fact must pass the build's own test against the logs on disk."""
+    from decision.reconfirmation import fact_sha256, filed, reconfirmation_problem
+    from pipeline.load import LoadError, _correction_inputs
+
+    block = record["derivation"]["cited_change"]
+    current = dict(found.fact)
+    if record.get("read_against") != fact_sha256(current) or "derivation" in current \
+            or current.get("state") != block.get("previous_state") \
+            or json.dumps(current.get("value")) != json.dumps(block.get("previous_value")):
+        raise WriteRefused("the fact changed since the gate read it; read it again")
+    fact = filed(current, {k: v for k, v in record.items() if k != "read_against"})
+    try:
+        log, verdicts, cutoff = _correction_inputs(data_dir, None)
+    except LoadError as error:
+        raise WriteRefused(f"the logs cannot be read: {error}") from None
+    urls = {str(k): str(v.get("url")) for k, v in found.sources.items()
+            if isinstance(v, dict) and v.get("url")}
+    problem = reconfirmation_problem(fact, record["subject"], log=log, verdicts=verdicts,
+                                     sources=urls, cutoff=cutoff, ids=found.fact_ids)
+    if problem is not None:
+        raise WriteRefused(f"the reconfirmation would not stand in the build: {problem}")
+    return fact
+
+
 def apply(outcome: CitedChange, *, data_dir: str | Path) -> Path:
     """Write a ``cited_change`` outcome for an offering fact (or a reconfirmation of a card
     fact): the file, then the claim."""
-    from decision.reconfirmation import is_reconfirmation, reconfirmation_problem
-
     if not outcome.changed or outcome.record is None:
         raise WriteRefused("only a cited_change is written")
-    record = {k: v for k, v in outcome.record.items() if k != "clearings"}
+    record = {k: v for k, v in outcome.record.items() if k not in {"clearings", "read_against"}}
     found = lookup(record["subject"], record["facet"], data_dir)
     if found.path is None or found.kind not in {"offering", "model"}:
         raise WriteRefused("not an offering or card fact")
-    fact = new_fact(dict(found.fact), record)
-    if is_reconfirmation(fact) and reconfirmation_problem(fact) is not None:
-        raise WriteRefused("the reconfirmation would not stand in the build")
+    reconfirming = MARK in (record["derivation"]["cited_change"])
+    if reconfirming:
+        fact = _reconfirmed_fact(outcome.record, found, Path(data_dir))
+    else:
+        fact = new_fact(dict(found.fact), record)
     before = found.path.read_text(encoding="utf-8")
     if found.kind == "model":
-        if not is_reconfirmation(fact):
+        if not reconfirming:
             raise WriteRefused("a card fact is written here only for a reconfirmation")
         from scripts.file_owner_ruling import Refused, replace_fact
 
