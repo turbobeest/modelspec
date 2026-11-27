@@ -1149,7 +1149,8 @@ def test_the_shrink_check_compares_with_the_merge_base(tmp_path, seeded):
         main(["check", "--data-dir", str(root), "--base", "next"])
 
 
-def test_collect_repo_reads_the_list_and_checks_the_private_checkout(tmp_path, seeded):
+def test_collect_repo_reads_the_list_and_checks_the_private_checkout(tmp_path, seeded,
+                                                                     monkeypatch):
     from decision.quarantine_clearing import grandfather_document
     from decision.snapshot import SnapshotBuildError, collect_repo
 
@@ -1158,9 +1159,12 @@ def test_collect_repo_reads_the_list_and_checks_the_private_checkout(tmp_path, s
         (root / d).mkdir(parents=True)
     (root / "registry/sources.yaml").write_text(yaml.safe_dump({"schema_version": 1,
                                                                "sources": []}))
-    assert collect_repo(root).check_held_rows is False  # no pin: not the private checkout
+    # MODEL-491, Codex review 4: the check is on only when the caller states the data is private;
+    # a ``.engine-pin`` or a data directory in the environment turns nothing on.
     (root / ".engine-pin").write_text("0" * 40 + "\n")
-    inputs = collect_repo(root)
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(root))
+    assert collect_repo(root).check_held_rows is False
+    inputs = collect_repo(root, private=True)
     assert inputs.check_held_rows is True and inputs.held_row_grandfather == {}
     (root / "verification/held-row-grandfather.json").write_text(
         json.dumps(grandfather_document({"fact": [A_HASH, B_HASH]}, {"fact": [B_HASH]})))

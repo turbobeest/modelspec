@@ -45,23 +45,14 @@ def test_the_public_image_builds_as_under_the_rule_before_model_491(public, monk
 
 def test_a_stray_engine_pin_and_a_data_dir_change_nothing(public, tmp_path, monkeypatch):
     # Codex review 4: a public build in a checkout with a stray ``.engine-pin``, and with
-    # MODELSPEC_DATA_DIR naming it, stays on the old rules and is byte-identical. (MODEL-552's
-    # held-row check, a separate switch on main, still keys on ``.engine-pin``; it is held equal
-    # here so the comparison is of MODEL-491's rules alone.)
-    from dataclasses import replace
-
-    from decision.registry import default
-    from decision.snapshot import build_snapshot, load_premier
+    # MODELSPEC_DATA_DIR naming it, stays on the old rules, runs no held-row check (MODEL-552),
+    # and is byte-identical.
     from pipeline.data_source import overlay
 
-    def built(root):
-        inputs = replace(collect_repo(root), check_held_rows=False)
-        assert inputs.retire_rsp is False
-        return build_snapshot(inputs, registry=default(), as_of=AS_OF,
-                              premier=load_premier(root / "premier/slice-1.yaml"))
-
-    expected = built(ROOT).content_hash
+    expected = _built().content_hash
     root = overlay(ROOT, ROOT, tmp_path / "root")
     (root / ".engine-pin").write_text("0" * 40 + "\n")
     monkeypatch.setenv("MODELSPEC_DATA_DIR", str(root))
-    assert built(root).content_hash == expected
+    inputs = collect_repo(root)
+    assert inputs.retire_rsp is False and inputs.check_held_rows is False
+    assert _built(root).content_hash == expected

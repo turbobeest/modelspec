@@ -414,9 +414,9 @@ class SnapshotInputs:
     #: already gone when the ``held_row_missing`` check began. The list may only shrink.
     held_row_grandfather: Mapping[str, frozenset[str]] = field(default_factory=dict)
     #: Whether the build refuses a failed verdict on a vanished row id (``held_row_missing``).
-    #: ``collect_repo`` turns it on for every build from the private data checkout (the one that
-    #: carries ``.engine-pin``); the engine's frozen public image and hand-built test inputs that
-    #: name only a few records leave it off.
+    #: ``collect_repo(root, private=True)`` turns it on for every build its caller states is of
+    #: the private data, never from a file or the environment (MODEL-491); the engine's frozen
+    #: public image and hand-built test inputs that name only a few records leave it off.
     check_held_rows: bool = False
     #: Whether ``retained-source-proof@1`` rows and a round-1 label matcher's rows on a null value
     #: stop counting (MODEL-491, ``decision.model.verification_row_counts``): on for every build
@@ -2697,10 +2697,9 @@ def collect_repo(root: Path, *, private: bool = False) -> SnapshotInputs:
                           cited_attempt_lines=attempt_lines,
                           clearing_history=clearing_history,
                           held_row_grandfather=held_row_grandfather,
-                          # The private data checkout (it carries ``.engine-pin``, which its CI
-                          # requires): every build from it refuses a vanished hold. The engine's
-                          # frozen public image has no pin and is not re-checked here.
-                          check_held_rows=(root / ".engine-pin").is_file(),
+                          # A build its caller states is of the private data refuses a vanished
+                          # hold (MODEL-552); the engine's frozen public image is not re-checked.
+                          check_held_rows=private,
                           retire_rsp=private,
                           labs=load_labs(root), hardware_fit_records=fit_records,
                           hardware=[yaml.safe_load(path.read_text(encoding="utf-8"))
