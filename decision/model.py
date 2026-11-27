@@ -148,9 +148,11 @@ def verification_row_counts(row: Any, *, retire: bool = True) -> bool:
     - A same-family ``verified`` row is no second key (``verification_counts``).
     - A row of a retired method (``RETIRED_METHODS``) never counts, whatever its outcome. The
       method is the row's, or its verifier's.
-    - A MODEL-143 round-1 label matcher's ``verified`` row bound to the null value never counts
-      (E5, ``ROUND_ONE``): it matched the page naming the model, which shows nothing about a value
-      the page does not state. Later absence readings by the same readers are not affected.
+    - A MODEL-143 round-1 label matcher's row bound to the null value never counts, verified or
+      not (E5, ``ROUND_ONE``). That round filed its claims with a null value, so the matcher read
+      only whether the page named the model: a "verified" shows nothing about a value the page
+      does not state, and a "mismatch" nothing against one it does. Later absence readings by
+      the same readers are not affected.
 
     ``retire=False`` keeps the rule before MODEL-491 (the same-family rule only). That is for the
     engine's frozen public data image alone, which is frozen as filed and reproduced byte for
@@ -176,7 +178,7 @@ def verification_row_counts(row: Any, *, retire: bool = True) -> bool:
     target = get("target")
     value_hash_ = target.get("value_hash") if isinstance(target, Mapping) \
         else getattr(target, "value_hash", None)
-    if outcome == "verified" and methods & LABEL_MATCHERS and str(value_hash_ or "") == _NULL_HASH \
+    if methods & LABEL_MATCHERS and str(value_hash_ or "") == _NULL_HASH \
             and (field(collector, "agent"), str(get("date") or "")) == ROUND_ONE:
         return False
     return True

@@ -31,8 +31,9 @@ def row(method, *, outcome="verified", day="2026-09-25", value=128000, fid=FID,
     return v
 
 
-def shown(facts, log, *, retire=True):
-    inputs = SnapshotInputs(models=[model(MID, facts=facts)], sources=dict(SOURCES),
+def shown(facts, log, *, retire=True, sources=None):
+    inputs = SnapshotInputs(models=[model(MID, facts=facts)],
+                            sources={**SOURCES, **(sources or {})},
                             verifications=list(log), retire_rsp=retire)
     return load_built_snapshot(build_snapshot(inputs))
 
@@ -91,9 +92,28 @@ def test_a_later_absence_reading_by_a_label_matcher_still_counts(change):
         assert verification_row_counts(row(matcher, value=None, fid=NULL_FID, **kw))
 
 
-def test_a_label_matchers_mismatch_on_a_null_still_holds():
-    # E5 only stops a label matcher's "verified" from admitting a null; its mismatch still counts.
-    assert verification_row_counts(row("key-value-match@1", outcome="mismatch", value=None))
+@pytest.mark.parametrize("matcher", ["model-page-label-match@1", "key-value-match@1"])
+def test_a_round_one_null_label_row_counts_neither_way(matcher):
+    # E5, both directions: round 1 filed null claims, so its label matcher's null rows show
+    # nothing. A "mismatch" on null no longer holds a fact whose value is now stated, and a
+    # "verified" on null no longer admits a not_disclosed one.
+    mismatch = row(matcher, outcome="mismatch", value=None, fid=FID)
+    assert not verification_row_counts(mismatch)
+    # A cited fact is held by a verdict on any value of its ids: before E5 the round-1 null
+    # mismatch held it, now it does not.
+    stated = fact_on_log()
+    stated["sources"] = [{"source_id": "src-cite", "snapshot_ref": "sha256:" + "6" * 64,
+                          "cited_regions": ["page"], "retrieved_at": "2026-10-10T09:00:00+00:00"}]
+    cite = {"src-cite": "https://www.perplexity.ai/pro"}
+    assert shown([stated], [mismatch], sources=cite).fact(MID, FACET).state == "known"
+    assert shown([stated], [mismatch], sources=cite, retire=False).fact(
+        MID, FACET).state != "known"
+    null = fact_on_log(NULL_FACET, None, state="not_disclosed")
+    assert shown([null], [row(matcher, value=None, fid=NULL_FID)]).fact(
+        MID, NULL_FACET).state != "not_disclosed"
+    # A later reader's mismatch on null still holds.
+    later = row(matcher, outcome="mismatch", value=None, fid=FID, day="2026-11-24")
+    assert verification_row_counts(later)
 
 
 def test_a_same_family_verified_row_still_does_not_count():

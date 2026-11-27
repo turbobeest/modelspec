@@ -281,6 +281,7 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
     #: decided here exactly as there; other facts keep the registry-only citation.
     store = configured_copy_store()
     out: list[Model] = []
+    held = _held_standing(root, directory)  # MODEL-491: listed held facts are withheld
     for path in sorted(directory.rglob("*.md")):
         if path.name in NOT_CONTENT:
             continue
@@ -292,6 +293,11 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
             continue
         cited, withheld = [], []
         for fact in front.get("facts") or []:
+            if (str(model_id), str(fact.get("facet"))) in held:
+                # A standing listed held fact (``decision.held_list``) is served as held, as the
+                # snapshot serves it: withheld, never shown as cited.
+                withheld.append(str(fact.get("facet")))
+                continue
             valid = True
             try:
                 citation = fact_citation(fact, sources, store if has_ruling(fact) else None)
@@ -386,6 +392,40 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
                 front = {**front, "benchmarks": {**block, "evidence": kept}}
         out.append(Model(str(model_id), path, front, body, cited, tuple(withheld)))
     return out
+
+
+def _held_standing(root: Path, directory: Path) -> set[tuple[str, str]]:
+    """The standing listed held facts of the data (``decision.held_list.standing``), resolved
+    against the cards, the attempt log, the ranked verification log and the clearing lines, as
+    the snapshot resolves them. None when the data lists none; a listing that does not resolve
+    fails the load, by counts and fixed phrases only."""
+    from decision.held_list import HELD_FILE, standing, summary
+    from decision.held_list import read as read_held
+
+    try:
+        entries = read_held(root / HELD_FILE)
+    except ValueError as error:
+        raise LoadError(f"held list: {type(error).__name__}") from None
+    if not entries:
+        return set()
+    facts: dict[tuple[str, str], dict[str, Any]] = {}
+    for path in sorted(directory.rglob("*.md")):
+        if path.name in NOT_CONTENT:
+            continue
+        front, _body = split_front_matter(path.read_text(encoding="utf-8", errors="replace"),
+                                          path=path)
+        model_id = front.get("model_id")
+        for fact in front.get("facts") or []:
+            if model_id and isinstance(fact, dict):
+                facts[(str(model_id), str(fact.get("facet")))] = fact
+    log, verdicts, _cutoff = _correction_inputs(root, None)
+    clearings, _history = _clearing_inputs(root)
+    listed, problems = standing(entries, fact_at=lambda s, f: facts.get((s, f)), log=log,
+                                verdicts=verdicts, clearings=clearings)
+    if problems:
+        raise LoadError(f"held list: {len(problems)} listing(s) do not resolve "
+                        f"({summary(problems)})")
+    return listed
 
 
 def _correction_inputs(root: Path, as_of: date | None) -> tuple[Any, Any, date]:

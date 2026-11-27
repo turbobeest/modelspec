@@ -44,6 +44,9 @@ BUILD_TIME = {
     # Reconfirmations (MODEL-572) are checked while the snapshot is compiled; the Worker never
     # compiles a snapshot.
     ("decision/snapshot.py", "decision.reconfirmation"),
+    # Listed held facts (MODEL-491) are checked while the snapshot is compiled; the Worker never
+    # compiles a snapshot.
+    ("decision/snapshot.py", "decision.held_list"),
     # Board-reading rulings (MODEL-569) are checked while the snapshot is compiled, as facts' are.
     ("decision/snapshot.py", "decision.board_ruling"),
     # The v1 graph export and a type annotation; see the comment at the import.
