@@ -5,7 +5,6 @@ import sys
 from pathlib import Path
 
 import pytest
-
 from scripts.prepare_data_writer import prepare
 
 
@@ -53,7 +52,7 @@ def test_writer_code_and_git_resolve_to_private_checkout(tmp_path):
         },
         "https://github.com/turbobeest/modelspec-data",
     )
-    prepare(engine, private)
+    prepare(engine, private, skip_append_only=True)
     subprocess.run([sys.executable, "scripts/write.py"], cwd=private, check=True)
     assert (private / "models/new.md").read_text() == "private update"
     assert not (engine / "models/new.md").exists()
@@ -82,7 +81,7 @@ def test_writer_preparation_refuses_public_git_origin(tmp_path):
         "https://github.com/turbobeest/modelspec",
     )
     with pytest.raises(ValueError, match="modelspec-data as origin"):
-        prepare(engine, private)
+        prepare(engine, private, skip_append_only=True)
     assert not (private / "code.py").exists()
 
 
