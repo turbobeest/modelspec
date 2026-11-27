@@ -79,6 +79,12 @@ def test_the_flag_is_off_by_default_and_on_only_when_given(module, attribute, fa
     monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)
     seen: list[bool] = []
     monkeypatch.setattr(script, attribute, factory(seen))
+    if hasattr(script, "default_readers"):
+        # The gate scripts build their reader CLIs before the gate runs. CI has no reader CLI and
+        # never runs a paid one: use the stub readers the gate tests use.
+        from tests.test_retained_agreement import pair
+
+        monkeypatch.setattr(script, "default_readers", lambda *args, **kwargs: pair())
     for flag in ([], ["--private-data"]):
         monkeypatch.setattr(sys, "argv", [module, *argv, *flag])
         try:
