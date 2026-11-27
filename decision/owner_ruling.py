@@ -140,22 +140,14 @@ def blocks_rule_15(entry: Any) -> bool:
     return isinstance(entry, Mapping) and bool(entry.get("complete")) and not entry.get("agreed")
 
 
-def legacy_split_ids(root: str | Path | None = None) -> frozenset[str]:
-    """The ``attempt_id`` of each line of the attempt log's pinned legacy prefix
-    (``hold_evidence.read_legacy``, from the log's raw bytes) in the data checkout ``root``, or
-    in the active data directory (``MODELSPEC_DATA_DIR``) when ``root`` is ``None``; empty when
-    there is none. The one source of the legacy splits a ruling may rest on, for the build, the
-    filer and the owner-rulings check alike (MODEL-491)."""
-    import os
-
+def legacy_split_ids(root: str | Path) -> frozenset[str]:
+    """The ``attempt_id`` of each line of the attempt log's pinned legacy prefix in the data
+    checkout ``root`` (``read_lines(...).legacy``, from the log's raw bytes): the untagged splits
+    a ruling may rest on, for the build, the filer and the owner-rulings check alike (MODEL-491).
+    Never read from an environment variable: always from the root whose log is checked."""
     from decision.cited_reader import ATTEMPTS_FILE
-    from decision.hold_evidence import legacy_ids, read_legacy
 
-    if root is None:
-        root = os.environ.get("MODELSPEC_DATA_DIR", "").strip() or None
-    if root is None:
-        return frozenset()
-    return legacy_ids(read_legacy(root, ATTEMPTS_FILE))
+    return read_lines(Path(root) / ATTEMPTS_FILE).legacy
 
 
 def is_split(entry: Any, facet_id: str, *, legacy: Collection[str] = frozenset()) -> bool:
@@ -220,8 +212,12 @@ def read_json_lines(path: Path) -> list[Any]:
     ``json.loads`` raises them."""
     if not path.is_file():
         return []
+    return _json_lines(path.read_text(encoding="utf-8"), path)
+
+
+def _json_lines(text: str, path: Path) -> list[Any]:
     out, repeated = [], []
-    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    for number, line in enumerate(text.splitlines(), 1):
         if not line.strip():
             continue
         try:
@@ -234,12 +230,31 @@ def read_json_lines(path: Path) -> list[Any]:
     return out
 
 
-def read_lines(path: Path) -> list[dict[str, Any]]:
+class Lines(list):
+    """``read_lines``' objects, with ``legacy``: the ``attempt_id`` of each line of the attempt
+    log's pinned legacy prefix when the file is that log, read from the very bytes the lines were
+    parsed from (MODEL-491); empty for any other file."""
+
+    legacy: frozenset[str] = frozenset()
+
+
+def read_lines(path: Path) -> Lines:
     """Every line of a JSON-lines file as an object; an absent file is empty. Raises
-    ``ValueError`` on a line that is not a JSON object or repeats a key."""
-    out = read_json_lines(path)
+    ``ValueError`` on a line that is not a JSON object or repeats a key. For the attempt log
+    (``cited_reader.ATTEMPTS_FILE``), ``legacy`` carries its legacy split ids, from the same
+    read of its raw bytes, so a check never takes them from another checkout."""
+    from decision.cited_reader import ATTEMPTS_FILE
+    from decision.hold_evidence import legacy_ids, legacy_lines
+
+    path = Path(path)
+    if not path.is_file():
+        return Lines()
+    data = path.read_bytes()
+    out = Lines(_json_lines(data.decode("utf-8"), path))
     if not all(isinstance(obj, dict) for obj in out):
         raise ValueError("a line is not a JSON object")
+    if path.as_posix().endswith("/" + ATTEMPTS_FILE):
+        out.legacy = legacy_ids(legacy_lines(ATTEMPTS_FILE, data))
     return out
 
 
@@ -454,8 +469,9 @@ def ruling_problem(ruling: Any, *, attempts: Sequence[Mapping[str, Any]],
     (``decision.board_ruling.value_problem``; ``max_score`` is the board's); every other check
     is the fact ruling's. ``cited`` names the sources the fact cites: a ruling may cite those
     beyond the pages its resolved attempts read (none, by default). ``legacy`` names the untagged
-    legacy splits a fact ruling may rest on; ``None`` reads them from the active data directory
-    (``legacy_split_ids``), as the owner-rulings check calls it."""
+    legacy splits a fact ruling may rest on; ``None`` takes them from ``attempts`` itself, when it
+    is the attempt log as ``read_lines`` read it (its ``legacy``, from the same bytes), as the
+    owner-rulings check calls it, and none otherwise."""
     from decision.board_ruling import is_board_facet, value_problem
     from decision.cited_change import _facet, _value_fits
     from decision.retention import cite_only_status
@@ -501,8 +517,8 @@ def ruling_problem(ruling: Any, *, attempts: Sequence[Mapping[str, Any]],
     if len(found) != len(resolves):
         return "no_disagreement", \
             f"{len(resolves) - len(found)} resolved id(s) name no logged attempt"
-    if legacy is None and not is_board_facet(ruling["facet"]):
-        legacy = legacy_split_ids()
+    if legacy is None:
+        legacy = getattr(attempts, "legacy", frozenset())
     for entry in found.values():
         if (entry.get("subject"), entry.get("facet"), entry.get("epoch")) != key:
             return "no_disagreement", "a resolved attempt is for another subject, facet or epoch"
@@ -723,8 +739,9 @@ def read_ruling_inputs(root: Path, *, verdicts: bool = True) -> RulingInputs:
     from decision.ruling_reread import Records
 
     claims, history = ruling_claim_events(root / "verification/queue/events.jsonl")
-    return RulingInputs(tuple(rulings), tuple(read_lines(root / ATTEMPTS_FILE)), claims, ranked,
-                        history, frozenset(Records.read(root).reopened), legacy_split_ids(root))
+    attempts = read_lines(root / ATTEMPTS_FILE)
+    return RulingInputs(tuple(rulings), tuple(attempts), claims, ranked, history,
+                        frozenset(Records.read(root).reopened), attempts.legacy)
 
 
 def ruling_refused(fact: Mapping[str, Any], subject: str, *, cited: bool, inputs: RulingInputs,

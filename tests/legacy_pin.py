@@ -9,17 +9,14 @@ in ``tests/test_gate_line_tags.py``.
 from __future__ import annotations
 
 import hashlib
-from pathlib import Path
 
 
 def pin_whole_log(monkeypatch) -> None:
     import decision.hold_evidence as he
 
-    def read_legacy(root, path="verification/cited-attempts.jsonl"):
-        file = Path(root) / path
-        if not file.is_file():
-            return ()
-        data = file.read_bytes()
-        return he.legacy_lines(path, data, {path: (len(data), hashlib.sha256(data).hexdigest())})
+    real = he.legacy_lines
 
-    monkeypatch.setattr(he, "read_legacy", read_legacy)
+    def legacy_lines(path, data, pins=None):
+        return real(path, data, {path: (len(data), hashlib.sha256(data).hexdigest())})
+
+    monkeypatch.setattr(he, "legacy_lines", legacy_lines)
