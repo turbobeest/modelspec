@@ -282,11 +282,17 @@ facets:
     value_labels:
       closed_weights: Closed weights
       open_weights: Open weights
+    # Version 2 (MODEL-491, 2026-11-27): states handoff rule 12 (2026-11-14) and the owner's
+    # ruling of 2026-11-25. Version 1 read "`closed_weights` otherwise"; an attempt read under it
+    # keeps its own prompt hash and stays evidence for its own epoch.
+    definition_version: 2
     definition: >-
-      `open_weights` when the lab publishes the trained weights for download
-      under any licence, including a gated or restrictive one; `closed_weights`
-      otherwise. Says nothing about the licence terms, which are the `licence.*`
-      facets.
+      `closed_weights` when the lab's registered model page offers no downloadable
+      weights and the lab licenses the model only as a hosted service;
+      `open_weights` when a registered page or weights repository offers a download
+      of the trained weights, under any licence, including a gated or restrictive
+      one; otherwise the fact is `not_disclosed`, a state with no value. Says
+      nothing about the licence terms, which are the `licence.*` facets.
     tier: guaranteed
     risk: capability
     permitted_source_kinds: [lab_documentation, lab_announcement, weights_repository, licence_text]

@@ -68,6 +68,16 @@ Learned expensively during 2026-09-09/10.
     weights for any model, this rule does not apply, and such a model needs its
     own evidence under the existing reading rule. A page not read is not an
     absence: leave the fact as it is.
+
+    The facet's definition says this in its own words, as version 2 (MODEL-491,
+    2026-11-27, with the owner's ruling of 2026-11-25 for a lab that also
+    publishes weights). `definition_version` is set in `registry/facets.yaml`,
+    and `tests/test_weights_definition.py` pins the text. The rule-15 readers'
+    prompt is built from the current text. Each attempt keeps the hash of the
+    prompt it was read under, so an attempt read under version 1 stays evidence
+    for its own epoch. A new version opens no epoch: a disagreement logged under
+    version 1 still blocks that epoch. A clearing epoch is named by its verdict
+    alone, so a read there under version 2 is allowed.
 13. **User cap when a provider's terms state none** (MODEL-490, decided by the
     owner, 2026-11-14). `licence.user_cap` is `unbounded`, as the facet
     definition says, when the provider's commercial terms were read in full and
