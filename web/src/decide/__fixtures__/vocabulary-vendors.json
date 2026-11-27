@@ -198,7 +198,7 @@
     {
       "id": "model.weights_openness",
       "label": "Open weights",
-      "definition": "`closed_weights` when the lab's registered model page offers no downloadable weights and the lab licenses the model only as a hosted service; `open_weights` when a registered page or weights repository offers a download of the trained weights, under any licence, including a gated or restrictive one; otherwise the fact is `not_disclosed`, a state with no value. Says nothing about the licence terms, which are the `licence.*` facets.",
+      "definition": "`closed_weights` when no registered page or weights repository offers this model's weights for download and the lab offers this model only as a hosted service; `open_weights` when a registered page or weights repository offers this model's weights, under any licence, including a gated or restrictive one; `not_disclosed` otherwise, a state with no value. A lab publishing weights for other models does not make this model open. Says nothing about the licence terms, which are the `licence.*` facets.",
       "subject": "model",
       "value_type": "enum",
       "unit": null,

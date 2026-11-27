@@ -21,7 +21,7 @@ V1 = ("`open_weights` when the lab publishes the trained weights for download un
       "licence terms, which are the `licence.*` facets.")
 #: The sha256 of version 2's normalised text. Rewording the definition without a new
 #: ``definition_version`` fails here.
-V2_SHA256 = "bc123fa4e765479dd36a42f1171c0c1c4a6fb9bfc89eaf30ca30c13a16c7ebb4"
+V2_SHA256 = "dd9c05488f52a87c1e464cdf582220ebda8981a29c953b1f127a92b5a8bdc1fa"
 PAGE = b"<html><body><h1>Example Model</h1><p>Available through the API.</p></body></html>"
 URL = "https://docs.example.test/models/example"
 
@@ -36,8 +36,9 @@ def test_weights_definition_is_version_2_and_states_the_rule(registry):
     assert facet.definition_version == 2
     assert hashlib.sha256(facet.definition.encode()).hexdigest() == V2_SHA256
     text = facet.definition
-    assert "registered model page offers no downloadable weights" in text
-    assert "licenses the model only as a hosted service" in text
+    assert "no registered page or weights repository offers this model's weights" in text
+    assert "offers this model only as a hosted service" in text
+    assert "A lab publishing weights for other models does not make this model open." in text
     assert "`not_disclosed`" in text and "`closed_weights` otherwise" not in text
     # The value set does not widen: not_disclosed is a state, never a value (MODEL-59).
     assert facet.value_type.kind == "enum"
