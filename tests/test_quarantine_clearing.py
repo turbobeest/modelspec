@@ -819,34 +819,25 @@ def test_an_opening_attempt_logged_after_the_claim_does_not_set_the_epoch():
 def test_a_check_after_a_newer_other_value_filing_does_not_pair_with_an_older_claim():
     """Codex round 4: a check that does not say which value it covered, after a newer filing for
     another value, is not shown to cover the older same-value claim, so it supplies nothing."""
-    from decision.quarantine_clearing import verdict_epoch, verdict_pair
+    from decision.quarantine_clearing import verdict_epoch
 
     plain = events(VERDICT)
-    # The other-value filing is a rule-15 one, so the record may have moved: only a pairing shows
-    # its epoch (MODEL-491: with plain claims only, ``never_left_first`` shows it).
-    other = events(VERDICT, value=1, filed="2026-09-30T12:00:00+00:00",
-                   method="two-readers-cited-change@3")[0]
+    other = events(VERDICT, value=1, filed="2026-09-30T12:00:00+00:00")[0]
     silent = plain[1]  # no value hash, no diff
     kw = dict(log=AttemptLog(), subject=MID, facet=FACET, first="initial")
-    assert verdict_pair(VERDICT, [plain[0], other, silent]) is None
     assert verdict_epoch(VERDICT, history=[plain[0], other, silent], **kw) is None
     attempt = agreement()
     index = build(cleared_row(attempt), [clearing(attempt)], [attempt],
                   history={FID: [plain[0], other, silent]})
     assert not admitted(index)
     assert verdict_epoch(VERDICT, history=[plain[0], silent], **kw) == "initial"  # adjacent
-    plain_other = {**other, "claim": {**other["claim"],
-                                      "collector": plain[0]["claim"]["collector"]}}
-    assert verdict_pair(VERDICT, [plain[0], plain_other, silent]) is None
-    assert verdict_epoch(VERDICT, history=[plain[0], plain_other, silent], **kw) == "initial"
 
 
 def test_a_check_is_bound_to_a_value_by_its_hash_or_its_diff():
     from decision.quarantine_clearing import check_binds, verdict_epoch
 
     plain = events(VERDICT)
-    other = events(VERDICT, value=1, filed="2026-09-30T12:00:00+00:00",
-                   method="two-readers-cited-change@3")[0]  # the record may have moved
+    other = events(VERDICT, value=1, filed="2026-09-30T12:00:00+00:00")[0]
     silent = plain[1]
     kw = dict(log=AttemptLog(), subject=MID, facet=FACET, first="initial")
     assert check_binds(silent, VERDICT, FACET) is None
@@ -873,8 +864,7 @@ def test_an_older_same_day_check_is_no_fallback_for_the_newest_one():
 
     plain = events(VERDICT)  # claim 09-30 09:00, check 10-01 21:00
     early = {**plain[1], "at": "2026-10-01T08:00:00+00:00"}  # checks the same-value claim
-    other = events(VERDICT, value=1, filed="2026-10-01T09:00:00+00:00",
-                   method="two-readers-cited-change@3")[0]  # the record may have moved
+    other = events(VERDICT, value=1, filed="2026-10-01T09:00:00+00:00")[0]
     late = plain[1]  # the newest check, after the other-value filing, says nothing
     kw = dict(log=AttemptLog(), subject=MID, facet=FACET, first="initial")
     assert verdict_epoch(VERDICT, history=[plain[0], early], **kw) == "initial"
@@ -887,19 +877,14 @@ def test_an_older_same_day_check_is_no_fallback_for_the_newest_one():
 
 def test_a_claim_retired_before_the_check_supplies_nothing():
     """MODEL-557 retires a claim whose data row is gone: a check after that did not cover it."""
-    from decision.quarantine_clearing import verdict_epoch, verdict_pair
+    from decision.quarantine_clearing import verdict_epoch
 
     plain = events(VERDICT)
     retired = {"event": "retired", "at": "2026-10-01T08:00:00+00:00",
                "target": plain[0]["claim"]["target"], "reason": "no_data_row"}
     kw = dict(log=AttemptLog(), subject=MID, facet=FACET, first="initial")
     assert verdict_epoch(VERDICT, history=plain, **kw) == "initial"
-    assert verdict_pair(VERDICT, [plain[0], retired, plain[1]]) is None
-    # MODEL-491: a plain record never left its first epoch, so its epoch is shown without a pair;
-    # a retired rule-15 claim shows nothing.
-    assert verdict_epoch(VERDICT, history=[plain[0], retired, plain[1]], **kw) == "initial"
-    gate = events(VERDICT, method="two-readers-cited-change@3")
-    assert verdict_epoch(VERDICT, history=[gate[0], retired, gate[1]], **kw) is None
+    assert verdict_epoch(VERDICT, history=[plain[0], retired, plain[1]], **kw) is None
 
 
 def test_queue_history_reads_retired_events_and_refuses_a_repeated_key(tmp_path):
@@ -1212,15 +1197,22 @@ def test_the_gate_and_the_build_search_the_same_scope(board):
 # the verdict's day the record was in ``first``. Every other limit still holds.
 
 
-def unpaired(verdict, *, method="read", claim_at=None, check_at=None, value=...):
-    """The first-collection shape: the check early in the verdict's day, its claim after it."""
+def unpaired(verdict, *, method="read", claim_at=None, check_at=None, value=...,
+             check_hash=...):
+    """The first-collection shape: the check early in the verdict's day, naming the verdict's
+    value by its hash (``check_hash``; ``None`` for a check that names no value), and its claim
+    after it."""
     target = {"kind": verdict["target"]["kind"], "id": verdict["target"]["id"]}
+    checked = {**target, "value_hash": verdict["target"]["value_hash"]
+               if check_hash is ... else check_hash}
+    if checked["value_hash"] is None:
+        del checked["value_hash"]
     day = str(verdict["date"])
     claim = {"target": target, "sources": [], "names": [MID],
              "value": _value_of(verdict) if value is ... else value, "field": FACET,
              "conditions": {"date": day, "effort": None, "harness": None},
              "collector": {"agent": "collector-a", "model_family": "family-a", "method": method}}
-    return [{"event": "checked", "at": check_at or f"{day}T05:26:30+00:00", "target": target,
+    return [{"event": "checked", "at": check_at or f"{day}T05:26:30+00:00", "target": checked,
              "outcome": verdict["outcome"]},
             {"event": "collected", "at": claim_at or f"{day}T12:00:00+00:00", "claim": claim}]
 
@@ -1359,3 +1351,80 @@ def test_a_board_reading_still_needs_its_pairing():
                                 facet=FACET, settings=settings)
     assert verdict_epoch(VERDICT, history=trail, log=AttemptLog(), subject=MID, facet=FACET,
                          first="initial", settings=settings) is None
+
+
+def test_e3_pairs_the_verdict_only_with_a_check_of_its_own_value():
+    """Codex on #1199: a same-day check that names another value (by hash or diff), or names no
+    value, never justifies clearing this verdict; one that names its value does."""
+    from decision.model import value_hash
+    from decision.quarantine_clearing import verdict_epoch
+
+    kw = dict(log=AttemptLog(), subject=MID, facet=FACET, first="initial")
+    other_hash = value_hash(1)
+    assert verdict_epoch(VERDICT, history=unpaired(VERDICT, check_hash=other_hash), **kw) is None
+    assert verdict_epoch(VERDICT, history=unpaired(VERDICT, check_hash=None), **kw) is None
+    by_diff = unpaired(VERDICT, check_hash=None)
+    by_diff[0] = {**by_diff[0], "diff": [{"field": "value", "expected": 1, "found": None}]}
+    assert verdict_epoch(VERDICT, history=by_diff, **kw) is None
+    ours_by_diff = unpaired(VERDICT, check_hash=None)
+    ours_by_diff[0] = {**ours_by_diff[0],
+                       "diff": [{"field": "value", "expected": VALUE, "found": None}]}
+    assert verdict_epoch(VERDICT, history=ours_by_diff, **kw) == "initial"
+    # A check of another value beside one of this value: only the latter counts, and it does.
+    wrong = unpaired(VERDICT, check_hash=other_hash, check_at="2026-10-01T05:30:00+00:00")[0]
+    assert verdict_epoch(VERDICT, history=[*unpaired(VERDICT), wrong], **kw) == "initial"
+    # The build agrees: a clearing on a check of another value admits nothing.
+    attempt = agreement()
+    assert not admitted(build(cleared_row(attempt), [clearing(attempt)], [attempt],
+                              history={FID: unpaired(VERDICT, check_hash=other_hash)}))
+    assert not admitted(build(cleared_row(attempt), [clearing(attempt)], [attempt],
+                              history={FID: unpaired(VERDICT, check_hash=None)}))
+
+
+def test_e3_and_a_rule_15_filing_for_another_value_are_kept_apart():
+    """The ordinary-claim pairing tests above stay as they were; with a rule-15 filing for
+    another value in the trail, E3 never applies, whatever the check names."""
+    from decision.quarantine_clearing import verdict_epoch
+
+    kw = dict(log=AttemptLog(), subject=MID, facet=FACET, first="initial")
+    plain = events(VERDICT)
+    gate_other = events(VERDICT, value=1, filed="2026-09-30T12:00:00+00:00",
+                        method="two-readers-cited-change@3")[0]
+    assert verdict_epoch(VERDICT, history=[plain[0], gate_other, plain[1]], **kw) is None
+    trail = unpaired(VERDICT)
+    assert verdict_epoch(VERDICT, history=[gate_other, *trail], **kw) is None
+
+
+def test_an_undated_event_on_the_target_refuses_e3_in_the_gate_and_the_build(data, tmp_path):
+    """Codex on #1199: the queue loader keeps a claim whose time cannot be read (last), so E3
+    sees it and refuses, in the gate and in the build alike."""
+    from decision.quarantine_clearing import queue_history, verdict_epoch, verdict_pair
+
+    trail = unpaired(VERDICT)
+    for when in ("not a time", None):
+        hidden = {**unpaired(VERDICT, method="two-readers-cited-change@3")[1], "at": when}
+        path = tmp_path / "events.jsonl"
+        path.write_text("".join(json.dumps(r) + "\n" for r in [hidden, *trail]))
+        loaded = queue_history(path, {FID})[FID]
+        assert [e["event"] for e in loaded] == ["checked", "collected", "collected"]
+        assert loaded[-1] == hidden  # kept, after every dated event
+        assert verdict_pair(VERDICT, loaded) is None
+        kw = dict(log=AttemptLog(), subject=MID, facet=FACET, first="initial")
+        assert verdict_epoch(VERDICT, history=loaded, **kw) is None
+        attempt = agreement()
+        assert not admitted(build(cleared_row(attempt), [clearing(attempt)], [attempt],
+                                  history={FID: loaded}))
+    # A plain claim with an unreadable time refuses too: it might be anything.
+    plain_hidden = {**trail[1], "at": "yesterday"}
+    path.write_text("".join(json.dumps(r) + "\n" for r in [*trail, plain_hidden]))
+    assert verdict_epoch(VERDICT, history=queue_history(path, {FID})[FID], log=AttemptLog(),
+                         subject=MID, facet=FACET, first="initial") is None
+    # The gate reads the same queue: an undated claim on the target refuses before any read.
+    row = plant_unpaired(data.root, verification("fact", FACT_ID, "mismatch", day="2026-09-20",
+                                                 value=131072))
+    queue = data.root / "verification/queue/events.jsonl"
+    undated = {**unpaired(row, method="two-readers-cited-change@3")[1], "at": "unknown"}
+    with queue.open("a") as fh:
+        fh.write(json.dumps(undated) + "\n")
+    out = refused("quarantined")
+    assert "cannot be shown" in out.detail and not data.log()

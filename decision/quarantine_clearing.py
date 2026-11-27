@@ -259,10 +259,13 @@ def _event_target(event: Mapping[str, Any]) -> str | None:
 
 def queue_history(path: Path, ids: set[str]) -> dict[str, list[dict[str, Any]]]:
     """Target id -> its ``collected``, ``checked`` and ``retired`` events, in queue order (by
-    time, a later line on a tie), for the ids asked for. An absent queue has none."""
+    time, a later line on a tie), for the ids asked for. An absent queue has none. An event whose
+    time cannot be read is kept, after every dated one (in line order): no pairing uses it (a
+    pairing needs a time), and ``never_left_first`` refuses when it sees one (MODEL-491)."""
     from decision.owner_ruling import loads
 
-    rows: dict[str, list[tuple[datetime, int, dict[str, Any]]]] = {}
+    rows: dict[str, list[tuple[bool, datetime, int, dict[str, Any]]]] = {}
+    never = datetime.max.replace(tzinfo=UTC)
     if not ids or not path.is_file():
         return {}
     few = len(ids) <= 64
@@ -275,10 +278,9 @@ def queue_history(path: Path, ids: set[str]) -> dict[str, list[dict[str, Any]]]:
             event = loads(raw)  # a repeated key refuses (MODEL-554)
             target = _event_target(event)
             at = _event_at(event)
-            if target in ids and at is not None \
-                    and event.get("event") in ("collected", "checked", "retired"):
-                rows.setdefault(target, []).append((at, index, event))
-    return {k: [e for _, _, e in sorted(v, key=lambda r: (r[0], r[1]))] for k, v in rows.items()}
+            if target in ids and event.get("event") in ("collected", "checked", "retired"):
+                rows.setdefault(target, []).append((at is None, at or never, index, event))
+    return {k: [e for *_, e in sorted(v, key=lambda r: r[:3])] for k, v in rows.items()}
 
 
 def claim_binds(claim: Mapping[str, Any], verdict: Mapping[str, Any]) -> bool:
@@ -402,12 +404,15 @@ def never_left_first(verdict: Mapping[str, Any], *, history: Sequence[Mapping[st
     and the agreed attempt it rests on) or an owner's ruling (a claim ``owner-ruling@1``, filed
     past a logged disagreement). So the record was in ``first`` at the verdict when, up to the
     end of the verdict's UTC day: the verdict's target has a claim filed and a check of that day
-    with the verdict's outcome; no claim on that target, for any value, is a rule-15 or ruling
-    claim; and no attempt at all is logged for the subject and facet. The first collection of
+    with the verdict's outcome that names the verdict's own value (``check_binds``: its target
+    value hash, or its diff's ``expected`` value; a check that names another value, or none,
+    never justifies clearing this one); no claim on that target, for any value, is a rule-15 or
+    ruling claim; and no attempt at all is logged for the subject and facet. The first collection of
     2026-09-25 is the case: its claims are stamped after the checks that day, so the check
     cannot be paired, but nothing could have moved the record. A board reading (``settings``)
     is not covered: its pairing shows the row's settings, so it is still required. Fails
-    closed: an unreadable day or time, or any attempt with no readable time, shows nothing."""
+    closed: an unreadable day, any event on the target or attempt with no readable time (the
+    queue loader keeps such events, ``queue_history``) shows nothing."""
     if settings is not None:
         return False
     day = _day(verdict.get("date"))
@@ -429,7 +434,7 @@ def never_left_first(verdict: Mapping[str, Any], *, history: Sequence[Mapping[st
                 return False
             claimed = True
         elif event.get("event") == "checked" and event.get("outcome") == verdict.get("outcome") \
-                and at.astimezone(UTC).date() == day:
+                and at.astimezone(UTC).date() == day and check_binds(event, verdict, facet) is True:
             checked = True
     if not (claimed and checked):
         return False
