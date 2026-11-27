@@ -122,7 +122,7 @@ def correction_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
     registry's URLs, ``cutoff`` the last day the caller may know, ``ids`` further identities the
     fact may carry in the verification log (its location id and stored id are always checked).
     """
-    from decision.cited_change import fact_epoch, held_rows
+    from decision.cited_change import fact_epoch
     from decision.owner_ruling import has_ruling
     from decision.quarantine_clearing import (
         _at,
@@ -143,11 +143,8 @@ def correction_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
         return "a ruled or cleared fact is not corrected"
     if fact.get("state") != "known" or fact.get("value") is None:
         return "a correction files a known value"
-    every = tuple(dict.fromkeys(str(i) for i in (*ids, fact.get("id"), f"{subject}#{facet}")
-                                if isinstance(i, str) and i))
     try:
-        held = [h for h in held_rows(verdicts, every, fact)
-                if not replaced_value_mismatch(fact, h[0], h[1], log=log, subject=subject)]
+        held = unresolved_holds(fact, subject, verdicts=verdicts, log=log, ids=ids)
     except (KeyError, TypeError, AttributeError, ValueError):
         return "the fact's verification record cannot be read"
     if held:
@@ -283,6 +280,28 @@ def replaced_value_mismatch(fact: Mapping[str, Any], key: Sequence[str],
     return False
 
 
+def unresolved_holds(fact: Mapping[str, Any], subject: str, *,
+                     verdicts: Mapping[tuple[str, str, str], Any], log: Any = None,
+                     ids: Sequence[str] = ()) -> list[tuple[tuple[str, str, str], dict]]:
+    """The verdicts that hold ``fact``: the one hold check that a retained-page correction
+    (MODEL-573), a confirmation (MODEL-491 E1) and a cite-only reconfirmation (MODEL-572) are
+    each tested with, in the gate, the build and the site loader. Every verdict that is not
+    ``verified`` on any value of the fact's ids (``cited_change.held_rows``: ``ids``, its stored
+    id and its location id), less, for a correction with ``log`` given, the mismatches on a value
+    its lineage replaced (``replaced_value_mismatch``, MODEL-491 E2). A released verdict still
+    holds here. Raises what ``held_rows`` raises on an unreadable record."""
+    from decision.cited_change import held_rows
+
+    facet = fact.get("facet")
+    every = tuple(dict.fromkeys(str(i) for i in (*ids, fact.get("id"), f"{subject}#{facet}")
+                                if isinstance(i, str) and i))
+    held = held_rows(verdicts, every, fact)
+    if log is not None and is_correction(fact):
+        held = [h for h in held
+                if not replaced_value_mismatch(fact, h[0], h[1], log=log, subject=subject)]
+    return held
+
+
 def is_confirmation(record: Mapping[str, Any]) -> bool:
     """The record carries a rule-16 retained-page agreement block (it may still fail the test)."""
     from decision.cited_change import RETAINED_RULE
@@ -296,7 +315,7 @@ def confirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
                          cutoff: date, ids: Sequence[str] = ()) -> str | None:
     """Why ``fact`` is not a rule-16 confirmation this rule serves as cited, or ``None``
     (MODEL-491 E1). The arguments are ``correction_problem``'s."""
-    from decision.cited_change import fact_epoch, held_rows
+    from decision.cited_change import fact_epoch
     from decision.owner_ruling import has_ruling
     from decision.quarantine_clearing import (
         _at,
@@ -317,10 +336,8 @@ def confirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
         return "a ruled or cleared fact is not a confirmation"
     if fact.get("state") != "known" or fact.get("value") is None:
         return "a confirmation is of a known value"
-    every = tuple(dict.fromkeys(str(i) for i in (*ids, fact.get("id"), f"{subject}#{facet}")
-                                if isinstance(i, str) and i))
     try:
-        held = held_rows(verdicts, every, fact)
+        held = unresolved_holds(fact, subject, verdicts=verdicts, log=log, ids=ids)
     except (KeyError, TypeError, AttributeError, ValueError):
         return "the fact's verification record cannot be read"
     if held:

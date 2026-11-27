@@ -176,6 +176,11 @@ class Facet:
     #: ``neither`` when the facet has no inherent direction. ``None`` for every
     #: other kind. Prefer minimises a ``lower`` facet (MODEL-297).
     better: str | None = None
+    #: The version of ``definition``, 1 unless the registry says otherwise. A reworded definition
+    #: is a new version (MODEL-491): the rule-15 reader prompt is built from the current text, and
+    #: each logged attempt keeps the hash of the prompt it was read under, so an attempt made
+    #: under an earlier version stays evidence for its own epoch.
+    definition_version: int = 1
 
     def value_label(self, value: str) -> str | None:
         return dict(self.value_labels).get(value)
@@ -656,7 +661,7 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
     required = {"id", "subject", "value_type", "definition", "tier", "risk", "permitted_source_kinds"}
     optional = {
         "unit", "parameter", "required_qualifiers", "computed_by", "addressable",
-        "label", "value_labels", "better", "identity",
+        "label", "value_labels", "better", "identity", "definition_version",
     }
     out: dict[str, Facet] = {}
     for e in entries:
@@ -708,6 +713,11 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
         if not isinstance(identity, bool):
             err.add(where, "identity must be true or false")
             identity = False
+        definition_version = e.get("definition_version", 1)
+        if isinstance(definition_version, bool) or not isinstance(definition_version, int) \
+                or definition_version < 1:
+            err.add(where, "definition_version must be a whole number of 1 or more")
+            definition_version = 1
         if vt is None or not isinstance(e.get("id"), str):
             continue
         out.setdefault(e["id"], Facet(
@@ -717,6 +727,7 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
             unit=e.get("unit"), parameter=parameter, required_qualifiers=tuple(rq),
             computed_by=e.get("computed_by"), addressable=addressable,
             label=label, value_labels=value_labels, better=better, identity=identity,
+            definition_version=definition_version,
             preference_values=(
                 tuple(sorted(lists[vt.values_from]()))
                 if (

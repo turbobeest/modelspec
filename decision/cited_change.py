@@ -154,6 +154,7 @@ REFUSALS = (
     "clearing_not_later",
     "correction_not_admitted",
     "confirmation_not_admitted",
+    "reconfirmation_not_admitted",
 )
 #: The most attempts, complete or not, at one subject, facet and epoch (MODEL-558 review): a
 #: re-run cannot reset the retry budget to read again until two readers happen to agree.
@@ -1031,14 +1032,16 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
           now: datetime | None = None, accept_not_disclosed: bool = False,
           retaining: bool = False, epoch: str | None = None,
           clear_quarantine: bool = False, own_page: bool = False,
-          correct: bool = False) -> CitedChange:
+          correct: bool = False, reconfirm: bool = False) -> CitedChange:
     """The rule-15 gate. ``epoch``, when given, only states which epoch the caller means: the gate
     reads in the filed fact's own epoch (``fact_epoch``) and refuses (``epoch_not_current``) if
     the two differ. A caller never chooses the epoch the gate reads in. ``clear_quarantine`` lets
     a fresh agreement clear a held mismatch within Jamie's limits
     (``decision.quarantine_clearing``); the fact is then read in that verdict's clearing epoch.
     ``correct`` lets an agreement on a retaining page correct the filed value
-    (``decision.retained_correction``, MODEL-573)."""
+    (``decision.retained_correction``, MODEL-573). ``reconfirm`` files a record for an agreed
+    value and state equal to the filed ones on a fact with no cited-change block, and nothing
+    else (``decision.reconfirmation``, MODEL-572)."""
     now = now or datetime.now(UTC)
     facet_def = _facet(facet)
     if facet_def is None:
@@ -1065,6 +1068,16 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
             return got
         held, chains = got
         released = bool(chains)
+    if reconfirm:
+        # Before any read or attempt (MODEL-572): a reconfirmation is of a plain fact only.
+        from decision.owner_ruling import has_ruling as _ruled
+
+        if retaining or clear_quarantine or allow_unchanged or page is not None \
+                or cited_change_block(found.fact) is not None or _ruled(found.fact) \
+                or "derivation" in found.fact:
+            return _refuse("reconfirmation_not_admitted",
+                           "a reconfirmation is of a fact with no cited-change block, no "
+                           "owner's ruling and no clearing; the rolling re-read reads a block")
     if held and retaining:
         # MODEL-491 E2 (review): an admitted correction is re-read past a mismatch on the value
         # it replaced, by the build's own helper (``retained_correction.replaced_value_mismatch``).
@@ -1247,14 +1260,20 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         refusal = _check_silence(found, facet_def, source_id, page_bytes, history)
         if refusal is not None:
             return refusal
-        if not (allow_unchanged or clearing is not None) \
-                and found.fact.get("state") == "not_disclosed" and filed is None:
+        same = found.fact.get("state") == "not_disclosed" and filed is None
+        if reconfirm and not same:
+            return _refuse("value_differs", "the readers agree the page is silent and the fact "
+                           "is filed with a value; a reconfirmation changes nothing")
+        if not (allow_unchanged or reconfirm or clearing is not None) and same:
             return _refuse("value_unchanged", "the fact is filed not_disclosed already")
         record = _record(subject, facet, None, row, source_id, now, sha256(page_bytes),
                          text_sha256(page_bytes), answers, filed, found.registered_ids, resolved)
         record["state"] = "not_disclosed"
         for entry in record["derivation"]["cited_change"]["readers"]:
             entry["finding"] = "not_stated"
+        if reconfirm:
+            return _reconfirmed(found, record, subject=subject, epoch=epoch, answers=answers,
+                                now=now)
         return cleared(CitedChange("cited_change", None, "", record))
     if accept_not_disclosed and any(a.get("agreed") and a.get("agreed_value") is None
                                     for a in history):
@@ -1267,14 +1286,67 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     problem = _value_fits(value, facet_def)
     if problem is not None:
         return _refuse("value_invalid", problem)
+    same = found.fact.get("state") == "known" \
+        and _canonical(value, facet_def) == _canonical(filed, facet_def)
+    if reconfirm:
+        if not same:
+            return _refuse("value_differs", "the agreed value is not the filed value; a "
+                           "reconfirmation changes nothing, and a change takes the normal path")
+        return _reconfirmed(found, _record(
+            subject, facet, filed, row, source_id, now, sha256(page_bytes),
+            text_sha256(page_bytes), answers, filed, found.registered_ids, resolved),
+            subject=subject, epoch=epoch, answers=answers, now=now)
     # A clearing re-files the filed value too: it is the agreement, not a change, that clears.
-    if not (allow_unchanged or clearing is not None) and found.fact.get("state") == "known" \
-            and _canonical(value, facet_def) == _canonical(filed, facet_def):
+    if not (allow_unchanged or clearing is not None) and same:
         return _refuse("value_unchanged", "the agreed value is the filed value")
     return cleared(CitedChange("cited_change", None, "", _record(
         subject, facet, value, row, source_id, now, sha256(page_bytes), text_sha256(page_bytes),
         answers, filed,
         found.registered_ids, resolved)))
+
+
+def _reconfirmed(found: Lookup, record: dict[str, JsonValue], *, subject: str, epoch: str,
+                 answers: Sequence[ReaderAnswer], now: datetime) -> CitedChange:
+    """The reconfirmation record (MODEL-572), or a refusal. The block names the epoch it was read
+    in and the agreement just logged by its exact line; the fact, as a writer files it
+    (``reconfirmation.filed``), must pass the build's own test (``reconfirmation_problem``).
+    ``read_against`` names the fact as read, so a writer refuses a stale record."""
+    from decision.cited_reader import _attempts_path
+    from decision.owner_ruling import loads
+    from decision.quarantine_clearing import AttemptLog, line_hash
+    from decision.reconfirmation import MARK, fact_sha256, filed, reconfirmation_problem
+
+    block = record["derivation"]["cited_change"]
+    block[MARK] = True
+    block["previous_state"] = found.fact.get("state")
+    try:
+        raws = [raw for raw in _attempts_path(None).read_text(encoding="utf-8").split("\n")
+                if raw.strip()]
+        logged = attempts(subject, str(record["facet"]), epoch)
+        if not raws or not logged or loads(raws[-1]) != logged[-1] \
+                or logged[-1].get("prompt_sha256") != answers[0].prompt_sha256:
+            return _refuse("registry_lookup_failed",
+                           "the agreement just logged is not the attempt log's last line")
+        block["epoch"], block["agreement"] = epoch, line_hash(raws[-1])
+        # The record is dated by the agreement's logged time (MODEL-572 review).
+        at = datetime.fromisoformat(str(logged[-1].get("at")).replace("Z", "+00:00"))
+        if at.tzinfo is None:
+            raise ValueError("the agreement has no zoned time")
+        block["read_date"] = at.astimezone(UTC).date().isoformat()
+        record["source"]["retrieved_at"] = _retrieved_at(at)
+        verdicts = _ranked_verdicts()
+        log = AttemptLog(raws)
+    except (OSError, ValueError, LookupFailed) as error:
+        return _refuse("registry_lookup_failed", f"the logs cannot be read: {type(error).__name__}")
+    urls = {str(k): str(v.get("url")) for k, v in found.sources.items()
+            if isinstance(v, Mapping) and v.get("url")}
+    problem = reconfirmation_problem(filed(found.fact, record), subject, log=log,
+                                     verdicts=verdicts, sources=urls,
+                                     cutoff=now.astimezone(UTC).date(), ids=found.fact_ids)
+    if problem is not None:
+        return _refuse("reconfirmation_not_admitted", problem)
+    record["read_against"] = fact_sha256(found.fact)
+    return CitedChange("cited_change", None, "", record)
 
 
 def _retained_outcome(subject: str, facet_def: Any, value: JsonValue, filed: JsonValue,
@@ -1471,7 +1543,8 @@ def retained_agreement(*, subject: str, facet: str, source_id: str, readers: Seq
 def cited_change(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader],
                  request: Request | None = None,
                  accept_not_disclosed: bool = False,
-                 clear_quarantine: bool = False) -> CitedChange:
+                 clear_quarantine: bool = False,
+                 allow_unchanged: bool = False) -> CitedChange:
     """Fetch the page, have two readers read it, and write their agreed value as ``cited``,
     or refuse with a named reason.
 
@@ -1489,10 +1562,18 @@ def cited_change(*, subject: str, facet: str, source_id: str, readers: Sequence[
     within ``decision.quarantine_clearing``'s limits: the record then carries ``clearings``, the
     line the caller appends to the clearing log, and the build admits the value only through it.
     Without it a quarantined fact is refused up front, as before.
+
+    ``allow_unchanged`` (MODEL-572) files a record for an agreement on the filed value and state
+    of a fact that carries no cited-change block, as ``cited_reading(allow_unchanged=True)`` does
+    for a board row: the served value does not change, and the record adds the reading and its
+    date. Every condition of the normal path holds, licence facts included; an agreed other value
+    is refused (``value_differs``), and a ruled or blocked fact, or a clearing, is refused before
+    any read (``reconfirmation_not_admitted``). See ``decision.reconfirmation``.
     """
     return _gate(subject=subject, facet=facet, source_id=source_id, readers=readers,
                  request=request, allow_unchanged=False,
-                 accept_not_disclosed=accept_not_disclosed, clear_quarantine=clear_quarantine)
+                 accept_not_disclosed=accept_not_disclosed, clear_quarantine=clear_quarantine,
+                 reconfirm=allow_unchanged)
 
 
 # --- a benchmark board reading (Jamie 2026-11-22) -------------------------------------------------

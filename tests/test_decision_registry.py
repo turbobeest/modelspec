@@ -541,6 +541,9 @@ def test_registry_loader_rejects_an_incompatible_file_version(
     (_facet(value_type={"kind": "number"}, unit="milliseconds"), "better"),
     (_facet(value_type={"kind": "number"}, unit="milliseconds", better="up"), "better"),
     (_facet(better="higher"), "better"),
+    (_facet(definition_version=0), "definition_version"),
+    (_facet(definition_version=True), "definition_version"),
+    (_facet(definition_version="2"), "definition_version"),
 ])
 def test_invalid_facets_are_rejected(tmp_path, entry, needle):
     root = _copy(tmp_path)
