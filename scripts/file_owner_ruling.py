@@ -241,7 +241,7 @@ def _zoned(value: Any) -> bool:
 
 
 def reopened(root: Path, found: Any, subject: str, facet: str, epoch: str,
-             urls: dict[str, str], today: Any) -> bool:
+             urls: dict[str, str], today: Any, *, private: bool = False) -> bool:
     """Whether ``epoch`` is a reopened epoch of the fact's standing ruling that the rolling
     re-read recorded (MODEL-562, ``decision.ruling_reread``): the owner may rule on a
     disagreement there. A ruling the build would not admit reopens nothing."""
@@ -249,7 +249,7 @@ def reopened(root: Path, found: Any, subject: str, facet: str, epoch: str,
     from decision.ruling_reread import Records, standing_ruling
 
     try:
-        inputs = read_ruling_inputs(root)
+        inputs = read_ruling_inputs(root, private=private)
         records = Records.read(root)
     except (OSError, ValueError, KeyError, TypeError):
         return False
@@ -262,7 +262,9 @@ def reopened(root: Path, found: Any, subject: str, facet: str, epoch: str,
 def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ruled_by: str,
          ruled_at: str, ticket: str, source_ids: list[str], basis: str, epoch: str = "initial",
          resolves: list[str] | None = None, now: datetime | None = None,
-         reading: Any = None) -> Plan:
+         reading: Any = None, private: bool = False) -> Plan:
+    """``private`` (``--private-data``) says ``data_dir`` is the private data, so verdicts and
+    rulings count by MODEL-491's rule; off, the plan is main's."""
     now = now or datetime.now(UTC)
     root = Path(data_dir)
     from decision.board_ruling import is_board_facet
@@ -271,7 +273,7 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
         return plan_board(data_dir=root, subject=subject, facet=facet, reading=reading,
                           value=value, state=state, ruled_by=ruled_by, ruled_at=ruled_at,
                           ticket=ticket, source_ids=source_ids, basis=basis, epoch=epoch,
-                          resolves=resolves, now=now)
+                          resolves=resolves, now=now, private=private)
     facet_def = _facet(facet)
     if facet_def is None:
         raise Refused("unknown_facet", "the facet is not registered")
@@ -308,7 +310,7 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
     from decision.snapshot import _Compiler
 
     try:
-        verdicts = _Compiler._verification_log(logged)
+        verdicts = _Compiler._verification_log(logged, retire=private)
         held = held_verdicts(verdicts, found.fact_ids, found.fact)
     except (KeyError, TypeError, AttributeError):
         raise Refused("registry_lookup_failed", "the verification log does not parse") from None
@@ -367,7 +369,8 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
         raise Refused("epoch_not_current", "the fact's cited-change block is not one the "
                       "attempt log shows the gate made, so it names no epoch")
     if epoch not in {fact_epoch(found.fact), ruled_epoch(found.fact)} \
-            and not reopened(root, found, subject, facet, epoch, urls, now.date()):
+            and not reopened(root, found, subject, facet, epoch, urls, now.date(),
+                             private=private):
         raise Refused("epoch_not_current", "the fact is in another epoch than the ruling's")
     from decision.cited_change import cited_change_block
     from decision.cited_reader import epoch_root
@@ -499,7 +502,8 @@ def _row_in(text: str, reading: dict[str, Any], benchmark_id: str) -> dict[str, 
 
 def plan_board(*, data_dir: Path, subject: str, facet: str, reading: Any, value: Any, state: str,
                ruled_by: str, ruled_at: str, ticket: str, source_ids: list[str], basis: str,
-               epoch: str, resolves: list[str] | None, now: datetime) -> Plan:
+               epoch: str, resolves: list[str] | None, now: datetime,
+               private: bool = False) -> Plan:
     """The plan for a ruling on a board reading (MODEL-569): the same limits as a fact's, tested
     by the build's own helper (``decision.board_ruling.row_problem``). It appends the ruling line
     and rewrites the one evidence row; no claim is filed, as the board gate files none."""
@@ -542,7 +546,7 @@ def plan_board(*, data_dir: Path, subject: str, facet: str, reading: Any, value:
     except yaml.YAMLError:
         raise Refused("malformed", "the card does not parse or repeats a key") from None
     try:
-        held = _reading_held(found, root)
+        held = _reading_held(found, root, retire=private)
     except LookupFailed:
         raise Refused("registry_lookup_failed", "the verification log does not parse") from None
     if held:
@@ -707,6 +711,8 @@ def main(argv: list[str] | None = None) -> int:
                     help="for a board reading (facet benchmark:<id>): its settings as JSON, "
                          "model_id_as_evaluated, effort and harness")
     ap.add_argument("--write", action="store_true", help="file the ruling (default: dry run)")
+    ap.add_argument("--private-data", action="store_true",
+                    help="--data-dir is the private data: apply MODEL-491's counting rule")
     args = ap.parse_args(argv)
     os.environ["MODELSPEC_DATA_DIR"] = str(args.data_dir)
     try:
@@ -722,7 +728,8 @@ def main(argv: list[str] | None = None) -> int:
         result = plan(data_dir=args.data_dir, subject=args.subject, facet=args.facet, value=value,
                       state=args.state, ruled_by=args.ruled_by, ruled_at=args.ruled_at,
                       ticket=args.ticket, source_ids=args.sources, basis=args.basis,
-                      epoch=args.epoch, resolves=args.resolves, reading=reading)
+                      epoch=args.epoch, resolves=args.resolves, reading=reading,
+                      private=args.private_data)
         if args.write:
             apply(result)
     except Refused as refusal:

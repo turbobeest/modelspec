@@ -104,7 +104,13 @@ def export_fixture(tmp_path, monkeypatch):
     monkeypatch.setattr("datetime.datetime", _BuildClock)
     monkeypatch.setattr(data_source, "overlay", lambda *_: root)
     monkeypatch.setattr(registry, "use_root", lambda *_: None)
-    monkeypatch.setattr(load, "load_models", lambda *_: [])
+    privates = {}
+
+    def load_models(*_, private=False, **__):
+        privates["load_models"] = private
+        return []
+
+    monkeypatch.setattr(load, "load_models", load_models)
     monkeypatch.setattr(load, "load_catalogue", lambda *_: None)
     identity = {"commit": "model402-fixture", "built_at": "2026-11-30T12:00:00+00:00"}
     monkeypatch.setattr(export, "make_build", lambda *_: SimpleNamespace(to_json=lambda: identity))
@@ -135,12 +141,14 @@ def export_fixture(tmp_path, monkeypatch):
     def configure(*, scheduled=True):
         inputs = _inputs(scheduled=scheduled)
 
-        def collect(checkout):
+        def collect(checkout, *, private=False):
             assert checkout == root
+            privates.setdefault("collect_repo", []).append(private)
             return inputs
 
         monkeypatch.setattr(snapshot, "collect_repo", collect)
-        return SimpleNamespace(vendor=vendor, root=root, inputs=inputs, public_keys=public_keys)
+        return SimpleNamespace(vendor=vendor, root=root, inputs=inputs, public_keys=public_keys,
+                               privates=privates)
 
     return configure
 
@@ -150,7 +158,7 @@ def _read_bundle(vendor, root, out, monkeypatch):
     def run(command, **_):
         export_out = Path(command[command.index("--export-data") + 1])
         data_dir = Path(command[command.index("--data-dir") + 1])
-        vendor.export_data(export_out, data_dir)
+        vendor.export_data(export_out, data_dir, private="--private-data" in command)
         return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
 
     monkeypatch.setattr(vendor.subprocess, "run", run)
@@ -295,3 +303,62 @@ def test_vendor_bundle_is_deterministic_with_fixed_date_build_and_keys(export_fi
         envelope = json.loads(gzip.decompress(first_read("/api/" + path)))
         assert envelope["signature"]["alg"] == "hmac-sha256"
         assert envelope["signatures"][0]["alg"] == "ed25519"
+
+
+def test_a_private_data_export_builds_by_the_private_rule(export_fixture, tmp_path):
+    # MODEL-491, Codex review 5: only --private-data makes the export private. Then the loader
+    # and every snapshot build retire RSP; a public --data-dir build (a synthetic bundle,
+    # ``--data-dir .``) keeps the public rule. Nothing is read from the overlay.
+    fixture = export_fixture()
+    fixture.vendor.export_data(tmp_path / "public", fixture.root)
+    assert fixture.privates["load_models"] is False
+    assert fixture.privates["collect_repo"] and not any(fixture.privates["collect_repo"])
+    fixture.privates.clear()
+    fixture.vendor.export_data(tmp_path / "private", fixture.root, private=True)
+    assert fixture.privates["load_models"] is True
+    assert fixture.privates["collect_repo"] and all(fixture.privates["collect_repo"])
+
+
+def test_the_bundle_passes_the_private_flag_to_its_export_child(export_fixture, tmp_path,
+                                                                 monkeypatch):
+    fixture = export_fixture()
+    seen = []
+
+    def run(command, **kw):
+        seen.append("--private-data" in command)
+        raise SystemExit(0)
+
+    monkeypatch.setattr(fixture.vendor.subprocess, "run", run)
+    for private in (False, True):
+        out = tmp_path / f"bundle-{private}"
+        out.mkdir()
+        with pytest.raises(SystemExit):
+            fixture.vendor.bundle_data(out, fixture.root, private=private)
+    assert seen == [False, True]
+
+
+def test_private_data_needs_a_data_dir(export_fixture, monkeypatch, capsys):
+    vendor = export_fixture().vendor
+    monkeypatch.setattr("sys.argv", ["vendor.py", "--private-data"])
+    assert vendor._main() == 2
+    assert "--private-data requires --data-dir" in capsys.readouterr().err
+
+
+def test_a_public_data_dir_bundle_stays_public(export_fixture, tmp_path, monkeypatch):
+    # Codex review 5: build() passes --private-data to its export child only when asked; its own
+    # set of private registry files never stands in for the flag.
+    fixture = export_fixture()
+    seen = []
+
+    def bundle(out, data_dir, *, private=False):
+        seen.append(private)
+
+    monkeypatch.setattr(fixture.vendor, "bundle_data", bundle)
+    monkeypatch.setattr(fixture.vendor, "write_tier_policy", lambda out: None)
+    (fixture.root / "registry").mkdir(exist_ok=True)
+    for name in ("harnesses", "providers", "sources"):
+        (fixture.root / "registry" / f"{name}.yaml").write_text("{}\n")
+    (fixture.root / "hardware").mkdir(exist_ok=True)
+    fixture.vendor.build(tmp_path / "public", data_dir=fixture.root)
+    fixture.vendor.build(tmp_path / "private", data_dir=fixture.root, private=True)
+    assert seen == [False, True]

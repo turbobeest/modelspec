@@ -152,8 +152,11 @@ ALLOWED_TOP_LEVEL = {
 }
 
 
-def build(destination: Path | None = None, *, data_dir: Path | None = None) -> Path:
-    """Write the bundle and return its root. Idempotent."""
+def build(destination: Path | None = None, *, data_dir: Path | None = None,
+          private: bool = False) -> Path:
+    """Write the bundle and return its root. Idempotent. ``private`` (``--private-data``) says
+    ``data_dir`` is the private data, so its exports apply MODEL-491's counting rule; a public
+    ``--data-dir`` build (a synthetic bundle, ``--data-dir .``) leaves it off."""
     out = destination or BUNDLE
     if destination is not None and out.exists():
         shutil.rmtree(out)
@@ -172,18 +175,19 @@ def build(destination: Path | None = None, *, data_dir: Path | None = None) -> P
     sources.update({Path("hardware") / p.name: Path("hardware") / p.name
                     for p in sorted((data_root / "hardware").glob("*.yaml"))
                     if not p.name.startswith("_")})
-    private = {Path("registry") / (name + ".yaml")
-               for name in ("harnesses", "providers", "sources")}
+    private_files = {Path("registry") / (name + ".yaml")
+                     for name in ("harnesses", "providers", "sources")}
     for source, target in sources.items():
         dest = out / target
         dest.parent.mkdir(parents=True, exist_ok=True)
-        source_root = data_root if source in private or source.parts[0] == "hardware" else REPO_ROOT
+        source_root = (data_root if source in private_files or source.parts[0] == "hardware"
+                       else REPO_ROOT)
         shutil.copyfile(source_root / source, dest)
     write_tier_policy(out)
     embedded = out / "bundled_data.py"
     embedded.unlink(missing_ok=True)
     if data_dir is not None:
-        bundle_data(out, data_dir)
+        bundle_data(out, data_dir, private=private)
     return out
 
 
@@ -217,7 +221,7 @@ def snapshot_metadata(raw: bytes) -> dict:
     }
 
 
-def bundle_data(out: Path, data_dir: Path) -> None:
+def bundle_data(out: Path, data_dir: Path, *, private: bool = False) -> None:
     """Generate private data as an imported module, never a public asset."""
     with tempfile.TemporaryDirectory(prefix="modelspec-worker-") as tmp:
         site = Path(tmp) / "site"
@@ -226,7 +230,7 @@ def bundle_data(out: Path, data_dir: Path) -> None:
         # Build output and exceptions may contain private rows. Emit only status.
         completed = subprocess.run(
             [sys.executable, str(Path(__file__).resolve()), "--export-data", str(site),
-             "--data-dir", str(data_dir.resolve())],
+             "--data-dir", str(data_dir.resolve()), *(["--private-data"] if private else [])],
             cwd=REPO_ROOT, env=env, capture_output=True,
         )
         stderr = completed.stderr.decode("utf-8", errors="replace").splitlines()
@@ -370,8 +374,10 @@ def require_consistent_modalities(cards: list, facts: list | None = None) -> Non
                   file=sys.stderr)
 
 
-def export_data(out: Path, data_dir: Path) -> None:
-    """Build only the exports consumed by the Worker, using the shared builders."""
+def export_data(out: Path, data_dir: Path, *, private: bool = False) -> None:
+    """Build only the exports consumed by the Worker, using the shared builders. ``private``
+    (``--private-data``) applies MODEL-491's counting rule; it is the caller's statement, never
+    read from the data directory."""
     sys.path.insert(0, str(REPO_ROOT))
     _show_coverage_log()
     from datetime import UTC, date, datetime
@@ -385,7 +391,7 @@ def export_data(out: Path, data_dir: Path) -> None:
     with tempfile.TemporaryDirectory(prefix="modelspec-worker-root-") as tmp:
         root = data_source.overlay(REPO_ROOT, data_dir, Path(tmp) / "root")
         registry.use_root(root)
-        models = load_models(root)
+        models = load_models(root, private=private)
         cards = [ModelCard.from_yaml_file(str(model.path)) for model in models]
         require_consistent_modalities(cards, [model.front.get("facts") for model in models])
         build = export.make_build(load_catalogue(root), root).to_json()
@@ -404,6 +410,7 @@ def export_data(out: Path, data_dir: Path) -> None:
         successor_vocabulary.unlink(missing_ok=True)
         current = snapshot.build_from_repo(
             root, premier=root / "premier/slice-1.yaml", as_of=datetime.now(UTC).date(),
+            private=private,
         )
         written = current.write(out / "decision/snapshot.json.gz")
         vocabulary_path = out / "decision/vocabulary.json"
@@ -412,6 +419,7 @@ def export_data(out: Path, data_dir: Path) -> None:
         if valid_until is not None:
             snapshot.build_from_repo(
                 root, premier=root / "premier/slice-1.yaml", as_of=date.fromisoformat(valid_until),
+                private=private,
             ).write(successor)
             vocabularies.insert(0, (successor, successor_vocabulary))
         from api.worker.src.display_vocabulary import trim
@@ -488,10 +496,15 @@ def _main() -> int:
     parser.add_argument("--out", default=None, help="Bundle root (default: src/).")
     parser.add_argument("--data-dir", type=Path, default=None)
     parser.add_argument("--export-data", type=Path, default=None, help=argparse.SUPPRESS)
+    parser.add_argument("--private-data", action="store_true",
+                        help="--data-dir is the private data: apply MODEL-491's counting rule.")
     parser.add_argument("--check", action="store_true",
                         help="Also import the bundle and fail on a non-stdlib dependency.")
     args = parser.parse_args()
 
+    if args.private_data and args.data_dir is None:
+        print("--private-data requires --data-dir", file=sys.stderr)
+        return 2
     if os.environ.get("MODELSPEC_REQUIRE_DATA_DIR") == "1" and args.data_dir is None:
         print("private Worker build requires --data-dir", file=sys.stderr)
         return 2
@@ -505,9 +518,10 @@ def _main() -> int:
         retention.use_data_dir(args.data_dir.resolve())
     try:
         if args.export_data is not None:
-            export_data(args.export_data, args.data_dir)
+            export_data(args.export_data, args.data_dir, private=args.private_data)
             return 0
-        bundle = build(Path(args.out) if args.out else None, data_dir=args.data_dir)
+        bundle = build(Path(args.out) if args.out else None, data_dir=args.data_dir,
+                       private=args.private_data)
         print(f"vendored {len(SOURCES)} files into {bundle}")
         if args.check:
             stray = check_imports_are_stdlib_only(bundle)

@@ -42,7 +42,7 @@ from decision.model import (
     SourceRef,
     fact_verification_value,
     matching_value_hashes,
-    verification_counts,
+    verification_row_counts,
 )
 from decision.snapshot import SnapshotInputs, _Compiler
 from decision.sources import CopyStore, load_sources
@@ -181,9 +181,7 @@ def verification_history(queue_events, records, compiler):
                     value, [record["target"]["value_hash"]],
                     unordered=compiler._unordered(claim.target.kind, claim.field),
                 )
-                or not verification_counts(record["outcome"],
-                                           record["collector"]["model_family"],
-                                           record["verifier"]["model_family"])
+                or not verification_row_counts(record, retire=compiler.retire)
                 for _, record in entries
             ):
                 break
@@ -319,11 +317,11 @@ def drop_refs(text, offset, source_node, keep):
     return edits
 
 
-def plan(root, store, today):
+def plan(root, store, today, *, private=False):
     sources = load_sources(root / "registry/sources.yaml")
     urls = {sid: str(source.url) for sid, source in sources.items()}
     records = json_lines(root / "verification/log.jsonl")
-    compiler = _Compiler(SnapshotInputs(sources=urls, verifications=records),
+    compiler = _Compiler(SnapshotInputs(sources=urls, verifications=records, retire_rsp=private),
                          registry.default(), None, today, source_cache=store)
     queue_path = root / QUEUE
     queue_bytes = queue_path.read_bytes() if queue_path.exists() else None
@@ -523,6 +521,8 @@ def apply(plan):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, required=True)
+    parser.add_argument("--private-data", action="store_true",
+                        help="--data-root is the private data: apply MODEL-491's counting rule")
     parser.add_argument("--policy", type=Path, required=True)
     parser.add_argument("--source-cache", type=Path, required=True)
     parser.add_argument("--as-of", type=date.fromisoformat, required=True)
@@ -532,7 +532,8 @@ def main(argv=None):
     retention.cite_only_hosts.cache_clear()
     retention.cite_only_hosts()
     planned = plan(
-        args.data_root.resolve(), CopyStore(args.source_cache.resolve()), args.as_of
+        args.data_root.resolve(), CopyStore(args.source_cache.resolve()), args.as_of,
+        private=args.private_data,
     )
     changes, half_done = planned.changes, None
     if args.write:

@@ -176,7 +176,8 @@ def check_rewrite(before: str, after: str, fact_id: str, fact: dict[str, Any]) -
         raise WriteRefused("the rewrite did not land the record")
 
 
-def _reconfirmed_fact(record: dict[str, Any], found: Lookup, data_dir: Path) -> dict[str, Any]:
+def _reconfirmed_fact(record: dict[str, Any], found: Lookup, data_dir: Path, *,
+                      private: bool = False) -> dict[str, Any]:
     """The fact a reconfirmation files (``reconfirmation.filed``), or a refusal: the fact on disk
     must still be the one the gate read (its value, state and block, by ``read_against``), and
     the filed fact must pass the build's own test against the logs on disk."""
@@ -191,7 +192,7 @@ def _reconfirmed_fact(record: dict[str, Any], found: Lookup, data_dir: Path) -> 
         raise WriteRefused("the fact changed since the gate read it; read it again")
     fact = filed(current, {k: v for k, v in record.items() if k != "read_against"})
     try:
-        log, verdicts, cutoff = _correction_inputs(data_dir, None)
+        log, verdicts, cutoff = _correction_inputs(data_dir, None, private)
     except LoadError as error:
         raise WriteRefused(f"the logs cannot be read: {error}") from None
     urls = {str(k): str(v.get("url")) for k, v in found.sources.items()
@@ -203,7 +204,7 @@ def _reconfirmed_fact(record: dict[str, Any], found: Lookup, data_dir: Path) -> 
     return fact
 
 
-def apply(outcome: CitedChange, *, data_dir: str | Path) -> Path:
+def apply(outcome: CitedChange, *, data_dir: str | Path, private: bool = False) -> Path:
     """Write a ``cited_change`` outcome for an offering fact (or a reconfirmation of a card
     fact): the file, then the claim."""
     if not outcome.changed or outcome.record is None:
@@ -214,7 +215,7 @@ def apply(outcome: CitedChange, *, data_dir: str | Path) -> Path:
         raise WriteRefused("not an offering or card fact")
     reconfirming = MARK in (record["derivation"]["cited_change"])
     if reconfirming:
-        fact = _reconfirmed_fact(outcome.record, found, Path(data_dir))
+        fact = _reconfirmed_fact(outcome.record, found, Path(data_dir), private=private)
     else:
         fact = new_fact(dict(found.fact), record)
     before = found.path.read_text(encoding="utf-8")
@@ -273,16 +274,19 @@ def main(argv: list[str] | None = None) -> int:
                          "with no cited-change block (MODEL-572); the value does not change")
     ap.add_argument("--no-write", action="store_true",
                     help="run the gate (it still logs its attempt) but write nothing")
+    ap.add_argument("--private-data", action="store_true",
+                    help="--data-dir is the private data: apply MODEL-491's counting rule")
     args = ap.parse_args(argv)
     os.environ["MODELSPEC_DATA_DIR"] = str(args.data_dir)
     outcome = cited_change(subject=args.subject, facet=args.facet, source_id=args.source,
                            readers=default_readers(),
                            accept_not_disclosed=args.accept_not_disclosed,
                            clear_quarantine=args.clear_quarantine,
-                           allow_unchanged=args.allow_unchanged)
+                           allow_unchanged=args.allow_unchanged, private=args.private_data)
     written = None
     if outcome.changed and not args.no_write:
-        written = str(apply(outcome, data_dir=args.data_dir).relative_to(args.data_dir))
+        written = str(apply(outcome, data_dir=args.data_dir, private=args.private_data)
+                      .relative_to(args.data_dir))
     print(json.dumps({"outcome": outcome.outcome, "reason": outcome.reason, "detail": outcome.detail,
                       "readers": _readers_seen(outcome, args.data_dir, args.subject, args.facet),
                       "state": (outcome.record or {}).get("state"),

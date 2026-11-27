@@ -67,7 +67,7 @@ def test_trust_inventory_reports_unknown_benchmark_key(page, field, mapping, mon
     c = load(root)
     registry = load_registry()
     inputs = snapshot.SnapshotInputs(models=[{"id": "test/model", "lifecycle": "active", "facts": []}])
-    monkeypatch.setattr(snapshot, "collect_repo", lambda root: inputs)
+    monkeypatch.setattr(snapshot, "collect_repo", lambda root, **_: inputs)
     calibrate(c, root, registry, date(2026, 11, 9))
     findings = [f for f in run(c, registry, date(2026, 11, 9))["findings"]
                 if f["rule"] == "unknown_benchmark_key"]
@@ -130,7 +130,7 @@ def test_trust_duplicate_diagnostic_survives_calibration(tmp_path, monkeypatch, 
     path.write_text(content)
     c = load(tmp_path)
     inputs = snapshot.SnapshotInputs()
-    monkeypatch.setattr(snapshot, "collect_repo", lambda root: inputs)
+    monkeypatch.setattr(snapshot, "collect_repo", lambda root, **_: inputs)
     registry = load_registry()
     calibrate(c, tmp_path, registry, date(2026, 11, 9))
     findings = [f for f in run(c, registry, date(2026, 11, 9))["findings"]

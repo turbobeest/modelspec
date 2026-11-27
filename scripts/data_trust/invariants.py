@@ -12,7 +12,7 @@ from urllib.parse import parse_qsl, urlsplit
 from pydantic import ValidationError
 
 from decision.excluded import excluded_sources
-from decision.model import Fact, Model, Offering, Source, verification_counts
+from decision.model import Fact, Model, Offering, Source, verification_row_counts
 from decision.registry import Registry, UnknownIdError
 from decision.verify import unit_id
 from schema.benchmark import Metric
@@ -324,9 +324,7 @@ def _open_weights(f, c):
             and bool(source_urls(f, c))
             and all(safe_url(u) and not excluded_sources().url(u) for u in source_urls(f, c))
             and v.get("outcome") == "verified"
-            and verification_counts(
-                v["outcome"], v["collector"]["model_family"], v["verifier"]["model_family"]
-            )
+            and verification_row_counts(v, retire=c.retire)
         )
     except KeyError:
         return False

@@ -25,6 +25,8 @@ def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("command", choices=("data", "sample", "run"))
     p.add_argument("--data-dir", type=Path, required=True)
+    p.add_argument("--private-data", action="store_true",
+                   help="--data-dir is the private data: apply MODEL-491's counting rule")
     p.add_argument("--n", type=int, default=60)
     p.add_argument("--seed")
     p.add_argument("--date", type=date.fromisoformat, default=date.today())
@@ -47,7 +49,8 @@ def main(argv=None) -> int:
 def _audit(args, seed) -> int:
     with tempfile.TemporaryDirectory(prefix="modelspec-trust-overlay-") as tmp:
         root = overlay(ENGINE, args.data_dir, Path(tmp))
-        c = load(root, source_root=args.data_dir)
+        # ``--private-data``: MODEL-491's counting rule; off, the audit is main's.
+        c = load(root, source_root=args.data_dir, private=args.private_data)
         registry = load_registry(root / "registry", repo_root=root)
         try:
             calibrate(c, root, registry, args.date)

@@ -72,8 +72,9 @@ def reviewer_clauses_from(rows) -> dict:
     return found
 
 
-def load_inputs(root: Path, as_of: date) -> dict:
-    """Adapt admitted records without writing a snapshot or changing the lineup."""
+def load_inputs(root: Path, as_of: date, *, private: bool = False) -> dict:
+    """Adapt admitted records without writing a snapshot or changing the lineup. ``private``
+    (``--private-data``): MODEL-491's counting rule; off, main's."""
     from scripts.premier_slice1 import (
         MAJOR_PLATFORMS,
         SLICE_CLASSES,
@@ -85,8 +86,8 @@ def load_inputs(root: Path, as_of: date) -> dict:
 
     require_inputs(Path(root) / "premier" / "inputs", ["slice-2.yaml"])
     root = check_private(root)
-    cards = load_cards(root)
-    inputs = collect_repo(root)
+    cards = load_cards(root, private=private)
+    inputs = collect_repo(root, private=private)
     audit_inputs = inputs  # MODEL-520: the gate audits what production audits
     registry = default_registry()
     identity_values = {
@@ -260,7 +261,8 @@ def load_inputs(root: Path, as_of: date) -> dict:
         "cards": cards,
         "boards": sorted(boards.values(), key=lambda board: board["id"]),
         "budget_candidates": list(cheapest.values()),
-        "local_candidates": local_candidate_universe(slice2["local"]["candidates"], root),
+        "local_candidates": local_candidate_universe(slice2["local"]["candidates"], root,
+                                                     private=private),
         "slice2": slice2,
         "reviewer_clauses": reviewer_clauses,
         "aliases": {},

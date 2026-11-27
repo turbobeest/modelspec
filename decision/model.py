@@ -130,6 +130,66 @@ def verification_counts(outcome: str, collector: str, verifier: str) -> bool:
     return outcome != "verified" or independent_families(collector, verifier)
 
 
+#: Methods whose rows never verify a value (MODEL-491). ``retained-source-proof@1`` (MODEL-143
+#: round 2) "proved" hard-coded values by keyword presence, and compared nothing with the page.
+RETIRED_METHODS = frozenset({"retained-source-proof@1"})
+#: Readers that find a value by its label on a page (E5): a model-page label, a key-value key,
+#: or a table column whose header is the claim's label. In MODEL-143 round 1 (collector
+#: ``codex-model-143``, 2026-09-25) the claims were filed with a null value, so these readers
+#: "verified" a null on any page that named the model, and a "mismatch" meant only that the page
+#: states a value: neither says anything about a fact's value.
+LABEL_MATCHERS = frozenset({"model-page-label-match@1", "key-value-match@1",
+                            "table-header-match@1"})
+ROUND_ONE = ("codex-model-143", "2026-09-25")
+_NULL_HASH = "sha256:74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+
+
+def verification_row_counts(row: Any, *, retire: bool = False) -> bool:
+    """Whether one logged verification row decides its value's state (MODEL-491): the one rule
+    the build, the gate's hold, the data-trust audit and the writers share.
+
+    - A same-family ``verified`` row is no second key (``verification_counts``).
+    - A row of a retired method (``RETIRED_METHODS``) never counts, whatever its outcome. The
+      method is the row's, or its verifier's.
+    - A MODEL-143 round-1 label matcher's row bound to the null value never counts, verified or
+      not (E5, ``ROUND_ONE``). That round filed its claims with a null value, so the matcher read
+      only whether the page named the model: a "verified" shows nothing about a value the page
+      does not state, and a "mismatch" nothing against one it does. Later absence readings by
+      the same readers are not affected.
+
+    ``retire=False`` keeps the rule before MODEL-491 (the same-family rule only). That is for the
+    engine's frozen public data image alone, which is frozen as filed and reproduced byte for
+    byte, and it is the default. Every entry point that builds or checks the private data passes
+    ``retire=True`` down from its own explicit argument (``collect_repo(root, private=True)``, the
+    Worker's ``--data-dir`` export, the data writers, the trust audit, the data checks); nothing
+    here looks the switch up.
+    """
+    get = row.get if isinstance(row, Mapping) else (lambda k, d=None: getattr(row, k, d))
+    outcome = str(get("outcome"))
+    collector, verifier = get("collector"), get("verifier")
+
+    def field(actor: Any, name: str) -> str:
+        if isinstance(actor, Mapping):
+            return str(actor.get(name) or "")
+        return str(getattr(actor, name, "") or "")
+
+    if not verification_counts(outcome, field(collector, "model_family"),
+                               field(verifier, "model_family")):
+        return False
+    if not retire:
+        return True
+    methods = {str(get("method") or ""), field(verifier, "method")}
+    if methods & RETIRED_METHODS:
+        return False
+    target = get("target")
+    value_hash_ = target.get("value_hash") if isinstance(target, Mapping) \
+        else getattr(target, "value_hash", None)
+    if methods & LABEL_MATCHERS and str(value_hash_ or "") == _NULL_HASH \
+            and (field(collector, "agent"), str(get("date") or "")) == ROUND_ONE:
+        return False
+    return True
+
+
 class Verification(Record):
     target: VerificationTarget
     collector: VerificationActor
@@ -158,9 +218,10 @@ class Verification(Record):
 
     @property
     def counts(self) -> bool:
-        """See ``verification_counts``: a same-family ``verified`` is ignored."""
-        return verification_counts(
-            self.outcome, self.collector.model_family, self.verifier.model_family)
+        """See ``verification_row_counts``, under the public rule (``retire=False``): a same-family
+        ``verified`` is ignored. A private-data reader calls ``verification_row_counts(record,
+        retire=True)`` itself (MODEL-491)."""
+        return verification_row_counts(self, retire=False)
 
     @property
     def quarantined(self) -> bool:

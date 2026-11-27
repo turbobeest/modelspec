@@ -255,9 +255,12 @@ class Catalogue:
         return sorted(i for i, d in self.dispositions.items() if d.is_active)
 
 
-def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[Model]:
+def load_models(root: Path | None = None, *, as_of: date | None = None,
+                private: bool = False) -> list[Model]:
     """Every card. ``as_of`` is the build's day, as the snapshot build is given it: a ruled
-    fact is withheld unless its ruling stands at min(as_of, the UTC day)."""
+    fact is withheld unless its ruling stands at min(as_of, the UTC day). ``private`` says the
+    caller loads the private data, so MODEL-491's counting rule applies; the public site's
+    build leaves it off."""
     from decision.citation import fact_citation
     from decision.owner_ruling import (
         RepeatedKeyError,
@@ -281,6 +284,7 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
     #: decided here exactly as there; other facts keep the registry-only citation.
     store = configured_copy_store()
     out: list[Model] = []
+    held = _held_standing(root, directory, private)  # MODEL-491: listed held facts are withheld
     for path in sorted(directory.rglob("*.md")):
         if path.name in NOT_CONTENT:
             continue
@@ -292,6 +296,11 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
             continue
         cited, withheld = [], []
         for fact in front.get("facts") or []:
+            if (str(model_id), str(fact.get("facet"))) in held:
+                # A standing listed held fact (``decision.held_list``) is served as held, as the
+                # snapshot serves it: withheld, never shown as cited.
+                withheld.append(str(fact.get("facet")))
+                continue
             valid = True
             try:
                 citation = fact_citation(fact, sources, store if has_ruling(fact) else None)
@@ -304,7 +313,7 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
                 # The snapshot's "ruling stands at cutoff" test and served form (MODEL-551).
                 if rulings is None:
                     try:
-                        rulings = read_ruling_inputs(root)
+                        rulings = read_ruling_inputs(root, private=private)
                     except RepeatedKeyError as error:
                         # The counts-only message every path gives (MODEL-554).
                         raise LoadError(str(error)) from None
@@ -319,7 +328,7 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
                 # The snapshot's own test (MODEL-572), its hold included: a reconfirmation that
                 # fails it is withheld.
                 if corrections is None:
-                    corrections = _correction_inputs(root, as_of)
+                    corrections = _correction_inputs(root, as_of, private)
                 log, verdicts, cutoff = corrections
                 stands = reconfirmation_problem(fact, str(model_id), log=log, verdicts=verdicts,
                                                 sources=sources, cutoff=cutoff) is None
@@ -334,7 +343,7 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
                 # snapshot's own test admits it, whatever its references are; otherwise it is
                 # withheld.
                 if corrections is None:
-                    corrections = _correction_inputs(root, as_of)
+                    corrections = _correction_inputs(root, as_of, private)
                 if clearing is None:
                     clearing = _clearing_inputs(root)
                 citation = _corrected_citation(fact, str(model_id), corrections, sources,
@@ -350,7 +359,7 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
                 # admits it, decided by its verified verdict when one outranks it, and withheld
                 # otherwise, even beside a cite-only reference (Codex review of #1203).
                 if corrections is None:
-                    corrections = _correction_inputs(root, as_of)
+                    corrections = _correction_inputs(root, as_of, private)
                 if clearing is None:
                     clearing = _clearing_inputs(root)
                 decision, confirmed = _confirmation_decision(fact, str(model_id), corrections,
@@ -371,7 +380,7 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
             # ruling stands, by the snapshot's own test; otherwise it is withheld.
             if rulings is None:
                 try:
-                    rulings = read_ruling_inputs(root)
+                    rulings = read_ruling_inputs(root, private=private)
                 except RepeatedKeyError as error:
                     raise LoadError(str(error)) from None
                 except (OSError, ValueError, KeyError, TypeError) as error:
@@ -388,7 +397,53 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
     return out
 
 
-def _correction_inputs(root: Path, as_of: date | None) -> tuple[Any, Any, date]:
+def _held_standing(root: Path, directory: Path, private: bool) -> set[tuple[str, str]]:
+    """The standing listed held facts of the data (``decision.held_list.standing``), resolved
+    against the cards, the attempt log, the ranked verification log and the clearing lines, as
+    the snapshot resolves them. None when the data lists none; a listing that does not resolve
+    fails the load, by counts and fixed phrases only."""
+    from decision.held_list import HELD_FILE, standing, summary
+    from decision.held_list import read as read_held
+
+    if not private:  # MODEL-491's held list applies only when the caller states private data
+        return set()
+    try:
+        entries = read_held(root / HELD_FILE)
+    except ValueError as error:
+        raise LoadError(f"held list: {type(error).__name__}") from None
+    if not entries:
+        return set()
+    facts: dict[tuple[str, str], dict[str, Any]] = {}
+    for path in sorted(directory.rglob("*.md")):
+        if path.name in NOT_CONTENT:
+            continue
+        front, _body = split_front_matter(path.read_text(encoding="utf-8", errors="replace"),
+                                          path=path)
+        model_id = front.get("model_id")
+        for fact in front.get("facts") or []:
+            if model_id and isinstance(fact, dict):
+                facts[(str(model_id), str(fact.get("facet")))] = fact
+    from decision.sources import load_sources
+
+    log, verdicts, cutoff = _correction_inputs(root, None, private)
+    clearings, history = _clearing_inputs(root)
+    sources = {sid: str(source.url) for sid, source in
+               load_sources(root / "registry" / "sources.yaml").items()}
+    from decision.hold_evidence import REFUSALS_FILE, read_legacy, read_refusals
+
+    listed, problems = standing(entries, fact_at=lambda s, f: facts.get((s, f)), log=log,
+                                verdicts=verdicts, clearings=clearings, sources=sources,
+                                history=history, cutoff=cutoff,
+                                refusals=read_refusals(root / REFUSALS_FILE),
+                                legacy=read_legacy(root))
+    if problems:
+        raise LoadError(f"held list: {len(problems)} listing(s) do not resolve "
+                        f"({summary(problems)})")
+    return listed
+
+
+def _correction_inputs(root: Path, as_of: date | None,
+                       private: bool = False) -> tuple[Any, Any, date]:
     """The attempt log, the ranked verification log and the cutoff the snapshot build reads a
     retained-page correction against (MODEL-573)."""
     from decision.cited_change import VERIFICATION_LOG
@@ -399,7 +454,8 @@ def _correction_inputs(root: Path, as_of: date | None) -> tuple[Any, Any, date]:
 
     try:
         log = AttemptLog.read(root / ATTEMPTS_FILE)
-        verdicts = _Compiler._verification_log(read_json_lines(root / VERIFICATION_LOG))
+        verdicts = _Compiler._verification_log(read_json_lines(root / VERIFICATION_LOG),
+                                               retire=private)
     except RepeatedKeyError as error:
         raise LoadError(str(error)) from None
     except (OSError, ValueError, KeyError, TypeError) as error:

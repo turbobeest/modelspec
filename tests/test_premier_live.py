@@ -1125,7 +1125,7 @@ def test_the_fallback_audit_is_flagged_with_its_offerings(tmp_path, monkeypatch)
     monkeypatch.setattr(premier_live, "audit_build", spy)
     monkeypatch.setattr(
         premier_live, "collect_repo",
-        lambda r: (lambda i: premier_live.replace(i, offerings=[*i.offerings, bad]))(real_collect(r)),
+        lambda r, **kw: (lambda i: premier_live.replace(i, offerings=[*i.offerings, bad]))(real_collect(r, **kw)),
     )
     live = premier_live.load_inputs(root, TODAY)
     assert live["completeness_audit"] == "filtered-fallback"

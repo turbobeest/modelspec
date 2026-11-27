@@ -366,7 +366,7 @@ def test_build_from_repo_opens_the_configured_fetcher_store(tmp_path, monkeypatc
     from decision import snapshot
 
     seen = []
-    monkeypatch.setattr(snapshot, "collect_repo", lambda root: SnapshotInputs())
+    monkeypatch.setattr(snapshot, "collect_repo", lambda root, **_: SnapshotInputs())
     monkeypatch.setattr(snapshot, "excluded_sources", lambda: None)
     monkeypatch.setattr(snapshot, "build_snapshot",
                         lambda inputs, **kwargs: seen.append(kwargs["source_cache"]))

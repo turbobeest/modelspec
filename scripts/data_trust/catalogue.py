@@ -18,7 +18,7 @@ from decision.model import (
     fact_verification_value,
     matching_value_hashes,
     unordered_facet,
-    verification_counts,
+    verification_row_counts,
 )
 
 
@@ -54,6 +54,9 @@ class Catalogue:
     verifications: dict[tuple[str, str], dict] = field(default_factory=dict)
     # The verification log as read, kept after calibration for cited records.
     logged_verifications: dict[tuple[str, str], dict] = field(default_factory=dict)
+    # MODEL-491: whether the audit reads the private data, so the retired rows stop counting.
+    # The caller states it (``load(..., private=True)``); nothing looks it up.
+    retire: bool = False
 
 
 def _yaml_text(path: Path) -> str:
@@ -67,8 +70,8 @@ def _yaml_text(path: Path) -> str:
     return text
 
 
-def load(root: Path, *, source_root: Path | None = None) -> Catalogue:
-    c = Catalogue()
+def load(root: Path, *, source_root: Path | None = None, private: bool = False) -> Catalogue:
+    c = Catalogue(retire=private)
 
     def read(path):
         try:
@@ -108,9 +111,7 @@ def load(root: Path, *, source_root: Path | None = None) -> Catalogue:
                 # The build's refusing reader (MODEL-554): a row that repeats a key, in any
                 # spelling, is a finding and never counts as its last value.
                 v = loads(line)
-                if not verification_counts(
-                    v["outcome"], v["collector"]["model_family"], v["verifier"]["model_family"]
-                ):
+                if not verification_row_counts(v, retire=c.retire):
                     continue
                 key = (v["target"]["kind"], v["target"]["id"])
                 if key not in c.verifications or str(v["date"]) >= str(
@@ -404,7 +405,7 @@ def calibrate(c: Catalogue, root: Path, registry, as_of: date) -> None:
     from pipeline.load import LoadError
 
     try:
-        inputs = collect_repo(root)
+        inputs = collect_repo(root, private=c.retire)
     except (LoadError, yaml.YAMLError):
         c.legacy, c.facts = c.facts, []
         c.findings.append(Finding("snapshot", "build", "snapshot_build"))

@@ -336,7 +336,7 @@ sources:
             )
 
     monkeypatch.setattr(
-        accuracy, "_verified_claims", lambda root: [(_evidence_claim(), "key-value-match@1")],
+        accuracy, "_verified_claims", lambda root, **_: [(_evidence_claim(), "key-value-match@1")],
     )
     monkeypatch.setattr(sources, "Fetcher", SourcePage)
     config = replace(accuracy.load_config().data_fidelity, sample_size=1, max_values_drawn=1)

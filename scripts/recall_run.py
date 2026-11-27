@@ -594,19 +594,22 @@ def _markdown(
 
 
 def _snapshot(
-    *, root: Path, snapshot_file: Path | None, report_date: date, registry: Registry
+    *, root: Path, snapshot_file: Path | None, report_date: date, registry: Registry,
+    private: bool = False,
 ) -> tuple[LoadedSnapshot, tuple[Gap, ...]]:
     if snapshot_file is not None:
         return load_snapshot(snapshot_file, key=None, include_archive=True), ()
     gaps: tuple[Gap, ...] = ()
     premier = root / "premier" / "slice-1.yaml"
     try:
-        built = build_from_repo(root, premier=premier, as_of=report_date, registry=registry)
+        built = build_from_repo(root, premier=premier, as_of=report_date, registry=registry,
+                                private=private)
     except CompletenessError as exc:
         gaps = exc.gaps
         # The same premier lineup, without the gate, so the audit can continue.
         built = build_from_repo(
-            root, premier=premier, as_of=report_date, registry=registry, gate=False
+            root, premier=premier, as_of=report_date, registry=registry, gate=False,
+            private=private,
         )
     loaded = load_built_snapshot(built, include_archive=True)
     return loaded, gaps
@@ -622,8 +625,10 @@ def run(
     snapshot_file: Path | None = None,
     output_dir: Path | None = None,
     report_date: date | None = None,
+    private: bool = False,
 ) -> RunResult:
-    """Run all 20 specs and write a Markdown report plus its JSON twin."""
+    """Run all 20 specs and write a Markdown report plus its JSON twin. ``private`` says
+    ``root`` is the private data, so the build applies MODEL-491's rule."""
     root = Path(root).resolve()
     report_date = report_date or date.today()
     output_dir = Path(output_dir) if output_dir is not None else root / "docs" / "recall"
@@ -633,6 +638,7 @@ def run(
         snapshot_file=None if snapshot_file is None else Path(snapshot_file),
         report_date=report_date,
         registry=registry,
+        private=private,
     )
     questions = _rows_by_id(root / "tests" / "recall" / "questions.yaml")
     expected = _rows_by_id(root / "tests" / "recall" / "expected.yaml")
@@ -722,12 +728,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--snapshot-file", type=Path)
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--date", type=date.fromisoformat, default=date.today())
+    parser.add_argument("--private-data", action="store_true",
+                        help="--root is the private data: apply MODEL-491's counting rule")
     args = parser.parse_args(argv)
     result = run(
         root=args.root,
         snapshot_file=args.snapshot_file,
         output_dir=args.output_dir,
         report_date=args.date,
+        private=args.private_data,
     )
     counts = {
         verdict: sum(row.verdict == verdict for row in result.questions)

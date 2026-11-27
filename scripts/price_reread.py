@@ -329,11 +329,12 @@ def _llm_baseline(fact: Mapping[str, Any], log_latest: Mapping) -> str | None:
 # --- fetching -----------------------------------------------------------------------------------
 
 
-def render_to(*, root: Path, directory: Path, rendered: RenderedFetcher) -> None:
+def render_to(*, root: Path, directory: Path, rendered: RenderedFetcher,
+              private: bool = False) -> None:
     """Render only the HTML sources an in-scope re-read would fetch, once per URL."""
     sources = load_sources(root / "registry" / "sources.yaml")
     filed = Queue(root / "verification").filed()
-    latest = VerificationLog(root / "verification").latest()
+    latest = VerificationLog(root / "verification", private=private).latest()
     source_ids = set()
     for tracked in tracked_facts(root):
         claim = filed.get(("fact", tracked.fact["id"]))
@@ -869,12 +870,15 @@ def _diff_text(result: Result) -> str:
 
 def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
         write: bool = False, at: datetime | None = None,
-        rendered: RenderedFetcher | RenderedReplayFetcher | None = None) -> Report:
-    """Re-read every tracked fact. With ``write``, apply the changes to ``root``."""
+        rendered: RenderedFetcher | RenderedReplayFetcher | None = None,
+        private: bool = False) -> Report:
+    """Re-read every tracked fact. With ``write``, apply the changes to ``root``. ``private``
+    (``--private-data``): ``root`` is the private data, so verdicts count by MODEL-491's rule;
+    off, the re-read is main's."""
     at = at or datetime.now(UTC)
     sources = load_sources(root / "registry" / "sources.yaml")
     queue = Queue(root / "verification")
-    log = VerificationLog(root / "verification")
+    log = VerificationLog(root / "verification", private=private)
     filed = queue.filed()
     latest = log.latest()
     regions = StoredRegions(store, sources)
@@ -1402,6 +1406,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--write", action="store_true",
                         help="apply changed values to offerings/ and verification/")
+    parser.add_argument("--private-data", action="store_true",
+                        help="the checkout is the private data: apply MODEL-491's counting rule")
     rendering = parser.add_mutually_exclusive_group()
     rendering.add_argument("--rendered", action="store_true",
                            help="re-read rendered HTML sources with local headless Chromium")
@@ -1449,7 +1455,8 @@ def main(argv: list[str] | None = None) -> int:
                 parser.error(f"{flag} requires Playwright; install playwright and its "
                              "Chromium browser (python -m playwright install chromium)")
         if args.render_to is not None:
-            render_to(root=ROOT, directory=args.render_to, rendered=rendered)
+            render_to(root=ROOT, directory=args.render_to, rendered=rendered,
+                      private=args.private_data)
             return 0
         if args.rendered_from is not None:
             try:
@@ -1479,6 +1486,7 @@ def main(argv: list[str] | None = None) -> int:
                     except Exception as exc:  # no Playwright, or no browser to launch
                         unavailable = f"{PLAYWRIGHT_UNAVAILABLE} ({type(exc).__name__})"
                 fallback_to(root=ROOT, rendered=rendered, directory=args.fallback_to, month=month,
+                            private=args.private_data,
                             # Missing plain entries are unavailable in a fake run.
                             # Demo eligibility never makes a primary HTTP request.
                             plain=(rendered if args.fallback_fake else
@@ -1506,7 +1514,7 @@ def main(argv: list[str] | None = None) -> int:
         store = CopyStore()
         report = run(root=ROOT, fetcher=fetcher, store=store,
                      today=args.today or datetime.now(UTC).date(), write=args.write,
-                     rendered=rendered)
+                     rendered=rendered, private=args.private_data)
         report.fallback_spend = fallback_spend
     markdown = render_report(report)
     if args.report_md:

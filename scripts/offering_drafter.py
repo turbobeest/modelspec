@@ -58,7 +58,7 @@ class OfferingDraft:
             "sources": self.sources, "firecrawl_credits_used": self.credits_spent,
         }
 
-    def write(self, root: Path):
+    def write(self, root: Path, *, private: bool = False):
         """Add a new offering and append provenance; preserve existing records."""
         if self.offering_path is None:
             return
@@ -94,7 +94,9 @@ class OfferingDraft:
                 raise ValueError("source registry cannot be safely extended")
             with source_path.open("a") as output:
                 output.write(suffix)
-        queue, log = Queue(root / "verification"), VerificationLog(root / "verification")
+        queue = Queue(root / "verification")
+        # ``private`` (``--private-data``): MODEL-491's counting rule; off, main's.
+        log = VerificationLog(root / "verification", private=private)
         at = datetime.combine(self.checked_on, datetime.min.time(), tzinfo=UTC)
         filed, latest = queue.filed(), log.latest()
         for claim, result in self.checks:
@@ -240,6 +242,8 @@ def draft_offering(*, root: Path, model_id: str, fetcher, store: CopyStore,
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", type=Path, required=True)
+    parser.add_argument("--private-data", action="store_true",
+                        help="--data-dir is the private data: apply MODEL-491's counting rule")
     parser.add_argument("--model", required=True)
     parser.add_argument("--write", action="store_true")
     parser.add_argument("--report", type=Path)
@@ -262,7 +266,7 @@ def main(argv=None):
             packet = draft_offering(root=args.data_dir, model_id=args.model, fetcher=fetcher,
                                     store=CopyStore(cache or temporary), today=datetime.now(UTC).date())
             if args.write:
-                packet.write(args.data_dir)
+                packet.write(args.data_dir, private=args.private_data)
             content = json.dumps(packet.to_dict(), indent=2) + "\n"
             if args.report:
                 args.report.parent.mkdir(parents=True, exist_ok=True)

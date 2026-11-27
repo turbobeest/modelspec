@@ -45,7 +45,7 @@ sys.path.insert(0, str(ROOT))
 
 from api.classes import class_for_model_type  # noqa: E402
 from decision.excluded import excluded_sources  # noqa: E402
-from decision.model import value_hash, verification_counts  # noqa: E402
+from decision.model import value_hash, verification_row_counts  # noqa: E402
 from decision.registry import default as default_registry  # noqa: E402
 from decision.sources import load_sources  # noqa: E402
 from scripts.premier_inputs import require_inputs  # noqa: E402
@@ -473,9 +473,9 @@ def rank_board(board: dict, *, minimum_rows: int | None = None) -> list[dict]:
     return ranked
 
 
-def load_cards(root: Path = ROOT) -> dict[str, dict]:
+def load_cards(root: Path = ROOT, *, private: bool = False) -> dict[str, dict]:
     cards: dict[str, dict] = {}
-    verifications = _verification_index(root)
+    verifications = _verification_index(root, private=private)
     guaranteed = {
         facet.id
         for facet in default_registry().facets()
@@ -552,7 +552,8 @@ def load_cards(root: Path = ROOT) -> dict[str, dict]:
     return cards
 
 
-def _verification_index(root: Path = ROOT) -> dict[tuple[str, str, str], dict]:
+def _verification_index(root: Path = ROOT, *,
+                        private: bool = False) -> dict[tuple[str, str, str], dict]:
     """Latest counting verification for each exact record value."""
     latest: dict[tuple[str, str, str], tuple[str, int, dict]] = {}
     path = root / "verification" / "log.jsonl"
@@ -560,11 +561,9 @@ def _verification_index(root: Path = ROOT) -> dict[tuple[str, str, str], dict]:
         if not line.strip():
             continue
         row = json.loads(line)
-        if not verification_counts(
-            str(row["outcome"]),
-            str(row["collector"]["model_family"]),
-            str(row["verifier"]["model_family"]),
-        ):
+        # The frozen public image keeps its rule as filed; the live lineup's caller states that it
+        # reads the private data (``private``), and MODEL-491's rule applies (premier_live).
+        if not verification_row_counts(row, retire=private):
             continue
         target = row["target"]
         key = (str(target["kind"]), str(target["id"]), str(target["value_hash"]))
@@ -647,9 +646,10 @@ def select_local_candidates(candidates: list[dict], *, max_memory_gb: float) -> 
     ]
 
 
-def local_candidate_universe(candidates: list[dict], root: Path = ROOT) -> list[dict]:
+def local_candidate_universe(candidates: list[dict], root: Path = ROOT, *,
+                             private: bool = False) -> list[dict]:
     """Attach exact-value verification state to the filed local facts."""
-    verifications = _verification_index(root)
+    verifications = _verification_index(root, private=private)
     suffixes = {
         "parameter_verified": ("model.parameters_total", "parameter_count"),
         "artifact_verified": ("local.quantised_size_bytes", "published_size_bytes"),
@@ -876,7 +876,8 @@ def mixed_slice1_boards(boards: list[dict]) -> list[str]:
 
 
 def build(*, data_dir: Path | None = None, as_of: date | None = None,
-          allow_mixed_boards: bool = False, baseline_ids: frozenset[str] = frozenset()) -> dict:
+          allow_mixed_boards: bool = False, baseline_ids: frozenset[str] = frozenset(),
+          private: bool = False) -> dict:
     audit_note = None
     if data_dir is None:
         require_inputs(INPUTS, ["aliases.json", SLICE2_INPUT.name])
@@ -898,7 +899,7 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None,
         from scripts.premier_live import load_inputs
 
         as_of = as_of or datetime.now(UTC).date()
-        live = load_inputs(data_dir, as_of)
+        live = load_inputs(data_dir, as_of, private=private)
         audit_note = {"completeness_audit": live["completeness_audit"],
                       "unregistered_offerings": live["unregistered_offerings"]}
         cards, boards, aliases = live["cards"], live["boards"], live["aliases"]
@@ -1467,6 +1468,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="fail if the YAML differs")
     parser.add_argument("--report", action="store_true", help="print a short summary")
+    parser.add_argument("--private-data", action="store_true",
+                        help="--data-dir is the private data: apply MODEL-491's counting rule")
     parser.add_argument("--data-dir", type=Path,
                         help="read live private data instead of frozen inputs")
     parser.add_argument("--as-of", type=date.fromisoformat,
@@ -1521,6 +1524,7 @@ def main() -> int:
                 as_of=as_of,
                 allow_mixed_boards=args.allow_mixed_boards,
                 baseline_ids=baseline_ids,
+                private=args.private_data,
             )
         except MixedBoards as error:
             print(error, file=sys.stderr)

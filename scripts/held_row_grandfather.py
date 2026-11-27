@@ -31,12 +31,14 @@ from decision.quarantine_clearing import (
 )
 
 
-def missing_hashes(root: Path) -> dict[str, list[str]]:
+def missing_hashes(root: Path, *, private: bool = False) -> dict[str, list[str]]:
     """The hashes of the failed verdicts on vanished row ids, by kind, with no grandfather list."""
     from decision import snapshot
     from decision.registry import default
 
-    inputs = replace(snapshot.collect_repo(root), held_row_grandfather={}, check_held_rows=False)
+    # ``private`` (``--private-data``): MODEL-491's rule; off, main's.
+    inputs = replace(snapshot.collect_repo(root, private=private), held_row_grandfather={},
+                     check_held_rows=False)
     compiler = snapshot._compile(inputs, default(), None, datetime.now(UTC).date(), False, None)
     found: dict[str, list[str]] = {}
     for kind, sha in compiler.missing_holds():
@@ -58,11 +60,13 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("command", choices=("write", "check"))
     ap.add_argument("--data-dir", required=True, type=Path)
+    ap.add_argument("--private-data", action="store_true",
+                    help="--data-dir is the private data: apply MODEL-491's counting rule")
     ap.add_argument("--base", default="origin/main")
     args = ap.parse_args(argv)
     root = args.data_dir.resolve()
     if args.command == "write":
-        document = grandfather_document(missing_hashes(root))
+        document = grandfather_document(missing_hashes(root, private=args.private_data))
         (root / GRANDFATHER_FILE).write_text(json.dumps(document, indent=1, sort_keys=True) + "\n",
                                              encoding="utf-8")
         print(json.dumps({"written": GRANDFATHER_FILE, "counts": document["counts"]}))

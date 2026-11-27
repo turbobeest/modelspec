@@ -721,8 +721,10 @@ class RulingInputs:
     legacy: frozenset[str] = frozenset()
 
 
-def read_ruling_inputs(root: Path, *, verdicts: bool = True) -> RulingInputs:
+def read_ruling_inputs(root: Path, *, verdicts: bool = True,
+                       private: bool = False) -> RulingInputs:
     """``RulingInputs`` from a data checkout. With no ruling line, nothing else is read.
+    ``private`` ranks the verification log by MODEL-491's rule; the caller states it.
     Raises ``ValueError``, ``KeyError`` or ``TypeError`` on a malformed log."""
     from decision.cited_reader import ATTEMPTS_FILE
 
@@ -735,7 +737,8 @@ def read_ruling_inputs(root: Path, *, verdicts: bool = True) -> RulingInputs:
         from decision.cited_change import VERIFICATION_LOG
         from decision.snapshot import _Compiler
 
-        ranked = _Compiler._verification_log(read_json_lines(root / VERIFICATION_LOG))
+        ranked = _Compiler._verification_log(read_json_lines(root / VERIFICATION_LOG),
+                                             retire=private)
     from decision.ruling_reread import Records
 
     claims, history = ruling_claim_events(root / "verification/queue/events.jsonl")

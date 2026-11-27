@@ -73,7 +73,7 @@ from decision.model import (
     unordered_facet,
     validate_price_schedules,
     value_hash,
-    verification_counts,
+    verification_row_counts,
 )
 
 logger = logging.getLogger(__name__)
@@ -414,10 +414,25 @@ class SnapshotInputs:
     #: already gone when the ``held_row_missing`` check began. The list may only shrink.
     held_row_grandfather: Mapping[str, frozenset[str]] = field(default_factory=dict)
     #: Whether the build refuses a failed verdict on a vanished row id (``held_row_missing``).
-    #: ``collect_repo`` turns it on for every build from the private data checkout (the one that
-    #: carries ``.engine-pin``); the engine's frozen public image and hand-built test inputs that
-    #: name only a few records leave it off.
+    #: ``collect_repo`` turns it on, as on main, for every build from the private data checkout
+    #: (the one that carries ``.engine-pin``), and for any build whose caller states the data is
+    #: private; the engine's frozen public image and hand-built test inputs that name only a few
+    #: records leave it off.
     check_held_rows: bool = False
+    #: Whether ``retained-source-proof@1`` rows and a round-1 label matcher's rows on a null value
+    #: stop counting (MODEL-491, ``decision.model.verification_row_counts``): on for every build
+    #: from the private data, off for the engine's frozen public image, which builds as it was
+    #: filed. Off by default; ``collect_repo(root, private=True)`` and every private-data entry
+    #: point turn it on, from their own explicit argument, never from the environment.
+    retire_rsp: bool = False
+    #: The listed held facts (``decision.held_list``, ``verification/held.jsonl``): a standing
+    #: listing is served as held, never cited, and is not a gap; one that does not resolve fails
+    #: the build (MODEL-491).
+    held: Sequence[Mapping[str, Any]] = ()
+    #: MODEL-491: the attempt log's pinned legacy prefix (``hold_evidence.read_legacy``) and
+    #: the gate's refusal log lines (``hold_evidence.REFUSALS_FILE``), for the held list.
+    cited_attempt_legacy: Sequence[str] = ()
+    cited_refusal_lines: Sequence[str] = ()
     #: Lab id -> ``decision.labs.Lab``. Empty when the checkout has no lab registry.
     labs: Mapping[str, Any] = field(default_factory=dict)
     #: Sourced hardware YAML records. Metadata, never ranking candidates.
@@ -434,10 +449,19 @@ def _as_dict(record: Any) -> dict[str, Any]:
     raise SnapshotBuildError(f"not a record: {record!r}")
 
 
-def _counts(v: Mapping[str, Any]) -> bool:
-    """A same-family ``verified`` is not a second key: it neither admits nor displaces."""
-    return verification_counts(str(v["outcome"]), str(v["collector"]["model_family"]),
-                               str(v["verifier"]["model_family"]))
+class RankedLog(dict):
+    """``_Compiler._verification_log``'s ranked verdicts, carrying the rule they were ranked
+    under (``retire``), so a function handed them checks a fact's inline record by the same rule,
+    from its caller, never by looking the switch up (MODEL-491)."""
+
+    retire: bool = False
+
+
+def _counts(v: Mapping[str, Any], *, retire: bool = False) -> bool:
+    """Whether a logged row decides its value (``decision.model.verification_row_counts``): a
+    same-family ``verified``, a retired method's row (``retained-source-proof@1``) and a label
+    matcher's ``verified`` on a null value neither admit nor displace (MODEL-491)."""
+    return verification_row_counts(v, retire=retire)
 
 
 def fact_measurement_stale(fact: Mapping[str, Any], as_of: date | None) -> bool:
@@ -448,6 +472,10 @@ def fact_measurement_stale(fact: Mapping[str, Any], as_of: date | None) -> bool:
     if raw is None or as_of is None:
         return False
     return Measurement.model_validate(_as_dict(raw)).stale(as_of)
+
+
+#: The rejection a standing listed held fact gets (``decision.held_list``): never a gap.
+HELD_LISTED = "held (listed)"
 
 
 def _offering_id(o: Mapping[str, Any]) -> str:
@@ -827,7 +855,11 @@ class _Compiler:
         self.excluded: dict[str | None, Counter[str]] = {}
         #: (subject, facet) -> (reason, source URLs), for the gate's messages.
         self.rejected: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {}
-        self.log = self._verification_log(inputs.verifications)
+        self.retire = inputs.retire_rsp
+        self.log = self._verification_log(inputs.verifications, retire=self.retire)
+        #: (subject, facet) of each standing listed held fact (``decision.held_list``), resolved
+        #: on first use, once every attempt and clearing input is set.
+        self._held_listed: set[tuple[str, str]] | None = None
         #: (kind, id) -> the value hashes the log holds a counting row for.
         self.logged_hashes: dict[tuple[str, str], list[str]] = {}
         for log_kind, log_id, log_hash in self.log:
@@ -881,12 +913,13 @@ class _Compiler:
 
     @staticmethod
     def _verification_log(
-        rows: Iterable[Any],
-    ) -> dict[tuple[str, str, str], tuple[str, int, dict]]:
-        latest: dict[tuple[str, str, str], tuple[str, int, dict]] = {}
+        rows: Iterable[Any], *, retire: bool = False,
+    ) -> RankedLog:
+        latest = RankedLog()
+        latest.retire = retire
         for i, raw in enumerate(rows):
             v = _as_dict(raw)
-            if not _counts(v):
+            if not _counts(v, retire=retire):
                 continue
             target = v["target"]
             key = (target["kind"], target["id"], str(target.get("value_hash") or ""))
@@ -936,7 +969,7 @@ class _Compiler:
         if inline_record is not None:
             target = inline_record.get("target") or {}
             if (rid is None or target.get("kind") != kind or target.get("id") != rid
-                    or not _counts(inline_record)):
+                    or not _counts(inline_record, retire=self.retire)):
                 inline_record = None
         inline_hash = (None if inline_record is None
                        else inline_record.get("target", {}).get("value_hash"))
@@ -1063,6 +1096,37 @@ class _Compiler:
         return None
 
     # quarantine clearing (MODEL-552) ------------------------------------------
+
+    def held_listed(self) -> set[tuple[str, str]]:
+        """The standing listed held facts (``decision.held_list.standing``). A listing that does
+        not resolve fails the build, by counts and fixed phrases only."""
+        if self._held_listed is None:
+            if not self.inputs.held:
+                self._held_listed = set()
+            else:
+                from decision.held_list import standing, summary
+
+                facts: dict[tuple[str, str], dict] = {}
+                for raw in [*self.inputs.models, *self.inputs.offerings,
+                            *self.inputs.subscriptions]:
+                    for f in _as_dict(raw).get("facts") or ():
+                        f = _as_dict(f)
+                        subject = (f.get("subject") or {}).get("id")
+                        if isinstance(subject, str):
+                            facts[(subject, str(f.get("facet")))] = f
+                listed, problems = standing(
+                    self.inputs.held, fact_at=lambda s, fa: facts.get((s, fa)),
+                    log=self._clearing_log(), verdicts=self.log,
+                    clearings=self.quarantine_clearings, sources=self.sources,
+                    history=self.inputs.clearing_history, cutoff=self._clearing_cutoff(),
+                    refusals=self.inputs.cited_refusal_lines,
+                    legacy=self.inputs.cited_attempt_legacy)
+                if problems:
+                    raise SnapshotBuildError(
+                        f"held list: {len(problems)} listing(s) do not resolve "
+                        f"({summary(problems)})")
+                self._held_listed = listed
+        return self._held_listed
 
     def _clearing_cutoff(self) -> date:
         from decision.owner_ruling import ruling_cutoff
@@ -1383,6 +1447,11 @@ class _Compiler:
             if facet_id in row or (sid, facet_id) in self.rejected:
                 raise SnapshotBuildError(f"{sid}: {facet_id} is stated twice")
             source_ids = self._source_ids(f.get("sources"))
+            if (sid, facet_id) in self.held_listed():
+                # A listed held fact (MODEL-491, ``decision.held_list``) is served as held: never
+                # cited or verified, whatever its references or verdicts; not a gap.
+                self._reject((sid, facet_id), HELD_LISTED, source_ids)
+                continue
             if state == "unknown":
                 self.rejected[(sid, facet_id)] = ("unknown", tuple(
                     self.sources.get(s, s) for s in source_ids))
@@ -2157,6 +2226,8 @@ class _Compiler:
                     if f.id in self.facts.get(sid, {}) and not self._jurisdiction_required(sid, f.id):
                         continue
                     reason, urls = self.rejected.get((sid, f.id), ("unknown (no fact)", ()))
+                    if reason == HELD_LISTED:
+                        continue  # a listed held fact is served as held and is not a gap
                     if reason == "unknown":
                         reason = "unknown (stated as unknown)"
                     out.append(Gap(mid, sid, f.id, reason, urls))
@@ -2385,8 +2456,10 @@ def _fact_yaml(path: Path) -> Any:
         raise SnapshotBuildError(f"{path}: {exc}") from None
 
 
-def collect_repo(root: Path) -> SnapshotInputs:
-    """Read the snapshot's inputs from a repository checkout.
+def collect_repo(root: Path, *, private: bool = False) -> SnapshotInputs:
+    """Read the snapshot's inputs from a repository checkout. ``private`` says the caller builds
+    the private data: MODEL-491's rules apply (``SnapshotInputs.retire_rsp``). The caller states
+    it from its own argument; the public image's build leaves it off.
 
     * Cards (``models/``): ``lifecycle`` (else the v1 ``status``: deprecated and
       sunset map to ``deprecated``, everything else to ``active``), v2 ``facts``,
@@ -2410,7 +2483,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
     root = Path(root)
     models, evidence = [], []
     availability = {}
-    for card in load_models(root):
+    for card in load_models(root, private=private):
         mid = card.model_id
         front = card.front
         availability[mid] = front.get("availability") or {}
@@ -2532,15 +2605,32 @@ def collect_repo(root: Path) -> SnapshotInputs:
         ruling_legacy = ruling_inputs.legacy
     attempt_lines: list[str] = []
     clearing_history: dict[str, list[dict[str, Any]]] = {}
+    from decision.held_list import HELD_FILE
+    from decision.held_list import read as read_held
     from decision.reconfirmation import is_reconfirmation
     from decision.retained_correction import is_confirmation, is_correction
 
-    # A retained-page correction (MODEL-573), a confirmation (MODEL-491 E1) or a reconfirmation
-    # (MODEL-572) is admitted only through its line in the attempt log, so the log is read
-    # whenever a fact carries one.
-    corrections = any(is_correction(f) or is_confirmation(f) or is_reconfirmation(f)
-                      for row in [*models, *offerings, *subscriptions]
-                      for f in row.get("facts") or [] if isinstance(f, Mapping))
+    # A retained-page correction (MODEL-573), a confirmation (MODEL-491 E1), a reconfirmation
+    # (MODEL-572) or a held listing (MODEL-491) is checked against its line in the attempt log,
+    # so the log is read whenever the data carries one.
+
+    # The held list is MODEL-491's: read only when the caller states the data is private. With
+    # the flag off, the build is main's, and ``held.jsonl`` is not read at all.
+    try:
+        held = read_held(root / HELD_FILE) if private else []
+    except ValueError as exc:
+        raise SnapshotBuildError(f"{HELD_FILE}: {type(exc).__name__}") from exc
+    held_legacy: tuple[str, ...] = ()
+    held_refusals: list[str] = []
+    if held:
+        from decision.hold_evidence import REFUSALS_FILE, read_legacy, read_refusals
+
+        held_legacy = read_legacy(root)
+        held_refusals = read_refusals(root / REFUSALS_FILE)
+    corrections = bool(held) or any(
+        is_correction(f) or is_confirmation(f) or is_reconfirmation(f)
+        for row in [*models, *offerings, *subscriptions]
+        for f in row.get("facts") or [] if isinstance(f, Mapping))
     if corrections and not quarantine_clearings:
         from decision.cited_reader import ATTEMPTS_FILE
         from decision.quarantine_clearing import AttemptLog
@@ -2573,7 +2663,8 @@ def collect_repo(root: Path) -> SnapshotInputs:
     shaped = [v for v in verifications if isinstance(v, Mapping)
               and isinstance(v.get("target"), Mapping) and isinstance(v.get("collector"), Mapping)
               and isinstance(v.get("verifier"), Mapping) and "outcome" in v and "date" in v]
-    failed = {key[1] for key, (_, _, row) in _Compiler._verification_log(shaped).items()
+    failed = {key[1] for key, (_, _, row) in
+              _Compiler._verification_log(shaped, retire=private).items()
               if key[0] == "evidence" and row.get("outcome") != "verified"}
     if failed - set(clearing_history):
         from decision.quarantine_clearing import QUEUE_FILE as _QUEUE, queue_history as _history
@@ -2604,13 +2695,17 @@ def collect_repo(root: Path) -> SnapshotInputs:
                           owner_ruling_legacy=ruling_legacy,
                           board_registry=board_registry,
                           quarantine_clearings=quarantine_clearings,
+                          held=held, cited_attempt_legacy=held_legacy,
+                          cited_refusal_lines=held_refusals,
                           cited_attempt_lines=attempt_lines,
                           clearing_history=clearing_history,
                           held_row_grandfather=held_row_grandfather,
-                          # The private data checkout (it carries ``.engine-pin``, which its CI
-                          # requires): every build from it refuses a vanished hold. The engine's
-                          # frozen public image has no pin and is not re-checked here.
-                          check_held_rows=(root / ".engine-pin").is_file(),
+                          # MODEL-552, as on main: the private data checkout (it carries
+                          # ``.engine-pin``, which its CI requires) refuses a vanished hold; the
+                          # engine's frozen public image has no pin and is not re-checked. A
+                          # caller that states the data is private gets the check too.
+                          check_held_rows=private or (root / ".engine-pin").is_file(),
+                          retire_rsp=private,
                           labs=load_labs(root), hardware_fit_records=fit_records,
                           hardware=[yaml.safe_load(path.read_text(encoding="utf-8"))
                                     for path in sorted((root / "hardware").glob("*.yaml"))
@@ -2640,7 +2735,7 @@ def load_premier(path: str | Path) -> tuple[str, ...]:
 
 
 def build_from_repo(root: Path, *, premier: str | Path | None, as_of: date | None,
-                    registry: Any = None, gate: bool = True) -> Snapshot:
+                    registry: Any = None, gate: bool = True, private: bool = False) -> Snapshot:
     """The production build: collect, guard, gate and compile.
 
     The fetcher's copy store joins only when ``MODELSPEC_SOURCE_CACHE`` names
@@ -2651,7 +2746,7 @@ def build_from_repo(root: Path, *, premier: str | Path | None, as_of: date | Non
     root = Path(root)
     store = configured_copy_store()
     return build_snapshot(
-        collect_repo(root),
+        collect_repo(root, private=private),
         registry=registry if registry is not None else default_registry(),
         premier=load_premier(premier) if premier is not None else None,
         as_of=as_of,

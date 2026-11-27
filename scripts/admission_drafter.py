@@ -320,7 +320,7 @@ class Packet:
                   + (f"; {s['reason']}" if s.get("reason") else "") for s in self.sources]
         return "\n".join(lines) + "\n"
 
-    def write(self, root: Path):
+    def write(self, root: Path, *, private: bool = False):
         path = root / "models" / f"{self.model_id}.md"
         card, prose = split_front_matter(path.read_text())
         facts = {f["facet"]: f for f in card.get("facts") or []}
@@ -343,7 +343,9 @@ class Packet:
                 "sources": [s.model_dump(mode="json", exclude_none=True)
                             for s in registered.values()],
             }, sort_keys=False, allow_unicode=True))
-        queue, log = Queue(root / "verification"), VerificationLog(root / "verification")
+        queue = Queue(root / "verification")
+        # ``private`` (``--private-data``): MODEL-491's counting rule; off, main's.
+        log = VerificationLog(root / "verification", private=private)
         at = datetime.combine(self.checked_on, datetime.min.time(), tzinfo=UTC)
         filed, latest = queue.filed(), log.latest()
         for claim, result in to_file:
@@ -370,7 +372,7 @@ class Packet:
 
 
 def draft_packet(*, root: Path, model_id: str, fetcher, store: CopyStore,
-                 today: date, registry=None) -> Packet:
+                 today: date, registry=None, private: bool = False) -> Packet:
     if len(model_id) > 128 or not MODEL_ID.fullmatch(model_id) or ".." in model_id:
         raise ValueError("model must be a catalogue ID such as anthropic/claude-haiku-5-5")
     registry = registry or default_registry()
@@ -380,7 +382,7 @@ def draft_packet(*, root: Path, model_id: str, fetcher, store: CopyStore,
     lab, slug = model_id.split("/")
     names = tuple(dict.fromkeys((card.get("display_name") or slug,
                                 card.get("version") or slug, slug)))
-    inputs = collect_repo(root)
+    inputs = collect_repo(root, private=private)
     model = next(m for m in inputs.models if m["id"] == model_id)
     registered = load_sources(root / "registry/sources.yaml")
     terms = load_source_terms(root)
@@ -536,6 +538,8 @@ def draft_packet(*, root: Path, model_id: str, fetcher, store: CopyStore,
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", type=Path, required=True)
+    parser.add_argument("--private-data", action="store_true",
+                        help="--data-dir is the private data: apply MODEL-491's counting rule")
     parser.add_argument("--model", required=True)
     parser.add_argument("--write", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
@@ -566,10 +570,10 @@ def main(argv=None):
             fetcher=fetcher,
             store=CopyStore(
                 args.cache_dir or os.environ.get("MODELSPEC_SOURCE_CACHE") or temporary),
-            today=today,
+            today=today, private=args.private_data,
         )
         if args.write:
-            packet.write(args.data_dir)
+            packet.write(args.data_dir, private=args.private_data)
         text = json.dumps(packet.to_dict(), indent=2, ensure_ascii=False) + "\n"
         manifest = json.dumps({"sources": packet.sources}, indent=2) + "\n"
         for path, content in ((args.report, text), (args.body, packet.markdown()),
