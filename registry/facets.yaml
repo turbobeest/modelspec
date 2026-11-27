@@ -252,11 +252,17 @@ facets:
     value_type: {kind: number}
     better: higher
     unit: tokens
+    # Version 2 (MODEL-491, 2026-11-27): the lab-stated window (the orchestrator's convention of
+    # 2026-11-25). Version 1 read "input and output together", which readers took as the sum of a
+    # lab's separate input and output limits; an attempt read under it keeps its own prompt hash
+    # and stays evidence for its own epoch.
+    definition_version: 2
     definition: >-
-      The maximum number of tokens the model accepts in one request, input and
-      output together, as documented by its lab for its largest supported
-      configuration. A provider that serves a smaller window records that on the
-      offering, not here.
+      The context window the lab states for this model, in tokens, for its
+      largest supported configuration. When the lab states separate input and
+      output token limits, it is the input token limit; never add the two (the
+      output limit is `model.max_output_tokens`). A provider that serves a smaller
+      window records that on the offering, not here.
     tier: guaranteed
     risk: capability
     permitted_source_kinds: [lab_documentation, lab_announcement, weights_repository]
