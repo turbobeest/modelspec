@@ -335,7 +335,10 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
                 # withheld.
                 if corrections is None:
                     corrections = _correction_inputs(root, as_of)
-                citation = _corrected_citation(fact, str(model_id), corrections, sources)
+                if clearing is None:
+                    clearing = _clearing_inputs(root)
+                citation = _corrected_citation(fact, str(model_id), corrections, sources,
+                                               clearing[1])
                 if citation is None:
                     logger.warning("%s: a fact's retained-page correction does not stand; "
                                    "withheld", model_id)
@@ -397,13 +400,13 @@ def _correction_inputs(root: Path, as_of: date | None) -> tuple[Any, Any, date]:
 
 
 def _corrected_citation(fact: dict[str, Any], model_id: str, inputs: tuple[Any, Any, date],
-                        sources: dict[str, str]) -> dict[str, Any] | None:
+                        sources: dict[str, str], history: Any = None) -> dict[str, Any] | None:
     """The snapshot's citation for a correction its test admits, or ``None``."""
     from decision.retained_correction import correction_citation, correction_problem
 
     log, verdicts, cutoff = inputs
     if correction_problem(fact, model_id, log=log, verdicts=verdicts, sources=sources,
-                          cutoff=cutoff) is not None:
+                          cutoff=cutoff, history=history) is not None:
         return None
     try:
         return correction_citation(fact, sources)

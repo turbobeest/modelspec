@@ -360,11 +360,19 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
     ``first`` is returned only when no disqualifier applies (``first_epoch_disqualified``), for
     a paired ordinary claim too: a later value by the end of the day, a rule-15, ruling, retired
     or undated claim, or an attempt."""
+    # A fact's first epoch is its facet's (``cited_reader.epoch_root``, MODEL-491 E6): the epoch a
+    # record that never left it is in, by the pinned registry, never by a data line.
+    if first == "initial" and settings is None:
+        from decision.cited_reader import epoch_root
+
+        start = epoch_root(facet, verdict.get("date") or "")  # the version at the verdict
+    else:
+        start = first
     pair = verdict_pair(verdict, history)
     if pair is None:
         if never_left_first(verdict, history=history, log=log, subject=subject, facet=facet,
                             settings=settings):
-            return first
+            return start
         return None
     filed_event, checked = pair
     claim = filed_event["claim"]
@@ -376,7 +384,7 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
     if not method.startswith(_RULE_15):
         disqualified = first_epoch_disqualified(verdict, history=history, log=log,
                                                 subject=subject, facet=facet)
-        return None if disqualified else first
+        return None if disqualified else start
     copies = {str(ref.get("snapshot_ref")) for ref in claim.get("sources") or ()
               if isinstance(ref, Mapping)}
     filed_at, checked_at = _event_at(filed_event), _event_at(checked)
@@ -653,10 +661,21 @@ def line_problem(entry: Any, *, verdict: Mapping[str, Any], subject: str, facet:
                             first=first, settings=settings, clearings=clearings)
     if derived is None:
         return "the record's epoch at the verdict cannot be shown", None
-    if base != derived and not _board_base(base, derived, first, settings, attempt) \
-            and not (settings is None and confirmation_move(
-                base, derived, verdict=verdict, value=entry["value"], log=log, subject=subject,
-                facet=facet, history=history, first=first, until=attempt)):
+    if settings is None and first == "initial" and first_root(derived, facet=facet,
+                                                              verdict=verdict):
+        # A plain record still in its first epoch at the verdict (E6): its clearing is read in the
+        # first epoch in force on the agreement's own day, always, whether or not a version moved
+        # it since the verdict. An agreement in an older first epoch is in the wrong one. A
+        # rule-16 confirmation may have moved the record to its re-read epoch since (MODEL-491
+        # E4): the clearing then extends that epoch, only where the move is shown.
+        if not first_moved(derived, base, facet=facet, verdict=verdict,
+                           at=attempt.get("at") or "") \
+                and not confirmation_move(base, derived, verdict=verdict, value=entry["value"],
+                                          log=log, subject=subject, facet=facet,
+                                          history=history, first=derived, until=attempt):
+            return "the clearing's base is not the first epoch in force on its agreement's day", \
+                None
+    elif base != derived and not _board_base(base, derived, first, settings, attempt):
         return "the clearing's base epoch is not the record's epoch at the verdict", None
     for epoch in (entry["epoch"], base):
         problem = epoch_problem(log.keyed(subject, facet, epoch), entry["value"], facet)
@@ -668,31 +687,95 @@ def line_problem(entry: Any, *, verdict: Mapping[str, Any], subject: str, facet:
 LINE_KINDS = ("confirmation", "correction")
 
 
-def line_kind(attempt: Mapping[str, Any], facet: str) -> str | None:
-    """What a logged agreement line may have filed, from the line alone, never from a record's
-    rule label or the line's values (MODEL-491 E4 review): ``"confirmation"``, ``"correction"``,
-    or ``None`` when the line cannot show it. An ambiguous line authorizes neither a move nor
-    serving.
+#: The rule each kind's writer files its claim under (``decision.cited_change.RETAINED_RULE``,
+#: ``decision.retained_correction.RULE``): the queue's proof that a read was admitted.
+KIND_RULES = {"confirmation": "two-readers-retained-agreement@1",
+              "correction": "two-readers-retained-correction@1"}
+
+
+def line_kind(attempt: Mapping[str, Any], facet: str, *, value: Any = None,
+              history: Sequence[Mapping[str, Any]] = ()) -> str | None:
+    """What a logged agreement line filed, from the line and the log alone, never from a record's
+    rule label (MODEL-491 E4 review): ``"confirmation"``, ``"correction"`` or ``None``. ``None``
+    authorizes neither a move nor serving.
 
     - The gate writes ``kind`` into each retaining-page line it logs (``read_page``), and the
       line's hash covers it: that field decides.
-    - An older line carries no ``kind``, so it is classed by the paths that could have
-      written it. Every correction rests on the gate's own fetch (``own_fetch``), so a line
-      without one made a confirmation. A line with one may have come from either path: a
-      correction's same-value re-read files a correction too. It is a ``correction`` only when
-      it logged the filed value and agreed on another, a value no confirmation files, and is
-      otherwise ambiguous.
+    - An older line carries no ``kind`` and refuses by default. It is a kind only on the full
+      positive test for ``value``, the value served, with ``history``, the target's queue events:
+      - it is a complete harness agreement on a page whose host retains copies;
+      - it agreed on ``value``;
+      - its read was admitted, not refused: that kind's writer filed a claim under its rule for
+        ``value``, citing this line's page copy, on the line's UTC day or later. A refused read
+        files no claim.
+      - A ``confirmation`` also needs any ``filed_value`` it logged to equal ``value``.
+      - A ``correction`` must have logged a different ``filed_value``, on the gate's own fetch
+        with its region hash.
     """
     if "kind" in attempt:
         return attempt["kind"] if attempt["kind"] in LINE_KINDS else None
-    if attempt.get("own_fetch") is not True:
-        return "confirmation"
+    from decision.retention import cite_only_status
+
+    if value is None or attempt.get("complete") is not True or attempt.get("agreed") is not True \
+            or attempt.get("harness") is not True \
+            or cite_only_status(attempt.get("url")) is not False:
+        return None
+    want = _canonical(value, facet)
+    if _canonical(attempt.get("agreed_value"), facet) != want:
+        return None
+    at = _at(attempt.get("at"))
+    if at is None or not _HEX.fullmatch(str(attempt.get("page_sha256") or "")):
+        return None
+    copy = f"sha256:{attempt['page_sha256']}"
+
+    def admitted(rule: str) -> bool:
+        for event in history:
+            claim = event.get("claim") or {}
+            when = _event_at(event)
+            if event.get("event") != "collected" or when is None \
+                    or str((claim.get("collector") or {}).get("method") or "") != rule \
+                    or _canonical(claim.get("value"), facet) != want \
+                    or when.astimezone(UTC).date() < at.astimezone(UTC).date():
+                continue
+            if any(isinstance(ref, Mapping) and ref.get("snapshot_ref") == copy
+                   for ref in claim.get("sources") or ()):
+                return True
+        return False
+
+    logged = "filed_value" in attempt
     filed = attempt.get("filed_value")
-    if "filed_value" in attempt and filed is not None \
-            and _canonical(filed, facet) != _canonical(attempt.get("agreed_value"), facet) \
-            and _HEX.fullmatch(str(attempt.get("region_sha256") or "")):
+    if (not logged or (filed is not None and _canonical(filed, facet) == want)) \
+            and admitted(KIND_RULES["confirmation"]):
+        return "confirmation"
+    if logged and filed is not None and _canonical(filed, facet) != want \
+            and attempt.get("own_fetch") is True \
+            and _HEX.fullmatch(str(attempt.get("region_sha256") or "")) \
+            and admitted(KIND_RULES["correction"]):
         return "correction"
     return None
+
+
+def retained_targets(path: Path) -> set[str]:
+    """Every target a retaining-page writer filed a claim for (``KIND_RULES``): whose queue
+    history ``line_kind`` needs to class an older line (MODEL-491 E4 review)."""
+    from decision.owner_ruling import loads
+
+    out: set[str] = set()
+    if not path.is_file():
+        return out
+    rules = set(KIND_RULES.values())
+    with path.open(encoding="utf-8") as fh:
+        for raw in fh:
+            if "two-readers-retained" not in raw:
+                continue
+            event = loads(raw)
+            claim = event.get("claim") if isinstance(event, Mapping) else None
+            if isinstance(claim, Mapping) and str((claim.get("collector") or {}).get("method")
+                                                   or "") in rules:
+                target = _event_target(event)
+                if target:
+                    out.add(target)
+    return out
 
 
 def confirmation_move(base: Any, derived: Any, *, verdict: Mapping[str, Any], value: Any,
@@ -770,12 +853,33 @@ def confirmation_move(base: Any, derived: Any, *, verdict: Mapping[str, Any], va
                 or cite_only_status(attempt.get("url")) is not False \
                 or agreement_problem(attempt, value, facet) is not None:
             continue
-        if line_kind(attempt, facet) != "confirmation":
+        if line_kind(attempt, facet, value=value, history=history) != "confirmation":
             continue  # the line itself must show it made a confirmation, never the record
         if bound is not None and not bound(attempt):
             continue
         return True
     return False
+
+
+def first_root(derived: str, *, facet: str, verdict: Mapping[str, Any]) -> bool:
+    """Whether ``derived`` is a plain fact's first epoch on the verdict's day (MODEL-491, E6):
+    the record had not left its first epoch when the verdict was made."""
+    from decision.cited_reader import epoch_root
+
+    return derived == epoch_root(facet, verdict.get("date") or "")
+
+
+def first_moved(derived: str, base: str, *, facet: str, verdict: Mapping[str, Any],
+                at: Any) -> bool:
+    """Whether ``base`` is a plain fact's first epoch on the day of ``at`` (now when ``None``) and
+    ``derived`` its first epoch on the verdict's day (MODEL-491, E6): the record never left its
+    first epoch, and a definition version in force since moved it. Both are the registry's
+    (``cited_reader.epoch_root``), so an old clearing is judged by the version in force when its
+    agreement was made, never against a newer one."""
+    from decision.cited_reader import epoch_root
+
+    return derived == epoch_root(facet, verdict.get("date") or "") \
+        and base == epoch_root(facet, at)
 
 
 def _board_base(base: str, derived: str, first: str, settings: Settings | None,

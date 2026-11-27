@@ -21,6 +21,7 @@ from decision.cited_reader import ATTEMPTS_FILE
 from decision.quarantine_clearing import AttemptLog, line_hash
 from decision.retained_correction import (
     RULE,
+    agreement_day,
     confirmation_citation,
     confirmation_problem,
     correction_problem,
@@ -618,7 +619,7 @@ def confirming(**kw):
     attempt = agreement(values=kw.pop("values", (FILED, FILED)), **kw)
     attempt.pop("own_fetch")
     attempt.pop("region_sha256")
-    attempt.pop("kind")  # an older line: no kind, and no own fetch, so a confirmation
+    attempt["kind"] = "confirmation"  # as the gate writes it now
     return attempt
 
 
@@ -888,18 +889,142 @@ def test_a_confirmation_read_logs_kind_confirmation(data):
 
 
 @pytest.mark.parametrize("line,kind", [
-    ({"own_fetch": True}, None),  # an older own-fetch line: either path could have written it
-    ({"own_fetch": True, "filed_value": FILED}, None),  # a same-value own-fetch line
-    ({}, "confirmation"),  # no own fetch: no correction could rest on it
-    ({"own_fetch": True, "filed_value": 2048, "region_sha256": REGION}, "correction"),
+    ({"own_fetch": True}, None),  # untagged: refuses without its positive test
+    ({"own_fetch": True, "filed_value": FILED}, None),
+    ({}, None),  # untagged, no own fetch: still no proof it was admitted
+    ({"own_fetch": True, "filed_value": 2048, "region_sha256": REGION}, None),
     ({"kind": "confirmation", "own_fetch": True}, "confirmation"),
+    ({"kind": "correction"}, "correction"),
     ({"kind": "other"}, None),
 ])
-def test_an_old_line_is_classed_by_the_paths_that_could_have_written_it(line, kind):
+def test_an_untagged_line_refuses_by_default(line, kind):
     from decision.quarantine_clearing import line_kind
 
     attempt = {**agreement(values=(FILED, FILED)), **line}
     for key in ("own_fetch", "region_sha256", "kind"):
         if key not in line:
             attempt.pop(key, None)
-    assert line_kind(attempt, FACET) == kind
+    assert line_kind(attempt, FACET, value=FILED) == kind
+
+
+# --- MODEL-491: the data-trust audit dates an admitted correction or confirmation ---------------
+
+def _compiled(row, attempts, log=(OLD,), *, as_of=TODAY):
+    from decision.registry import default
+    from decision.snapshot import SnapshotInputs, _compile
+
+    from tests.snapshot_records import SOURCES, model
+
+    inputs = SnapshotInputs(models=[model(MID, facts=[row])], sources=dict(SOURCES),
+                            verifications=list(log),
+                            cited_attempt_lines=[raw(a) for a in attempts])
+    return inputs, _compile(inputs, default(), None, as_of, False)
+
+
+def _key(row):
+    from decision.model import value_hash
+
+    return MID, row["id"], value_hash(row["value"])
+
+
+def _dates(row, attempts, log=(OLD,), *, as_of=TODAY):
+    from scripts.data_trust.catalogue import _agreement_dates
+
+    return _agreement_dates(*_compiled(row, attempts, log, as_of=as_of))
+
+
+def test_an_admitted_correction_is_dated_by_its_logged_agreement():
+    attempt = agreement(at="2026-10-10T23:30:00-04:00")  # the UTC day is 2026-10-11
+    row = corrected_row(attempt)
+    row["derivation"]["cited_change"]["read_date"] = "2026-01-01"  # what the record states
+    assert _dates(row, [attempt], as_of=date(2026, 10, 19)) == {_key(row): "2026-10-11"}
+    log = AttemptLog([raw(attempt)])
+    assert agreement_day(row, MID, log=log, verdicts={}, sources={"src-lab-docs": URL},
+                         cutoff=TODAY) == date(2026, 10, 11)
+
+
+def test_an_admitted_confirmation_is_dated_by_its_logged_agreement():
+    attempt = confirming()
+    row = confirmed_row(attempt)
+    assert _dates(row, [attempt], log=()) == {_key(row): "2026-10-10"}
+
+
+@pytest.mark.parametrize("fails", ["no_line", "same_family", "held", "after_cutoff",
+                                   "confirmation_held", "plain_fact"])
+def test_a_record_that_fails_the_shared_test_stays_undated(fails):
+    attempt, row, log, lines = agreement(), None, [OLD], None
+    as_of = TODAY
+    if fails == "no_line":
+        row, lines = corrected_row(attempt), []
+    elif fails == "same_family":
+        attempt = agreement(families=("openai", "openai"))
+    elif fails == "held":
+        log.append(_old_mismatch(value=VALUE))
+    elif fails == "after_cutoff":
+        as_of = date(2026, 10, 9)
+    elif fails == "confirmation_held":
+        attempt = confirming()
+        row, log = confirmed_row(attempt), [_old_mismatch(value=FILED)]
+    else:
+        row = corrected_row(attempt)
+        row.pop("derivation")
+    row = row or corrected_row(attempt)
+    assert _dates(row, [attempt] if lines is None else lines, log, as_of=as_of) == {}
+
+
+def test_only_a_record_the_build_admitted_is_dated():
+    # Codex review 1: a date is keyed by (card, fact id, value hash) and given only to the record
+    # the build admitted for that subject and facet, never to another with the same id.
+    from scripts.data_trust.catalogue import _agreement_dates
+
+    attempt = agreement()
+    row = corrected_row(attempt)
+    inputs, compiler = _compiled(row, [attempt])
+    assert _agreement_dates(inputs, compiler) == {_key(row): "2026-10-10"}
+    rid = row["id"]
+    kept = compiler.records[rid]
+    compiler.records[rid] = {**kept, "value": 16384}  # the served record has another value
+    assert _agreement_dates(inputs, compiler) == {}
+    compiler.records[rid] = kept
+    compiler.fact_records[MID].pop(FACET)  # the build did not admit it
+    assert _agreement_dates(inputs, compiler) == {}
+
+
+def _served(row, attempt, verification=None):
+    return {**{k: v for k, v in row.items() if k != "derivation"}, "verification": verification,
+            "citation": {"status": "cited", "sources": [
+                {"source_id": "src-lab-docs", "url": URL,
+                 "snapshot_ref": row["sources"][0]["snapshot_ref"],
+                 "retrieved_at": attempt["at"]}]}}
+
+
+def test_the_audit_dates_only_records_the_shared_test_admits():
+    from scripts.data_trust.catalogue import Catalogue, _records
+
+    attempt = agreement()
+    row = corrected_row(attempt)
+    for dated, want in (({_key(row): "2026-10-10"}, "2026-10-10"), ({}, None),
+                        ({(MID, row["id"], "sha256:" + "0" * 64): "2026-10-10"}, None),
+                        ({("lab/beta", row["id"], _key(row)[2]): "2026-10-10"}, None)):
+        c = Catalogue(sources={"src-lab-docs": {"id": "src-lab-docs", "url": URL}})
+        _records(c, [_served(row, attempt)], MID, "fact", {}, dated)
+        assert c.facts[0]["read_date"] == want
+
+
+def test_the_agreement_day_is_authoritative_over_a_logged_verification():
+    # Codex review 2: a matching logged verification never sets an admitted correction's date.
+    from scripts.data_trust.catalogue import Catalogue, _records
+
+    attempt = agreement()
+    row = corrected_row(attempt)
+    other = verification("fact", row["id"], "verified", day="2026-11-20", value=VALUE)
+    c = Catalogue(sources={"src-lab-docs": {"id": "src-lab-docs", "url": URL}})
+    c.verifications[("fact", row["id"])] = other
+    c.logged_verifications[("fact", row["id"])] = other
+    _records(c, [_served(row, attempt)], MID, "fact", {}, {_key(row): "2026-10-10"})
+    assert c.facts[0]["read_date"] == "2026-10-10"
+    c = Catalogue(sources={"src-lab-docs": {"id": "src-lab-docs", "url": URL}})
+    c.verifications[("fact", row["id"])] = other
+    c.logged_verifications[("fact", row["id"])] = other
+    _records(c, [_served(row, attempt)], MID, "fact", {}, {})
+    assert c.facts[0]["read_date"] != "2026-10-10"

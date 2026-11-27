@@ -228,7 +228,7 @@ def retrieved_on(citation: dict, source_ids: set[str]) -> str | None:
     return max(days).isoformat() if days else None
 
 
-def _records(c, rows, subject, kind, parent):
+def _records(c, rows, subject, kind, parent, dated=None):
     for index, raw in enumerate(rows):
         if not isinstance(raw, dict):
             c.findings.append(Finding(f"{subject}#{index}", "record", "parse"))
@@ -269,6 +269,12 @@ def _records(c, rows, subject, kind, parent):
                 v = {}
         except (ValueError, TypeError):
             v = {}
+        agreed = _dated_key(subject, rid, raw) if kind == "fact" and dated else None
+        if agreed is not None and agreed in dated:
+            # MODEL-491: an admitted retained-page correction or rule-16 confirmation is dated by
+            # its logged agreement, through the build's own test; that day is authoritative, so no
+            # logged verification can stand in for it.
+            read_date = dated[agreed]
         c.facts.append(
             {
                 **raw,
@@ -337,6 +343,54 @@ def _legacy(c, card, mid):
     walk(card, "")
 
 
+def _dated_key(subject: str, rid: str, record: dict) -> tuple[str, str, str] | None:
+    """``(subject, fact id, value hash)``: what an agreement date is keyed by, so a date never
+    passes to another record with the same id, owner or value."""
+    from decision.model import fact_verification_value, value_hash
+
+    try:
+        return subject, rid, value_hash(fact_verification_value(record))
+    except (ValueError, TypeError):
+        return None
+
+
+def _agreement_dates(inputs, compiler) -> dict[tuple[str, str, str], str]:
+    """``(subject, fact id, value hash)`` -> the UTC day of the logged agreement that an admitted
+    retained-page correction (MODEL-573) or rule-16 confirmation (MODEL-491 E1) rests on, by the
+    build's own tests (``retained_correction.agreement_day``, with the compiler's attempt log,
+    ranked verdicts, sources and cutoff). Only a fact the build admitted is dated: the record the
+    compiler kept for that subject and facet has the fact's id and value. A served correction
+    carries no derivation, so the authored fact is read. A fact that fails its test is not
+    dated."""
+    from decision.retained_correction import agreement_day, is_confirmation, is_correction
+    from decision.snapshot import SnapshotBuildError
+
+    out: dict[tuple[str, str, str], str] = {}
+    for row in [*inputs.models, *inputs.offerings, *inputs.subscriptions]:
+        for fact in row.get("facts") or ():
+            if not isinstance(fact, dict) or not (is_correction(fact) or is_confirmation(fact)):
+                continue
+            rid, subject = fact.get("id"), (fact.get("subject") or {}).get("id")
+            if not isinstance(rid, str) or not isinstance(subject, str):
+                continue
+            admitted = compiler.fact_records.get(subject, {}).get(str(fact.get("facet")))
+            served = compiler.records.get(admitted) if admitted == rid else None
+            key = _dated_key(subject, rid, fact)
+            if served is None or key is None or _dated_key(subject, rid, served) != key:
+                continue
+            try:
+                day = agreement_day(fact, subject, log=compiler._clearing_log(),
+                                    verdicts=compiler.log, sources=compiler.sources,
+                                    cutoff=compiler._clearing_cutoff(),
+                                    clearings=compiler.quarantine_clearings,
+                                    history=compiler.inputs.clearing_history)
+            except (SnapshotBuildError, ValueError, KeyError, TypeError, AttributeError):
+                day = None  # an unreadable record stays undated
+            if day is not None:
+                out[key] = day.isoformat()
+    return out
+
+
 def calibrate(c: Catalogue, root: Path, registry, as_of: date) -> None:
     """Use the serving collector and compiler, including their admission rules.
 
@@ -374,6 +428,7 @@ def calibrate(c: Catalogue, root: Path, registry, as_of: date) -> None:
             else f"{o['provider']}/{o['model']}/{o['region']}/{o['tier']}"
         )
         c.offerings[oid] = o
+    dated = _agreement_dates(inputs, compiler)
     for rid, raw in sorted(compiler.records.items()):
         # Hardware retains vendor specifications without independent fact verification.
         if raw.get("kind") == "hardware":
@@ -381,7 +436,7 @@ def calibrate(c: Catalogue, root: Path, registry, as_of: date) -> None:
         kind = "fact" if "facet" in raw else "evidence"
         subject = raw["subject"]["id"]
         parent = c.models.get(subject) or c.offerings.get(subject) or {}
-        _records(c, [{**raw, "id": rid}], subject, kind, parent)
+        _records(c, [{**raw, "id": rid}], subject, kind, parent, dated)
     c.claims = {
         (claim.target.kind, claim.target.id): claim
         for claim in _latest_collected_claims(root / "verification/queue/events.jsonl")

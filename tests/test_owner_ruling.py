@@ -42,6 +42,7 @@ from tests.test_cited_offering import (
     serve,
 )
 
+
 RETENTION = "offering.data.retention"
 SOC2 = "offering.attestation.soc2"
 OTHER_SUBJECT = "openai/openai/gpt-x/eu/standard"
@@ -524,7 +525,11 @@ AFTER_OWN_FETCH = "2026-11-27T03:00:00+00:00"  # after OWN_FETCH_SINCE
 
 
 def test_a_harness_split_since_own_fetch_needs_the_gates_own_fetch():
-    caller_bytes = {**_attempt(), "at": AFTER_OWN_FETCH}  # a caller's bytes or transport
+    from decision.cited_reader import epoch_root
+
+    # Ruled on 2026-11-27, so read and ruled in the facet's first epoch in force then (E6).
+    first = epoch_root(FACET, "2026-11-27")
+    caller_bytes = {**_attempt(epoch=first), "at": AFTER_OWN_FETCH}  # a caller's transport
     assert blocks_rule_15(caller_bytes) and split_status(caller_bytes, FACET) == "malformed"
     own = {**caller_bytes, "own_fetch": True}
     assert split_status(own, FACET) == "split"
@@ -532,7 +537,7 @@ def test_a_harness_split_since_own_fetch_needs_the_gates_own_fetch():
     before = _attempt()  # logged before the harness recorded own_fetch: the earlier rule
     assert "own_fetch" not in before and split_status(before, FACET) == "split"
     for attempt, state in ((caller_bytes, "unknown"), (own, "known")):
-        ruling = _ruling(attempt, ruled_at="2026-11-27")
+        ruling = _ruling(attempt, ruled_at="2026-11-27", epoch=first)
         row, claim = _ruled_fact(ruling), _claim(ruling)
         row["sources"][0]["retrieved_at"] = claim["sources"][0]["retrieved_at"] = AFTER_OWN_FETCH
         assert _build(row, [ruling], [attempt], claims={f"{MID}#{FACET}": claim},
@@ -1137,14 +1142,18 @@ def test_a_card_fact_is_ruled_with_its_front_matter_and_body_kept(data):
                       "cited_regions": ["page"]}]}]}
     body = "\n# GPT X\n\nProse the writer keeps.\n"
     (data.root / CARD).write_text("---\n" + yaml.safe_dump(front, sort_keys=False) + "---\n" + body)
-    log_attempt({"subject": CARD_SUBJECT, "facet": "model.context_window", "epoch": "initial",
+    from decision.cited_reader import epoch_root
+
+    log_attempt({"subject": CARD_SUBJECT, "facet": "model.context_window",
+                 "epoch": epoch_root("model.context_window"),  # a plain fact's epoch now (E6)
                  "url": URL, "complete": True, "agreed": False, "agreed_value": None,
                  "harness": True, "page_sha256": "7" * 64, "prompt_sha256": "6" * 64,
                  "at": "2026-11-01T00:00:00+00:00",
                  "readers": [{"reader_id": "a", "family": "openai", "version": "1", "value": 1},
                              {"reader_id": "b", "family": "anthropic", "version": "1",
                               "value": 2}]})
-    file(data, subject=CARD_SUBJECT, facet="model.context_window", value=262144)
+    file(data, subject=CARD_SUBJECT, facet="model.context_window", value=262144,
+         epoch=epoch_root("model.context_window"))
     text = (data.root / CARD).read_text()
     assert text.endswith("---\n" + body)
     after = yaml.safe_load(text.split("---", 2)[1])

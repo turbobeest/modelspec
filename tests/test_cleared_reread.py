@@ -62,6 +62,7 @@ from tests.test_quarantine_clearing import (
 )
 
 
+
 @pytest.fixture(autouse=True)
 def offline(monkeypatch):
     monkeypatch.setattr(socket.socket, "connect", lambda *a: pytest.fail("Network attempted"))

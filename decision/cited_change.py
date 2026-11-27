@@ -80,7 +80,8 @@ from schema.yaml_loader import load_yaml_unique
 
 from decision.cited_reader import (
     INPUT_FIELDS, MAX_PAGE_CHARS, Reader, ReaderAnswer, ReaderError, attempts, build_prompt,
-    canonical, facet_definition, input_manifest, normalised_text, read_page, sha256, text_sha256,
+    canonical, epoch_root, facet_definition, input_manifest, normalised_text, read_page, sha256,
+    text_sha256,
 )
 from decision.model import _LINEAGES, _NO_LINEAGE, DETERMINISTIC, model_family
 from decision.retention import (
@@ -826,8 +827,11 @@ def _epoch_at_verdict(verdict: Mapping[str, Any], *, subject: str, facet: str, f
     if derived is None:
         return _refuse("quarantined", "the record's epoch when the verdict was made cannot be "
                        f"shown; {QUARANTINED}")
-    # A board row filed in its settings epoch is in a board epoch of it once the gate names one
-    # (MODEL-555): the board moved since, and the clearing extends the epoch the row is in now.
+    from decision.quarantine_clearing import first_moved, first_root
+
+    # MODEL-491 E4: a rule-16 confirmation of the filed value may have moved the record to its
+    # re-read epoch since the verdict; the clearing then extends that epoch, only where the move
+    # is shown (the build's own ``confirmation_move``), from the record's first epoch then.
     moved = False
     if settings is None and confirmed is not None and record is not None and now is not None:
         from decision.quarantine_clearing import _block_is
@@ -843,9 +847,22 @@ def _epoch_at_verdict(verdict: Mapping[str, Any], *, subject: str, facet: str, f
             except (KeyError, TypeError, AttributeError):
                 return False
 
+        root_first = first_root(derived, facet=facet, verdict=verdict) if first == "initial" \
+            else False
         moved = confirmation_move(base, derived, verdict=verdict, value=confirmed, log=log,
-                                  subject=subject, facet=facet, history=history, first=first,
-                                  now=now, bound=made_this_block)
+                                  subject=subject, facet=facet, history=history,
+                                  first=derived if root_first else first, now=now,
+                                  bound=made_this_block)
+    # A plain record still in its first epoch at the verdict (E6) is always read in the first
+    # epoch in force today, as the build checks it against the agreement's day.
+    if settings is None and first == "initial" \
+            and first_root(derived, facet=facet, verdict=verdict):
+        if not first_moved(derived, base, facet=facet, verdict=verdict, at=None) and not moved:
+            return _refuse("epoch_not_current",
+                           "the record's epoch now is not today's first epoch")
+        return None
+    # A board row filed in its settings epoch is in a board epoch of it once the gate names one
+    # (MODEL-555): the board moved since, and the clearing extends the epoch the row is in now.
     if derived != base and not (derived == first and is_board_epoch(base, first)) and not moved:
         return _refuse("epoch_not_current",
                        "the record's epoch now is not its epoch when the verdict was made")
@@ -1523,10 +1540,25 @@ def _corrected(subject: str, facet_def: Any, value: JsonValue, filed: JsonValue,
             if isinstance(v, Mapping) and v.get("url")}
     problem = correction_problem(filed_fact(found.fact, record), subject, log=log,
                                  verdicts=verdicts, sources=urls, cutoff=now.astimezone(UTC).date(),
-                                 ids=found.fact_ids)
+                                 ids=found.fact_ids, history=_retained_history())
     if problem is not None:
         return _refuse("correction_not_admitted", problem)
     return CitedChange("cited_change", None, "", record)
+
+
+def _retained_history() -> dict[str, list[dict[str, Any]]]:
+    """The queue trail of every clearing and retaining-page claim target under the data
+    directory (``retained_correction.clearing_inputs``), which an older agreement line is classed
+    by (MODEL-491 E4 review). Empty when the logs cannot be read: an older line then shows
+    nothing, so it authorizes nothing."""
+    import os
+
+    from decision.retained_correction import clearing_inputs
+
+    try:
+        return clearing_inputs(Path(os.environ.get(DATA_DIR_ENV, "").strip() or "."))[1]
+    except (OSError, ValueError):
+        return {}
 
 
 def _corrected_holds(found: Lookup, subject: str, held: Sequence[tuple[Any, Any]],
@@ -1552,7 +1584,8 @@ def _corrected_holds(found: Lookup, subject: str, held: Sequence[tuple[Any, Any]
     urls = {str(k): str(v.get("url")) for k, v in found.sources.items()
             if isinstance(v, Mapping) and v.get("url")}
     if correction_problem(found.fact, subject, log=log, verdicts=verdicts, sources=urls,
-                          cutoff=now.astimezone(UTC).date(), ids=found.fact_ids) is not None:
+                          cutoff=now.astimezone(UTC).date(), ids=found.fact_ids,
+                          history=_retained_history()) is not None:
         return list(held)
     return [(key, row) for key, row in held
             if not replaced_value_mismatch(found.fact, key, row, log=log, subject=subject)]
@@ -2658,10 +2691,22 @@ def cited_change_block(fact: Mapping[str, Any]) -> Mapping[str, Any] | None:
 
 def fact_epoch(fact: Mapping[str, Any]) -> str:
     """The attempt-log epoch a fact is in: after a cited change, the re-read epoch its recorded
-    text hash names; otherwise ``initial``. ``reread`` reads in this epoch."""
+    text hash names; otherwise its facet's first epoch (``cited_reader.epoch_root``, MODEL-491
+    E6): the one in force now, or for a ruled fact the one in force when it was ruled (its
+    ruling block's ``ruled_at``, which the build binds to the ruling line), so a ruling is read in
+    the epoch of the split it resolved and a later version never moves it. ``reread`` reads in
+    this epoch."""
+    if not isinstance(fact, Mapping):
+        return "initial"
     block = cited_change_block(fact)
     if block is None:
-        return "initial"
+        from decision.owner_ruling import ruling_block
+
+        ruling = ruling_block(fact)
+        facet = str(fact.get("facet"))
+        if ruling is not None:
+            return epoch_root(facet, ruling.get("ruled_at") or "")  # no day: the oldest
+        return epoch_root(facet)
     text = block.get('text_sha256') or block.get('sha256')
     cleared = block.get("clearing_epoch")
     # A block a quarantine clearing made (MODEL-566) is re-read in an epoch named by its

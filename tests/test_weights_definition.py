@@ -48,7 +48,7 @@ def test_weights_definition_is_version_2_and_states_the_rule(registry):
 def test_every_other_facet_keeps_version_1(registry):
     versioned = {f.id: f.definition_version for f in registry.facets()
                  if f.definition_version != 1}
-    assert versioned == {FACET: 2}
+    assert versioned == {FACET: 2, "model.context_window": 2}  # MODEL-491, both 2026-11-27
 
 
 def test_the_reader_prompt_is_built_from_version_2():
