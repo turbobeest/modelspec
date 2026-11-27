@@ -15,7 +15,9 @@ two-reader agreement may clear a mismatch quarantine, only when all of these hol
    attempt there agreed, and every answer recorded there, complete or not, is the cleared value.
    That base epoch is the one rule 15 derives for the quarantined record as filed when the
    verdict was made (``verdict_epoch``, from the claim the verdict checked in the queue); when
-   that cannot be shown, nothing is cleared. The cleared record's block names it
+   that cannot be shown, nothing is cleared. A fact's record that never left its first epoch by
+   the end of the verdict's day is in that epoch, whichever claim the check covered
+   (``never_left_first``, MODEL-491). The cleared record's block names it
    (``previous_epoch``) and its ``clearing_epoch``.
 4. Each clearing is one line of the append-only ``CLEARINGS_FILE`` (exactly ``FIELDS``) naming the
    quarantining verdict (its target, ``verdict_sha256`` and day) and the agreement that cleared it
@@ -257,10 +259,13 @@ def _event_target(event: Mapping[str, Any]) -> str | None:
 
 def queue_history(path: Path, ids: set[str]) -> dict[str, list[dict[str, Any]]]:
     """Target id -> its ``collected``, ``checked`` and ``retired`` events, in queue order (by
-    time, a later line on a tie), for the ids asked for. An absent queue has none."""
+    time, a later line on a tie), for the ids asked for. An absent queue has none. An event whose
+    time cannot be read is kept, after every dated one (in line order): no pairing uses it (a
+    pairing needs a time), and ``never_left_first`` refuses when it sees one (MODEL-491)."""
     from decision.owner_ruling import loads
 
-    rows: dict[str, list[tuple[datetime, int, dict[str, Any]]]] = {}
+    rows: dict[str, list[tuple[bool, datetime, int, dict[str, Any]]]] = {}
+    never = datetime.max.replace(tzinfo=UTC)
     if not ids or not path.is_file():
         return {}
     few = len(ids) <= 64
@@ -273,10 +278,9 @@ def queue_history(path: Path, ids: set[str]) -> dict[str, list[dict[str, Any]]]:
             event = loads(raw)  # a repeated key refuses (MODEL-554)
             target = _event_target(event)
             at = _event_at(event)
-            if target in ids and at is not None \
-                    and event.get("event") in ("collected", "checked", "retired"):
-                rows.setdefault(target, []).append((at, index, event))
-    return {k: [e for _, _, e in sorted(v, key=lambda r: (r[0], r[1]))] for k, v in rows.items()}
+            if target in ids and event.get("event") in ("collected", "checked", "retired"):
+                rows.setdefault(target, []).append((at is None, at or never, index, event))
+    return {k: [e for *_, e in sorted(v, key=lambda r: r[:3])] for k, v in rows.items()}
 
 
 def claim_binds(claim: Mapping[str, Any], verdict: Mapping[str, Any]) -> bool:
@@ -350,9 +354,17 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
     an epoch of ``first`` (a
     reading's settings epoch or one under it, never another setting's), and an attempt in a
     clearing epoch only when a line in ``clearings`` names exactly that attempt line and epoch
-    (``epoch_after`` then names the epoch under that clearing)."""
+    (``epoch_after`` then names the epoch under that clearing).
+    When no pairing can be shown, a fact's record (no ``settings``) that never left its first
+    epoch by the end of the verdict's day is in ``first`` (``never_left_first``, MODEL-491).
+    ``first`` is returned only when no disqualifier applies (``first_epoch_disqualified``), for
+    a paired ordinary claim too: a later value by the end of the day, a rule-15, ruling, retired
+    or undated claim, or an attempt."""
     pair = verdict_pair(verdict, history)
     if pair is None:
+        if never_left_first(verdict, history=history, log=log, subject=subject, facet=facet,
+                            settings=settings):
+            return first
         return None
     filed_event, checked = pair
     claim = filed_event["claim"]
@@ -362,7 +374,9 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
     if method == _OWNER_RULING:
         return None
     if not method.startswith(_RULE_15):
-        return first
+        disqualified = first_epoch_disqualified(verdict, history=history, log=log,
+                                                subject=subject, facet=facet)
+        return None if disqualified else first
     copies = {str(ref.get("snapshot_ref")) for ref in claim.get("sources") or ()
               if isinstance(ref, Mapping)}
     filed_at, checked_at = _event_at(filed_event), _event_at(checked)
@@ -383,6 +397,73 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
                 and (not _CLEARED.search(epoch) or (line_hash(raw), epoch) in named):
             return epoch_after(first, entry)
     return None
+
+
+def never_left_first(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, Any]],
+                     log: AttemptLog, subject: str, facet: str,
+                     settings: Settings | None = None) -> bool:
+    """Whether a fact's record is shown to have been in its first epoch when ``verdict`` was
+    made, though no claim can be paired with the verdict's check (MODEL-491, E3): a fact's
+    record (no ``settings``; a board reading's pairing shows the row's settings, so it is still
+    required) with no disqualifier (``first_epoch_disqualified``). It depends only on the log
+    verdict's own value and the absence of the disqualifiers: a queue check never adds
+    eligibility, whatever value it names. The first collection of 2026-09-25 is the case: its
+    claims are stamped after the checks that day, and those checks name older values, but
+    nothing could have moved the record."""
+    if settings is not None:
+        return False
+    return not first_epoch_disqualified(verdict, history=history, log=log, subject=subject,
+                                        facet=facet)
+
+
+def first_epoch_disqualified(verdict: Mapping[str, Any], *,
+                             history: Sequence[Mapping[str, Any]], log: AttemptLog,
+                             subject: str, facet: str) -> bool:
+    """Whether anything up to the end of the verdict's UTC day (queue time order, a later line on
+    a tie) keeps the record from being shown in its first epoch at the verdict (MODEL-491).
+
+    A record leaves its first epoch only through the rule-15 gate (a claim ``two-readers-...``
+    and the agreed attempt it rests on) or an owner's ruling (a claim ``owner-ruling@1``, filed
+    past a logged disagreement), and the log verdict binds its own value. Disqualified when:
+    - the verdict's day or target cannot be read;
+    - an event on the target has no readable time (the queue loader keeps such events,
+      ``queue_history``);
+    - a claim on the target, for any value, is a rule-15 or ruling claim, or a claim was retired;
+    - the record's latest claim on the target is not for the verdict's own value
+      (``claim_binds``), or there is none: a later value that day, or a verdict on a value the
+      record did not carry, is never made clearable;
+    - any attempt is logged for the subject and facet, or one has no readable time.
+    Queue checks play no part: they never add eligibility."""
+    day = _day(verdict.get("date"))
+    target = (verdict.get("target") or {}).get("id")
+    if day is None or not isinstance(target, str):
+        return True
+    latest: Mapping[str, Any] | None = None
+    for event in history:
+        if _event_target(event) != target:
+            continue
+        at = _event_at(event)
+        if at is None:
+            return True
+        if at.astimezone(UTC).date() > day:
+            continue  # after the verdict's day: it says nothing about the record then
+        if event.get("event") == "collected":
+            claim = event.get("claim") or {}
+            method = str((claim.get("collector") or {}).get("method") or "")
+            if method.startswith(_RULE_15) or method == _OWNER_RULING:
+                return True
+            latest = claim
+        elif event.get("event") == "retired":
+            return True
+    if latest is None or not claim_binds(latest, verdict):
+        return True
+    for entry in log.entries:
+        if (entry.get("subject"), entry.get("facet")) != (subject, facet):
+            continue
+        at = _at(entry.get("at"))
+        if at is None or at.astimezone(UTC).date() <= day:
+            return True
+    return False
 
 
 def verdict_pair(verdict: Mapping[str, Any], history: Sequence[Mapping[str, Any]]

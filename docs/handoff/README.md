@@ -209,7 +209,15 @@ Learned expensively during 2026-09-09/10.
     (`decision.quarantine_clearing`). The agreement clears it only when it is on a later UTC day
     than the verdict and in that later epoch (a log verdict records no page text hash, so the
     later epoch is the branch that can be shown), its two readers are distinct known families,
-    and no disagreement is recorded in the clearing epoch or the subject's own epoch. The record
+    and no disagreement is recorded in the clearing epoch or the subject's own epoch. The
+    subject's epoch at the verdict comes from the claim the verdict's check covered; when no claim
+    can be paired with that check, a fact that never left its first epoch by the end of the
+    verdict's day is in it (`never_left_first`, MODEL-491: the 2026-09-25 first collection
+    stamped its claims after its checks). That needs the record's latest claim by then to be for
+    the log verdict's own value (a verdict binds its own value), and no rule-15, ruling, retired
+    or undated claim on the target and no attempt for the subject and facet; queue checks never
+    add eligibility. The same disqualifiers run first for a paired ordinary claim too
+    (`first_epoch_disqualified`). A board reading still needs its pairing. The record
     then carries `clearings`: one line for the append-only
     `verification/quarantine-clearings.jsonl` naming the verdict (`target`, `verdict_sha256`,
     `verdict_date`) and the agreement (`agreement`: the hash of its exact line in
