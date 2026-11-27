@@ -1213,7 +1213,8 @@ class _Compiler:
             from decision.retained_correction import replaced_value_mismatch
 
             held = [h for h in held
-                    if not replaced_value_mismatch(record, h[0], h[1], log=self._clearing_log())]
+                    if not replaced_value_mismatch(record, h[0], h[1], log=self._clearing_log(),
+                                                   subject=subject)]
         if held and self._outcome("fact", rid, inline, value, facet) == "verified":
             held = [h for h in held if h[0][1] != str(rid)]
         if held and self.quarantine_clearings:

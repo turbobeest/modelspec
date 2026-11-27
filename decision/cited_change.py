@@ -1065,6 +1065,13 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
             return got
         held, chains = got
         released = bool(chains)
+    if held and retaining:
+        # MODEL-491 E2 (review): an admitted correction is re-read past a mismatch on the value
+        # it replaced, by the build's own helper (``retained_correction.replaced_value_mismatch``).
+        kept = _corrected_holds(found, subject, held, now)
+        if isinstance(kept, CitedChange):
+            return kept
+        held = kept
     replaced_hold = False
     if held and retaining and found.fact.get("state") == "known":
         from decision.owner_ruling import has_ruling as ruled
@@ -1364,6 +1371,35 @@ def _corrected(subject: str, facet_def: Any, value: JsonValue, filed: JsonValue,
     if problem is not None:
         return _refuse("correction_not_admitted", problem)
     return CitedChange("cited_change", None, "", record)
+
+
+def _corrected_holds(found: Lookup, subject: str, held: Sequence[tuple[Any, Any]],
+                     now: datetime) -> list | CitedChange:
+    """``held`` without the verdicts an admitted correction is not held by (MODEL-491 E2): for a
+    fact whose filed record is a correction the build's own test admits, a mismatch on a value
+    its lineage replaced. Any other fact, or a correction that fails the test, keeps them all."""
+    from decision.cited_reader import ReaderError, _attempts_path
+    from decision.quarantine_clearing import AttemptLog
+    from decision.retained_correction import (
+        correction_problem,
+        is_correction,
+        replaced_value_mismatch,
+    )
+
+    if not is_correction(found.fact):
+        return list(held)
+    try:
+        log = AttemptLog.read(_attempts_path(None))
+        verdicts = _ranked_verdicts()
+    except (OSError, ValueError, LookupFailed, ReaderError) as error:
+        return _refuse("registry_lookup_failed", f"the logs cannot be read: {type(error).__name__}")
+    urls = {str(k): str(v.get("url")) for k, v in found.sources.items()
+            if isinstance(v, Mapping) and v.get("url")}
+    if correction_problem(found.fact, subject, log=log, verdicts=verdicts, sources=urls,
+                          cutoff=now.astimezone(UTC).date(), ids=found.fact_ids) is not None:
+        return list(held)
+    return [(key, row) for key, row in held
+            if not replaced_value_mismatch(found.fact, key, row, log=log, subject=subject)]
 
 
 def _confirmation_problem(subject: str, found: Lookup, record: Mapping[str, Any],

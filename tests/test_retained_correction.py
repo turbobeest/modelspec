@@ -809,3 +809,46 @@ def test_the_staleness_helper_is_the_builds_own_test():
     late = date.fromordinal(fresh.toordinal() + MEASUREMENT_STALE_AFTER_DAYS + 1)
     assert not fact_measurement_stale(fact, fresh) and fact_measurement_stale(fact, late)
     assert not fact_measurement_stale({}, late) and not fact_measurement_stale(fact, None)
+
+
+def test_a_corrected_fact_is_re_read_past_the_mismatch_on_the_value_it_replaced(data):
+    # Codex confirm: the gate judged its pre-read hold only against the filed value, so an
+    # admitted correction could not be re-read while the mismatch on the value it replaced stayed
+    # logged. It now asks the build's own helper, which follows the logged agreements.
+    from decision.snapshot import build_snapshot, collect_repo, load_built_snapshot
+    from pipeline.load import load_models
+
+    _held(data, gate.FILED)
+    out = run()
+    assert out.changed, (out.reason, out.detail)
+    file_record(data, out.record)
+    (data.root / "benchmarks").mkdir(exist_ok=True)
+
+    def served():
+        shown = load_built_snapshot(build_snapshot(collect_repo(data.root))).fact(
+            gate.SUBJECT, gate.FACET)
+        (card,) = load_models(data.root)
+        return (shown.state == "known" and sorted(shown.value) == sorted(AGREED),
+                [f["facet"] for f in card.cited_facts] == [gate.FACET])
+
+    assert served() == (True, True)
+    changed = gate.PAGE + b"More text.\n"
+    out = rr(gate.pair(AGREED), changed)
+    assert out.outcome == "confirmed", (out.reason, out.detail)
+    assert out.record["derivation"]["cited_change"]["rule"] == RULE
+    assert data.attempts()[-1]["filed_value"] == AGREED  # the re-read logs the corrected value
+    file_record(data, out.record)
+    assert served() == (True, True)  # the build follows the lineage to the replaced value
+
+
+def test_a_third_value_mismatch_still_blocks_a_re_read_of_a_correction(data):
+    _held(data, gate.FILED)
+    file_record(data, run().record)
+    data.log_rows.append(verification("fact", f"{gate.SUBJECT}#{gate.FACET}", "mismatch",
+                                      day="2026-11-02", value=["text"]))
+    data.write()
+    before = len(data.attempts())
+    own(gate.serve({gate.URL: gate.PAGE + b"More text.\n"}))
+    out = reread({"subject": gate.SUBJECT, "facet": gate.FACET}, source_id="readme",
+                 readers=gate.pair(AGREED))
+    assert out.reason == "quarantined" and len(data.attempts()) == before  # no reader asked
