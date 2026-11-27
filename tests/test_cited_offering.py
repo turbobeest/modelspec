@@ -141,9 +141,12 @@ def refused(out, reason):
 
 
 def snapshot(data):
-    """Every file under the data directory but the attempt log, byte for byte."""
+    """Every file under the data directory but the attempt and refusal logs, byte for byte."""
+    from decision.hold_evidence import REFUSALS_FILE
+
     return {p.relative_to(data.root).as_posix(): p.read_bytes() for p in data.root.rglob("*")
-            if p.is_file() and p.relative_to(data.root).as_posix() != ATTEMPTS_FILE}
+            if p.is_file() and p.relative_to(data.root).as_posix()
+            not in (ATTEMPTS_FILE, REFUSALS_FILE)}
 
 
 # --- offering facts ------------------------------------------------------------------------------

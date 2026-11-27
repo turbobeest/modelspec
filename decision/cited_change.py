@@ -62,6 +62,7 @@ complete attempt that did not agree blocks any later agreement (``prior_attempt_
 
 from __future__ import annotations
 
+import contextvars
 import json
 import re
 import unicodedata
@@ -585,6 +586,7 @@ def _fetch(url: str, request: Request, *,
     current = url
     for _ in range(MAX_HOPS + 1):
         try:
+            _mark("fetched")
             status, location, body = request(current)
         except Exception as error:  # noqa: BLE001  a transport failure reads no page
             return _refuse("page_unreadable", type(error).__name__)
@@ -1067,13 +1069,60 @@ def _ruled_epoch(found: Lookup, subject: str, source_id: str, page_bytes: bytes,
                       data_dir=os.environ.get(DATA_DIR_ENV, "").strip() or ".")
 
 
-def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader],
-          request: Request | None, allow_unchanged: bool,
-          page: tuple[bytes, tuple[str, ...]] | None = None,
-          now: datetime | None = None, accept_not_disclosed: bool = False,
-          retaining: bool = False, epoch: str | None = None,
-          clear_quarantine: bool = False, own_page: bool = False,
-          correct: bool = False, reconfirm: bool = False) -> CitedChange:
+#: What one fact-gate call did (``_gate``): whether it fetched the page and whether it read it
+#: (logged an attempt line). Set only by the call itself, never by the size of a shared log.
+_CALL: contextvars.ContextVar[dict[str, bool] | None] = contextvars.ContextVar("_CALL",
+                                                                            default=None)
+
+
+def _mark(what: str) -> None:
+    call = _CALL.get()
+    if call is not None:
+        call[what] = True
+
+
+def _gate(*, subject: str, facet: str, source_id: str, **kw: Any) -> CitedChange:
+    """The rule-15 gate (``_gate_read``). A fact refused before any read, so that the call logged
+    no attempt line, gets one tagged refusal line in its own log (``hold_evidence``, MODEL-491):
+    hold evidence only, never a read, a retry or a disagreement. A read that ends in a refusal
+    logs its attempt line, as always, and no refusal line."""
+    call = {"fetched": False, "read": False}
+    token = _CALL.set(call)
+    try:
+        out = _gate_read(subject=subject, facet=facet, source_id=source_id, **kw)
+    finally:
+        _CALL.reset(token)
+    if out.outcome == "refused" and not call["read"]:
+        _log_refusal(out.reason or "", subject=subject, facet=facet, source_id=source_id,
+                     fetched=call["fetched"], now=kw.get("now"))
+    return out
+
+
+def _log_refusal(reason: str, *, subject: str, facet: str, source_id: str, fetched: bool,
+                 now: datetime | None) -> None:
+    """Append the refusal line for a fact the gate found: its value hash and epoch as filed."""
+    from decision.hold_evidence import log_refusal, refusal_line
+    from decision.model import fact_verification_value, value_hash
+
+    try:
+        found = lookup(subject, facet)
+    except LookupFailed:
+        return
+    if not isinstance(found.fact, Mapping):
+        return
+    log_refusal(refusal_line(subject=subject, facet=facet,
+                             value_hash=value_hash(fact_verification_value(found.fact)),
+                             reason=reason, epoch=fact_epoch(found.fact), source_id=source_id,
+                             fetched=fetched, at=now or datetime.now(UTC)))
+
+
+def _gate_read(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader],
+               request: Request | None, allow_unchanged: bool,
+               page: tuple[bytes, tuple[str, ...]] | None = None,
+               now: datetime | None = None, accept_not_disclosed: bool = False,
+               retaining: bool = False, epoch: str | None = None,
+               clear_quarantine: bool = False, own_page: bool = False,
+               correct: bool = False, reconfirm: bool = False) -> CitedChange:
     """The rule-15 gate. ``epoch``, when given, only states which epoch the caller means: the gate
     reads in the filed fact's own epoch (``fact_epoch``) and refuses (``epoch_not_current``) if
     the two differ. A caller never chooses the epoch the gate reads in. ``clear_quarantine`` lets
@@ -1269,15 +1318,17 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     for _ in range(2):  # an incomplete attempt (a reader failed) may be tried once more
         if len(attempts(subject, facet, epoch)) >= MAX_ATTEMPTS:
             return _refuse("attempts_exhausted", "the attempt budget for this fact is spent")
+        _mark("read")  # read_page logs this attempt's line, complete or not
         try:
             answers = read_page(subject=subject, url=row["url"], facet_id=facet,
                                 subject_name=found.subject_name, page_bytes=page_bytes,
                                 readers=readers, epoch=epoch, definition=found.definition,
                                 region_sha256=_region_sha256(row, page_bytes),
-                                own_fetch=own_fetch, filed=found.fact if retaining else None,
-                                kind=(_retained_kind(found.fact, facet_def, correct=correct,
-                                                     clearing=clearing is not None)
-                                      if retaining else None))
+                                own_fetch=own_fetch, filed=found.fact,
+                                kind=_read_kind(found.fact, facet_def, correct=correct,
+                                                clearing=clearing is not None,
+                                                retaining=retaining),
+                                filed_kinds=None if retaining else ("split", "silent"))
             break
         except ReaderError:
             continue
@@ -1416,6 +1467,29 @@ def _reconfirmed(found: Lookup, record: dict[str, JsonValue], *, subject: str, e
         return _refuse("reconfirmation_not_admitted", problem)
     record["read_against"] = fact_sha256(found.fact)
     return CitedChange("cited_change", None, "", record)
+
+
+def _read_kind(fact: Mapping[str, Any], facet_def: Any, *, correct: bool, clearing: bool,
+               retaining: bool) -> Callable[[Mapping[str, Any]], str | None]:
+    """What a fact read shows, written into its attempt line by ``read_page`` (``kind``) under
+    the line's hash, so nothing later infers it from the line's other fields (MODEL-491):
+    ``refused`` when a reader gave no usable answer (an incomplete attempt), ``split`` when the
+    two readers disagreed, ``silent`` when both agreed the page states nothing; on a retaining
+    page an agreed value is ``_retained_kind``'s. None of these three moves or serves anything
+    (``quarantine_clearing.line_kind`` knows only ``LINE_KINDS``); a held listing will rest on
+    them."""
+    retained = _retained_kind(fact, facet_def, correct=correct, clearing=clearing)
+
+    def kind(entry: Mapping[str, Any]) -> str | None:
+        if entry.get("complete") is not True:
+            return "refused"
+        if entry.get("agreed") is False:
+            return "split"
+        if entry.get("agreed") is True and entry.get("agreed_value") is None:
+            return "silent"
+        return retained(entry) if retaining else None
+
+    return kind
 
 
 def _retained_kind(fact: Mapping[str, Any], facet_def: Any, *, correct: bool,

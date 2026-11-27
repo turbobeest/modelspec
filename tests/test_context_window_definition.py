@@ -17,6 +17,14 @@ from decision.cited_reader import attempts, build_prompt, facet_definition, sha2
 from decision.quarantine_clearing import agreement_problem
 from tests import test_cited_change as gate
 
+
+@pytest.fixture(autouse=True)
+def legacy_log(monkeypatch):
+    """Each test's own attempt log is its pinned legacy prefix (``tests.legacy_pin``)."""
+    from tests.legacy_pin import pin_whole_log
+
+    pin_whole_log(monkeypatch)
+
 FACET = "model.context_window"
 #: Version 1, as it read before 2026-11-27.
 V1 = ("The maximum number of tokens the model accepts in one request, input and output together, "

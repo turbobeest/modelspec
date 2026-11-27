@@ -43,6 +43,14 @@ from tests.test_cited_offering import (
 )
 
 
+@pytest.fixture(autouse=True)
+def legacy_log(monkeypatch):
+    """Each test's own attempt log is its pinned legacy prefix (``tests.legacy_pin``)."""
+    from tests.legacy_pin import pin_whole_log
+
+    pin_whole_log(monkeypatch)
+
+
 RETENTION = "offering.data.retention"
 SOC2 = "offering.attestation.soc2"
 OTHER_SUBJECT = "openai/openai/gpt-x/eu/standard"
@@ -897,7 +905,8 @@ def test_values_compare_exactly_with_their_types():
     near = _ruling(attempt, value=262144.0000001)
     assert _build(_ruled_fact(ruling, value=262144.0000001), [ruling | {"value": 262144}],
                   [attempt]).fact(MID, FACET).state == "unknown"
-    assert ruling_problem(near, attempts=[attempt], sources={"src-cite": CITE}) is None
+    assert ruling_problem(near, attempts=[attempt], sources={"src-cite": CITE},
+                          legacy={attempt_id(attempt)}) is None
 
 
 # --- a ruling in a re-read epoch keeps the fact there; apply re-checks the logs -----------------
@@ -1042,7 +1051,9 @@ def _build(row, rulings, attempts, log=(), claims=None, source_cache=None,
                             sources={**SOURCES, "src-cite": CITE, **(extra_sources or {})},
                             owner_rulings=list(rulings), cited_attempts=list(attempts),
                             verifications=list(log), owner_ruling_claims=claims,
-                            owner_ruling_history=history)
+                            owner_ruling_history=history,
+                            # The test's own log is its legacy prefix (``tests.legacy_pin``).
+                            owner_ruling_legacy=frozenset(attempt_id(a) for a in attempts))
     return load_built_snapshot(build_snapshot(inputs, as_of=as_of,
                                               source_cache=source_cache))
 
