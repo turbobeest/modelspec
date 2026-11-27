@@ -313,9 +313,10 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
                     logger.warning("%s: a fact's owner ruling does not stand; withheld", model_id)
                     withheld.append(str(fact.get("facet")))
                     continue
-            if not citation and valid and is_correction(fact):
+            if is_correction(fact):
                 # A retained-page correction (MODEL-573) is shown, as cited, only when the
-                # snapshot's own test admits it; otherwise it is withheld.
+                # snapshot's own test admits it, whatever its references are; otherwise it is
+                # withheld.
                 if corrections is None:
                     corrections = _correction_inputs(root, as_of)
                 citation = _corrected_citation(fact, str(model_id), corrections, sources)

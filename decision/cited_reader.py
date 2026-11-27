@@ -210,7 +210,8 @@ def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_
               data_dir: str | Path | None = None,
               definition: str | None = None,
               region_sha256: str | None = None,
-              board_region_sha256: str | None = None) -> list[ReaderAnswer]:
+              board_region_sha256: str | None = None,
+              own_fetch: bool = False) -> list[ReaderAnswer]:
     """Ask each reader the same prompt; record the hash of what was sent and the manifest.
 
     Every attempt, complete or not, is appended to the attempt log (``ATTEMPTS_FILE``)
@@ -238,6 +239,10 @@ def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_
     if board_region_sha256 is not None:
         # MODEL-555: the row's board region (``cited_change.row_region_sha256``), its own field.
         entry["board_region_sha256"] = board_region_sha256
+    if own_fetch:
+        # MODEL-573: the gate fetched these bytes itself, with its own transport; a caller's
+        # bytes or transport never set it. A retained-page correction rests only on such a read.
+        entry["own_fetch"] = True
     try:
         for reader in readers:
             try:

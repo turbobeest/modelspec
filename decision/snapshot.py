@@ -1122,12 +1122,8 @@ class _Compiler:
 
     def _correction(self, sid: str, fact: Mapping[str, Any]) -> dict | None:
         """The citation of a retained-page correction the gate's own test admits
-        (``decision.retained_correction.correction_problem``, MODEL-573), or ``None``: no
-        correction block, or one that fails the test (counted, by no id)."""
-        from decision.retained_correction import is_correction
-
-        if not is_correction(fact):
-            return None
+        (``decision.retained_correction.correction_problem``, MODEL-573), or ``None`` when it
+        fails the test (counted, by no id)."""
         from decision.retained_correction import correction_citation, correction_problem
 
         problem = correction_problem(fact, sid, log=self._clearing_log(), verdicts=self.log,
@@ -1328,6 +1324,8 @@ class _Compiler:
             raise SnapshotBuildError(f"facet {facet_id!r} is used on both a {seen} and a {kind}")
 
     def _add_facts(self, sid: str, kind: str, facts: Iterable[Any]) -> None:
+        from decision.retained_correction import is_correction
+
         row = self.facts.setdefault(sid, {})
         for f in self._resolve_prices(sid, facts):
             facet_id, state = str(f["facet"]), str(f["state"])
@@ -1360,11 +1358,16 @@ class _Compiler:
                 continue
             measurement = self._measurement(sid, facet_id, f.get("measurement"))
             try:
-                citation = fact_citation(f, self.sources, self.source_cache)
-                if citation is None:
-                    # A retained-page correction (MODEL-573) is served as cited, only through
-                    # the gate's own test; one that fails it is decided as if it had no block.
+                if is_correction(f):
+                    # A retained-page correction (MODEL-573) is served, as cited, only through
+                    # the gate's own test, whatever its references are; one that fails it stays
+                    # out, even beside a cite-only reference or a verified verdict.
                     citation = self._correction(sid, f)
+                    if citation is None:
+                        self._reject((sid, facet_id), "quarantined (correction)", source_ids)
+                        continue
+                else:
+                    citation = fact_citation(f, self.sources, self.source_cache)
                 if citation is not None:
                     Fact.model_validate({**f, "verification": None},
                                         context={"registry": self.registry})

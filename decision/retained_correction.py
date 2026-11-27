@@ -11,11 +11,15 @@ these hold:
    epoch.
 2. Its two readers are of two distinct known families (``cited_change._check_identities``),
    through the harness, with the page, text and prompt hashes logged
-   (``quarantine_clearing.agreement_problem``).
+   (``quarantine_clearing.agreement_problem``), on the gate's own fetch: the line records
+   ``own_fetch`` (logged only for bytes the gate fetched with its own transport) and the
+   cited-region hash the gate computed, which the block repeats. The agreement is its line's
+   first occurrence; a later byte-identical copy is the same line.
 3. No disagreement is logged in that epoch: every complete attempt there agreed, on this value,
    and every answer recorded there, complete or not, is this value
    (``quarantine_clearing.epoch_problem``).
-4. Not a licence fact and not an identity field (S15 keeps both the owner's), not a fact that
+4. Not a licence fact and not a facet the registry classes as identity (``identity: true``; S15
+   keeps both the owner's), not a fact that
    carries an owner's ruling or a quarantine clearing, and not a held fact: no value of the
    fact's ids has an unresolved verdict (``cited_change.held_rows``, the gate's and the build's
    own hold, MODEL-552 and MODEL-566). A released verdict is still held here.
@@ -32,20 +36,28 @@ adds nothing: the fact is decided as if it carried no block. Nothing here writes
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping, Sequence
-from datetime import date
+from datetime import UTC, date
 from typing import Any
 
 RULE = "two-readers-retained-correction@1"
 DECIDED_BY = "orchestrator 2026-11-26 (MODEL-573, J11)"
-#: Identity fields: like licence facts, a change to one stays the owner's (S15).
-IDENTITY_FACETS = frozenset({"offering.api_model_id", "offering.router_slug"})
+_HEX = re.compile(r"[0-9a-f]{64}")
 
 
 def owner_only(facet_id: Any) -> bool:
-    """A licence fact or an identity field: no agreement corrects it."""
-    return not isinstance(facet_id, str) or facet_id.startswith("licence.") \
-        or facet_id in IDENTITY_FACETS
+    """A licence fact or a facet the facet registry classes as identity (``identity: true`` in
+    ``registry/facets.yaml``): a change to either stays the owner's (S15), and no agreement
+    corrects it. A facet the registry does not know is the owner's too."""
+    from decision.registry import default
+
+    if not isinstance(facet_id, str) or facet_id.startswith("licence."):
+        return True
+    try:
+        return bool(default().facet(facet_id).identity)
+    except KeyError:
+        return True
 
 
 def _block(record: Mapping[str, Any]) -> Mapping[str, Any] | None:
@@ -121,12 +133,12 @@ def correction_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
     epoch, agreement = block.get("epoch"), block.get("agreement")
     if not isinstance(epoch, str) or not epoch or not isinstance(agreement, str):
         return "the block names no epoch or agreement"
-    # The agreement by its exact bytes (a re-read logged in the same second is byte-identical,
-    # and is the same agreement); the latest copy is the one later attempts are counted after.
+    # The agreement by its exact bytes, at its first position: a later byte-identical copy is
+    # the same line, and never moves the count of later attempts forward.
     found = [n for n, raw in enumerate(log.lines) if line_hash(raw) == agreement]
     if not found:
         return "the agreement is not a line of the attempt log"
-    index = found[-1]
+    index = found[0]
     attempt = log.entries[index]
     if (attempt.get("subject"), attempt.get("facet"), attempt.get("epoch")) \
             != (subject, facet, epoch):
@@ -137,10 +149,17 @@ def correction_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
         return problem
     if cite_only_status(attempt.get("url")) is not False:
         return "the agreement did not read a page whose host retains copies"
+    # The gate's own fetch record (as MODEL-562 and MODEL-555 require of a read that opens or
+    # settles an epoch): the gate logs ``own_fetch`` only for bytes it fetched with its own
+    # transport, and the cited-region hash it computed; the block carries the same region.
+    region = attempt.get("region_sha256")
+    if attempt.get("own_fetch") is not True or not _HEX.fullmatch(str(region or "")) \
+            or block.get("region_sha256") != region:
+        return "the agreement is not the gate's own fetch with its recorded region"
     if not _block_is(fact, block, attempt, sources=sources):
         return "the record is not the block that agreement made"
     at = _at(attempt.get("at"))
-    if at is None or at.date() > cutoff:
+    if at is None or at.astimezone(UTC).date() > cutoff:
         return "the agreement is after this build's cutoff"
     problem = epoch_problem(log.keyed(subject, str(facet), epoch), value, str(facet))
     if problem is not None:

@@ -1168,6 +1168,8 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         if method is not None:
             return _refuse("engine_reader_reads",
                            f"{method} reads this fact; the verified path applies")
+    # The bytes are the gate's own fetch, with its own transport (MODEL-573): never a caller's.
+    own_fetch = request is None and (gate_fetched or own_page)
     answers: list[ReaderAnswer] = []
     for _ in range(2):  # an incomplete attempt (a reader failed) may be tried once more
         if len(attempts(subject, facet, epoch)) >= MAX_ATTEMPTS:
@@ -1176,7 +1178,8 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
             answers = read_page(subject=subject, url=row["url"], facet_id=facet,
                                 subject_name=found.subject_name, page_bytes=page_bytes,
                                 readers=readers, epoch=epoch, definition=found.definition,
-                                region_sha256=_region_sha256(row, page_bytes))
+                                region_sha256=_region_sha256(row, page_bytes),
+                                own_fetch=own_fetch)
             break
         except ReaderError:
             continue
@@ -1209,7 +1212,7 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     if retaining:
         return _retained_outcome(subject, facet_def, value, filed, found, row, source_id, now,
                                  page_bytes, answers, resolved, history, epoch=epoch,
-                                 correct=correct, released=released)
+                                 correct=correct, released=released, own_fetch=own_fetch)
     if value is None:
         if not accept_not_disclosed:
             return _refuse("no_value",
@@ -1252,7 +1255,8 @@ def _retained_outcome(subject: str, facet_def: Any, value: JsonValue, filed: Jso
                       page_bytes: bytes, answers: Sequence[ReaderAnswer],
                       resolved: Sequence[str],
                       history: Sequence[Mapping[str, Any]], *, epoch: str,
-                      correct: bool = False, released: bool = False) -> CitedChange:
+                      correct: bool = False, released: bool = False,
+                      own_fetch: bool = False) -> CitedChange:
     """A retaining page confirms: the agreed value must be the filed, known value. With
     ``correct``, or for a fact a correction filed, an agreed other value corrects it within
     ``decision.retained_correction``'s limits (MODEL-573); anything else is ``value_differs``."""
@@ -1280,13 +1284,14 @@ def _retained_outcome(subject: str, facet_def: Any, value: JsonValue, filed: Jso
         return _refuse("value_differs", "the agreed value is not the filed value; a retaining "
                        "page changes nothing, and the fact is listed for the owner")
     return _corrected(subject, facet_def, filed if same else value, filed, found, row, source_id,
-                      now, page_bytes, answers, resolved, epoch=epoch, released=released)
+                      now, page_bytes, answers, resolved, epoch=epoch, released=released,
+                      own_fetch=own_fetch)
 
 
 def _corrected(subject: str, facet_def: Any, value: JsonValue, filed: JsonValue, found: Lookup,
                row: Mapping[str, Any], source_id: str, now: datetime, page_bytes: bytes,
                answers: Sequence[ReaderAnswer], resolved: Sequence[str], *, epoch: str,
-               released: bool) -> CitedChange:
+               released: bool, own_fetch: bool) -> CitedChange:
     """The correction record (MODEL-573), or a refusal. The block names the epoch it was read in
     and the agreement just logged by its exact line; the record, as a writer files it, must pass
     the build's own test (``retained_correction.correction_problem``)."""
@@ -1300,6 +1305,10 @@ def _corrected(subject: str, facet_def: Any, value: JsonValue, filed: JsonValue,
         return _refuse("value_differs", "the agreed value is not the filed value; a licence fact, "
                        "an identity field, a ruled fact and a fact a clearing released are not "
                        "corrected here, and the fact is listed for the owner")
+    region = _region_sha256(row, page_bytes)
+    if not own_fetch or region is None:
+        return _refuse("correction_not_admitted", "a correction rests only on the gate's own "
+                       "fetch, with its own transport, of a page whose cited regions it hashed")
     record = _record(subject, facet_def.id, value, row, source_id, now, sha256(page_bytes),
                      text_sha256(page_bytes), answers, filed, found.registered_ids, resolved,
                      retaining=True)
@@ -1316,6 +1325,7 @@ def _corrected(subject: str, facet_def: Any, value: JsonValue, filed: JsonValue,
             return _refuse("registry_lookup_failed",
                            "the agreement just logged is not the attempt log's last line")
         block["epoch"], block["agreement"] = epoch, line_hash(raws[-1])
+        block["region_sha256"] = region
         verdicts = _ranked_verdicts()
         log = AttemptLog(raws)
     except (OSError, ValueError, LookupFailed) as error:

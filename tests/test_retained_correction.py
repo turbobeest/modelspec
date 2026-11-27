@@ -28,10 +28,20 @@ from decision.retained_correction import (
 from tests import test_retained_agreement as gate
 from tests.snapshot_records import verification
 
+_PATCH: list = []
+
 
 @pytest.fixture(autouse=True)
 def offline(monkeypatch):
     monkeypatch.setattr(socket.socket, "connect", lambda *a: pytest.fail("Network attempted"))
+    _PATCH[:] = [monkeypatch]
+
+
+def own(request):
+    """Install ``request`` as the gate's own transport (``cited_change._http_once``)."""
+    import decision.cited_change as gate_module
+
+    _PATCH[0].setattr(gate_module, "_http_once", request)
 
 
 # --- the gate -------------------------------------------------------------------------------------
@@ -44,11 +54,21 @@ def data(tmp_path, monkeypatch):
     return gate.Data(tmp_path / "data", monkeypatch)
 
 
-def run(**kw):
+def run(*, caller=False, **kw):
+    """The gate on its own fetch (``request`` becomes its own transport), or on the caller's."""
+    request = kw.pop("request", None) or gate.serve()
+    if not caller:
+        own(request)
     args = dict(subject=gate.SUBJECT, facet=gate.FACET, source_id="readme",
-                readers=gate.pair(AGREED), request=gate.serve(), correct=True)
+                readers=gate.pair(AGREED), request=request if caller else None, correct=True)
     args.update(kw)
     return retained_agreement(**args)
+
+
+def rr(readers, page=gate.PAGE):
+    own(gate.serve({gate.URL: page}))
+    return reread({"subject": gate.SUBJECT, "facet": gate.FACET}, source_id="readme",
+                  readers=readers)
 
 
 def refused(reason, **kw):
@@ -173,18 +193,20 @@ def test_the_gate_asks_the_builds_own_test_of_the_record_as_filed(data):
 
 def test_reread_of_a_correction_stays_on_the_correction_rule(data):
     file_record(data, run().record)
-    fact = {"subject": gate.SUBJECT, "facet": gate.FACET}
-    assert reread(fact, source_id="readme", readers=gate.pair(AGREED),
-                  request=gate.serve()).outcome == "current"
+    assert rr(gate.pair(AGREED)).outcome == "current"
     changed = gate.PAGE + b"More text.\n"
-    out = reread(fact, source_id="readme", readers=gate.pair(AGREED),
-                 request=gate.serve({gate.URL: changed}))
+    out = rr(gate.pair(AGREED), changed)
     assert out.outcome == "confirmed", (out.reason, out.detail)
     assert out.record["derivation"]["cited_change"]["rule"] == RULE
     file_record(data, out.record)
-    out = reread(fact, source_id="readme", readers=gate.pair(["text"]),
-                 request=gate.serve({gate.URL: changed + b"x"}))
+    out = rr(gate.pair(["text"]), changed + b"x")
     assert out.outcome == "changed" and out.record["value"] == ["text"]
+    # A caller's transport re-reads nothing into a correction.
+    file_record(data, out.record)
+    fact = {"subject": gate.SUBJECT, "facet": gate.FACET}
+    out = reread(fact, source_id="readme", readers=gate.pair(["text"]),
+                 request=gate.serve({gate.URL: changed + b"xy"}))
+    assert out.outcome == "flagged" and out.reason == "correction_not_admitted"
 
 
 def test_the_gates_correction_is_served_as_cited_by_the_build_and_the_site(data):
@@ -202,8 +224,12 @@ def test_the_gates_correction_is_served_as_cited_by_the_build_and_the_site(data)
     (card,) = load_models(data.root)
     (cited,) = card.cited_facts
     assert cited["citation"]["status"] == "cited" and "derivation" not in cited
-    # The same card with the agreement gone from the log: withheld on the site, out of the build.
+    # The same card with the agreement gone from the log, and a cite-only reference added
+    # beside it: withheld on the site, out of the build.
     (data.root / ATTEMPTS_FILE).write_text("")
+    data.fact["sources"].append({"source_id": "docs", "snapshot_ref": "sha256:" + "1" * 64,
+                                 "cited_regions": ["model-spec"]})
+    data.write()
     (card,) = load_models(data.root)
     assert card.cited_facts == [] and card.withheld_facets == (gate.FACET,)
     index = load_built_snapshot(build_snapshot(collect_repo(data.root)))
@@ -214,7 +240,7 @@ def test_the_gates_correction_is_served_as_cited_by_the_build_and_the_site(data)
 
 MID, FACET = "lab/alpha", "model.max_output_tokens"
 URL = "https://lab.example.com/docs/models"  # src-lab-docs: a host that retains copies
-PAGE, TEXT, PROMPT = "3" * 64, "a" * 64, "4" * 64
+PAGE, TEXT, PROMPT, REGION = "3" * 64, "a" * 64, "4" * 64, "5" * 64
 AT = "2026-10-10T09:00:00+00:00"
 FILED, VALUE = 4096, 8192
 TODAY = date(2026, 10, 19)
@@ -226,6 +252,7 @@ def agreement(epoch="initial", *, at=AT, values=(VALUE, VALUE), families=("opena
     return {"subject": MID, "facet": facet, "epoch": epoch, "url": URL, "complete": True,
             "agreed": values[0] == values[1], "agreed_value": values[0], "harness": True,
             "page_sha256": PAGE, "text_sha256": TEXT, "prompt_sha256": PROMPT, "at": at,
+            "region_sha256": REGION, "own_fetch": True,
             "readers": [{"reader_id": "a", "family": families[0], "version": "1",
                          "value": values[0]},
                         {"reader_id": "b", "family": families[1], "version": "1",
@@ -248,16 +275,21 @@ def corrected_row(attempt, *, value=VALUE, facet=FACET, line=None):
         "rule": RULE, "sha256": attempt["page_sha256"], "text_sha256": attempt["text_sha256"],
         "url": attempt["url"], "previous_value": FILED, "epoch": attempt["epoch"],
         "agreement": line_hash(raw(attempt) if line is None else line),
+        "region_sha256": attempt.get("region_sha256"),
         "readers": [{**r, "prompt_sha256": attempt["prompt_sha256"]} for r in attempt["readers"]]}}
     return row
 
 
-def build(row, attempts, log=(OLD,), *, as_of=TODAY):
+CITE = "https://www.perplexity.ai/pro"  # a cite-only host
+
+
+def build(row, attempts, log=(OLD,), *, as_of=TODAY, extra_sources=None):
     from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
 
     from tests.snapshot_records import SOURCES, model
 
-    inputs = SnapshotInputs(models=[model(MID, facts=[row])], sources=dict(SOURCES),
+    inputs = SnapshotInputs(models=[model(MID, facts=[row])],
+                            sources={**SOURCES, **(extra_sources or {})},
                             verifications=list(log),
                             cited_attempt_lines=[a if isinstance(a, str) else raw(a)
                                                  for a in attempts])
@@ -395,11 +427,69 @@ def test_a_correction_on_a_cite_only_page_takes_the_cite_only_path():
         == "the agreement did not read a page whose host retains copies"
 
 
-def test_a_failed_correction_falls_back_to_the_ordinary_decision():
-    # A value the log independently verifies is served as verified even if its block fails.
+def test_a_failed_correction_stays_out_whatever_else_would_admit_it():
+    # Review fix 1: a corrected value is served only through the shared test. A verified verdict
+    # on it, or a cite-only reference added beside it, never stands in for the test.
     attempt = agreement()
+    row = corrected_row(attempt)
+    assert is_correction(row)
     verified = verification("fact", f"{MID}#{FACET}", "verified", day="2026-10-12", value=VALUE)
-    index = build(corrected_row(attempt), [], log=(OLD, verified))
-    assert admitted(index)
-    assert index.record(index.fact(MID, FACET).record_id)["verification"]["outcome"] == "verified"
-    assert is_correction(corrected_row(attempt))
+    assert not admitted(build(row, [], log=(OLD, verified)))
+    beside = copy.deepcopy(row)
+    beside["sources"].append({"source_id": "src-cite", "snapshot_ref": "sha256:" + "6" * 64,
+                              "cited_regions": ["r1"]})
+    assert not admitted(build(beside, [], extra_sources={"src-cite": CITE}))
+    assert admitted(build(beside, [attempt], extra_sources={"src-cite": CITE}))
+
+
+def test_a_self_asserted_harness_row_is_not_the_gates_own_fetch():
+    # Review fix 2: ``harness: true`` alone is never enough.
+    for forged in (agreement(own_fetch=None), agreement(region_sha256=None),
+                   agreement(region_sha256="z" * 64)):
+        forged = {k: v for k, v in forged.items() if v is not None}
+        assert not admitted(build(corrected_row(forged), [forged]))
+    other = agreement()
+    row = corrected_row(other)
+    row["derivation"]["cited_change"]["region_sha256"] = "6" * 64  # not the region logged
+    assert not admitted(build(row, [other]))
+
+
+def test_a_copied_stale_agreement_does_not_move_the_scan_forward():
+    # Review fix 3: only the first occurrence counts, and its epoch must be the current one.
+    attempt = agreement()
+    later = agreement("reread:" + "b" * 64, at="2026-10-11T09:00:00+00:00", values=(FILED, FILED),
+                      text_sha256="b" * 64)
+    assert not admitted(build(corrected_row(attempt), [attempt, later, attempt]))
+
+
+def test_the_cutoff_is_compared_in_utc():
+    # Review fix 4: 02:00 at +05:00 on the 10th is the 9th in UTC; 22:00 at -05:00 on the 9th
+    # is the 10th.
+    east = agreement(at="2026-10-10T02:00:00+05:00")
+    assert admitted(build(corrected_row(east), [east], as_of=date(2026, 10, 9)))
+    west = agreement(at="2026-10-09T22:00:00-05:00")
+    assert not admitted(build(corrected_row(west), [west], as_of=date(2026, 10, 9)))
+
+
+def test_every_identity_facet_in_the_registry_is_the_owners():
+    # Review fix 5: read from the registry (``identity: true``), never a hand list.
+    import yaml as _yaml
+    from decision.registry import REGISTRY_DIR
+
+    entries = _yaml.safe_load((REGISTRY_DIR / "facets.yaml").read_text())["facets"]
+    identity = {e["id"] for e in entries if e.get("identity") is True}
+    assert {"offering.provider", "offering.api_model_id", "offering.router_slug"} <= identity
+    assert all(owner_only(f) for f in identity)
+    assert not owner_only("model.max_output_tokens") and owner_only("not.a_facet")
+    row = corrected_row(agreement(facet="offering.provider", values=("acme", "acme")),
+                        value="acme", facet="offering.provider")
+    log = AttemptLog([raw(agreement(facet="offering.provider", values=("acme", "acme")))])
+    assert correction_problem(row, MID, log=log, verdicts={}, sources={"src-lab-docs": URL},
+                              cutoff=TODAY) == "a licence fact or an identity field is the owner's"
+
+
+def test_the_gate_corrects_only_from_its_own_fetch(data):
+    out = run(caller=True)
+    assert out.reason == "correction_not_admitted" and "own" in out.detail
+    assert data.attempts()[-1].get("own_fetch") is None
+    assert run().changed and data.attempts()[-1]["own_fetch"] is True
