@@ -402,29 +402,29 @@ def never_left_first(verdict: Mapping[str, Any], *, history: Sequence[Mapping[st
 
     A record leaves its first epoch only through the rule-15 gate (a claim ``two-readers-...``
     and the agreed attempt it rests on) or an owner's ruling (a claim ``owner-ruling@1``, filed
-    past a logged disagreement). So the record was in ``first`` at the verdict when, up to the
-    end of the verdict's UTC day: the verdict's target has a claim filed and a check of that day
-    with the verdict's outcome that checked the verdict's own value; no claim on that target, for
-    any value, is a rule-15 or ruling claim, and none was retired; and no attempt at all is
-    logged for the subject and facet. A check is paired on the value it CHECKED, the claim value
-    it verified (``check_binds``: its target value hash, or its diff's ``expected`` value; the
-    diff's ``found`` is the page value it observed, which differs by definition for a mismatch):
-    the same value pairs; another value is the wrong verdict and never pairs; a check that names
-    no checked value pairs only when the verdict's value was the only value on the fact, that is
-    when every claim on the target filed by the end of the day is for it (``claim_binds``).
+    past a logged disagreement). The log verdict's own value hash is the authority for what it
+    holds: a verdict binds its own value. So the record was in ``first`` at the verdict when, up
+    to the end of the verdict's UTC day (queue time order, a later line on a tie):
+    - the record's latest claim on the verdict's target is for the verdict's own value
+      (``claim_binds``), so the verdict is on the value the record carried: a verdict on another
+      value is never made clearable here;
+    - a check of that day with the verdict's outcome is logged; it is evidence of the verdict
+      only, and the value it names (``check_binds``) neither pulls a verdict in nor keeps it out;
+    - no claim on the target, for any value, is a rule-15 or ruling claim, none was retired, and
+      no attempt at all is logged for the subject and facet: those push the record out.
     The first collection of 2026-09-25 is the case: its claims are stamped after the checks
-    that day, so the check cannot be paired, but nothing could have moved the record. A board reading (``settings``)
-    is not covered: its pairing shows the row's settings, so it is still required. Fails
-    closed: an unreadable day, any event on the target or attempt with no readable time (the
-    queue loader keeps such events, ``queue_history``) shows nothing."""
+    that day, and those checks name older values, but nothing could have moved the record. A
+    board reading (``settings``) is not covered: its pairing shows the row's settings, so it is
+    still required. Fails closed: an unreadable day, any event on the target or attempt with no
+    readable time (the queue loader keeps such events, ``queue_history``) shows nothing."""
     if settings is not None:
         return False
     day = _day(verdict.get("date"))
     target = (verdict.get("target") or {}).get("id")
     if day is None or not isinstance(target, str):
         return False
-    claimed = checked = unnamed = False
-    only_this_value = True
+    latest: Mapping[str, Any] | None = None
+    checked = False
     for event in history:
         if _event_target(event) != target:
             continue
@@ -434,19 +434,17 @@ def never_left_first(verdict: Mapping[str, Any], *, history: Sequence[Mapping[st
         if at.astimezone(UTC).date() > day:
             continue  # after the verdict's day: it says nothing about the record then
         if event.get("event") == "collected":
-            method = str(((event.get("claim") or {}).get("collector") or {}).get("method") or "")
+            claim = event.get("claim") or {}
+            method = str((claim.get("collector") or {}).get("method") or "")
             if method.startswith(_RULE_15) or method == _OWNER_RULING:
                 return False
-            claimed = True
-            only_this_value = only_this_value and claim_binds(event.get("claim") or {}, verdict)
+            latest = claim
         elif event.get("event") == "retired":
-            return False  # a claim retired by then: what the check covered cannot be shown
+            return False  # a claim retired by then: the record's value cannot be shown
         elif event.get("event") == "checked" and event.get("outcome") == verdict.get("outcome") \
                 and at.astimezone(UTC).date() == day:
-            binds = check_binds(event, verdict, facet)
-            checked = checked or binds is True
-            unnamed = unnamed or binds is None
-    if not (claimed and (checked or (unnamed and only_this_value))):
+            checked = True
+    if latest is None or not checked or not claim_binds(latest, verdict):
         return False
     for entry in log.entries:
         if (entry.get("subject"), entry.get("facet")) != (subject, facet):
