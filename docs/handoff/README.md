@@ -389,8 +389,18 @@ Learned expensively during 2026-09-09/10.
       (`no_value`).
 
     The record is the `cited_change` block with rule `two-readers-retained-agreement@1`. No
-    `Verification` is written, and the build serves the fact as before. A fact that cites a
-    cite-only page keeps that citation, so its served basis is not upgraded. The rolling
+    `Verification` is written. The build and the site loader serve the fact as cited, never as
+    verified, through one test (`decision.retained_correction.confirmation_citation`, MODEL-491
+    E1): its first logged agreement that made the block is complete, through the harness, by two
+    distinct known families, on the filed value, on a retaining host, on or before the cutoff, in
+    an epoch with no disagreement, with none in the record's own re-read epoch either, and no
+    later attempt in another epoch; a measurement the build finds stale keeps it out of the site
+    too (`snapshot.fact_measurement_stale`); the fact is no licence
+    fact or identity field, carries no ruling or clearing, and no value of it holds a verdict. When
+    the fact's own winning verdict is an independent `verified`, the verified path wins; one that
+    fails the test is decided as if it carried no block. The gate asks the same test of the record
+    it files (`confirmation_not_admitted`). A fact that cites a cite-only page keeps that
+    citation, so its served basis is not upgraded. The rolling
     re-read re-reads these facts while their origin still retains copies; it reads the origin's
     class first, and one whose origin is now cite-only is listed
     (`retained_agreements_now_cite_only`), not fetched.
@@ -412,7 +422,14 @@ Learned expensively during 2026-09-09/10.
     no derivation), never as verified, and keeps a failing one out. The rolling re-read keeps a
     corrected fact on the correction rule. File the record with `filed_fact`. A log line is not
     signed: these checks bind it to the gate's own records, and the data repository's review
-    remains the guard against a hand-written line.
+    remains the guard against a hand-written line. A `mismatch` on the value a correction
+    replaced, dated on or before its agreement and on no value the fact now has, does not hold
+    the correction (MODEL-491 E2, `retained_correction.replaced_value_mismatch`). The replaced
+    value is the `filed_value` the gate logs on the agreement's own attempt line, never the
+    record's `previous_value`; a line logged without one releases nothing. An `unreachable`, a
+    later verdict, and any verdict on another value still hold it. With `correct=True`, the gate
+    reads past a hold that is only mismatches on the filed value (`mismatch_on`, the build's
+    helper); a confirmation of the filed value is still refused (`quarantined`).
 
 Public PR bodies and evidence must not contain private modelspec-data commit SHAs or per-card private values. Private PR numbers, ages and clone URLs are not sensitive.
 

@@ -97,7 +97,7 @@ def reconfirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
     log ranked by the build's own rule, ``sources`` the source registry's URLs, ``cutoff`` the
     last day the caller may know, ``ids`` further identities the fact may carry in the
     verification log (its location id and stored id are always checked)."""
-    from decision.cited_change import RULE, fact_epoch, held_rows
+    from decision.cited_change import RULE, fact_epoch
     from decision.quarantine_clearing import (
         _at,
         _block_is,
@@ -118,10 +118,11 @@ def reconfirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
     if not isinstance(facet, str) or state not in STATES \
             or (state == "not_disclosed") != (value is None):
         return "a reconfirmation is of a known fact with a value or a not_disclosed one"
-    every = tuple(dict.fromkeys(str(i) for i in (*ids, fact.get("id"), f"{subject}#{facet}")
-                                if isinstance(i, str) and i))
+    from decision.retained_correction import unresolved_holds
+
     try:
-        held = held_rows(verdicts, every, fact)
+        # The one hold check a correction, a confirmation and a reconfirmation share (MODEL-491).
+        held = unresolved_holds(fact, subject, verdicts=verdicts, log=log, ids=ids)
     except (KeyError, TypeError, AttributeError, ValueError):
         return "the fact's verification record cannot be read"
     if held:
