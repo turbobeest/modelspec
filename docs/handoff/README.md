@@ -413,7 +413,16 @@ Learned expensively during 2026-09-09/10.
     the build and the site loader admit it only when that line releases every held verdict
     (`quarantine_clearing.fact_released`, through `confirmation_problem` with the clearing lines
     and their queue history). Never with `correct`, never for a corrected fact, and only for the
-    filed value. A fact that cites a cite-only page keeps that
+    filed value. A confirmation's block moves its record to its re-read epoch
+    (`reread:<text sha256>`), so the clearing extends that epoch, but only where the confirmation
+    moved the record there from the epoch at the verdict (`quarantine_clearing.confirmation_move`,
+    which the gate and the build share). The record must have been in its first epoch at the
+    verdict, the verdict must bind the value, and the log must hold the confirmation's own
+    complete harness agreement on that value. That agreement must use two distinct known
+    families, be with that text hash on a retaining page, and fall on a later day than the
+    verdict. The first epoch must hold no disagreement, and no claim for another value may fall
+    after the verdict's day. A forged re-read epoch is no move, and an existing agreement never
+    stands in for the clearing's own fresh read. A fact that cites a cite-only page keeps that
     citation, so its served basis is not upgraded. The rolling
     re-read re-reads these facts while their origin still retains copies; it reads the origin's
     class first, and one whose origin is now cite-only is listed

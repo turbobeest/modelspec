@@ -367,6 +367,8 @@ def confirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
     for n, attempt in enumerate(log.entries):
         if (attempt.get("subject"), attempt.get("facet")) != (subject, facet):
             continue
+        if cleared and attempt.get("epoch") != block.get("clearing_epoch"):
+            continue  # a cleared confirmation rests on its clearing's own agreement (E4)
         try:
             made = agreement_problem(attempt, value, str(facet)) is None \
                 and _block_is(fact, block, attempt, sources=sources)

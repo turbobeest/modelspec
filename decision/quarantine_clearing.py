@@ -653,13 +653,83 @@ def line_problem(entry: Any, *, verdict: Mapping[str, Any], subject: str, facet:
                             first=first, settings=settings, clearings=clearings)
     if derived is None:
         return "the record's epoch at the verdict cannot be shown", None
-    if base != derived and not _board_base(base, derived, first, settings, attempt):
+    if base != derived and not _board_base(base, derived, first, settings, attempt) \
+            and not (settings is None and confirmation_move(
+                base, derived, verdict=verdict, value=entry["value"], log=log, subject=subject,
+                facet=facet, history=history, first=first)):
         return "the clearing's base epoch is not the record's epoch at the verdict", None
     for epoch in (entry["epoch"], base):
         problem = epoch_problem(log.keyed(subject, facet, epoch), entry["value"], facet)
         if problem is not None:
             return problem, None
     return "", attempt
+
+
+def confirmation_move(base: Any, derived: Any, *, verdict: Mapping[str, Any], value: Any,
+                      log: AttemptLog, subject: str, facet: str,
+                      history: Sequence[Mapping[str, Any]], first: str = "initial") -> bool:
+    """Whether a fact's record is in ``base`` only because a rule-16 confirmation of the
+    verdict's own value moved it there from ``derived``, its epoch at the verdict (MODEL-491 E4).
+    The gate and the build both ask it before a clearing extends ``base``.
+
+    All of these must hold:
+    - ``derived`` is the record's first epoch;
+    - ``base`` is the re-read epoch a confirmation block names: ``reread:<its text sha256>``;
+    - the verdict binds ``value``, so the value is the one it held;
+    - the attempt log holds that confirmation's own agreement, in ``derived``, with that text
+      hash: a complete harness agreement by two distinct known families on ``value``
+      (``agreement_problem``), on a page whose host retains copies, on a later day than the
+      verdict;
+    - no disagreement is logged in ``derived``;
+    - every claim on the verdict's target after the verdict's UTC day, up to the agreement, is
+      for ``value``, so the value did not change in between. The verdict's own day is
+      ``verdict_epoch``'s: the record's latest claim by its end binds the verdict's value (E3).
+
+    Anything else, a forged ``reread:`` epoch among them, is no move."""
+    from decision.model import matching_value_hashes
+    from decision.retained_correction import _unordered
+    from decision.retention import cite_only_status
+
+    prefix = "reread:"
+    if derived != first or not isinstance(base, str) or not base.startswith(prefix):
+        return False
+    text = base[len(prefix):]
+    if not _HEX.fullmatch(text):
+        return False
+    target = verdict.get("target") or {}
+    vhash = str(target.get("value_hash") or "")
+    if value is None or not matching_value_hashes(value, [vhash], unordered=_unordered(facet)):
+        return False
+    if epoch_problem(log.keyed(subject, facet, derived), value, facet) is not None:
+        return False
+    day = _day(verdict.get("date"))
+    if day is None:
+        return False
+    want = _canonical(value, facet)
+    for attempt in log.entries:
+        if (attempt.get("subject"), attempt.get("facet"), attempt.get("epoch"),
+                attempt.get("text_sha256")) != (subject, facet, derived, text):
+            continue
+        at = _at(attempt.get("at"))
+        if at is None or not later_than(verdict, at) \
+                or cite_only_status(attempt.get("url")) is not False \
+                or agreement_problem(attempt, value, facet) is not None:
+            continue
+        changed = False
+        for event in history:
+            if event.get("event") != "collected" or _event_target(event) != target.get("id"):
+                continue
+            when = _event_at(event)
+            if when is None:
+                changed = True
+                break
+            if day < when.astimezone(UTC).date() and when <= at \
+                    and _canonical((event.get("claim") or {}).get("value"), facet) != want:
+                changed = True
+                break
+        if not changed:
+            return True
+    return False
 
 
 def _board_base(base: str, derived: str, first: str, settings: Settings | None,

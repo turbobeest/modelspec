@@ -317,3 +317,144 @@ def test_a_forged_cleared_block_admits_nothing():
     forged["derivation"]["cited_change"]["readers"][1]["family"] = "google"
     assert not admitted(build(forged, [clearing(attempt)], [attempt]))
     assert admitted(build(row, [clearing(attempt)], [attempt]))
+
+
+# --- E4: a clearing from the epoch a confirmation moved the record into ---------------------------
+
+T0 = "b" * 64  # the text hash the confirmation read; it names the record's re-read epoch
+MOVED = f"reread:{T0}"
+MOVED_EPOCH = clearing_epoch(MOVED, verdict_sha256(VERDICT))
+
+
+def own_agreement(**kw):
+    """The confirmation's own agreement: in the first epoch, on a later day than the verdict."""
+    values = kw.pop("values", (VALUE, VALUE))
+    text = kw.pop("text_sha256", T0)
+    attempt = agreement("initial", at=kw.pop("at", "2026-10-05T09:00:00+00:00"), values=values,
+                        **{k: kw.pop(k) for k in ("families", "url") if k in kw})
+    attempt.update(text_sha256=text, **kw)
+    return attempt
+
+
+def build_moved(row, clearings, attempts, log=(VERDICT,), *, extra=(), as_of=TODAY):
+    from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+
+    from tests.snapshot_records import SOURCES, model
+
+    hist = history(log)
+    hist.setdefault(FID, []).extend(extra)
+    inputs = SnapshotInputs(models=[model(MID, facts=[row])], sources=dict(SOURCES),
+                            verifications=list(log),
+                            cited_attempt_lines=[raw(a) for a in attempts],
+                            clearing_history=hist, quarantine_clearings=list(clearings))
+    return load_built_snapshot(build_snapshot(inputs, as_of=as_of))
+
+
+def test_a_clearing_extends_the_epoch_a_confirmation_moved_the_record_into():
+    own, fresh = own_agreement(), agreement(MOVED_EPOCH)
+    row = confirmed_row(fresh, base=MOVED)
+    assert admitted(build_moved(row, [clearing(fresh)], [own, fresh]))
+    # The same clearing without the confirmation's own agreement: no move is shown.
+    assert not admitted(build_moved(row, [clearing(fresh)], [fresh]))
+
+
+@pytest.mark.parametrize("bypass", [
+    "changed_value", "claim_changed", "earlier", "same_family", "cite_only", "incomplete",
+    "disagreed", "forged_text", "forged_epoch", "record_value"])
+def test_a_move_that_is_not_shown_clears_nothing(bypass):
+    own, fresh, extra, row = own_agreement(), agreement(MOVED_EPOCH), [], None
+    lines = None
+    if bypass == "changed_value":  # the confirmation agreed on another value
+        own = own_agreement(values=(131072, 131072))
+    elif bypass == "claim_changed":  # a claim for another value was filed in between
+        extra = [{"event": "collected", "at": "2026-10-03T09:00:00+00:00", "claim": {
+            "target": {"kind": "fact", "id": FID}, "value": 131072, "field": FACET,
+            "names": [MID], "sources": [], "conditions": {},
+            "collector": {"agent": "a", "model_family": "family-a", "method": "read"}}}]
+    elif bypass == "earlier":  # the confirmation is not on a later day than the verdict
+        own = own_agreement(at="2026-10-01T23:00:00+00:00")
+    elif bypass == "same_family":
+        own = own_agreement(families=("openai", "openai"))
+    elif bypass == "cite_only":
+        own = own_agreement(url="https://www.perplexity.ai/pro")
+    elif bypass == "incomplete":
+        own = own_agreement(complete=False)
+    elif bypass == "disagreed":  # a disagreement in the first epoch
+        lines = [own, own_agreement(values=(VALUE, 131072), at="2026-10-04T09:00:00+00:00"),
+                 fresh]
+    elif bypass == "forged_text":  # the epoch names a text no confirmation read
+        own = own_agreement(text_sha256="c" * 64)
+    elif bypass == "forged_epoch":  # not a re-read epoch at all
+        base = "initial:board:" + T0
+        fresh = agreement(clearing_epoch(base, verdict_sha256(VERDICT)))
+        row = confirmed_row(fresh, base=base)
+    elif bypass == "record_value":  # the record's value is not the one the verdict held
+        fresh = agreement(MOVED_EPOCH, values=(131072, 131072))
+        row = confirmed_row(fresh, base=MOVED, value=131072)
+    row = row or confirmed_row(fresh, base=MOVED)
+    lines = lines or [own, fresh]
+    index = build_moved(row, [clearing(fresh)], lines, extra=extra)
+    shown = index.fact(MID, FACET)
+    assert not (shown.state == "known" and shown.value == row["value"])
+
+
+def test_a_claim_on_the_verdicts_own_day_is_the_epoch_tests_not_the_moves():
+    # The first collection filed other values on the verdict's day; verdict_epoch (E3) decides
+    # that day. Only a claim after it, up to the confirmation, can show the value changed.
+    own, fresh = own_agreement(), agreement(MOVED_EPOCH)
+    row = confirmed_row(fresh, base=MOVED)
+    same_day = [{"event": "collected", "at": "2026-10-01T03:00:00+00:00", "claim": {
+        "target": {"kind": "fact", "id": FID}, "value": None, "field": FACET, "names": [MID],
+        "sources": [], "conditions": {},
+        "collector": {"agent": "a", "model_family": "family-a", "method": "read"}}}]
+    from decision.quarantine_clearing import confirmation_move
+
+    kw = dict(verdict=VERDICT, value=VALUE, log=AttemptLog([raw(own)]), subject=MID, facet=FACET)
+    assert confirmation_move(MOVED, "initial", history=same_day, **kw)
+    assert admitted(build_moved(row, [clearing(fresh)], [own, fresh]))
+
+
+def test_the_move_is_one_shared_test():
+    from decision.quarantine_clearing import confirmation_move
+
+    own = own_agreement()
+    log = AttemptLog([raw(own)])
+    kw = dict(verdict=VERDICT, value=VALUE, log=log, subject=MID, facet=FACET,
+              history=history([VERDICT])[FID])
+    assert confirmation_move(MOVED, "initial", **kw)
+    assert not confirmation_move(MOVED, "reread:" + "d" * 64, **kw)  # not from the first epoch
+    assert not confirmation_move("reread:" + "c" * 64, "initial", **kw)
+    assert not confirmation_move(MOVED, "initial", **{**kw, "value": 131072})
+
+
+def test_the_gate_clears_a_confirmation_from_the_epoch_it_moved_the_record_into(data):
+    from decision.cited_change import fact_epoch
+    from decision.snapshot import build_snapshot, collect_repo, load_built_snapshot
+    from pipeline.load import load_models
+
+    first = gate.run()  # the rule-16 confirmation, before any hold
+    assert first.changed, (first.reason, first.detail)
+    fact = filed_fact(data.fact, first.record)
+    data.fact.clear()
+    data.fact.update(fact)
+    data.write()
+    moved = fact_epoch(data.fact)
+    assert moved.startswith("reread:")
+    verdict = _hold(data)  # a mismatch made before it, on the same value
+    out = gate.run(clear_quarantine=True)
+    assert out.changed, (out.reason, out.detail)
+    block = out.record["derivation"]["cited_change"]
+    assert block["previous_epoch"] == moved
+    assert block["clearing_epoch"] == clearing_epoch(moved, verdict_sha256(verdict))
+    [entry] = out.record["clearings"]
+    filed = filed_fact(data.fact, out.record)
+    data.fact.clear()
+    data.fact.update(filed)
+    data.write()
+    (data.root / CLEARINGS_FILE).write_text(json.dumps(entry, sort_keys=True) + "\n")
+    (data.root / "benchmarks").mkdir(exist_ok=True)
+    shown = load_built_snapshot(build_snapshot(collect_repo(data.root))).fact(
+        gate.SUBJECT, gate.FACET)
+    assert shown.state == "known" and sorted(shown.value) == sorted(gate.FILED)
+    (card,) = load_models(data.root)
+    assert [f["facet"] for f in card.cited_facts] == [gate.FACET]

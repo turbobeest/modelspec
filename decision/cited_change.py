@@ -792,9 +792,11 @@ QUARANTINED = "lifting it is the owner's call"
 
 
 def _epoch_at_verdict(verdict: Mapping[str, Any], *, subject: str, facet: str, first: str,
-                      base: str, settings: Any = None) -> CitedChange | None:
+                      base: str, settings: Any = None, confirmed: Any = None) -> CitedChange | None:
     """Refuse unless the subject's epoch now (``base``) is the one rule 15 derives for the record
-    as filed when the verdict was made (``quarantine_clearing.verdict_epoch``, from the queue)."""
+    as filed when the verdict was made (``quarantine_clearing.verdict_epoch``, from the queue), or,
+    for a rule-16 confirmation of the filed value ``confirmed``, the epoch that confirmation moved
+    it into (``quarantine_clearing.confirmation_move``, MODEL-491 E4; the build's own test)."""
     import os
 
     from decision.cited_reader import ATTEMPTS_FILE
@@ -802,6 +804,7 @@ def _epoch_at_verdict(verdict: Mapping[str, Any], *, subject: str, facet: str, f
         CLEARINGS_FILE,
         QUEUE_FILE,
         AttemptLog,
+        confirmation_move,
         queue_history,
         read_clearings,
         verdict_epoch,
@@ -822,7 +825,10 @@ def _epoch_at_verdict(verdict: Mapping[str, Any], *, subject: str, facet: str, f
                        f"shown; {QUARANTINED}")
     # A board row filed in its settings epoch is in a board epoch of it once the gate names one
     # (MODEL-555): the board moved since, and the clearing extends the epoch the row is in now.
-    if derived != base and not (derived == first and is_board_epoch(base, first)):
+    moved = settings is None and confirmed is not None and confirmation_move(
+        base, derived, verdict=verdict, value=confirmed, log=log, subject=subject, facet=facet,
+        history=history, first=first)
+    if derived != base and not (derived == first and is_board_epoch(base, first)) and not moved:
         return _refuse("epoch_not_current",
                        "the record's epoch now is not its epoch when the verdict was made")
     return None
@@ -1135,8 +1141,14 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         from decision.quarantine_clearing import clearing_epoch, verdict_sha256
 
         current = clearing_epoch(base, verdict_sha256(clearing[1]))
+        from decision.retained_correction import is_confirmation
+
+        # MODEL-491 E4: a rule-16 confirmation of the filed value may be cleared from the epoch it
+        # moved the record into; only the gate's retaining path asks, and only for that value.
+        confirmed = found.fact.get("value") if retaining and found.fact.get("state") == "known" \
+            and is_confirmation(found.fact) else None
         refusal = _epoch_at_verdict(clearing[1], subject=subject, facet=facet, first="initial",
-                                    base=base)
+                                    base=base, confirmed=confirmed)
         if refusal is not None:
             return refusal
     elif has_ruling(found.fact):
