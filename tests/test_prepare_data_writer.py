@@ -8,6 +8,16 @@ import pytest
 from scripts.prepare_data_writer import prepare
 
 
+@pytest.fixture(autouse=True)
+def local_writer_checkout(monkeypatch):
+    """These checkouts are a writer's local ones, with no base history: they skip the append-only
+    guard with its explicit local flag, which refuses inside GitHub Actions. The engine's own CI
+    runs these tests there, so its variables are cleared here; the guard's fail-closed rule in a
+    real data CI run is tested in tests/test_append_only_guard.py."""
+    for name in ("GITHUB_ACTIONS", "GITHUB_EVENT_NAME", "GITHUB_EVENT_PATH", "GITHUB_BASE_REF"):
+        monkeypatch.delenv(name, raising=False)
+
+
 def git(root, *args):
     return subprocess.run(
         ["git", "-C", str(root), *args], check=True, capture_output=True, text=True
