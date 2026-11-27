@@ -1088,6 +1088,7 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     from decision.owner_ruling import has_ruling
 
     current = base = fact_epoch(found.fact)
+    ruled_fetch = False
     if clearing is not None:
         # A clearing is read in the verdict's own clearing epoch (MODEL-552): no attempt in it can
         # come before the verdict. The fact's epoch is counted too: a disagreement there blocks.
@@ -1110,6 +1111,7 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
             if isinstance(fetched, CitedChange):
                 return fetched
             page = fetched
+            ruled_fetch = True  # these bytes are the gate's own fetch, read once below
         current = _ruled_epoch(found, subject, source_id, page[0], own_fetch)
     if epoch is not None and epoch != current:
         return _refuse("epoch_not_current",
@@ -1139,7 +1141,7 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     if len(logged) >= MAX_ATTEMPTS:
         return _refuse("attempts_exhausted",
                        f"{len(logged)} attempts at this fact are logged in this epoch")
-    gate_fetched = page is None
+    gate_fetched = page is None or ruled_fetch
     if page is None:
         fetched = _fetch(row["url"], request or _http_once, retaining=retaining)
         if isinstance(fetched, CitedChange):

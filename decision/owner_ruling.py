@@ -91,8 +91,9 @@ def split_status(entry: Any, facet_id: str) -> str | None:
     (booleans), exactly two readers with id, family and version of two distinct known lineages
     (the gate's own ``_check_identities``) whose values the gate's comparison tells apart, a page
     hash and a zoned read time, and the provenance its writer records: a harness attempt's prompt
-    hash (``decision.cited_reader.read_page``), or a seeded line marked ``seeded`` with
-    ``harness`` false. ``"malformed"``: any other line that looks complete and not agreed. The
+    hash and the gate's own fetch (``own_fetch``, required since ``OWN_FETCH_SINCE``;
+    ``decision.cited_reader.read_page``), or a seeded line marked ``seeded`` with ``harness``
+    false. ``"malformed"``: any other line that looks complete and not agreed. The
     gate fails closed and blocks on it as on a split, but no ruling can resolve it."""
     from types import SimpleNamespace
 
@@ -109,7 +110,8 @@ def split_status(entry: Any, facet_id: str) -> str | None:
         return "malformed"
     harness, seeded = entry.get("harness"), entry.get("seeded")
     if not ((harness is True and seeded is not True
-             and _HEX.fullmatch(str(entry.get("prompt_sha256") or "")))
+             and _HEX.fullmatch(str(entry.get("prompt_sha256") or ""))
+             and _gate_fetched(entry))
             or (harness is False and seeded is True)):
         return "malformed"
     pair = [SimpleNamespace(**{k: r.get(k) for k in ("reader_id", "family", "version")})
@@ -118,6 +120,18 @@ def split_status(entry: Any, facet_id: str) -> str | None:
     if _check_identities(pair) is not None or first == second:
         return "malformed"
     return "split"
+
+
+#: When the harness began recording ``own_fetch`` (MODEL-573, engine main 2026-11-27T02:30:03Z).
+#: A harness attempt logged since must carry it to be ruled on: a ruling never rests on page
+#: bytes or a transport a caller supplied. An attempt logged before cannot carry it and keeps
+#: the earlier rule (its prompt and page hashes).
+OWN_FETCH_SINCE = datetime(2026, 11, 27, 2, 30, 3, tzinfo=UTC)
+
+
+def _gate_fetched(entry: Mapping[str, Any]) -> bool:
+    at = _at(entry)
+    return at is not None and (entry.get("own_fetch") is True or at < OWN_FETCH_SINCE)
 
 
 def blocks_rule_15(entry: Any) -> bool:

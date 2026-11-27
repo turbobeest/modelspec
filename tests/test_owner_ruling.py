@@ -59,16 +59,30 @@ def data(tmp_path, monkeypatch):
 
 
 def disagree(facet=RETENTION, **kw):
-    """One real readers_disagree attempt through the gate."""
-    if facet == RETENTION:
-        out = cited_change(subject=SUBJECT, facet=RETENTION, source_id="data",
-                           readers=pair(30, "unbounded"), request=serve(), **kw)
-    else:
-        out = cited_change(subject=SUBJECT, facet=SOC2, source_id="trust",
-                           readers=[reader("codex", "openai", "type_2"),
-                                    reader("claude", "anthropic", None)], request=serve(),
-                           accept_not_disclosed=True, **kw)
+    """One real readers_disagree attempt through the gate, which fetches the page itself with
+    its own transport (stubbed), so the attempt records ``own_fetch``."""
+    import decision.cited_change as gate_module
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(gate_module, "_http_once", serve())
+        if facet == RETENTION:
+            out = cited_change(subject=SUBJECT, facet=RETENTION, source_id="data",
+                               readers=pair(30, "unbounded"), **kw)
+        else:
+            out = cited_change(subject=SUBJECT, facet=SOC2, source_id="trust",
+                               readers=[reader("codex", "openai", "type_2"),
+                                        reader("claude", "anthropic", None)],
+                               accept_not_disclosed=True, **kw)
     refused(out, "readers_disagree")
+
+
+def own_gate(**kw):
+    """The gate, fetching the page itself with its own transport (stubbed): ``own_fetch``."""
+    import decision.cited_change as gate_module
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(gate_module, "_http_once", serve())
+        return _gate(request=None, **kw)
 
 
 def read_in(epoch, readers):
@@ -82,7 +96,7 @@ def read_in(epoch, readers):
     found = lookup(SUBJECT, RETENTION)
     return read_page(subject=SUBJECT, url=URL, facet_id=RETENTION,
                      subject_name=found.subject_name, page_bytes=PAGE, readers=readers,
-                     epoch=epoch, definition=found.definition)
+                     epoch=epoch, definition=found.definition, own_fetch=True)
 
 
 def enter_epoch(data, text_sha):
@@ -506,6 +520,34 @@ def test_a_line_the_gate_does_not_count_is_no_split(change):
     assert _build(_ruled_fact(ruling), [ruling], [attempt]).fact(MID, FACET).state == "unknown"
 
 
+AFTER_OWN_FETCH = "2026-11-27T03:00:00+00:00"  # after OWN_FETCH_SINCE
+
+
+def test_a_harness_split_since_own_fetch_needs_the_gates_own_fetch():
+    caller_bytes = {**_attempt(), "at": AFTER_OWN_FETCH}  # a caller's bytes or transport
+    assert blocks_rule_15(caller_bytes) and split_status(caller_bytes, FACET) == "malformed"
+    own = {**caller_bytes, "own_fetch": True}
+    assert split_status(own, FACET) == "split"
+    assert split_status({**caller_bytes, "own_fetch": "true"}, FACET) == "malformed"
+    before = _attempt()  # logged before the harness recorded own_fetch: the earlier rule
+    assert "own_fetch" not in before and split_status(before, FACET) == "split"
+    for attempt, state in ((caller_bytes, "unknown"), (own, "known")):
+        ruling = _ruling(attempt, ruled_at="2026-11-27")
+        row, claim = _ruled_fact(ruling), _claim(ruling)
+        row["sources"][0]["retrieved_at"] = claim["sources"][0]["retrieved_at"] = AFTER_OWN_FETCH
+        assert _build(row, [ruling], [attempt], claims={f"{MID}#{FACET}": claim},
+                      as_of=date(2026, 11, 27)).fact(MID, FACET).state == state
+
+
+def test_a_split_read_through_a_callers_transport_blocks_but_cannot_be_ruled_on(data):
+    refused(cited_change(subject=SUBJECT, facet=RETENTION, source_id="data",
+                         readers=pair(30, "unbounded"), request=serve()), "readers_disagree")
+    assert "own_fetch" not in attempts(data)[-1]
+    refused(cited_change(subject=SUBJECT, facet=RETENTION, source_id="data", readers=pair(30),
+                         request=serve()), "prior_attempt_disagreed")
+    refuses(data, "no_disagreement")
+
+
 def _seed(epoch="initial", subject=SUBJECT, **kw):
     line = {"subject": subject, "facet": RETENTION, "epoch": epoch, "url": URL,
             "complete": True, "agreed": False, "harness": False, "seeded": True,
@@ -748,9 +790,9 @@ def test_the_filer_refuses_a_fabricated_cited_change_block(data):
     data.fact(derivation={"cited_change": {"sha256": "9" * 64, "text_sha256": "a" * 64,
                                            "readers": [{"prompt_sha256": "1" * 64}]}})
     # The fabricated block names the epoch, so the gate reads there (it is the fact's own).
-    refused(_gate(subject=SUBJECT, facet=RETENTION, source_id="data",
-                  readers=pair(30, "unbounded"), request=serve(), allow_unchanged=False,
-                  epoch="reread:" + "a" * 64), "readers_disagree")
+    refused(own_gate(subject=SUBJECT, facet=RETENTION, source_id="data",
+                     readers=pair(30, "unbounded"), allow_unchanged=False,
+                     epoch="reread:" + "a" * 64), "readers_disagree")
     refuses(data, "epoch_not_current", epoch="reread:" + "a" * 64)
 
 
@@ -864,9 +906,9 @@ def test_a_ruling_in_a_reread_epoch_keeps_the_reread_metadata(data):
                               readers=pair(30), request=serve()), data_dir=data.root)
     epoch = fact_epoch(offering_fact(data))
     assert epoch.startswith("reread:")
-    refused(_gate(subject=SUBJECT, facet=RETENTION, source_id="data",
-                  readers=[reader("codex", "openai", 45), reader("claude", "anthropic", 46)],
-                  request=serve(), allow_unchanged=False, epoch=epoch), "readers_disagree")
+    refused(own_gate(subject=SUBJECT, facet=RETENTION, source_id="data",
+                     readers=[reader("codex", "openai", 45), reader("claude", "anthropic", 46)],
+                     allow_unchanged=False, epoch=epoch), "readers_disagree")
     refuses(data, "no_disagreement")  # the initial epoch agreed: nothing to rule on there
     file(data, epoch=epoch, value=45)
     fact = offering_fact(data)
