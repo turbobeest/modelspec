@@ -170,9 +170,8 @@ def correction_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
         return problem
     from decision.quarantine_clearing import line_kind
 
-    events = (history or {}).get(f"{subject}#{facet}", ())
-    if line_kind(attempt, str(facet), value=value, history=events) != "correction":
-        return "the agreement line does not show it filed a correction"
+    if line_kind(attempt, str(facet)) != "correction":
+        return "the agreement line is not one the gate tagged as a correction"
     if cite_only_status(attempt.get("url")) is not False:
         return "the agreement did not read a page whose host retains copies"
     # The gate's own fetch record (as MODEL-562 and MODEL-555 require of a read that opens or
@@ -446,7 +445,6 @@ def clearing_inputs(root: Any) -> tuple[list[dict[str, Any]], dict[str, list[dic
         QUEUE_FILE,
         queue_history,
         read_clearings,
-        retained_targets,
     )
 
     root = Path(root)
@@ -454,9 +452,6 @@ def clearing_inputs(root: Any) -> tuple[list[dict[str, Any]], dict[str, list[dic
     clearings = read_clearings(path) if path.is_file() else []
     targets = {str((c.get("target") or {}).get("id")) for c in clearings
                if isinstance(c.get("target"), Mapping)}
-    # The queue trail of every retaining-page claim's target too, which an older agreement line
-    # is classed by (``quarantine_clearing.line_kind``).
-    targets |= retained_targets(root / QUEUE_FILE)
     return clearings, (queue_history(root / QUEUE_FILE, targets) if targets else {})
 
 
@@ -473,7 +468,6 @@ def _confirmation_index(fact: Mapping[str, Any], subject: str, *, log: Any,
 
     block = _block(fact) or {}
     facet, value = fact.get("facet"), fact.get("value")
-    events = (history or {}).get(f"{subject}#{facet}", ())
     cleared = block.get("clearing_epoch")
     for n, attempt in enumerate(log.entries):
         if (attempt.get("subject"), attempt.get("facet")) != (subject, facet):
@@ -482,8 +476,7 @@ def _confirmation_index(fact: Mapping[str, Any], subject: str, *, log: Any,
             continue
         try:
             if agreement_problem(attempt, value, str(facet)) is None \
-                    and line_kind(attempt, str(facet), value=value,
-                                  history=events) == "confirmation" \
+                    and line_kind(attempt, str(facet)) == "confirmation" \
                     and _block_is(fact, block, attempt, sources=sources):
                 return n
         except (KeyError, TypeError, AttributeError):

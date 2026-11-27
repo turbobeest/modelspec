@@ -2549,19 +2549,6 @@ def collect_repo(root: Path) -> SnapshotInputs:
         except ValueError as exc:
             raise SnapshotBuildError(f"{ATTEMPTS_FILE}: {type(exc).__name__}") from exc
         attempt_lines = list(log.lines)
-    if corrections:
-        # An older agreement line is classed by its target's queue trail (MODEL-491 E4 review,
-        # ``quarantine_clearing.line_kind``): the trail of every retaining-page claim's target.
-        from decision.quarantine_clearing import QUEUE_FILE as _QF
-        from decision.quarantine_clearing import queue_history as _qh
-        from decision.quarantine_clearing import retained_targets
-
-        try:
-            wanted = retained_targets(root / _QF) - set(clearing_history)
-            if wanted:
-                clearing_history = {**_qh(root / _QF, wanted), **clearing_history}
-        except ValueError as exc:
-            raise SnapshotBuildError(f"{_QF}: {type(exc).__name__}") from exc
     from decision.quarantine_clearing import GRANDFATHER_FILE, read_grandfather
 
     try:

@@ -904,7 +904,7 @@ def test_an_untagged_line_refuses_by_default(line, kind):
     for key in ("own_fetch", "region_sha256", "kind"):
         if key not in line:
             attempt.pop(key, None)
-    assert line_kind(attempt, FACET, value=FILED) == kind
+    assert line_kind(attempt, FACET) == kind
 
 
 # --- MODEL-491: the data-trust audit dates an admitted correction or confirmation ---------------

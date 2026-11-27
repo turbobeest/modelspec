@@ -558,7 +558,7 @@ def test_review_5_a_correction_relabelled_as_a_confirmation_moves_nothing(line):
         assert line_kind(own, FACET) == "correction"
     else:  # an older own-fetch line, untagged, with nothing to show it was admitted
         own = own_agreement(own_fetch=True, region_sha256="5" * 64, kind=None)
-        assert line_kind(own, FACET, value=VALUE) is None
+        assert line_kind(own, FACET) is None
     fresh = agreement(MOVED_EPOCH)
     row = confirmed_row(fresh, base=MOVED)
     assert not admitted(build_moved(row, [clearing(fresh)], [own, fresh]))
@@ -566,7 +566,7 @@ def test_review_5_a_correction_relabelled_as_a_confirmation_moves_nothing(line):
     # a correction's same-value re-read writes the same values (round 3). Only the kind the gate
     # wrote into the line makes it a confirmation.
     own = own_agreement(filed_value=VALUE, own_fetch=True, region_sha256="5" * 64, kind=None)
-    assert line_kind(own, FACET, value=VALUE) is None
+    assert line_kind(own, FACET) is None
     assert not admitted(build_moved(row, [clearing(fresh)], [own, fresh]))
     own = own_agreement(filed_value=VALUE, own_fetch=True, region_sha256="5" * 64,
                         kind="confirmation")
@@ -599,68 +599,37 @@ def _claim(at, *, value=VALUE, rule="two-readers-retained-agreement@1", copy=PAG
                                         "model_family": "deterministic", "method": rule}}}
 
 
-@pytest.mark.parametrize("case,kind", [
-    ("admitted", "confirmation"),
-    ("refused", None),  # no claim: the read was refused, whatever its readers agreed
-    ("other_value_claim", None),
-    ("other_copy_claim", None),
-    ("earlier_claim", None),
-    ("correction_rule_claim", None),
-    ("filed_differs", None),  # it logged a filed value that is not the one served
-    ("filed_same", "confirmation"),
-    ("cite_only", None),
-    ("served_differs", None),
-])
-def test_review_6_an_untagged_line_is_a_confirmation_only_on_the_positive_test(case, kind):
+@pytest.mark.parametrize("case", ["admitted", "filed_same", "refused", "filed_differs"])
+def test_untagged_lines_serve_nothing_whatever_the_queue_shows(case):
+    # MODEL-491 follow-up: an older line's claim cannot be tied to its attempt, so no claim, value
+    # or filed value makes an untagged line a kind. Only the kind the gate wrote into it does.
     from decision.quarantine_clearing import line_kind
 
     line = own_agreement(kind=None)
-    events = [_claim("2026-10-05T08:59:57+00:00")]  # filed a few seconds before the line's time
-    value = VALUE
-    if case == "refused":
-        events = []
-    elif case == "other_value_claim":
-        events = [_claim("2026-10-05T09:00:00+00:00", value=131072)]
-    elif case == "other_copy_claim":
-        events = [_claim("2026-10-05T09:00:00+00:00", copy="9" * 64)]
-    elif case == "earlier_claim":
-        events = [_claim("2026-10-04T09:00:00+00:00")]
-    elif case == "correction_rule_claim":
-        events = [_claim("2026-10-05T09:00:00+00:00", rule="two-readers-retained-correction@1")]
+    if case == "filed_same":
+        line["filed_value"] = VALUE
     elif case == "filed_differs":
         line["filed_value"] = 131072
-    elif case == "filed_same":
-        line["filed_value"] = VALUE
-    elif case == "cite_only":
-        line["url"] = "https://www.perplexity.ai/pro"
-    elif case == "served_differs":
-        value = 131072
-    assert line_kind(line, FACET, value=value, history=events) == kind
-    assert line_kind(line, FACET) is None  # no history, no value: an untagged line refuses
+    assert line_kind(line, FACET) is None
+    assert line_kind({**line, "kind": "confirmation"}, FACET) == "confirmation"
 
 
-def test_review_6_a_refused_read_never_backs_a_confirmation_in_the_build():
+def test_an_untagged_confirmation_is_not_served_even_with_an_admitting_claim():
     from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
 
     from tests.snapshot_records import SOURCES, model
 
-    line = agreement("initial", kind=None)  # untagged, agreed on the value now served
-    row = confirmed_row(line, cleared=False)
-
-    def served(events):
+    def served(line, events):
+        row = confirmed_row(line, cleared=False)
         inputs = SnapshotInputs(models=[model(MID, facts=[row])], sources=dict(SOURCES),
                                 verifications=[], cited_attempt_lines=[raw(line)],
                                 clearing_history={FID: events})
         return admitted(load_built_snapshot(build_snapshot(inputs, as_of=TODAY)))
 
-    assert not served([])  # refused: nothing was filed for it
-    differing = {**line, "filed_value": 131072}
-    row = confirmed_row(differing, cleared=False)
-    line = differing
-    assert not served([_claim("2026-10-10T09:00:00+00:00")])  # filed value differs
-    line = agreement("initial", kind=None)
-    row = confirmed_row(line, cleared=False)
-    assert served([_claim("2026-10-10T08:59:58+00:00")])  # admitted: its writer filed the claim
+    claim = [_claim("2026-10-10T08:59:58+00:00")]
+    assert not served(agreement("initial", kind=None), claim)
+    assert not served(agreement("initial", kind=None), [])
+    assert served(agreement("initial"), [])  # the gate-tagged line is served
 
 
 # --- E4 review round 5 ---------------------------------------------------------------------------
