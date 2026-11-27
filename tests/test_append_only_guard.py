@@ -176,6 +176,19 @@ def test_a_missing_remote_ref_never_falls_back_to_a_local_branch(repo):
         check(repo)
 
 
+def test_a_planted_local_branch_named_like_the_remote_ref_is_never_the_base(repo):
+    # Codex review round 2: with refs/remotes/origin/main gone, rev-parse would resolve a local
+    # branch called "refs/remotes/origin/main" (refs/heads/refs/remotes/origin/main). The exact
+    # ref is read with show-ref --verify, and its absence refuses.
+    git(repo, "update-ref", "-d", "refs/remotes/origin/main")
+    write(repo, line(1) + line(2))
+    head = commit(repo, "truncate")
+    git(repo, "branch", "refs/remotes/origin/main", head)  # the planted local branch
+    assert git(repo, "rev-parse", "refs/remotes/origin/main") == head  # what rev-parse says
+    with pytest.raises(BaseUnresolvedError, match="is not in the checkout"):
+        check(repo)
+
+
 def test_a_base_that_is_the_head_or_not_a_full_sha_refuses(repo, monkeypatch, tmp_path):
     head = git(repo, "rev-parse", "HEAD")
     with pytest.raises(BaseUnresolvedError, match="vacuous"):

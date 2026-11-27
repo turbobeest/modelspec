@@ -74,6 +74,19 @@ def _commit(data: Path, rev: str) -> str:
     return sha
 
 
+def _exact_ref(data: Path, ref: str) -> str:
+    """The full SHA the exact ref ``ref`` names (``git show-ref --verify``), never a ref that
+    only ends with that name: ``rev-parse`` would also take a local branch called
+    ``refs/remotes/origin/main`` (``refs/heads/refs/remotes/origin/main``). Absent refuses."""
+    try:
+        out = _git(data, "show-ref", "--verify", ref).decode().split()
+    except subprocess.CalledProcessError:
+        raise BaseUnresolvedError(f"{ref} is not in the checkout") from None
+    if len(out) != 2 or out[1] != ref or not _SHA.fullmatch(out[0]):
+        raise BaseUnresolvedError(f"{ref} does not name one commit")
+    return out[0]
+
+
 def _event() -> dict:
     path = os.environ.get("GITHUB_EVENT_PATH")
     if not path:
@@ -105,7 +118,7 @@ def resolve_base(data: Path, head: str, explicit: str | None = None) -> str:
     else:
         branch = os.environ.get("GITHUB_BASE_REF") or str(
             (_event().get("repository") or {}).get("default_branch") or "main")
-        base = _commit(data, f"refs/remotes/origin/{branch}")
+        base = _commit(data, _exact_ref(data, f"refs/remotes/origin/{branch}"))
         if base == head:
             try:
                 base = _commit(data, f"{head}^1")
