@@ -345,10 +345,12 @@ def confirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
     if has_ruling(fact):
         return "a ruled fact is not a confirmation"
     cleared = "clearing_epoch" in block
-    if cleared and not clearings:
-        return "a cleared confirmation is admitted only through its clearing line"
     if fact.get("state") != "known" or fact.get("value") is None:
         return "a confirmation is of a known value"
+    if cleared and not _own_clearing(fact, subject, block, log=log, verdicts=verdicts,
+                                     sources=sources, cutoff=cutoff, clearings=clearings,
+                                     history=history or {}):
+        return "a cleared confirmation is admitted only through its own valid clearing line"
     try:
         held = unresolved_holds(fact, subject, verdicts=verdicts, log=log, ids=ids)
         if held and cleared:
@@ -408,6 +410,41 @@ def confirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
                 and later.get("epoch") not in {epoch, own}:
             return "an attempt in a later epoch was logged after the agreement"
     return None
+
+
+def _own_clearing(fact: Mapping[str, Any], subject: str, block: Mapping[str, Any], *, log: Any,
+                  verdicts: Mapping[tuple[str, str, str], Any], sources: Mapping[str, str],
+                  cutoff: date, clearings: Sequence[Mapping[str, Any]],
+                  history: Mapping[str, Sequence[Mapping[str, Any]]]) -> bool:
+    """Whether a valid clearing line backs this cleared confirmation, held or not (MODEL-491 E4
+    review): a line for this subject, facet, value and the block's own clearing epoch, naming a
+    mismatch on the fact's location id that the verification log holds, which releases it for
+    this record (``quarantine_clearing.fact_released``: the line is valid, its later epoch
+    checked, and the record carries the block its agreement made). Any other line names
+    nothing here."""
+    from decision.quarantine_clearing import _canonical, fact_released, verdict_sha256
+
+    facet = str(fact.get("facet"))
+    location = f"{subject}#{facet}"
+    want = _canonical(fact.get("value"), facet)
+    rows = [entry[2] for (kind, rid, _h), entry in verdicts.items()
+            if kind == "fact" and rid == location and entry[2].get("outcome") == "mismatch"]
+    for line in clearings:
+        if not isinstance(line, Mapping) or (line.get("subject"), line.get("facet"),
+                                              line.get("epoch")) \
+                != (subject, facet, block.get("clearing_epoch")) \
+                or _canonical(line.get("value"), facet) != want:
+            continue
+        for row in rows:
+            if verdict_sha256(row) != line.get("verdict_sha256"):
+                continue
+            try:
+                if fact_released(fact, subject, verdict=row, clearings=clearings, log=log,
+                                 sources=sources, history=history, cutoff=cutoff, held=rows):
+                    return True
+            except (KeyError, TypeError, AttributeError, ValueError):
+                continue
+    return False
 
 
 def clearing_inputs(root: Any) -> tuple[list[dict[str, Any]], dict[str, list[dict[str, Any]]]]:

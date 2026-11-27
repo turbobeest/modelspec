@@ -409,7 +409,8 @@ def test_a_claim_on_the_verdicts_own_day_is_the_epoch_tests_not_the_moves():
         "collector": {"agent": "a", "model_family": "family-a", "method": "read"}}}]
     from decision.quarantine_clearing import confirmation_move
 
-    kw = dict(verdict=VERDICT, value=VALUE, log=AttemptLog([raw(own)]), subject=MID, facet=FACET)
+    kw = dict(verdict=VERDICT, value=VALUE, log=AttemptLog([raw(own)]), subject=MID, facet=FACET,
+              now=datetime(2026, 10, 19, tzinfo=UTC))
     assert confirmation_move(MOVED, "initial", history=same_day, **kw)
     assert admitted(build_moved(row, [clearing(fresh)], [own, fresh]))
 
@@ -420,7 +421,7 @@ def test_the_move_is_one_shared_test():
     own = own_agreement()
     log = AttemptLog([raw(own)])
     kw = dict(verdict=VERDICT, value=VALUE, log=log, subject=MID, facet=FACET,
-              history=history([VERDICT])[FID])
+              history=history([VERDICT])[FID], now=datetime(2026, 10, 19, tzinfo=UTC))
     assert confirmation_move(MOVED, "initial", **kw)
     assert not confirmation_move(MOVED, "reread:" + "d" * 64, **kw)  # not from the first epoch
     assert not confirmation_move("reread:" + "c" * 64, "initial", **kw)
@@ -458,3 +459,81 @@ def test_the_gate_clears_a_confirmation_from_the_epoch_it_moved_the_record_into(
     assert shown.state == "known" and sorted(shown.value) == sorted(gate.FILED)
     (card,) = load_models(data.root)
     assert [f["facet"] for f in card.cited_facts] == [gate.FACET]
+
+
+# --- E4 review: four bypasses -------------------------------------------------------------------
+
+def test_review_1_a_forged_block_cannot_borrow_an_unrelated_agreement(data):
+    # The gate binds the record's block to the logged confirmation line itself (readers, page,
+    # text, prompt, cited copy and source), never to the block's own rule label or text hash.
+    first = gate.run()
+    assert first.changed, (first.reason, first.detail)
+    fact = filed_fact(data.fact, first.record)
+    fact["derivation"]["cited_change"]["text_sha256"] = "e" * 64  # point at another line
+    data.fact.clear()
+    data.fact.update(fact)
+    data.write()
+    unrelated = {"subject": gate.SUBJECT, "facet": gate.FACET, "epoch": "initial",
+                 "url": gate.URL, "complete": True, "agreed": True,
+                 "agreed_value": list(gate.FILED), "harness": True, "page_sha256": "f" * 64,
+                 "text_sha256": "e" * 64, "prompt_sha256": "1" * 64,
+                 "at": datetime.now(UTC).replace(microsecond=0).isoformat(),
+                 "readers": [{"reader_id": "x", "family": "openai", "version": "9",
+                              "value": list(gate.FILED)},
+                             {"reader_id": "y", "family": "anthropic", "version": "9",
+                              "value": list(gate.FILED)}]}
+    path = data.root / "verification/cited-attempts.jsonl"
+    with path.open("a") as fh:
+        fh.write(json.dumps(unrelated, sort_keys=True) + "\n")
+    _hold(data)
+    out = gate.run(clear_quarantine=True)
+    assert out.outcome == "refused" and out.reason == "epoch_not_current", out.reason
+
+
+@pytest.mark.parametrize("order", ["line_after", "time_after"])
+def test_review_2_the_confirmation_must_be_logged_before_the_clearing_read(order):
+    fresh = agreement(MOVED_EPOCH)
+    row = confirmed_row(fresh, base=MOVED)
+    if order == "line_after":  # logged on a later line than the clearing's agreement
+        lines = [fresh, own_agreement()]
+    else:  # an earlier line, but stamped after the clearing read
+        lines = [own_agreement(at="2026-10-11T09:00:00+00:00"), fresh]
+    assert not admitted(build_moved(row, [clearing(fresh)], lines))
+
+
+@pytest.mark.parametrize("claims", ["between", "reverted"])
+def test_review_3_the_value_holds_from_the_mismatch_through_the_clearing(claims):
+    own, fresh = own_agreement(), agreement(MOVED_EPOCH)
+    row = confirmed_row(fresh, base=MOVED)
+
+    def filed(at, value):
+        return {"event": "collected", "at": at, "claim": {
+            "target": {"kind": "fact", "id": FID}, "value": value, "field": FACET,
+            "names": [MID], "sources": [], "conditions": {},
+            "collector": {"agent": "a", "model_family": "family-a", "method": "read"}}}
+
+    # After the confirmation (2026-10-05) and before the clearing read (2026-10-10).
+    extra = [filed("2026-10-07T09:00:00+00:00", 131072)]
+    if claims == "reverted":
+        extra.append(filed("2026-10-08T09:00:00+00:00", VALUE))
+    assert not admitted(build_moved(row, [clearing(fresh)], [own, fresh], extra=extra))
+    assert admitted(build_moved(row, [clearing(fresh)], [own, fresh]))
+
+
+def test_review_4_with_no_hold_an_unrelated_clearing_line_backs_nothing():
+    from decision.snapshot import _Compiler
+
+    attempt = agreement()
+    row = confirmed_row(attempt)
+    other = mismatch(value=131072, day="2026-09-30")
+    unrelated = clearing(agreement(clearing_epoch("initial", verdict_sha256(other)),
+                                   values=(131072, 131072)), verdict=other)
+    for log, clears in (((), [unrelated]), ((), [clearing(attempt)]),
+                        ((other,), [unrelated])):
+        verdicts = _Compiler._verification_log(list(log))
+        assert confirmation_problem(row, MID, log=AttemptLog([raw(attempt)]), verdicts=verdicts,
+                                    sources={"src-lab-docs": URL}, cutoff=TODAY,
+                                    clearings=clears, history=history(list(log))) is not None
+        assert not admitted(build(row, clears, [attempt], log))
+    # Its own line, naming the verdict the log holds, still backs it.
+    assert admitted(build(row, [clearing(attempt)], [attempt]))

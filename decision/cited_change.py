@@ -792,7 +792,10 @@ QUARANTINED = "lifting it is the owner's call"
 
 
 def _epoch_at_verdict(verdict: Mapping[str, Any], *, subject: str, facet: str, first: str,
-                      base: str, settings: Any = None, confirmed: Any = None) -> CitedChange | None:
+                      base: str, settings: Any = None, confirmed: Any = None,
+                      record: Mapping[str, Any] | None = None,
+                      sources: Mapping[str, str] | None = None,
+                      now: datetime | None = None) -> CitedChange | None:
     """Refuse unless the subject's epoch now (``base``) is the one rule 15 derives for the record
     as filed when the verdict was made (``quarantine_clearing.verdict_epoch``, from the queue), or,
     for a rule-16 confirmation of the filed value ``confirmed``, the epoch that confirmation moved
@@ -825,9 +828,24 @@ def _epoch_at_verdict(verdict: Mapping[str, Any], *, subject: str, facet: str, f
                        f"shown; {QUARANTINED}")
     # A board row filed in its settings epoch is in a board epoch of it once the gate names one
     # (MODEL-555): the board moved since, and the clearing extends the epoch the row is in now.
-    moved = settings is None and confirmed is not None and confirmation_move(
-        base, derived, verdict=verdict, value=confirmed, log=log, subject=subject, facet=facet,
-        history=history, first=first)
+    moved = False
+    if settings is None and confirmed is not None and record is not None and now is not None:
+        from decision.quarantine_clearing import _block_is
+
+        block = cited_change_block(record) or {}
+
+        def made_this_block(attempt: Mapping[str, Any]) -> bool:
+            """The logged line made the record's block: its readers, page, text, prompt and the
+            copy the record cites under the source the line read. The block's own fields name
+            nothing by themselves (MODEL-491 E4 review)."""
+            try:
+                return _block_is(record, block, attempt, sources=sources or {})
+            except (KeyError, TypeError, AttributeError):
+                return False
+
+        moved = confirmation_move(base, derived, verdict=verdict, value=confirmed, log=log,
+                                  subject=subject, facet=facet, history=history, first=first,
+                                  now=now, bound=made_this_block)
     if derived != base and not (derived == first and is_board_epoch(base, first)) and not moved:
         return _refuse("epoch_not_current",
                        "the record's epoch now is not its epoch when the verdict was made")
@@ -1147,8 +1165,11 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         # moved the record into; only the gate's retaining path asks, and only for that value.
         confirmed = found.fact.get("value") if retaining and found.fact.get("state") == "known" \
             and is_confirmation(found.fact) else None
+        urls = {str(k): str(v.get("url")) for k, v in found.sources.items()
+                if isinstance(v, Mapping) and v.get("url")}
         refusal = _epoch_at_verdict(clearing[1], subject=subject, facet=facet, first="initial",
-                                    base=base, confirmed=confirmed)
+                                    base=base, confirmed=confirmed, record=found.fact,
+                                    sources=urls, now=now)
         if refusal is not None:
             return refusal
     elif has_ruling(found.fact):

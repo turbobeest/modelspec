@@ -656,7 +656,7 @@ def line_problem(entry: Any, *, verdict: Mapping[str, Any], subject: str, facet:
     if base != derived and not _board_base(base, derived, first, settings, attempt) \
             and not (settings is None and confirmation_move(
                 base, derived, verdict=verdict, value=entry["value"], log=log, subject=subject,
-                facet=facet, history=history, first=first)):
+                facet=facet, history=history, first=first, until=attempt)):
         return "the clearing's base epoch is not the record's epoch at the verdict", None
     for epoch in (entry["epoch"], base):
         problem = epoch_problem(log.keyed(subject, facet, epoch), entry["value"], facet)
@@ -667,22 +667,28 @@ def line_problem(entry: Any, *, verdict: Mapping[str, Any], subject: str, facet:
 
 def confirmation_move(base: Any, derived: Any, *, verdict: Mapping[str, Any], value: Any,
                       log: AttemptLog, subject: str, facet: str,
-                      history: Sequence[Mapping[str, Any]], first: str = "initial") -> bool:
+                      history: Sequence[Mapping[str, Any]], first: str = "initial",
+                      until: Mapping[str, Any] | None = None, now: datetime | None = None,
+                      bound: Callable[[Mapping[str, Any]], bool] | None = None) -> bool:
     """Whether a fact's record is in ``base`` only because a rule-16 confirmation of the
     verdict's own value moved it there from ``derived``, its epoch at the verdict (MODEL-491 E4).
     The gate and the build both ask it before a clearing extends ``base``.
 
-    All of these must hold:
-    - ``derived`` is the record's first epoch;
-    - ``base`` is the re-read epoch a confirmation block names: ``reread:<its text sha256>``;
+    The move needs an upper bound: the build gives the clearing's own agreement (``until``), the
+    gate the time of its read (``now``). Without one there is no move. All of these must hold:
+    - ``derived`` is the record's first epoch, and ``base`` is the re-read epoch a confirmation
+      block names, ``reread:<its text sha256>``;
     - the verdict binds ``value``, so the value is the one it held;
-    - the attempt log holds that confirmation's own agreement, in ``derived``, with that text
-      hash: a complete harness agreement by two distinct known families on ``value``
+    - the attempt log holds the confirmation's own agreement in ``derived`` with that text hash:
+      a complete harness agreement by two distinct known families on ``value``
       (``agreement_problem``), on a page whose host retains copies, on a later day than the
-      verdict;
+      verdict, logged before the bound (on an earlier line than ``until``'s, and not after it in
+      time; times have one-second resolution, so the line order decides a tie). With
+      ``bound``, only an agreement it accepts counts: the gate binds the line to the record's
+      block by the line itself (``_block_is``), never by the block's own fields;
     - no disagreement is logged in ``derived``;
-    - every claim on the verdict's target after the verdict's UTC day, up to the agreement, is
-      for ``value``, so the value did not change in between. The verdict's own day is
+    - every claim on the verdict's target after the verdict's UTC day, up to the bound, is for
+      ``value``: one for another value, even reverted later, refuses. The verdict's own day is
       ``verdict_epoch``'s: the record's latest claim by its end binds the verdict's value (E3).
 
     Anything else, a forged ``reread:`` epoch among them, is no move."""
@@ -696,6 +702,15 @@ def confirmation_move(base: Any, derived: Any, *, verdict: Mapping[str, Any], va
     text = base[len(prefix):]
     if not _HEX.fullmatch(text):
         return False
+    if until is not None:
+        limit = _at(until.get("at"))
+        position = next((n for n, e in enumerate(log.entries) if e is until), None)
+        if position is None:
+            position = next((n for n, e in enumerate(log.entries) if e == until), None)
+    else:
+        limit, position = now, len(log.entries)
+    if limit is None or position is None:
+        return False
     target = verdict.get("target") or {}
     vhash = str(target.get("value_hash") or "")
     if value is None or not matching_value_hashes(value, [vhash], unordered=_unordered(facet)):
@@ -706,29 +721,27 @@ def confirmation_move(base: Any, derived: Any, *, verdict: Mapping[str, Any], va
     if day is None:
         return False
     want = _canonical(value, facet)
-    for attempt in log.entries:
+    for event in history:
+        if event.get("event") != "collected" or _event_target(event) != target.get("id"):
+            continue
+        when = _event_at(event)
+        if when is None:
+            return False
+        if day < when.astimezone(UTC).date() and when <= limit \
+                and _canonical((event.get("claim") or {}).get("value"), facet) != want:
+            return False  # another value was filed between the verdict and the clearing
+    for attempt in log.entries[:position]:
         if (attempt.get("subject"), attempt.get("facet"), attempt.get("epoch"),
                 attempt.get("text_sha256")) != (subject, facet, derived, text):
             continue
         at = _at(attempt.get("at"))
-        if at is None or not later_than(verdict, at) \
+        if at is None or not later_than(verdict, at) or at > limit \
                 or cite_only_status(attempt.get("url")) is not False \
                 or agreement_problem(attempt, value, facet) is not None:
             continue
-        changed = False
-        for event in history:
-            if event.get("event") != "collected" or _event_target(event) != target.get("id"):
-                continue
-            when = _event_at(event)
-            if when is None:
-                changed = True
-                break
-            if day < when.astimezone(UTC).date() and when <= at \
-                    and _canonical((event.get("claim") or {}).get("value"), facet) != want:
-                changed = True
-                break
-        if not changed:
-            return True
+        if bound is not None and not bound(attempt):
+            continue
+        return True
     return False
 
 
