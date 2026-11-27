@@ -5,8 +5,17 @@ import sys
 from pathlib import Path
 
 import pytest
-
 from scripts.prepare_data_writer import prepare
+
+
+@pytest.fixture(autouse=True)
+def local_writer_checkout(monkeypatch):
+    """These checkouts are a writer's local ones, with no base history: they skip the append-only
+    guard with its explicit local flag, which refuses inside GitHub Actions. The engine's own CI
+    runs these tests there, so its variables are cleared here; the guard's fail-closed rule in a
+    real data CI run is tested in tests/test_append_only_guard.py."""
+    for name in ("GITHUB_ACTIONS", "GITHUB_EVENT_NAME", "GITHUB_EVENT_PATH", "GITHUB_BASE_REF"):
+        monkeypatch.delenv(name, raising=False)
 
 
 def git(root, *args):
@@ -53,7 +62,7 @@ def test_writer_code_and_git_resolve_to_private_checkout(tmp_path):
         },
         "https://github.com/turbobeest/modelspec-data",
     )
-    prepare(engine, private)
+    prepare(engine, private, skip_append_only=True)
     subprocess.run([sys.executable, "scripts/write.py"], cwd=private, check=True)
     assert (private / "models/new.md").read_text() == "private update"
     assert not (engine / "models/new.md").exists()
@@ -82,7 +91,7 @@ def test_writer_preparation_refuses_public_git_origin(tmp_path):
         "https://github.com/turbobeest/modelspec",
     )
     with pytest.raises(ValueError, match="modelspec-data as origin"):
-        prepare(engine, private)
+        prepare(engine, private, skip_append_only=True)
     assert not (private / "code.py").exists()
 
 
