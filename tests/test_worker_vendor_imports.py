@@ -47,6 +47,9 @@ BUILD_TIME = {
     # Listed held facts (MODEL-491) are checked while the snapshot is compiled; the Worker never
     # compiles a snapshot.
     ("decision/snapshot.py", "decision.held_list"),
+    # Its evidence (the legacy prefix and refusal lines, MODEL-491) is read for the held list
+    # while the snapshot is compiled.
+    ("decision/snapshot.py", "decision.hold_evidence"),
     # Board-reading rulings (MODEL-569) are checked while the snapshot is compiled, as facts' are.
     ("decision/snapshot.py", "decision.board_ruling"),
     # The v1 graph export and a type annotation; see the comment at the import.
