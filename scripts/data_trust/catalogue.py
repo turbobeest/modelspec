@@ -381,7 +381,9 @@ def _agreement_dates(inputs, compiler) -> dict[tuple[str, str, str], str]:
             try:
                 day = agreement_day(fact, subject, log=compiler._clearing_log(),
                                     verdicts=compiler.log, sources=compiler.sources,
-                                    cutoff=compiler._clearing_cutoff())
+                                    cutoff=compiler._clearing_cutoff(),
+                                    clearings=compiler.quarantine_clearings,
+                                    history=compiler.inputs.clearing_history)
             except (SnapshotBuildError, ValueError, KeyError, TypeError, AttributeError):
                 day = None  # an unreadable record stays undated
             if day is not None:

@@ -665,9 +665,14 @@ def line_problem(entry: Any, *, verdict: Mapping[str, Any], subject: str, facet:
                                                               verdict=verdict):
         # A plain record still in its first epoch at the verdict (E6): its clearing is read in the
         # first epoch in force on the agreement's own day, always, whether or not a version moved
-        # it since the verdict. An agreement in an older first epoch is in the wrong one.
+        # it since the verdict. An agreement in an older first epoch is in the wrong one. A
+        # rule-16 confirmation may have moved the record to its re-read epoch since (MODEL-491
+        # E4): the clearing then extends that epoch, only where the move is shown.
         if not first_moved(derived, base, facet=facet, verdict=verdict,
-                           at=attempt.get("at") or ""):
+                           at=attempt.get("at") or "") \
+                and not confirmation_move(base, derived, verdict=verdict, value=entry["value"],
+                                          log=log, subject=subject, facet=facet,
+                                          history=history, first=derived, until=attempt):
             return "the clearing's base is not the first epoch in force on its agreement's day", \
                 None
     elif base != derived and not _board_base(base, derived, first, settings, attempt):
@@ -677,6 +682,195 @@ def line_problem(entry: Any, *, verdict: Mapping[str, Any], subject: str, facet:
         if problem is not None:
             return problem, None
     return "", attempt
+
+
+LINE_KINDS = ("confirmation", "correction")
+
+
+#: The rule each kind's writer files its claim under (``decision.cited_change.RETAINED_RULE``,
+#: ``decision.retained_correction.RULE``): the queue's proof that a read was admitted.
+KIND_RULES = {"confirmation": "two-readers-retained-agreement@1",
+              "correction": "two-readers-retained-correction@1"}
+
+
+def line_kind(attempt: Mapping[str, Any], facet: str, *, value: Any = None,
+              history: Sequence[Mapping[str, Any]] = ()) -> str | None:
+    """What a logged agreement line filed, from the line and the log alone, never from a record's
+    rule label (MODEL-491 E4 review): ``"confirmation"``, ``"correction"`` or ``None``. ``None``
+    authorizes neither a move nor serving.
+
+    - The gate writes ``kind`` into each retaining-page line it logs (``read_page``), and the
+      line's hash covers it: that field decides.
+    - An older line carries no ``kind`` and refuses by default. It is a kind only on the full
+      positive test for ``value``, the value served, with ``history``, the target's queue events:
+      - it is a complete harness agreement on a page whose host retains copies;
+      - it agreed on ``value``;
+      - its read was admitted, not refused: that kind's writer filed a claim under its rule for
+        ``value``, citing this line's page copy, on the line's UTC day or later. A refused read
+        files no claim.
+      - A ``confirmation`` also needs any ``filed_value`` it logged to equal ``value``.
+      - A ``correction`` must have logged a different ``filed_value``, on the gate's own fetch
+        with its region hash.
+    """
+    if "kind" in attempt:
+        return attempt["kind"] if attempt["kind"] in LINE_KINDS else None
+    from decision.retention import cite_only_status
+
+    if value is None or attempt.get("complete") is not True or attempt.get("agreed") is not True \
+            or attempt.get("harness") is not True \
+            or cite_only_status(attempt.get("url")) is not False:
+        return None
+    want = _canonical(value, facet)
+    if _canonical(attempt.get("agreed_value"), facet) != want:
+        return None
+    at = _at(attempt.get("at"))
+    if at is None or not _HEX.fullmatch(str(attempt.get("page_sha256") or "")):
+        return None
+    copy = f"sha256:{attempt['page_sha256']}"
+
+    def admitted(rule: str) -> bool:
+        for event in history:
+            claim = event.get("claim") or {}
+            when = _event_at(event)
+            if event.get("event") != "collected" or when is None \
+                    or str((claim.get("collector") or {}).get("method") or "") != rule \
+                    or _canonical(claim.get("value"), facet) != want \
+                    or when.astimezone(UTC).date() < at.astimezone(UTC).date():
+                continue
+            if any(isinstance(ref, Mapping) and ref.get("snapshot_ref") == copy
+                   for ref in claim.get("sources") or ()):
+                return True
+        return False
+
+    logged = "filed_value" in attempt
+    filed = attempt.get("filed_value")
+    if (not logged or (filed is not None and _canonical(filed, facet) == want)) \
+            and admitted(KIND_RULES["confirmation"]):
+        return "confirmation"
+    if logged and filed is not None and _canonical(filed, facet) != want \
+            and attempt.get("own_fetch") is True \
+            and _HEX.fullmatch(str(attempt.get("region_sha256") or "")) \
+            and admitted(KIND_RULES["correction"]):
+        return "correction"
+    return None
+
+
+def retained_targets(path: Path) -> set[str]:
+    """Every target a retaining-page writer filed a claim for (``KIND_RULES``): whose queue
+    history ``line_kind`` needs to class an older line (MODEL-491 E4 review)."""
+    from decision.owner_ruling import loads
+
+    out: set[str] = set()
+    if not path.is_file():
+        return out
+    rules = set(KIND_RULES.values())
+    with path.open(encoding="utf-8") as fh:
+        for raw in fh:
+            if "two-readers-retained" not in raw:
+                continue
+            event = loads(raw)
+            claim = event.get("claim") if isinstance(event, Mapping) else None
+            if isinstance(claim, Mapping) and str((claim.get("collector") or {}).get("method")
+                                                   or "") in rules:
+                target = _event_target(event)
+                if target:
+                    out.add(target)
+    return out
+
+
+def confirmation_move(base: Any, derived: Any, *, verdict: Mapping[str, Any], value: Any,
+                      log: AttemptLog, subject: str, facet: str,
+                      history: Sequence[Mapping[str, Any]], first: str = "initial",
+                      until: Mapping[str, Any] | None = None, now: datetime | None = None,
+                      bound: Callable[[Mapping[str, Any]], bool] | None = None) -> bool:
+    """Whether a fact's record is in ``base`` only because a rule-16 confirmation of the
+    verdict's own value moved it there from ``derived``, its epoch at the verdict (MODEL-491 E4).
+    The gate and the build both ask it before a clearing extends ``base``.
+
+    The move needs an upper bound: the build gives the clearing's own agreement (``until``), the
+    gate the time of its read (``now``). Without one there is no move. All of these must hold:
+    - ``derived`` is the record's first epoch, and ``base`` is the re-read epoch a confirmation
+      block names, ``reread:<its text sha256>``;
+    - the verdict binds ``value``, so the value is the one it held;
+    - the attempt log holds the confirmation's own agreement in ``derived`` with that text hash:
+      a complete harness agreement by two distinct known families on ``value``
+      (``agreement_problem``), on a page whose host retains copies, on a later day than the
+      verdict, read in the first epoch in force on its own day while ``derived`` is the first
+      epoch in force on the verdict's (``first_moved``, E6), logged before the bound (on an
+      earlier line than ``until``'s, and not after it in
+      time; times have one-second resolution, so the line order decides a tie). With
+      ``bound``, only an agreement it accepts counts: the gate binds the line to the record's
+      block by the line itself (``_block_is``), never by the block's own fields. The line must
+      carry the kind ``confirmation`` the gate wrote into it: an untagged line moves nothing,
+      whatever rule label a record carries;
+    - no disagreement is logged in ``derived``;
+    - every claim on the verdict's target after the verdict's UTC day, up to the bound, is for
+      ``value``: one for another value, even reverted later, refuses. The verdict's own day is
+      ``verdict_epoch``'s: the record's latest claim by its end binds the verdict's value (E3).
+
+    Anything else, a forged ``reread:`` epoch among them, is no move."""
+    from decision.model import matching_value_hashes
+    from decision.retained_correction import _unordered
+    from decision.retention import cite_only_status
+
+    prefix = "reread:"
+    if derived != first or not isinstance(base, str) or not base.startswith(prefix):
+        return False
+    text = base[len(prefix):]
+    if not _HEX.fullmatch(text):
+        return False
+    if until is not None:
+        limit = _at(until.get("at"))
+        position = next((n for n, e in enumerate(log.entries) if e is until), None)
+        if position is None:
+            position = next((n for n, e in enumerate(log.entries) if e == until), None)
+    else:
+        limit, position = now, len(log.entries)
+    if limit is None or position is None:
+        return False
+    target = verdict.get("target") or {}
+    vhash = str(target.get("value_hash") or "")
+    if value is None or not matching_value_hashes(value, [vhash], unordered=_unordered(facet)):
+        return False
+    if epoch_problem(log.keyed(subject, facet, derived), value, facet) is not None:
+        return False
+    day = _day(verdict.get("date"))
+    if day is None:
+        return False
+    want = _canonical(value, facet)
+    for event in history:
+        if event.get("event") != "collected" or _event_target(event) != target.get("id"):
+            continue
+        when = _event_at(event)
+        if when is None:
+            return False
+        if day < when.astimezone(UTC).date() and when <= limit \
+                and _canonical((event.get("claim") or {}).get("value"), facet) != want:
+            return False  # another value was filed between the verdict and the clearing
+    for attempt in log.entries[:position]:
+        if (attempt.get("subject"), attempt.get("facet"), attempt.get("text_sha256")) \
+                != (subject, facet, text):
+            continue
+        at = _at(attempt.get("at"))
+        if at is None or not later_than(verdict, at) or at > limit \
+                or cite_only_status(attempt.get("url")) is not False \
+                or agreement_problem(attempt, value, facet) is not None:
+            continue
+        # Only a tagged line moves a record (MODEL-491 E4 review 5): an untagged line's claim
+        # cannot be tied to its attempt, so no older line authorizes a move.
+        if attempt.get("kind") != "confirmation":
+            continue
+        # The confirmation was read in the first epoch in force on its own day, and the record
+        # was in the first epoch in force on the verdict's: the clearing check's E6 day rule
+        # (``first_moved``), so an ``initial`` line logged after a new definition took effect
+        # moves nothing.
+        if not first_moved(derived, str(attempt.get("epoch") or ""), facet=facet,
+                           verdict=verdict, at=attempt.get("at") or ""):
+            continue
+        if bound is not None and not bound(attempt):
+            continue
+        return True
+    return False
 
 
 def first_root(derived: str, *, facet: str, verdict: Mapping[str, Any]) -> bool:

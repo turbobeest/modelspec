@@ -793,9 +793,14 @@ QUARANTINED = "lifting it is the owner's call"
 
 
 def _epoch_at_verdict(verdict: Mapping[str, Any], *, subject: str, facet: str, first: str,
-                      base: str, settings: Any = None) -> CitedChange | None:
+                      base: str, settings: Any = None, confirmed: Any = None,
+                      record: Mapping[str, Any] | None = None,
+                      sources: Mapping[str, str] | None = None,
+                      now: datetime | None = None) -> CitedChange | None:
     """Refuse unless the subject's epoch now (``base``) is the one rule 15 derives for the record
-    as filed when the verdict was made (``quarantine_clearing.verdict_epoch``, from the queue)."""
+    as filed when the verdict was made (``quarantine_clearing.verdict_epoch``, from the queue), or,
+    for a rule-16 confirmation of the filed value ``confirmed``, the epoch that confirmation moved
+    it into (``quarantine_clearing.confirmation_move``, MODEL-491 E4; the build's own test)."""
     import os
 
     from decision.cited_reader import ATTEMPTS_FILE
@@ -803,6 +808,7 @@ def _epoch_at_verdict(verdict: Mapping[str, Any], *, subject: str, facet: str, f
         CLEARINGS_FILE,
         QUEUE_FILE,
         AttemptLog,
+        confirmation_move,
         queue_history,
         read_clearings,
         verdict_epoch,
@@ -823,17 +829,41 @@ def _epoch_at_verdict(verdict: Mapping[str, Any], *, subject: str, facet: str, f
                        f"shown; {QUARANTINED}")
     from decision.quarantine_clearing import first_moved, first_root
 
+    # MODEL-491 E4: a rule-16 confirmation of the filed value may have moved the record to its
+    # re-read epoch since the verdict; the clearing then extends that epoch, only where the move
+    # is shown (the build's own ``confirmation_move``), from the record's first epoch then.
+    moved = False
+    if settings is None and confirmed is not None and record is not None and now is not None:
+        from decision.quarantine_clearing import _block_is
+
+        block = cited_change_block(record) or {}
+
+        def made_this_block(attempt: Mapping[str, Any]) -> bool:
+            """The logged line made the record's block: its readers, page, text, prompt and the
+            copy the record cites under the source the line read. The block's own fields name
+            nothing by themselves (MODEL-491 E4 review)."""
+            try:
+                return _block_is(record, block, attempt, sources=sources or {})
+            except (KeyError, TypeError, AttributeError):
+                return False
+
+        root_first = first_root(derived, facet=facet, verdict=verdict) if first == "initial" \
+            else False
+        moved = confirmation_move(base, derived, verdict=verdict, value=confirmed, log=log,
+                                  subject=subject, facet=facet, history=history,
+                                  first=derived if root_first else first, now=now,
+                                  bound=made_this_block)
     # A plain record still in its first epoch at the verdict (E6) is always read in the first
     # epoch in force today, as the build checks it against the agreement's day.
     if settings is None and first == "initial" \
             and first_root(derived, facet=facet, verdict=verdict):
-        if not first_moved(derived, base, facet=facet, verdict=verdict, at=None):
+        if not first_moved(derived, base, facet=facet, verdict=verdict, at=None) and not moved:
             return _refuse("epoch_not_current",
                            "the record's epoch now is not today's first epoch")
         return None
     # A board row filed in its settings epoch is in a board epoch of it once the gate names one
     # (MODEL-555): the board moved since, and the clearing extends the epoch the row is in now.
-    if derived != base and not (derived == first and is_board_epoch(base, first)):
+    if derived != base and not (derived == first and is_board_epoch(base, first)) and not moved:
         return _refuse("epoch_not_current",
                        "the record's epoch now is not its epoch when the verdict was made")
     return None
@@ -1111,8 +1141,14 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
             held, replaced_hold = [], True
     clearing = None
     if held:
-        refusal, clearing = _clearing_target(held, found.fact, now,
-                                             allowed=clear_quarantine and not retaining)
+        from decision.retained_correction import is_correction as _corrected_fact
+
+        # A retaining page clears only for a confirmation of the filed value (MODEL-491 E4): never
+        # for a correction, asked or already filed.
+        refusal, clearing = _clearing_target(
+            held, found.fact, now,
+            allowed=clear_quarantine and not (retaining and (correct
+                                                             or _corrected_fact(found.fact))))
         if refusal is not None:
             return refusal
     row = found.sources.get(source_id)
@@ -1140,8 +1176,17 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         from decision.quarantine_clearing import clearing_epoch, verdict_sha256
 
         current = clearing_epoch(base, verdict_sha256(clearing[1]))
+        from decision.retained_correction import is_confirmation
+
+        # MODEL-491 E4: a rule-16 confirmation of the filed value may be cleared from the epoch it
+        # moved the record into; only the gate's retaining path asks, and only for that value.
+        confirmed = found.fact.get("value") if retaining and found.fact.get("state") == "known" \
+            and is_confirmation(found.fact) else None
+        urls = {str(k): str(v.get("url")) for k, v in found.sources.items()
+                if isinstance(v, Mapping) and v.get("url")}
         refusal = _epoch_at_verdict(clearing[1], subject=subject, facet=facet, first="initial",
-                                    base=base)
+                                    base=base, confirmed=confirmed, record=found.fact,
+                                    sources=urls, now=now)
         if refusal is not None:
             return refusal
     elif has_ruling(found.fact):
@@ -1229,7 +1274,10 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
                                 subject_name=found.subject_name, page_bytes=page_bytes,
                                 readers=readers, epoch=epoch, definition=found.definition,
                                 region_sha256=_region_sha256(row, page_bytes),
-                                own_fetch=own_fetch, filed=found.fact if retaining else None)
+                                own_fetch=own_fetch, filed=found.fact if retaining else None,
+                                kind=(_retained_kind(found.fact, facet_def, correct=correct,
+                                                     clearing=clearing is not None)
+                                      if retaining else None))
             break
         except ReaderError:
             continue
@@ -1260,10 +1308,20 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
                               base=base, answers=answers, now=now)
 
     if retaining:
-        return _retained_outcome(subject, facet_def, value, filed, found, row, source_id, now,
-                                 page_bytes, answers, resolved, history, epoch=epoch,
-                                 correct=correct, released=released, own_fetch=own_fetch,
-                                 replaced_hold=replaced_hold)
+        outcome = _retained_outcome(subject, facet_def, value, filed, found, row, source_id,
+                                    now, page_bytes, answers, resolved, history, epoch=epoch,
+                                    correct=correct, released=released, own_fetch=own_fetch,
+                                    replaced_hold=replaced_hold, clearing=clearing is not None)
+        if clearing is None or not outcome.changed:
+            return outcome
+        # MODEL-491 E4: a confirmation read in the verdict's clearing epoch is filed with its
+        # clearing line, and the build's own test is asked of it with that line counted.
+        outcome = cleared(outcome)
+        if not outcome.changed or outcome.record is None:
+            return outcome
+        problem = _confirmation_problem(subject, found, outcome.record, now,
+                                        extra=outcome.record.get("clearings") or ())
+        return outcome if problem is None else _refuse("confirmation_not_admitted", problem)
     if value is None:
         if not accept_not_disclosed:
             return _refuse("no_value",
@@ -1360,13 +1418,39 @@ def _reconfirmed(found: Lookup, record: dict[str, JsonValue], *, subject: str, e
     return CitedChange("cited_change", None, "", record)
 
 
+def _retained_kind(fact: Mapping[str, Any], facet_def: Any, *, correct: bool,
+                   clearing: bool) -> Callable[[Mapping[str, Any]], str | None]:
+    """The record a retaining-page read can file, as ``_retained_outcome`` decides it: written
+    into the attempt line by ``read_page`` (``kind``), so no later reader infers it from values
+    (MODEL-491 E4 review). ``confirmation`` for an agreement on the filed, known value of a fact
+    no correction filed; ``correction`` for an agreed value the correction rule may file (asked
+    for, or on a fact a correction filed, a same-value re-read included); ``None`` otherwise."""
+    from decision.retained_correction import is_correction
+
+    corrected = is_correction(fact)
+
+    def kind(entry: Mapping[str, Any]) -> str | None:
+        if entry.get("agreed") is not True or entry.get("agreed_value") is None:
+            return None
+        same = fact.get("state") == "known" and _canonical(entry.get("agreed_value"), facet_def) \
+            == _canonical(fact.get("value"), facet_def)
+        if same and not corrected:
+            return "confirmation"
+        if clearing:
+            return None
+        return "correction" if (correct or corrected) else None
+
+    return kind
+
+
 def _retained_outcome(subject: str, facet_def: Any, value: JsonValue, filed: JsonValue,
                       found: Lookup, row: Mapping[str, Any], source_id: str, now: datetime,
                       page_bytes: bytes, answers: Sequence[ReaderAnswer],
                       resolved: Sequence[str],
                       history: Sequence[Mapping[str, Any]], *, epoch: str,
                       correct: bool = False, released: bool = False,
-                      own_fetch: bool = False, replaced_hold: bool = False) -> CitedChange:
+                      own_fetch: bool = False, replaced_hold: bool = False,
+                      clearing: bool = False) -> CitedChange:
     """A retaining page confirms: the agreed value must be the filed, known value. With
     ``correct``, or for a fact a correction filed, an agreed other value corrects it within
     ``decision.retained_correction``'s limits (MODEL-573); anything else is ``value_differs``."""
@@ -1387,11 +1471,17 @@ def _retained_outcome(subject: str, facet_def: Any, value: JsonValue, filed: Jso
     if same and replaced_hold:
         return _refuse("quarantined", "a mismatch on the filed value holds it; only a correction "
                        f"of that value sets the verdict aside; {QUARANTINED}")
+    if clearing and not (same and not corrected):
+        return _refuse("value_differs", "a clearing on a retaining page confirms the filed value "
+                       "only; the agreed value is not the filed one, and the fact is listed for "
+                       "the owner")
     if same and not corrected:
         # The filed value is kept as filed (a set's order too): a confirmation changes nothing.
         record = _record(subject, facet_def.id, filed, row, source_id, now, sha256(page_bytes),
                          text_sha256(page_bytes), answers, filed, found.registered_ids, resolved,
                          retaining=True)
+        if clearing:
+            return CitedChange("cited_change", None, "", record)  # tested with its clearing line
         problem = _confirmation_problem(subject, found, record, now)
         if problem is not None:
             return _refuse("confirmation_not_admitted", problem)
@@ -1450,10 +1540,25 @@ def _corrected(subject: str, facet_def: Any, value: JsonValue, filed: JsonValue,
             if isinstance(v, Mapping) and v.get("url")}
     problem = correction_problem(filed_fact(found.fact, record), subject, log=log,
                                  verdicts=verdicts, sources=urls, cutoff=now.astimezone(UTC).date(),
-                                 ids=found.fact_ids)
+                                 ids=found.fact_ids, history=_retained_history())
     if problem is not None:
         return _refuse("correction_not_admitted", problem)
     return CitedChange("cited_change", None, "", record)
+
+
+def _retained_history() -> dict[str, list[dict[str, Any]]]:
+    """The queue trail of every clearing and retaining-page claim target under the data
+    directory (``retained_correction.clearing_inputs``), which an older agreement line is classed
+    by (MODEL-491 E4 review). Empty when the logs cannot be read: an older line then shows
+    nothing, so it authorizes nothing."""
+    import os
+
+    from decision.retained_correction import clearing_inputs
+
+    try:
+        return clearing_inputs(Path(os.environ.get(DATA_DIR_ENV, "").strip() or "."))[1]
+    except (OSError, ValueError):
+        return {}
 
 
 def _corrected_holds(found: Lookup, subject: str, held: Sequence[tuple[Any, Any]],
@@ -1479,31 +1584,45 @@ def _corrected_holds(found: Lookup, subject: str, held: Sequence[tuple[Any, Any]
     urls = {str(k): str(v.get("url")) for k, v in found.sources.items()
             if isinstance(v, Mapping) and v.get("url")}
     if correction_problem(found.fact, subject, log=log, verdicts=verdicts, sources=urls,
-                          cutoff=now.astimezone(UTC).date(), ids=found.fact_ids) is not None:
+                          cutoff=now.astimezone(UTC).date(), ids=found.fact_ids,
+                          history=_retained_history()) is not None:
         return list(held)
     return [(key, row) for key, row in held
             if not replaced_value_mismatch(found.fact, key, row, log=log, subject=subject)]
 
 
 def _confirmation_problem(subject: str, found: Lookup, record: Mapping[str, Any],
-                          now: datetime) -> str | None:
+                          now: datetime, *, extra: Sequence[Mapping[str, Any]] = ()
+                          ) -> str | None:
     """The build's own test (``retained_correction.confirmation_problem``, MODEL-491 E1) of a
-    confirmation as a writer files it, against the attempt log the agreement was just logged to
-    and the ranked verification log: one test for the gate, the build and the site loader."""
+    confirmation as a writer files it, against the attempt log the agreement was just logged to,
+    the ranked verification log, and the clearing lines on disk with ``extra`` (the line this read
+    files, MODEL-491 E4) and their queue history: one test for the gate, the build and the site
+    loader."""
+    import os
+
     from decision.cited_reader import ReaderError, _attempts_path
-    from decision.quarantine_clearing import AttemptLog
-    from decision.retained_correction import confirmation_problem, filed_fact
+    from decision.quarantine_clearing import QUEUE_FILE, AttemptLog, queue_history
+    from decision.retained_correction import clearing_inputs, confirmation_problem, filed_fact
 
     try:
         log = AttemptLog.read(_attempts_path(None))
         verdicts = _ranked_verdicts()
+        root = Path(os.environ.get(DATA_DIR_ENV, "").strip() or ".")
+        clearings, history = clearing_inputs(root)
+        clearings = [*clearings, *(dict(e) for e in extra)]
+        targets = {str((e.get("target") or {}).get("id")) for e in extra
+                   if isinstance(e.get("target"), Mapping)} - set(history)
+        if targets:
+            history = {**history, **queue_history(root / QUEUE_FILE, targets)}
     except (OSError, ValueError, LookupFailed, ReaderError) as error:
         return f"the logs cannot be read: {type(error).__name__}"
     urls = {str(k): str(v.get("url")) for k, v in found.sources.items()
             if isinstance(v, Mapping) and v.get("url")}
     return confirmation_problem(filed_fact(found.fact, record), subject, log=log,
                                 verdicts=verdicts, sources=urls,
-                                cutoff=now.astimezone(UTC).date(), ids=found.fact_ids)
+                                cutoff=now.astimezone(UTC).date(), ids=found.fact_ids,
+                                clearings=clearings, history=history)
 
 
 def _ranked_verdicts() -> Mapping[tuple[str, str, str], Any]:
@@ -1523,7 +1642,8 @@ def _ranked_verdicts() -> Mapping[tuple[str, str, str], Any]:
 
 
 def retained_agreement(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader],
-                       request: Request | None = None, correct: bool = False) -> CitedChange:
+                       request: Request | None = None, correct: bool = False,
+                       clear_quarantine: bool = False) -> CitedChange:
     """Two readers confirm a filed value on a page whose host retains copies (MODEL-558).
 
     Jamie, 2026-11-25 (queue 16f): a fact a person confirmed on a structured page that no engine
@@ -1546,9 +1666,15 @@ def retained_agreement(*, subject: str, facet: str, source_id: str, readers: Seq
     rule ``retained_correction.RULE``, the epoch it was read in and the agreement's line hash,
     and the build serves the value as cited, never as verified, only through the same test.
     Outside the limits it is ``value_differs`` (or ``correction_not_admitted``), as before.
+
+    ``clear_quarantine`` (MODEL-491 E4): a confirmation held by one mismatch is read in that
+    verdict's clearing epoch, within MODEL-552's limits, and filed with its clearing line; the
+    build serves it as cited only through ``retained_correction.confirmation_problem`` with that
+    line counted. Never with ``correct``, and never for a fact a correction filed.
     """
     return _gate(subject=subject, facet=facet, source_id=source_id, readers=readers,
-                 request=request, allow_unchanged=True, retaining=True, correct=correct)
+                 request=request, allow_unchanged=True, retaining=True, correct=correct,
+                 clear_quarantine=clear_quarantine and not correct)
 
 
 def cited_change(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader],
