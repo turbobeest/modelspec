@@ -153,6 +153,7 @@ REFUSALS = (
     "epoch_not_current",
     "clearing_not_later",
     "correction_not_admitted",
+    "confirmation_not_admitted",
 )
 #: The most attempts, complete or not, at one subject, facet and epoch (MODEL-558 review): a
 #: re-run cannot reset the retry budget to read again until two readers happen to agree.
@@ -1281,10 +1282,13 @@ def _retained_outcome(subject: str, facet_def: Any, value: JsonValue, filed: Jso
     corrected = is_correction(found.fact)
     if same and not corrected:
         # The filed value is kept as filed (a set's order too): a confirmation changes nothing.
-        return CitedChange("cited_change", None, "", _record(
-            subject, facet_def.id, filed, row, source_id, now, sha256(page_bytes),
-            text_sha256(page_bytes), answers, filed, found.registered_ids, resolved,
-            retaining=True))
+        record = _record(subject, facet_def.id, filed, row, source_id, now, sha256(page_bytes),
+                         text_sha256(page_bytes), answers, filed, found.registered_ids, resolved,
+                         retaining=True)
+        problem = _confirmation_problem(subject, found, record, now)
+        if problem is not None:
+            return _refuse("confirmation_not_admitted", problem)
+        return CitedChange("cited_change", None, "", record)
     if not (correct or corrected):
         return _refuse("value_differs", "the agreed value is not the filed value; a retaining "
                        "page changes nothing, and the fact is listed for the owner")
@@ -1343,6 +1347,27 @@ def _corrected(subject: str, facet_def: Any, value: JsonValue, filed: JsonValue,
     if problem is not None:
         return _refuse("correction_not_admitted", problem)
     return CitedChange("cited_change", None, "", record)
+
+
+def _confirmation_problem(subject: str, found: Lookup, record: Mapping[str, Any],
+                          now: datetime) -> str | None:
+    """The build's own test (``retained_correction.confirmation_problem``, MODEL-491 E1) of a
+    confirmation as a writer files it, against the attempt log the agreement was just logged to
+    and the ranked verification log: one test for the gate, the build and the site loader."""
+    from decision.cited_reader import ReaderError, _attempts_path
+    from decision.quarantine_clearing import AttemptLog
+    from decision.retained_correction import confirmation_problem, filed_fact
+
+    try:
+        log = AttemptLog.read(_attempts_path(None))
+        verdicts = _ranked_verdicts()
+    except (OSError, ValueError, LookupFailed, ReaderError) as error:
+        return f"the logs cannot be read: {type(error).__name__}"
+    urls = {str(k): str(v.get("url")) for k, v in found.sources.items()
+            if isinstance(v, Mapping) and v.get("url")}
+    return confirmation_problem(filed_fact(found.fact, record), subject, log=log,
+                                verdicts=verdicts, sources=urls,
+                                cutoff=now.astimezone(UTC).date(), ids=found.fact_ids)
 
 
 def _ranked_verdicts() -> Mapping[tuple[str, str, str], Any]:

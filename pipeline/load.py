@@ -266,7 +266,7 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
         ruling_refused,
         served_fact,
     )
-    from decision.retained_correction import is_correction
+    from decision.retained_correction import is_confirmation, is_correction
     from decision.sources import configured_copy_store, load_sources
 
     root = root or REPO_ROOT
@@ -325,6 +325,13 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
                                    "withheld", model_id)
                     withheld.append(str(fact.get("facet")))
                     continue
+            elif not citation and is_confirmation(fact):
+                # A rule-16 retained-page agreement (MODEL-491 E1) is shown as cited when the
+                # snapshot's own test admits it and no verified verdict outranks it; otherwise
+                # it adds nothing.
+                if corrections is None:
+                    corrections = _correction_inputs(root, as_of)
+                citation = _confirmed_citation(fact, str(model_id), corrections, sources)
             if citation:
                 cited.append({**served_fact(fact), "verification": None, "citation": citation})
         block = front.get("benchmarks")
@@ -383,6 +390,16 @@ def _corrected_citation(fact: dict[str, Any], model_id: str, inputs: tuple[Any, 
         return correction_citation(fact, sources)
     except ValueError:
         return None
+
+
+def _confirmed_citation(fact: dict[str, Any], model_id: str, inputs: tuple[Any, Any, date],
+                        sources: dict[str, str]) -> dict[str, Any] | None:
+    """The snapshot's citation for a rule-16 confirmation (MODEL-491 E1), or ``None``."""
+    from decision.retained_correction import confirmation_citation
+
+    log, verdicts, cutoff = inputs
+    return confirmation_citation(fact, model_id, log=log, verdicts=verdicts, sources=sources,
+                                 cutoff=cutoff)
 
 
 def _ruled_row_withheld(root: Path, row: dict[str, Any], model_id: str, rulings: Any,

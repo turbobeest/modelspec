@@ -1133,6 +1133,15 @@ class _Compiler:
             return None
         return correction_citation(fact, self.sources)
 
+    def _confirmation(self, sid: str, fact: Mapping[str, Any]) -> dict | None:
+        """The citation of a rule-16 confirmation the shared test admits and no verified verdict
+        outranks (``decision.retained_correction.confirmation_citation``, MODEL-491 E1), or
+        ``None``."""
+        from decision.retained_correction import confirmation_citation
+
+        return confirmation_citation(fact, sid, log=self._clearing_log(), verdicts=self.log,
+                                     sources=self.sources, cutoff=self._clearing_cutoff())
+
     def _cleared_fact(self, subject: str | None, record: Mapping[str, Any] | None, rid: Any,
                       inline: Any, value: Any, facet: Any) -> bool:
         """Whether a cited fact's winning mismatch is released by a valid clearing line naming
@@ -1188,6 +1197,13 @@ class _Compiler:
         if str(rid) in self.superseded:
             winner = self._verification("fact", rid, inline, value, facet)
             held = [h for h in held if h[1] != winner]
+        if held:
+            # An admitted correction is not held by a mismatch on the value it replaced
+            # (MODEL-491 E2, ``retained_correction.replaced_value_mismatch``).
+            from decision.retained_correction import replaced_value_mismatch
+
+            held = [h for h in held
+                    if not replaced_value_mismatch(record, h[0], h[1], log=self._clearing_log())]
         if held and self._outcome("fact", rid, inline, value, facet) == "verified":
             held = [h for h in held if h[0][1] != str(rid)]
         if held and self.quarantine_clearings:
@@ -1324,7 +1340,7 @@ class _Compiler:
             raise SnapshotBuildError(f"facet {facet_id!r} is used on both a {seen} and a {kind}")
 
     def _add_facts(self, sid: str, kind: str, facts: Iterable[Any]) -> None:
-        from decision.retained_correction import is_correction
+        from decision.retained_correction import is_confirmation, is_correction
 
         row = self.facts.setdefault(sid, {})
         for f in self._resolve_prices(sid, facts):
@@ -1368,6 +1384,11 @@ class _Compiler:
                         continue
                 else:
                     citation = fact_citation(f, self.sources, self.source_cache)
+                    if citation is None and is_confirmation(f):
+                        # A rule-16 retained-page agreement (MODEL-491 E1) is served as cited
+                        # through the shared test, unless a verified verdict outranks it; one
+                        # that fails adds nothing.
+                        citation = self._confirmation(sid, f)
                 if citation is not None:
                     Fact.model_validate({**f, "verification": None},
                                         context={"registry": self.registry})
@@ -2477,11 +2498,12 @@ def collect_repo(root: Path) -> SnapshotInputs:
         ruling_reopened = ruling_inputs.reopened
     attempt_lines: list[str] = []
     clearing_history: dict[str, list[dict[str, Any]]] = {}
-    from decision.retained_correction import is_correction
+    from decision.retained_correction import is_confirmation, is_correction
 
-    # A retained-page correction (MODEL-573) is admitted only through its line in the attempt
-    # log, so the log is read whenever a fact carries one.
-    corrections = any(is_correction(f) for row in [*models, *offerings, *subscriptions]
+    # A retained-page correction (MODEL-573) or confirmation (MODEL-491 E1) is admitted only
+    # through its line in the attempt log, so the log is read whenever a fact carries one.
+    corrections = any(is_correction(f) or is_confirmation(f)
+                      for row in [*models, *offerings, *subscriptions]
                       for f in row.get("facts") or [] if isinstance(f, Mapping))
     if corrections and not quarantine_clearings:
         from decision.cited_reader import ATTEMPTS_FILE

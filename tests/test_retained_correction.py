@@ -1,4 +1,6 @@
 """MODEL-573: a logged two-reader agreement may correct a served value read from a retaining page.
+MODEL-491 E1 and E2: a rule-16 confirmation is served as cited, and a correction is not held by a
+mismatch on the value it replaced.
 
 The gate (``retained_agreement(correct=True)``), the snapshot build and the site loader decide
 through one test (``decision.retained_correction.correction_problem``). Bypass tests in the
@@ -19,11 +21,15 @@ from decision.cited_reader import ATTEMPTS_FILE
 from decision.quarantine_clearing import AttemptLog, line_hash
 from decision.retained_correction import (
     RULE,
+    confirmation_citation,
+    confirmation_problem,
     correction_problem,
     filed_fact,
+    is_confirmation,
     is_correction,
     owner_only,
 )
+from decision.snapshot import _Compiler
 
 from tests import test_retained_agreement as gate
 from tests.snapshot_records import verification
@@ -381,15 +387,18 @@ def test_a_licence_fact_or_identity_field_is_never_corrected():
     assert not admitted(build(row, [attempt], log=(old,)), value=2000, facet="licence.user_cap")
 
 
-@pytest.mark.parametrize("held", ["new_value", "old_value", "inline"])
+@pytest.mark.parametrize("held", ["new_value", "third_value", "inline"])
 def test_a_held_fact_is_not_corrected(held):
+    # A mismatch on the replaced value no longer holds a correction (MODEL-491 E2, below); a
+    # verdict on the corrected value, on a third value, or an ``unreachable`` still does.
     attempt = agreement()
     row, log = corrected_row(attempt), [OLD]
     if held == "new_value":
         log.append(verification("fact", f"{MID}#{FACET}", "mismatch", day="2026-10-01",
                                 value=VALUE))
-    elif held == "old_value":
-        log = [verification("fact", f"{MID}#{FACET}", "mismatch", day="2026-10-01", value=FILED)]
+    elif held == "third_value":
+        log.append(verification("fact", f"{MID}#{FACET}", "mismatch", day="2026-10-01",
+                                value=16384))
     else:
         row["verification"] = verification("fact", f"{MID}#{FACET}", "unreachable",
                                             day="2026-10-01", value=FILED)
@@ -506,3 +515,203 @@ def test_the_gate_corrects_only_from_its_own_fetch(data):
     assert out.reason == "correction_not_admitted" and "own" in out.detail
     assert data.attempts()[-1].get("own_fetch") is None
     assert run().changed and data.attempts()[-1]["own_fetch"] is True
+
+
+# --- MODEL-491 E2: a mismatch on the replaced value does not hold a correction -------------------
+
+def _old_mismatch(day="2026-10-01", value=FILED, outcome="mismatch"):
+    return verification("fact", f"{MID}#{FACET}", outcome, day=day, value=value)
+
+
+def test_a_mismatch_on_the_replaced_value_no_longer_holds_the_correction():
+    attempt = agreement()
+    index = build(corrected_row(attempt), [attempt], log=[_old_mismatch()])
+    assert admitted(index)
+    record = index.record(index.fact(MID, FACET).record_id)
+    assert record["verification"] is None and record["citation"]["status"] == "cited"
+    log = AttemptLog([raw(attempt)])
+    verdicts = {("fact", f"{MID}#{FACET}", _old_mismatch()["target"]["value_hash"]):
+                ("2026-10-01", 1, _old_mismatch())}
+    assert correction_problem(corrected_row(attempt), MID, log=log, verdicts=verdicts,
+                              sources={"src-lab-docs": URL}, cutoff=TODAY) is None
+
+
+@pytest.mark.parametrize("bypass", ["unreachable", "after_agreement", "previous_is_value",
+                                    "no_previous", "not_a_correction"])
+def test_only_an_earlier_mismatch_on_the_replaced_value_is_set_aside(bypass):
+    attempt = agreement()
+    row, log = corrected_row(attempt), [_old_mismatch()]
+    if bypass == "unreachable":  # an unreachable source says nothing about the old value
+        log = [_old_mismatch(outcome="unreachable")]
+    elif bypass == "after_agreement":  # a verdict after the agreement is not on what it replaced
+        log = [_old_mismatch(day="2026-10-11")]
+    elif bypass == "previous_is_value":  # a block naming the corrected value releases nothing
+        row["derivation"]["cited_change"]["previous_value"] = VALUE
+        log.append(_old_mismatch(value=VALUE))
+    elif bypass == "no_previous":
+        row["derivation"]["cited_change"].pop("previous_value")
+    else:  # a cite-only rule-15 change or a confirmation is not a correction
+        row["derivation"]["cited_change"]["rule"] = RETAINED_RULE
+    assert not admitted(build(row, [attempt], log=log))
+
+
+def test_a_forged_previous_value_releases_only_a_verdict_older_than_the_agreement():
+    # A block may name any previous value; only a mismatch on it from before the logged agreement
+    # is set aside, and never one on the value the fact now has.
+    attempt = agreement()
+    row = corrected_row(attempt)
+    row["derivation"]["cited_change"]["previous_value"] = 16384
+    later = _old_mismatch(day="2026-10-12", value=16384)
+    assert not admitted(build(row, [attempt], log=[later]))
+
+
+# --- MODEL-491 E1: a rule-16 confirmation is served as cited -------------------------------------
+
+def confirmed_row(attempt, *, value=FILED, facet=FACET):
+    row = corrected_row(attempt, value=value, facet=facet)
+    block = row["derivation"]["cited_change"]
+    for key in ("epoch", "agreement", "region_sha256"):
+        block.pop(key)
+    block.update(rule=RETAINED_RULE, previous_value=value)
+    return row
+
+
+def confirming(**kw):
+    """A confirmation's attempt: the filed value, logged before ``own_fetch`` existed."""
+    attempt = agreement(values=kw.pop("values", (FILED, FILED)), **kw)
+    attempt.pop("own_fetch")
+    attempt.pop("region_sha256")
+    return attempt
+
+
+def test_a_confirmation_is_served_as_cited_when_nothing_else_admits_it():
+    attempt = confirming()
+    row = confirmed_row(attempt)
+    assert is_confirmation(row) and not is_correction(row)
+    assert not admitted(build(row, [], log=()), value=FILED)  # no logged agreement: nothing
+    index = build(row, [attempt], log=())
+    assert admitted(index, value=FILED)
+    record = index.record(index.fact(MID, FACET).record_id)
+    assert record["verification"] is None and record["citation"]["status"] == "cited"
+    assert [s["source_id"] for s in record["citation"]["sources"]] == ["src-lab-docs"]
+
+
+def test_the_verified_path_wins_over_a_confirmation():
+    attempt = confirming()
+    index = build(confirmed_row(attempt), [attempt], log=(OLD,))
+    assert admitted(index, value=FILED)
+    record = index.record(index.fact(MID, FACET).record_id)
+    assert record["verification"] is not None and record.get("citation") is None
+    assert confirmation_citation(confirmed_row(attempt), MID, log=AttemptLog([raw(attempt)]),
+                                 verdicts={("fact", f"{MID}#{FACET}",
+                                            OLD["target"]["value_hash"]): ("2026-09-20", 1, OLD)},
+                                 sources={"src-lab-docs": URL}, cutoff=TODAY) is None
+
+
+@pytest.mark.parametrize("bypass", [
+    "same_family", "unknown_family", "other_value", "disagreed", "incomplete_other",
+    "later_epoch", "held_same", "held_other", "inline_unreachable", "licence",
+    "cite_only", "after_cutoff", "not_harness", "no_hashes", "edited_sha", "edited_reader",
+    "edited_value", "ruled", "cleared", "not_disclosed", "respelled_other_subject"])
+def test_a_confirmation_that_fails_the_shared_test_admits_nothing(bypass):
+    attempt, lines, log, sources = confirming(), None, [], None
+    facet, value = FACET, FILED
+    if bypass == "same_family":
+        attempt = confirming(families=("openai", "openai"))
+    elif bypass == "unknown_family":
+        attempt = confirming(families=("unknown", "anthropic"))
+    elif bypass == "other_value":  # the readers agreed on another value than the filed one
+        attempt = confirming(values=(VALUE, VALUE))
+    elif bypass == "disagreed":
+        lines = [confirming(values=(FILED, VALUE), at="2026-10-09T09:00:00+00:00"), attempt]
+    elif bypass == "incomplete_other":
+        extra = {**confirming(at="2026-10-09T09:00:00+00:00"), "complete": False, "agreed": None,
+                 "readers": [{"reader_id": "a", "family": "openai", "version": "1",
+                              "value": VALUE}]}
+        extra.pop("agreed_value")
+        lines = [attempt, extra]
+    elif bypass == "later_epoch":
+        lines = [attempt, confirming(epoch="reread:" + "b" * 64, text_sha256="b" * 64,
+                                     at="2026-10-11T09:00:00+00:00")]
+    elif bypass == "held_same":
+        log = [_old_mismatch(value=FILED)]
+    elif bypass == "held_other":
+        log = [_old_mismatch(value=VALUE)]
+    elif bypass == "licence":
+        facet, value = "licence.user_cap", 2000
+        attempt = confirming(facet=facet, values=(2000, 2000))
+    elif bypass == "cite_only":
+        attempt = {**confirming(), "url": CITE}
+        sources = {"src-lab-docs": CITE}
+    elif bypass == "not_harness":
+        attempt = confirming(harness=False)
+    elif bypass == "no_hashes":
+        attempt = confirming(prompt_sha256="")
+    row = confirmed_row(attempt, value=value, facet=facet)
+    block = row["derivation"]["cited_change"]
+    if bypass == "inline_unreachable":
+        row["verification"] = _old_mismatch(outcome="unreachable")
+    elif bypass == "after_cutoff":
+        pass
+    elif bypass == "edited_sha":
+        block["sha256"] = "6" * 64
+    elif bypass == "edited_reader":
+        block["readers"][1]["family"] = "google"
+    elif bypass == "edited_value":
+        row["value"] = 2048
+    elif bypass == "ruled":
+        row["derivation"]["owner_ruling"] = {"rule": "owner-ruling@1"}
+    elif bypass == "cleared":
+        block["clearing_epoch"] = "initial"
+    elif bypass == "not_disclosed":
+        row.update(state="not_disclosed", value=None)
+    elif bypass == "respelled_other_subject":
+        attempt = {**attempt, "subject": "lab/beta"}
+    lines = lines or [attempt]
+    as_of = date(2026, 10, 9) if bypass == "after_cutoff" else TODAY
+    problem = confirmation_problem(row, MID, log=AttemptLog([raw(a) for a in lines]),
+                                   verdicts=_Compiler._verification_log(log),
+                                   sources=sources or {"src-lab-docs": URL},
+                                   cutoff=as_of)
+    assert problem is not None
+    if bypass == "cite_only":
+        return  # a cite-only reference is rule 14's own cited path, not this one
+    shown = build(row, lines, log=log, as_of=as_of).fact(MID, facet)
+    assert not (shown.state == "known" and shown.value == row.get("value"))
+
+
+def test_the_gate_the_build_and_the_site_take_one_decision(tmp_path):
+    # The site loader shows a confirmation as cited exactly when the build serves it so.
+    from pipeline.load import _confirmed_citation
+
+    attempt = confirming()
+    row = confirmed_row(attempt)
+    log = AttemptLog([raw(attempt)])
+    sources = {"src-lab-docs": URL}
+    held = _Compiler._verification_log([_old_mismatch()])
+    for verdicts, served in (({}, True), (held, False)):
+        shown = _confirmed_citation(row, MID, (log, verdicts, TODAY), sources)
+        assert (shown is not None) is served
+        assert admitted(build(row, [attempt], log=[] if not verdicts else [_old_mismatch()]),
+                        value=FILED) is served
+
+
+def test_the_gate_refuses_a_confirmation_the_build_would_not_serve(data, monkeypatch):
+    # The gate files a confirmation only when the build's own test admits it as filed.
+    import decision.retained_correction as rc
+
+    monkeypatch.setattr(rc, "confirmation_problem", lambda *a, **k: "a refusal from the test")
+    out = run(readers=gate.pair())
+    assert out.outcome == "refused" and out.reason == "confirmation_not_admitted"
+    assert out.record is None
+
+
+def test_a_card_without_a_stated_id_is_ranked_on_its_location_id():
+    # The site loader reads the card as written; the build gives it its location id. Both must
+    # see the same verified verdict, so the verified path wins on both.
+    attempt = confirming()
+    row = confirmed_row(attempt)
+    row.pop("id")
+    verdicts = _Compiler._verification_log([OLD])
+    assert confirmation_citation(row, MID, log=AttemptLog([raw(attempt)]), verdicts=verdicts,
+                                 sources={"src-lab-docs": URL}, cutoff=TODAY) is None
