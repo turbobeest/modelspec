@@ -152,11 +152,14 @@ def reconfirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
     at = _at(attempt.get("at"))
     if at is None or at.astimezone(UTC).date() > cutoff:
         return "the agreement is after this build's cutoff"
+    # The read date is the logged agreement's own UTC day, never the fact's or the citation's
+    # say-so: both must name it.
+    day = at.astimezone(UTC).date()
     refs = fact.get("sources")
     if not isinstance(refs, list) or len(refs) != 1 or not isinstance(refs[0], Mapping) \
-            or _retrieved_day(refs[0].get("retrieved_at")) is None \
-            or str(block.get("read_date")) != _retrieved_day(refs[0]["retrieved_at"]).isoformat():
-        return "the fact cites the one page read, at its read date"
+            or _retrieved_day(refs[0].get("retrieved_at")) != day \
+            or block.get("read_date") != day.isoformat():
+        return "the fact cites the one page read, on the day the agreement was logged"
     problem = epoch_problem(log.keyed(subject, facet, epoch), value, facet)
     if problem is not None:
         return problem

@@ -384,3 +384,17 @@ def test_a_later_unresolved_verdict_holds_the_fact_on_the_site_as_in_the_build(d
     index, card = _build(data)
     assert index.fact(SUBJECT, FACET).state != "known"
     assert card.cited_facts == [] and card.withheld_facets == (FACET,)
+
+
+@pytest.mark.parametrize("day", ["2020-01-01", "2099-01-01"])
+def test_the_read_date_is_the_logged_agreements_day_and_cannot_be_forged(data, day):
+    fact = _filed(data)
+    logged = data.log()[-1]["at"]
+    from datetime import UTC, datetime
+
+    assert fact["derivation"]["cited_change"]["read_date"] == \
+        datetime.fromisoformat(logged).astimezone(UTC).date().isoformat()
+    forged = copy.deepcopy(fact)
+    forged["derivation"]["cited_change"]["read_date"] = day
+    forged["sources"][0]["retrieved_at"] = f"{day}T09:00:00+00:00"
+    assert problem(data, forged) is not None

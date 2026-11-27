@@ -1306,6 +1306,12 @@ def _reconfirmed(found: Lookup, record: dict[str, JsonValue], *, subject: str, e
             return _refuse("registry_lookup_failed",
                            "the agreement just logged is not the attempt log's last line")
         block["epoch"], block["agreement"] = epoch, line_hash(raws[-1])
+        # The record is dated by the agreement's logged time (MODEL-572 review).
+        at = datetime.fromisoformat(str(logged[-1].get("at")).replace("Z", "+00:00"))
+        if at.tzinfo is None:
+            raise ValueError("the agreement has no zoned time")
+        block["read_date"] = at.astimezone(UTC).date().isoformat()
+        record["source"]["retrieved_at"] = _retrieved_at(at)
         verdicts = _ranked_verdicts()
         log = AttemptLog(raws)
     except (OSError, ValueError, LookupFailed) as error:
