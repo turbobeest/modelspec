@@ -42,7 +42,7 @@ from decision.model import (
     SourceRef,
     fact_verification_value,
     matching_value_hashes,
-    verification_counts,
+    verification_row_counts,
 )
 from decision.snapshot import SnapshotInputs, _Compiler
 from decision.sources import CopyStore, load_sources
@@ -181,9 +181,7 @@ def verification_history(queue_events, records, compiler):
                     value, [record["target"]["value_hash"]],
                     unordered=compiler._unordered(claim.target.kind, claim.field),
                 )
-                or not verification_counts(record["outcome"],
-                                           record["collector"]["model_family"],
-                                           record["verifier"]["model_family"])
+                or not verification_row_counts(record)
                 for _, record in entries
             ):
                 break

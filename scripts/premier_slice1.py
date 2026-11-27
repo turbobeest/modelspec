@@ -45,7 +45,7 @@ sys.path.insert(0, str(ROOT))
 
 from api.classes import class_for_model_type  # noqa: E402
 from decision.excluded import excluded_sources  # noqa: E402
-from decision.model import value_hash, verification_counts  # noqa: E402
+from decision.model import value_hash, verification_row_counts  # noqa: E402
 from decision.registry import default as default_registry  # noqa: E402
 from decision.sources import load_sources  # noqa: E402
 from scripts.premier_inputs import require_inputs  # noqa: E402
@@ -560,11 +560,8 @@ def _verification_index(root: Path = ROOT) -> dict[tuple[str, str, str], dict]:
         if not line.strip():
             continue
         row = json.loads(line)
-        if not verification_counts(
-            str(row["outcome"]),
-            str(row["collector"]["model_family"]),
-            str(row["verifier"]["model_family"]),
-        ):
+        # The frozen public image keeps its rule as filed; the private data retires (MODEL-491).
+        if not verification_row_counts(row, retire=(root / ".engine-pin").is_file()):
             continue
         target = row["target"]
         key = (str(target["kind"]), str(target["id"]), str(target["value_hash"]))

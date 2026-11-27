@@ -73,7 +73,7 @@ from decision.model import (
     unordered_facet,
     validate_price_schedules,
     value_hash,
-    verification_counts,
+    verification_row_counts,
 )
 
 logger = logging.getLogger(__name__)
@@ -416,6 +416,11 @@ class SnapshotInputs:
     #: carries ``.engine-pin``); the engine's frozen public image and hand-built test inputs that
     #: name only a few records leave it off.
     check_held_rows: bool = False
+    #: Whether ``retained-source-proof@1`` rows and a label matcher's ``verified`` on a null value
+    #: stop counting (MODEL-491, ``decision.model.verification_row_counts``). On for every build
+    #: from the private data and for hand-built inputs; ``collect_repo`` turns it off only for the
+    #: engine's frozen public image (no ``.engine-pin``), which stays as it was filed.
+    retire_rsp: bool = True
     #: Lab id -> ``decision.labs.Lab``. Empty when the checkout has no lab registry.
     labs: Mapping[str, Any] = field(default_factory=dict)
     #: Sourced hardware YAML records. Metadata, never ranking candidates.
@@ -432,10 +437,11 @@ def _as_dict(record: Any) -> dict[str, Any]:
     raise SnapshotBuildError(f"not a record: {record!r}")
 
 
-def _counts(v: Mapping[str, Any]) -> bool:
-    """A same-family ``verified`` is not a second key: it neither admits nor displaces."""
-    return verification_counts(str(v["outcome"]), str(v["collector"]["model_family"]),
-                               str(v["verifier"]["model_family"]))
+def _counts(v: Mapping[str, Any], *, retire: bool = True) -> bool:
+    """Whether a logged row decides its value (``decision.model.verification_row_counts``): a
+    same-family ``verified``, a retired method's row (``retained-source-proof@1``) and a label
+    matcher's ``verified`` on a null value neither admit nor displace (MODEL-491)."""
+    return verification_row_counts(v, retire=retire)
 
 
 def fact_measurement_stale(fact: Mapping[str, Any], as_of: date | None) -> bool:
@@ -825,7 +831,8 @@ class _Compiler:
         self.excluded: dict[str | None, Counter[str]] = {}
         #: (subject, facet) -> (reason, source URLs), for the gate's messages.
         self.rejected: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {}
-        self.log = self._verification_log(inputs.verifications)
+        self.retire = inputs.retire_rsp
+        self.log = self._verification_log(inputs.verifications, retire=self.retire)
         #: (kind, id) -> the value hashes the log holds a counting row for.
         self.logged_hashes: dict[tuple[str, str], list[str]] = {}
         for log_kind, log_id, log_hash in self.log:
@@ -878,12 +885,12 @@ class _Compiler:
 
     @staticmethod
     def _verification_log(
-        rows: Iterable[Any],
+        rows: Iterable[Any], *, retire: bool = True,
     ) -> dict[tuple[str, str, str], tuple[str, int, dict]]:
         latest: dict[tuple[str, str, str], tuple[str, int, dict]] = {}
         for i, raw in enumerate(rows):
             v = _as_dict(raw)
-            if not _counts(v):
+            if not _counts(v, retire=retire):
                 continue
             target = v["target"]
             key = (target["kind"], target["id"], str(target.get("value_hash") or ""))
@@ -933,7 +940,7 @@ class _Compiler:
         if inline_record is not None:
             target = inline_record.get("target") or {}
             if (rid is None or target.get("kind") != kind or target.get("id") != rid
-                    or not _counts(inline_record)):
+                    or not _counts(inline_record, retire=self.retire)):
                 inline_record = None
         inline_hash = (None if inline_record is None
                        else inline_record.get("target", {}).get("value_hash"))
@@ -2604,6 +2611,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
                           # requires): every build from it refuses a vanished hold. The engine's
                           # frozen public image has no pin and is not re-checked here.
                           check_held_rows=(root / ".engine-pin").is_file(),
+                          retire_rsp=(root / ".engine-pin").is_file(),
                           labs=load_labs(root), hardware_fit_records=fit_records,
                           hardware=[yaml.safe_load(path.read_text(encoding="utf-8"))
                                     for path in sorted((root / "hardware").glob("*.yaml"))

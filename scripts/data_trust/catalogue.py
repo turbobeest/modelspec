@@ -18,7 +18,7 @@ from decision.model import (
     fact_verification_value,
     matching_value_hashes,
     unordered_facet,
-    verification_counts,
+    verification_row_counts,
 )
 
 
@@ -108,9 +108,7 @@ def load(root: Path, *, source_root: Path | None = None) -> Catalogue:
                 # The build's refusing reader (MODEL-554): a row that repeats a key, in any
                 # spelling, is a finding and never counts as its last value.
                 v = loads(line)
-                if not verification_counts(
-                    v["outcome"], v["collector"]["model_family"], v["verifier"]["model_family"]
-                ):
+                if not verification_row_counts(v):
                     continue
                 key = (v["target"]["kind"], v["target"]["id"])
                 if key not in c.verifications or str(v["date"]) >= str(

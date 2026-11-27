@@ -130,6 +130,54 @@ def verification_counts(outcome: str, collector: str, verifier: str) -> bool:
     return outcome != "verified" or independent_families(collector, verifier)
 
 
+#: Methods whose rows never verify a value (MODEL-491). ``retained-source-proof@1`` (MODEL-143
+#: round 2) "proved" hard-coded values by keyword presence, and compared nothing with the page.
+RETIRED_METHODS = frozenset({"retained-source-proof@1"})
+#: Readers that match a label on a page. One that "verified" a null value matched the page naming
+#: the model, not a value, so it is no verification of a null or ``not_disclosed`` fact (E5).
+LABEL_MATCHERS = frozenset({"model-page-label-match@1", "key-value-match@1"})
+_NULL_HASH = "sha256:74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+
+
+def verification_row_counts(row: Any, *, retire: bool = True) -> bool:
+    """Whether one logged verification row decides its value's state (MODEL-491): the one rule
+    the build, the gate's hold, the data-trust audit and the writers share.
+
+    - A same-family ``verified`` row is no second key (``verification_counts``).
+    - A row of a retired method (``RETIRED_METHODS``) never counts, whatever its outcome. The
+      method is the row's, or its verifier's.
+    - A label matcher's ``verified`` row bound to the null value never counts (E5). It matched the
+      page naming the model, which shows nothing about a value the page does not state.
+
+    ``retire=False`` keeps the rule before MODEL-491 (the same-family rule only). That is for the
+    engine's frozen public data image alone, which is frozen as filed and reproduced byte for
+    byte; every build from the private data retires (``SnapshotInputs.retire_rsp``).
+    """
+    get = row.get if isinstance(row, Mapping) else (lambda k, d=None: getattr(row, k, d))
+    outcome = str(get("outcome"))
+    collector, verifier = get("collector"), get("verifier")
+
+    def field(actor: Any, name: str) -> str:
+        if isinstance(actor, Mapping):
+            return str(actor.get(name) or "")
+        return str(getattr(actor, name, "") or "")
+
+    if not verification_counts(outcome, field(collector, "model_family"),
+                               field(verifier, "model_family")):
+        return False
+    if not retire:
+        return True
+    methods = {str(get("method") or ""), field(verifier, "method")}
+    if methods & RETIRED_METHODS:
+        return False
+    target = get("target")
+    value_hash_ = target.get("value_hash") if isinstance(target, Mapping) \
+        else getattr(target, "value_hash", None)
+    if outcome == "verified" and methods & LABEL_MATCHERS and str(value_hash_ or "") == _NULL_HASH:
+        return False
+    return True
+
+
 class Verification(Record):
     target: VerificationTarget
     collector: VerificationActor
@@ -158,9 +206,9 @@ class Verification(Record):
 
     @property
     def counts(self) -> bool:
-        """See ``verification_counts``: a same-family ``verified`` is ignored."""
-        return verification_counts(
-            self.outcome, self.collector.model_family, self.verifier.model_family)
+        """See ``verification_row_counts``: a same-family ``verified``, a retired method's row and
+        a label matcher's ``verified`` on a null value are ignored (MODEL-491)."""
+        return verification_row_counts(self)
 
     @property
     def quarantined(self) -> bool:
