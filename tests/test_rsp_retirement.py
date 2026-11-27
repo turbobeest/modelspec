@@ -22,6 +22,11 @@ NULL_FACET = "feature.tool_calling"
 NULL_FID = f"{MID}#{NULL_FACET}"
 
 
+def counts(row, *, retire=True):
+    """The private-data rule (``retire=True``); ``retire=False`` is the public image's."""
+    return verification_row_counts(row, retire=retire)
+
+
 def row(method, *, outcome="verified", day="2026-09-25", value=128000, fid=FID,
         agent="codex-model-143"):
     v = verification("fact", fid, outcome, day=day, value=value)
@@ -58,14 +63,18 @@ def test_a_retained_source_proof_row_no_longer_displaces_a_mismatch():
     assert shown([fact_on_log()], log, retire=False).fact(MID, FACET).state == "known"
 
 
-def test_the_retired_method_is_found_on_the_row_or_its_verifier():
+def test_the_retired_method_is_found_on_the_row_or_its_verifier(tmp_path, monkeypatch):
     proof = row("retained-source-proof@1")
     by_verifier = copy.deepcopy(proof)
     by_verifier["method"] = "multi-source-primary-audit@2"
+    (tmp_path / ".engine-pin").write_text("0" * 40 + "\n")
     for r in (proof, by_verifier):
-        assert not verification_row_counts(r)
-        assert verification_row_counts(r, retire=False)
+        assert not counts(r)
+        assert counts(r, retire=False)
+        monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))  # a private-data build
         assert not Verification.model_validate(r).counts
+        monkeypatch.delenv("MODELSPEC_DATA_DIR")  # the public image keeps the rule as filed
+        assert Verification.model_validate(r).counts
 
 
 @pytest.mark.parametrize("matcher", ["model-page-label-match@1", "key-value-match@1"])
@@ -74,13 +83,13 @@ def test_a_label_matcher_never_verifies_a_null_value(matcher):
     # model; that shows nothing about a value the page does not state.
     null = fact_on_log(NULL_FACET, None, state="not_disclosed")
     label = row(matcher, value=None, fid=NULL_FID)
-    assert not verification_row_counts(label)
+    assert not counts(label)
     assert shown([null], [label]).fact(MID, NULL_FACET).state != "not_disclosed"
     assert shown([null], [label], retire=False).fact(MID, NULL_FACET).state == "not_disclosed"
     # The same matcher on a stated value still counts, and so does another reader on a null.
-    assert verification_row_counts(row(matcher, value=128000))
+    assert counts(row(matcher, value=128000))
     other = row("absence-reading@1", value=None, fid=NULL_FID)
-    assert verification_row_counts(other)
+    assert counts(other)
     assert shown([null], [other]).fact(MID, NULL_FACET).state == "not_disclosed"
 
 
@@ -89,7 +98,7 @@ def test_a_later_absence_reading_by_a_label_matcher_still_counts(change):
     # E5 is MODEL-143 round 1 only: a later absence reading by the same readers is not affected.
     kw = {"day": "2026-11-24"} if change == "later_day" else {"agent": "model-491-builder"}
     for matcher in ("model-page-label-match@1", "key-value-match@1"):
-        assert verification_row_counts(row(matcher, value=None, fid=NULL_FID, **kw))
+        assert counts(row(matcher, value=None, fid=NULL_FID, **kw))
 
 
 @pytest.mark.parametrize("matcher", ["model-page-label-match@1", "key-value-match@1",
@@ -99,7 +108,7 @@ def test_a_round_one_null_label_row_counts_neither_way(matcher):
     # nothing. A "mismatch" on null no longer holds a fact whose value is now stated, and a
     # "verified" on null no longer admits a not_disclosed one.
     mismatch = row(matcher, outcome="mismatch", value=None, fid=FID)
-    assert not verification_row_counts(mismatch)
+    assert not counts(mismatch)
     # A cited fact is held by a verdict on any value of its ids: before E5 the round-1 null
     # mismatch held it, now it does not.
     stated = fact_on_log()
@@ -114,13 +123,13 @@ def test_a_round_one_null_label_row_counts_neither_way(matcher):
         MID, NULL_FACET).state != "not_disclosed"
     # A later reader's mismatch on null still holds.
     later = row(matcher, outcome="mismatch", value=None, fid=FID, day="2026-11-24")
-    assert verification_row_counts(later)
+    assert counts(later)
 
 
 def test_a_same_family_verified_row_still_does_not_count():
     same = row("key-value-match@1")
     same["verifier"]["model_family"] = same["collector"]["model_family"]
-    assert not verification_row_counts(same) and not verification_row_counts(same, retire=False)
+    assert not counts(same) and not counts(same, retire=False)
 
 
 def test_collect_repo_retires_for_the_private_data_only(tmp_path):
@@ -145,4 +154,18 @@ def test_a_round_one_table_header_mismatch_on_null_no_longer_holds_a_stated_fact
     assert shown([stated], log, sources=cite).fact(MID, FACET).state == "known"
     # Another method's round-1 null row still counts.
     other = row("structured-row-match@1", outcome="mismatch", value=None)
-    assert verification_row_counts(other)
+    assert counts(other)
+
+
+def test_the_default_retires_only_for_a_private_data_directory(tmp_path, monkeypatch):
+    # ``decision.model.private_data``: the switch collect_repo uses. With no data directory, or
+    # one without ``.engine-pin`` (the public image), no caller retires a row by default.
+    from decision.model import private_data
+
+    proof = row("retained-source-proof@1")
+    monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)
+    assert not private_data() and verification_row_counts(proof)
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))
+    assert not private_data() and verification_row_counts(proof)
+    (tmp_path / ".engine-pin").write_text("0" * 40 + "\n")
+    assert private_data() and not verification_row_counts(proof)

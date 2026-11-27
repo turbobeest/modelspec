@@ -144,7 +144,20 @@ ROUND_ONE = ("codex-model-143", "2026-09-25")
 _NULL_HASH = "sha256:74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
 
 
-def verification_row_counts(row: Any, *, retire: bool = True) -> bool:
+def private_data(root: Any = None) -> bool:
+    """Whether a build reads the private data, the one switch for MODEL-491's retirement of
+    ``retained-source-proof@1`` and E5: the data checkout ``root``, or, when none is given, the
+    active data directory (``MODELSPEC_DATA_DIR``), carries ``.engine-pin``. The engine's frozen
+    public image has none, so it keeps the counting rule as filed and builds as before."""
+    import os
+    from pathlib import Path
+
+    if root is None:
+        root = os.environ.get("MODELSPEC_DATA_DIR", "").strip() or None
+    return root is not None and (Path(root) / ".engine-pin").is_file()
+
+
+def verification_row_counts(row: Any, *, retire: bool | None = None) -> bool:
     """Whether one logged verification row decides its value's state (MODEL-491): the one rule
     the build, the gate's hold, the data-trust audit and the writers share.
 
@@ -159,7 +172,8 @@ def verification_row_counts(row: Any, *, retire: bool = True) -> bool:
 
     ``retire=False`` keeps the rule before MODEL-491 (the same-family rule only). That is for the
     engine's frozen public data image alone, which is frozen as filed and reproduced byte for
-    byte; every build from the private data retires (``SnapshotInputs.retire_rsp``).
+    byte; every build from the private data retires (``SnapshotInputs.retire_rsp``). ``None``,
+    the default, asks ``private_data()``: no caller retires the public image by default.
     """
     get = row.get if isinstance(row, Mapping) else (lambda k, d=None: getattr(row, k, d))
     outcome = str(get("outcome"))
@@ -173,6 +187,8 @@ def verification_row_counts(row: Any, *, retire: bool = True) -> bool:
     if not verification_counts(outcome, field(collector, "model_family"),
                                field(verifier, "model_family")):
         return False
+    if retire is None:
+        retire = private_data()
     if not retire:
         return True
     methods = {str(get("method") or ""), field(verifier, "method")}

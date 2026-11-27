@@ -73,6 +73,7 @@ from decision.model import (
     unordered_facet,
     validate_price_schedules,
     value_hash,
+    private_data,
     verification_row_counts,
 )
 
@@ -418,11 +419,11 @@ class SnapshotInputs:
     #: carries ``.engine-pin``); the engine's frozen public image and hand-built test inputs that
     #: name only a few records leave it off.
     check_held_rows: bool = False
-    #: Whether ``retained-source-proof@1`` rows and a label matcher's ``verified`` on a null value
-    #: stop counting (MODEL-491, ``decision.model.verification_row_counts``). On for every build
-    #: from the private data and for hand-built inputs; ``collect_repo`` turns it off only for the
-    #: engine's frozen public image (no ``.engine-pin``), which stays as it was filed.
-    retire_rsp: bool = True
+    #: Whether ``retained-source-proof@1`` rows and a round-1 label matcher's rows on a null value
+    #: stop counting (MODEL-491, ``decision.model.verification_row_counts``): on for every build
+    #: from the private data, off for the engine's frozen public image, which builds as it was
+    #: filed. ``None`` asks ``decision.model.private_data()``, the switch ``collect_repo`` uses.
+    retire_rsp: bool | None = None
     #: The listed held facts (``decision.held_list``, ``verification/held.jsonl``): a standing
     #: listing is served as held, never cited, and is not a gap; one that does not resolve fails
     #: the build (MODEL-491).
@@ -447,7 +448,7 @@ def _as_dict(record: Any) -> dict[str, Any]:
     raise SnapshotBuildError(f"not a record: {record!r}")
 
 
-def _counts(v: Mapping[str, Any], *, retire: bool = True) -> bool:
+def _counts(v: Mapping[str, Any], *, retire: bool | None = None) -> bool:
     """Whether a logged row decides its value (``decision.model.verification_row_counts``): a
     same-family ``verified``, a retired method's row (``retained-source-proof@1``) and a label
     matcher's ``verified`` on a null value neither admit nor displace (MODEL-491)."""
@@ -845,7 +846,7 @@ class _Compiler:
         self.excluded: dict[str | None, Counter[str]] = {}
         #: (subject, facet) -> (reason, source URLs), for the gate's messages.
         self.rejected: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {}
-        self.retire = inputs.retire_rsp
+        self.retire = private_data() if inputs.retire_rsp is None else inputs.retire_rsp
         self.log = self._verification_log(inputs.verifications, retire=self.retire)
         #: (subject, facet) of each standing listed held fact (``decision.held_list``), resolved
         #: on first use, once every attempt and clearing input is set.
@@ -903,7 +904,7 @@ class _Compiler:
 
     @staticmethod
     def _verification_log(
-        rows: Iterable[Any], *, retire: bool = True,
+        rows: Iterable[Any], *, retire: bool | None = None,
     ) -> dict[tuple[str, str, str], tuple[str, int, dict]]:
         latest: dict[tuple[str, str, str], tuple[str, int, dict]] = {}
         for i, raw in enumerate(rows):
@@ -2688,7 +2689,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
                           # requires): every build from it refuses a vanished hold. The engine's
                           # frozen public image has no pin and is not re-checked here.
                           check_held_rows=(root / ".engine-pin").is_file(),
-                          retire_rsp=(root / ".engine-pin").is_file(),
+                          retire_rsp=private_data(root),
                           labs=load_labs(root), hardware_fit_records=fit_records,
                           hardware=[yaml.safe_load(path.read_text(encoding="utf-8"))
                                     for path in sorted((root / "hardware").glob("*.yaml"))
