@@ -11,7 +11,6 @@ synthetic.
 
 from __future__ import annotations
 
-import copy
 import json
 from datetime import UTC, datetime
 
@@ -180,66 +179,16 @@ def test_a_listing_that_does_not_resolve_fails_the_build(bad):
     refused([held_fact()], lines, [entry])
 
 
-# --- Codex review 2: two distinct verdicts, two readers, the fact's own id and value --------------
+# --- #1205 Codex round 2: verification rows alone never excuse a gap ------------------------------
 
-def test_a_double_hold_is_justified_by_two_readers_verdicts_on_its_value():
-    # The build keeps the latest verdict per (id, value hash): two readers' verdicts on one
-    # value stand together only on two spellings of an unordered value.
+def test_a_listing_on_verdicts_alone_no_longer_resolves():
     from decision.model import value_hash
 
-    facet = "model.input_modalities"
-    fid = f"{MID}#{facet}"
-    f = fact("model", MID, facet, ["text", "image"], outcome=None)
-    one = verification("fact", fid, "mismatch", day="2026-10-01", value=["text", "image"])
-    two = verification("fact", fid, "mismatch", day="2026-10-02", value=["image", "text"])
-    two["verifier"] = {**two["verifier"], "agent": "verifier-c", "method": "key-value-match@1"}
-    entry = line(subject=MID, facet=facet, value_hash=value_hash(["text", "image"]),
-                 reason="held_verdicts", attempt_line=None,
-                 verdicts=[verdict_sha256(one), verdict_sha256(two)], at=AT)
-    c = compiled([f], [], [entry], log=[one, two])
-    assert facet not in gap_facets(c)
-    assert c.rejected[(MID, facet)][0] == HELD_LISTED
-
-
-@pytest.mark.parametrize("bad", ["repeated", "one_verdict", "other_value", "same_reader",
-                                 "not_holding"])
-def test_a_double_hold_that_is_not_two_readers_on_this_value_fails(bad):
-    other_value = mismatch(day="2026-10-02", value=131072,
-                           verifier=("verifier-c", "key-value-match@1"))
-    log = [MISMATCH, other_value]
-    shas = {"repeated": [verdict_sha256(MISMATCH)] * 2,
-            "one_verdict": [verdict_sha256(MISMATCH)],
-            "other_value": [verdict_sha256(MISMATCH), verdict_sha256(other_value)],
-            "same_reader": [verdict_sha256(MISMATCH), verdict_sha256(MISMATCH)],
-            "not_holding": [verdict_sha256(MISMATCH), "sha256:" + "8" * 64]}[bad]
-    refused([held_fact()], [], [listing(reason="held_verdicts", verdicts=shas)], log=log)
-
-
-def test_standing_accepts_a_double_hold_on_two_readers_verdicts():
-    # Two readers' verdicts on the fact's id and value, kept as the latest of their own keys:
-    # the location id and a value-hash spelling of the same members (an unordered set).
-    from decision.model import value_hash
-
-    facet = "model.input_modalities"
-    fid = f"{MID}#{facet}"
-    f = fact("model", MID, facet, ["text", "image"], outcome=None)
-    one = verification("fact", fid, "mismatch", day="2026-10-01", value=["text", "image"])
-    two = verification("fact", fid, "mismatch", day="2026-10-02", value=["image", "text"])
-    two["verifier"] = {**two["verifier"], "agent": "verifier-c", "method": "key-value-match@1"}
-    verdicts = {("fact", fid, one["target"]["value_hash"]): ("2026-10-01", 1, one),
-                ("fact", fid, two["target"]["value_hash"]): ("2026-10-02", 2, two)}
-    entry = line(subject=MID, facet=facet, value_hash=value_hash(["text", "image"]),
-                 reason="held_verdicts", attempt_line=None,
-                 verdicts=[verdict_sha256(one), verdict_sha256(two)], at=AT)
-    listed, problems = standing([entry], fact_at=lambda s, fa: f if fa == facet else None,
-                                log=AttemptLog([]), verdicts=verdicts)
-    assert problems == [] and listed == {(MID, facet)}
-    same = copy.deepcopy(two)
-    same["verifier"] = dict(one["verifier"])
-    verdicts[("fact", fid, two["target"]["value_hash"])] = ("2026-10-02", 2, same)
-    entry2 = {**entry, "verdicts": [verdict_sha256(one), verdict_sha256(same)]}
-    assert standing([entry2], fact_at=lambda s, fa: f if fa == facet else None,
-                    log=AttemptLog([]), verdicts=verdicts)[1]  # one reader: refused
+    second = mismatch(day="2026-10-02", value=VALUE, verifier=("verifier-c", "key-value-match@1"))
+    entry = line(subject=MID, facet=FACET, value_hash=value_hash(VALUE), reason="held_verdicts",
+                 attempt_line=None, verdicts=[verdict_sha256(MISMATCH), verdict_sha256(second)],
+                 at=AT)
+    refused([held_fact()], [], [entry], log=[MISMATCH, second])
 
 
 # --- Codex review 3: a clearing ends a hold only through the shared release test ------------------
@@ -328,9 +277,7 @@ def test_the_site_loader_withholds_a_standing_listing(tmp_path):
 # --- #1206: a legacy read, a refusal before any read, the fact's epoch ---------------------------
 
 def legacy_split(**kw):
-    a = attempt(kind=None, **kw)
-    a.pop("filed_value")  # a cite-only read logged before the tags carried no filed value
-    return a
+    return attempt(kind=None, **kw)  # an untagged read that logged its filed value
 
 
 def test_an_untagged_split_in_the_legacy_prefix_justifies_a_split_hold():
@@ -338,6 +285,16 @@ def test_an_untagged_split_in_the_legacy_prefix_justifies_a_split_hold():
     c = compiled([held_fact()], [old], [listing(old)], legacy=[old])
     assert FACET not in gap_facets(c) and c.rejected[(MID, FACET)][0] == HELD_LISTED
     refused([held_fact()], [old], [listing(old)])  # the same line past the prefix: refused
+
+
+@pytest.mark.parametrize("filed", ["absent", "other_value"])
+def test_a_legacy_line_binds_the_facts_current_value(filed):
+    # Codex round 2, 1: a legacy read with no filed value, or another one, says nothing about the
+    # value the fact has now (it may have changed since), so it excuses no gap.
+    old = legacy_split(filed=131072)
+    if filed == "absent":
+        old.pop("filed_value")
+    refused([held_fact()], [old], [listing(old)], legacy=[old])
 
 
 def test_a_legacy_line_in_another_epoch_does_not_justify_a_hold():
@@ -450,3 +407,21 @@ def test_a_split_in_a_holding_verdicts_clearing_epoch_justifies_a_hold():
     other = attempt()
     other["epoch"] = clearing_epoch(base, "sha256:" + "7" * 64)  # a verdict that holds nothing
     refused([held_fact()], [other], [listing(other)])
+
+
+@pytest.mark.parametrize("bad", ["other_base", "verdict_on_another_value"])
+def test_a_clearing_epoch_is_the_facts_own_for_a_verdict_on_its_value(bad):
+    # Codex round 2, 2: the clearing epoch was opened in the fact's current epoch, for a verdict
+    # that holds the fact on its current value hash.
+    from decision.cited_change import fact_epoch
+    from decision.quarantine_clearing import clearing_epoch
+
+    base, verdict, log = fact_epoch(held_fact()), MISMATCH, [MISMATCH]
+    if bad == "other_base":
+        base = "reread:" + "1" * 64
+    else:
+        verdict = mismatch(day="2026-10-02", value=131072)
+        log = [verdict]
+    cleared = attempt()
+    cleared["epoch"] = clearing_epoch(base, verdict_sha256(verdict))
+    refused([held_fact()], [cleared], [listing(cleared)], log=log)

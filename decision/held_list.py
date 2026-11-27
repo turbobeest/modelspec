@@ -2,36 +2,33 @@
 
 Once ``retained-source-proof@1`` stops counting, a few facts stay held for an honest reason: two
 readers disagreed (a split), both found the page silent where a retaining page files no absence,
-the gate refused the fact before any read, or two verdicts hold the fact, which a clearing cannot
-clear. Each is listed in the append-only
-log ``verification/held.jsonl``, one line per listing, with exactly ``FIELDS``:
+or the gate refused the fact before any read. Each is listed in the append-only log
+``verification/held.jsonl``, one line per listing, with exactly ``FIELDS``:
 
     {"rule": "held-fact@1", "subject": "<card id>", "facet": "<facet>",
      "fact_id": "<card id>#<facet>", "value_hash": "<value hash of the fact as filed>",
-     "reason": "split" | "silent" | "refused" | "held_verdicts",
-     "line": "sha256:<hash of the gate-written attempt or refusal line>" | null,
-     "verdicts": ["sha256:<verdict hash>", ...], "recorded_at": "<ISO time with zone>"}
+     "reason": "split" | "silent" | "refused",
+     "line": "sha256:<hash of the gate-written attempt or refusal line>",
+     "verdicts": [], "recorded_at": "<ISO time with zone>"}
 
-A listing stands only when it resolves (``entry_problem``):
+A listing stands only when it resolves (``entry_problem``) to one line the gate wrote for this
+fact and its current value; verification rows alone never excuse a gap:
 - the fact is on its card at its location id, and ``value_hash`` binds its value as filed;
 - ``split`` or ``silent``: ``line`` is the hash of exactly one attempt line for this subject and
   facet that shows that hold (``hold_evidence.hold_kind``): the gate tagged it with that reason
   (``kind``, written by ``read_page`` under the line's hash), or it is an untagged read in the
   attempt log's pinned legacy prefix. Never a flag a hand-appended line declares for itself. It
-  must be a complete harness attempt with its prompt, page and text hashes, read in the fact's
-  current epoch (``cited_change.fact_epoch``) or in the clearing epoch of a verdict that holds
-  the fact now (the gate's read when asked to clear that hold). It must carry its two readers' answers, from two
-  distinct known families, which differ for a split, and are both null, with ``agreed_value``
-  null, for a silent read. A ``filed_value`` it carries must be the held fact's value; a tagged
-  line of a known fact must carry one. ``verdicts`` is empty.
+  must be a complete harness attempt with its prompt, page and text hashes. It was read in the
+  fact's current epoch (``cited_change.fact_epoch``), or in the clearing epoch opened in that
+  epoch for a verdict that holds the fact now on its current value (the gate's read when asked
+  to clear that hold). It carries its two readers' answers, from two distinct known families,
+  which differ for a split, and are both null, with ``agreed_value`` null, for a silent read.
+  Its ``filed_value`` binds the fact's current value hash: a legacy line, or a tagged line of a
+  known fact, that logged no filed value, or another one, does not resolve.
 - ``refused``: ``line`` is the hash of exactly one line of the gate's refusal log
   (``hold_evidence.REFUSALS_FILE``), written when the gate refused this fact before any read,
   with exactly its fields and rule, for this fact, a value hash that binds its current value
-  and its current epoch. ``verdicts`` is empty.
-- ``held_verdicts``: ``line`` is null, and ``verdicts`` names two or more distinct verdicts
-  (``quarantine_clearing.verdict_sha256``). Each holds the fact now
-  (``cited_change.held_rows``) on its location id and its current value, and together they come
-  from at least two readers (verifier agent and method).
+  and its current epoch.
 
 The latest listing of a fact decides. It no longer applies once a clearing cleared after it
 releases the fact by the shared test the gate and the build use
@@ -54,7 +51,7 @@ HELD_FILE = "verification/held.jsonl"
 RULE = "held-fact@1"
 FIELDS = ("rule", "subject", "facet", "fact_id", "value_hash", "reason", "line", "verdicts",
           "recorded_at")
-REASONS = ("split", "silent", "held_verdicts", "refused")
+REASONS = ("split", "silent", "refused")
 _REF = re.compile(r"sha256:[0-9a-f]{64}")
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 
@@ -90,11 +87,11 @@ def entry_problem(entry: Mapping[str, Any], *, fact: Mapping[str, Any] | None, l
     listing's location (``None`` when there is none), ``log`` the attempt log
     (``quarantine_clearing.AttemptLog``) and ``verdicts`` the verification log ranked by the
     build's own rule."""
-    from decision.cited_change import _check_identities, fact_epoch, held_rows
+    from decision.cited_change import _check_identities, fact_epoch
     from decision.hold_evidence import hold_kind
-    from decision.model import fact_verification_value, matching_value_hashes
+    from decision.model import fact_verification_value, matching_value_hashes, value_hash
     from decision.owner_ruling import loads
-    from decision.quarantine_clearing import _canonical, line_hash, verdict_sha256
+    from decision.quarantine_clearing import _canonical, line_hash
     from decision.retained_correction import _unordered
 
     if set(entry) != set(FIELDS) or entry.get("rule") != RULE:
@@ -117,27 +114,6 @@ def entry_problem(entry: Mapping[str, Any], *, fact: Mapping[str, Any] | None, l
     reason = entry.get("reason")
     if reason not in REASONS:
         return "the held line names no known reason"
-    if reason == "held_verdicts":
-        listed = entry.get("verdicts")
-        if entry.get("line") is not None or not isinstance(listed, list) \
-                or not all(isinstance(v, str) and _REF.fullmatch(v) for v in listed) \
-                or len(set(listed)) != len(listed) or len(listed) < 2:
-            return "a double hold names two or more distinct verdicts and no line"
-        try:
-            holding = {verdict_sha256(row): row for key, row in
-                       held_rows(verdicts, (entry["fact_id"],), fact)
-                       if key[1] == entry["fact_id"]
-                       and matching_value_hashes(value, [key[2]], unordered=unordered)}
-        except (KeyError, TypeError, AttributeError, ValueError):
-            return "the fact's verification record cannot be read"
-        if not set(listed) <= set(holding):
-            return "a listed verdict does not hold this fact's id and value"
-        readers = {(str((holding[v].get("verifier") or {}).get("agent") or ""),
-                    str((holding[v].get("verifier") or {}).get("method") or ""))
-                   for v in listed}
-        if len(readers) < 2:
-            return "a double hold's verdicts come from fewer than two readers"
-        return None
     if entry.get("verdicts") != [] or not isinstance(entry.get("line"), str) \
             or not _REF.fullmatch(entry["line"]):
         return "a split, silent or refused hold names one line and no verdicts"
@@ -178,27 +154,35 @@ def entry_problem(entry: Mapping[str, Any], *, fact: Mapping[str, Any] | None, l
                                                                        verdicts):
         return "the attempt was not read in the fact's epoch or a holding verdict's clearing epoch"
     if "filed_value" in attempt:
-        if _canonical(attempt["filed_value"], facet) != _canonical(fact.get("value"), facet):
+        if not matching_value_hashes(value, [value_hash(attempt["filed_value"])],
+                                     unordered=unordered):
             return "the attempt was read against another value of the fact"
-    elif "kind" in attempt and fact.get("state") == "known":
-        # The gate logs the filed value on every tagged split or silent read of a known fact.
+    elif "kind" not in attempt or fact.get("state") == "known":
+        # A legacy line is bound to the fact's current value only by the value it logged, and
+        # the gate logs the filed value on every tagged split or silent read of a known fact.
         return "the attempt was not read against this fact's value"
     return None
 
 
 def _clearing_read(attempt: Mapping[str, Any], entry: Mapping[str, Any], fact: Mapping[str, Any],
                    verdicts: Mapping[tuple[str, str, str], Any]) -> bool:
-    """Whether the attempt was read in the clearing epoch of a verdict that holds the fact now
-    (``quarantine_clearing.clearing_epoch``): the gate's read when asked to clear that hold."""
-    from decision.cited_change import held_rows
+    """Whether the attempt was read in the clearing epoch (``quarantine_clearing.clearing_epoch``)
+    of a verdict that holds the fact now on its current value, opened in the fact's current
+    epoch (``cited_change.fact_epoch``): the gate's read when asked to clear that very hold."""
+    from decision.cited_change import fact_epoch, held_rows
+    from decision.model import fact_verification_value, matching_value_hashes
     from decision.quarantine_clearing import base_epoch, verdict_sha256
+    from decision.retained_correction import _unordered
 
+    base, value = fact_epoch(fact), fact_verification_value(fact)
     try:
-        holding = [verdict_sha256(row) for _key, row in
-                   held_rows(verdicts, (entry["fact_id"],), fact)]
+        holding = [verdict_sha256(row) for key, row in
+                   held_rows(verdicts, (entry["fact_id"],), fact)
+                   if matching_value_hashes(value, [key[2]],
+                                            unordered=_unordered(str(entry["facet"])))]
     except (KeyError, TypeError, AttributeError, ValueError):
         return False
-    return any(base_epoch(attempt.get("epoch"), h) is not None for h in holding)
+    return any(base_epoch(attempt.get("epoch"), h) == base for h in holding)
 
 
 def _refusal_problem(entry: Mapping[str, Any], fact: Mapping[str, Any], refusals: Sequence[str],
