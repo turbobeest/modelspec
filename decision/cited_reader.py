@@ -306,21 +306,26 @@ def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_
                                         sha256(prompt), dict(manifest)))
     except ReaderError as error:
         entry["error"] = str(error)
+        _tag(entry, kind, filed_kinds)
         log_attempt(entry, data_dir=data_dir)
         raise
     entry["complete"] = True
     entry["agreed"] = len(answers) == 2 and (canonical(answers[0].value, facet_id)
                                              == canonical(answers[1].value, facet_id))
     entry["agreed_value"] = answers[0].value if entry["agreed"] else None
+    _tag(entry, kind, filed_kinds)
+    log_attempt(entry, data_dir=data_dir)
+    return answers
+
+
+def _tag(entry: dict[str, Any], kind: Callable[[Mapping[str, Any]], str | None] | None,
+         filed_kinds: Sequence[str] | None) -> None:
+    """Write the gate's ``kind`` into the line before it is logged, so the line's hash covers it
+    (MODEL-491 E4 review), and keep ``filed_value`` only on a line of a kind that names it when
+    ``filed_kinds`` is given, so no other line gains a replaced value (MODEL-491)."""
     if kind is not None:
-        # MODEL-491 E4 review: what this read can file, decided by the gate's own emit rule and
-        # written into the line itself, so the line's hash covers it.
         made = kind(entry)
         if made is not None:
             entry["kind"] = made
     if filed_kinds is not None and entry.get("kind") not in filed_kinds:
-        # MODEL-491: the filed value stays only on a line of a kind that names it (a split or
-        # silent read a held listing rests on), so no other line gains a replaced value.
         entry.pop("filed_value", None)
-    log_attempt(entry, data_dir=data_dir)
-    return answers
