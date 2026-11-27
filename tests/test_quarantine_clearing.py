@@ -1353,32 +1353,70 @@ def test_a_board_reading_still_needs_its_pairing():
                          first="initial", settings=settings) is None
 
 
-def test_e3_pairs_the_verdict_only_with_a_check_of_its_own_value():
-    """Codex on #1199: a same-day check that names another value (by hash or diff), or names no
-    value, never justifies clearing this verdict; one that names its value does."""
+def test_e3_pairs_a_check_on_the_value_it_checked():
+    """A check is paired on the claim value it CHECKED (its target value hash, or its diff's
+    ``expected``), never on the page value it observed (``found``, which a mismatch differs on).
+    Same checked value: paired. Another checked value: the wrong verdict, refused. No checked
+    value named: paired only when the verdict's value was the only value on the fact."""
     from decision.model import value_hash
     from decision.quarantine_clearing import verdict_epoch
 
     kw = dict(log=AttemptLog(), subject=MID, facet=FACET, first="initial")
-    other_hash = value_hash(1)
-    assert verdict_epoch(VERDICT, history=unpaired(VERDICT, check_hash=other_hash), **kw) is None
-    assert verdict_epoch(VERDICT, history=unpaired(VERDICT, check_hash=None), **kw) is None
-    by_diff = unpaired(VERDICT, check_hash=None)
-    by_diff[0] = {**by_diff[0], "diff": [{"field": "value", "expected": 1, "found": None}]}
-    assert verdict_epoch(VERDICT, history=by_diff, **kw) is None
-    ours_by_diff = unpaired(VERDICT, check_hash=None)
-    ours_by_diff[0] = {**ours_by_diff[0],
-                       "diff": [{"field": "value", "expected": VALUE, "found": None}]}
-    assert verdict_epoch(VERDICT, history=ours_by_diff, **kw) == "initial"
-    # A check of another value beside one of this value: only the latter counts, and it does.
-    wrong = unpaired(VERDICT, check_hash=other_hash, check_at="2026-10-01T05:30:00+00:00")[0]
-    assert verdict_epoch(VERDICT, history=[*unpaired(VERDICT), wrong], **kw) == "initial"
-    # The build agrees: a clearing on a check of another value admits nothing.
     attempt = agreement()
-    assert not admitted(build(cleared_row(attempt), [clearing(attempt)], [attempt],
-                              history={FID: unpaired(VERDICT, check_hash=other_hash)}))
-    assert not admitted(build(cleared_row(attempt), [clearing(attempt)], [attempt],
-                              history={FID: unpaired(VERDICT, check_hash=None)}))
+
+    def cleared(trail):
+        return admitted(build(cleared_row(attempt), [clearing(attempt)], [attempt],
+                              history={FID: trail}))
+
+    def with_diff(expected, found):
+        trail = unpaired(VERDICT, check_hash=None)
+        trail[0] = {**trail[0], "diff": [{"field": "value", "expected": expected,
+                                          "found": found}]}
+        return trail
+
+    # 1. The same checked value: by hash, or by the diff's expected value (the page's differs).
+    assert verdict_epoch(VERDICT, history=unpaired(VERDICT), **kw) == "initial"
+    assert verdict_epoch(VERDICT, history=with_diff(VALUE, 1), **kw) == "initial"
+    assert cleared(with_diff(VALUE, 1))
+    # 2. Another checked value, by hash or diff: refused, even when the page value it found is
+    # the verdict's own value.
+    other = unpaired(VERDICT, check_hash=value_hash(1))
+    assert verdict_epoch(VERDICT, history=other, **kw) is None
+    assert verdict_epoch(VERDICT, history=with_diff(1, VALUE), **kw) is None
+    assert not cleared(other) and not cleared(with_diff(1, VALUE))
+    # A check of another value beside one of this value: only the latter counts, and it does.
+    wrong = unpaired(VERDICT, check_hash=value_hash(1), check_at="2026-10-01T05:30:00+00:00")[0]
+    assert verdict_epoch(VERDICT, history=[*unpaired(VERDICT), wrong], **kw) == "initial"
+    # 3. No checked value named (no hash, no value diff; a diff on another field says nothing).
+    silent = unpaired(VERDICT, check_hash=None)
+    model_diff = unpaired(VERDICT, check_hash=None)
+    model_diff[0] = {**model_diff[0], "diff": [{"field": "model", "expected": "a", "found": "b"}]}
+    for trail in (silent, model_diff):
+        # The verdict's value is the only value on the fact: paired.
+        assert verdict_epoch(VERDICT, history=trail, **kw) == "initial"
+        assert cleared(trail)
+        # Another value was filed by the end of the day, before or after the check, or on an
+        # earlier day: refused.
+        for at in ("2026-10-01T04:00:00+00:00", "2026-10-01T23:00:00+00:00",
+                   "2026-09-01T09:00:00+00:00"):
+            rival = unpaired(VERDICT, value=1, claim_at=at)[1]
+            assert verdict_epoch(VERDICT, history=[*trail, rival], **kw) is None
+            assert not cleared([*trail, rival])
+        # Another value filed after the verdict's day says nothing about the check.
+        later = unpaired(VERDICT, value=1, claim_at="2026-10-02T09:00:00+00:00")[1]
+        assert verdict_epoch(VERDICT, history=[*trail, later], **kw) == "initial"
+
+
+def test_e3_refuses_when_a_claim_was_retired_by_the_verdicts_day():
+    from decision.quarantine_clearing import verdict_epoch
+
+    kw = dict(log=AttemptLog(), subject=MID, facet=FACET, first="initial")
+    trail = unpaired(VERDICT)
+    retired = {"event": "retired", "at": "2026-10-01T04:00:00+00:00",
+               "target": {"kind": "fact", "id": FID}, "reason": "no_data_row"}
+    assert verdict_epoch(VERDICT, history=[retired, *trail], **kw) is None
+    later = {**retired, "at": "2026-10-03T04:00:00+00:00"}
+    assert verdict_epoch(VERDICT, history=[*trail, later], **kw) == "initial"
 
 
 def test_e3_and_a_rule_15_filing_for_another_value_are_kept_apart():
