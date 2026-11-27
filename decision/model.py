@@ -144,20 +144,7 @@ ROUND_ONE = ("codex-model-143", "2026-09-25")
 _NULL_HASH = "sha256:74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
 
 
-def private_data(root: Any = None) -> bool:
-    """Whether a build reads the private data, the one switch for MODEL-491's retirement of
-    ``retained-source-proof@1`` and E5: the data checkout ``root``, or, when none is given, the
-    active data directory (``MODELSPEC_DATA_DIR``), carries ``.engine-pin``. The engine's frozen
-    public image has none, so it keeps the counting rule as filed and builds as before."""
-    import os
-    from pathlib import Path
-
-    if root is None:
-        root = os.environ.get("MODELSPEC_DATA_DIR", "").strip() or None
-    return root is not None and (Path(root) / ".engine-pin").is_file()
-
-
-def verification_row_counts(row: Any, *, retire: bool | None = None) -> bool:
+def verification_row_counts(row: Any, *, retire: bool = False) -> bool:
     """Whether one logged verification row decides its value's state (MODEL-491): the one rule
     the build, the gate's hold, the data-trust audit and the writers share.
 
@@ -172,8 +159,10 @@ def verification_row_counts(row: Any, *, retire: bool | None = None) -> bool:
 
     ``retire=False`` keeps the rule before MODEL-491 (the same-family rule only). That is for the
     engine's frozen public data image alone, which is frozen as filed and reproduced byte for
-    byte; every build from the private data retires (``SnapshotInputs.retire_rsp``). ``None``,
-    the default, asks ``private_data()``: no caller retires the public image by default.
+    byte, and it is the default. Every entry point that builds or checks the private data passes
+    ``retire=True`` down from its own explicit argument (``collect_repo(root, private=True)``, the
+    Worker's ``--data-dir`` export, the data writers, the trust audit, the data checks); nothing
+    here looks the switch up.
     """
     get = row.get if isinstance(row, Mapping) else (lambda k, d=None: getattr(row, k, d))
     outcome = str(get("outcome"))
@@ -187,8 +176,6 @@ def verification_row_counts(row: Any, *, retire: bool | None = None) -> bool:
     if not verification_counts(outcome, field(collector, "model_family"),
                                field(verifier, "model_family")):
         return False
-    if retire is None:
-        retire = private_data()
     if not retire:
         return True
     methods = {str(get("method") or ""), field(verifier, "method")}
@@ -231,9 +218,10 @@ class Verification(Record):
 
     @property
     def counts(self) -> bool:
-        """See ``verification_row_counts``: a same-family ``verified``, a retired method's row and
-        a label matcher's ``verified`` on a null value are ignored (MODEL-491)."""
-        return verification_row_counts(self)
+        """See ``verification_row_counts``, under the public rule (``retire=False``): a same-family
+        ``verified`` is ignored. A private-data reader calls ``verification_row_counts(record,
+        retire=True)`` itself (MODEL-491)."""
+        return verification_row_counts(self, retire=False)
 
     @property
     def quarantined(self) -> bool:

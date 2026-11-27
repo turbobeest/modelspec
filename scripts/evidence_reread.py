@@ -742,7 +742,7 @@ def ruled_fact_rereads(root: Path, terms: dict[str, str], report: Report, *, sou
     pacer = pacer or Pacer()
     day = observed_at or date.today()
     try:
-        inputs = read_ruling_inputs(root)
+        inputs = read_ruling_inputs(root, private=True)  # a private-data writer (MODEL-491)
         records = rr.Records.read(root)
     except (OSError, ValueError, KeyError, TypeError):  # a log that cannot be read stands nothing
         report.ruled_facts_checked += len(facts)

@@ -181,7 +181,7 @@ def verification_history(queue_events, records, compiler):
                     value, [record["target"]["value_hash"]],
                     unordered=compiler._unordered(claim.target.kind, claim.field),
                 )
-                or not verification_row_counts(record)
+                or not verification_row_counts(record, retire=compiler.retire)
                 for _, record in entries
             ):
                 break
@@ -317,11 +317,11 @@ def drop_refs(text, offset, source_node, keep):
     return edits
 
 
-def plan(root, store, today):
+def plan(root, store, today, *, private=False):
     sources = load_sources(root / "registry/sources.yaml")
     urls = {sid: str(source.url) for sid, source in sources.items()}
     records = json_lines(root / "verification/log.jsonl")
-    compiler = _Compiler(SnapshotInputs(sources=urls, verifications=records),
+    compiler = _Compiler(SnapshotInputs(sources=urls, verifications=records, retire_rsp=private),
                          registry.default(), None, today, source_cache=store)
     queue_path = root / QUEUE
     queue_bytes = queue_path.read_bytes() if queue_path.exists() else None
@@ -529,8 +529,10 @@ def main(argv=None):
     retention.POLICY_PATH = args.policy.resolve()
     retention.cite_only_hosts.cache_clear()
     retention.cite_only_hosts()
+    # --data-root names the private data: MODEL-491's rule applies.
     planned = plan(
-        args.data_root.resolve(), CopyStore(args.source_cache.resolve()), args.as_of
+        args.data_root.resolve(), CopyStore(args.source_cache.resolve()), args.as_of,
+        private=True,
     )
     changes, half_done = planned.changes, None
     if args.write:

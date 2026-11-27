@@ -85,8 +85,9 @@ def load_inputs(root: Path, as_of: date) -> dict:
 
     require_inputs(Path(root) / "premier" / "inputs", ["slice-2.yaml"])
     root = check_private(root)
-    cards = load_cards(root)
-    inputs = collect_repo(root)
+    # The live lineup reads the private data (``check_private``): MODEL-491's rule applies.
+    cards = load_cards(root, private=True)
+    inputs = collect_repo(root, private=True)
     audit_inputs = inputs  # MODEL-520: the gate audits what production audits
     registry = default_registry()
     identity_values = {
@@ -260,7 +261,8 @@ def load_inputs(root: Path, as_of: date) -> dict:
         "cards": cards,
         "boards": sorted(boards.values(), key=lambda board: board["id"]),
         "budget_candidates": list(cheapest.values()),
-        "local_candidates": local_candidate_universe(slice2["local"]["candidates"], root),
+        "local_candidates": local_candidate_universe(slice2["local"]["candidates"], root,
+                                                     private=True),
         "slice2": slice2,
         "reviewer_clauses": reviewer_clauses,
         "aliases": {},

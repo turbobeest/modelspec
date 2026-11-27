@@ -191,7 +191,7 @@ def _reconfirmed_fact(record: dict[str, Any], found: Lookup, data_dir: Path) -> 
         raise WriteRefused("the fact changed since the gate read it; read it again")
     fact = filed(current, {k: v for k, v in record.items() if k != "read_against"})
     try:
-        log, verdicts, cutoff = _correction_inputs(data_dir, None)
+        log, verdicts, cutoff = _correction_inputs(data_dir, None, True)  # a data writer
     except LoadError as error:
         raise WriteRefused(f"the logs cannot be read: {error}") from None
     urls = {str(k): str(v.get("url")) for k, v in found.sources.items()

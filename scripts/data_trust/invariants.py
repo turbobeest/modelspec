@@ -324,7 +324,7 @@ def _open_weights(f, c):
             and bool(source_urls(f, c))
             and all(safe_url(u) and not excluded_sources().url(u) for u in source_urls(f, c))
             and v.get("outcome") == "verified"
-            and verification_row_counts(v)
+            and verification_row_counts(v, retire=c.retire)
         )
     except KeyError:
         return False

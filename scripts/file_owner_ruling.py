@@ -249,7 +249,7 @@ def reopened(root: Path, found: Any, subject: str, facet: str, epoch: str,
     from decision.ruling_reread import Records, standing_ruling
 
     try:
-        inputs = read_ruling_inputs(root)
+        inputs = read_ruling_inputs(root, private=True)  # a private-data writer (MODEL-491)
         records = Records.read(root)
     except (OSError, ValueError, KeyError, TypeError):
         return False
@@ -308,7 +308,7 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
     from decision.snapshot import _Compiler
 
     try:
-        verdicts = _Compiler._verification_log(logged)
+        verdicts = _Compiler._verification_log(logged, retire=True)
         held = held_verdicts(verdicts, found.fact_ids, found.fact)
     except (KeyError, TypeError, AttributeError):
         raise Refused("registry_lookup_failed", "the verification log does not parse") from None

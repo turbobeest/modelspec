@@ -475,7 +475,7 @@ def test_sample_mismatch_does_not_fail_command(tmp_path, catalogue, registry, mo
     from scripts.data_trust import __main__ as command
 
     monkeypatch.setattr(command, "load_registry", lambda *a, **kw: registry)
-    monkeypatch.setattr(command, "load", lambda root, *, source_root: catalogue)
+    monkeypatch.setattr(command, "load", lambda root, *, source_root, **_: catalogue)
     monkeypatch.setattr(command, "calibrate", lambda *a: None)
     original = sample.run
 
@@ -653,7 +653,7 @@ def test_calibration_uses_engine_admission(catalogue, registry, monkeypatch, tmp
         ],
         sources={sid: row["url"] for sid, row in catalogue.sources.items()},
     )
-    monkeypatch.setattr(snapshot, "collect_repo", lambda root: inputs)
+    monkeypatch.setattr(snapshot, "collect_repo", lambda root, **_: inputs)
     calibrate(catalogue, tmp_path, registry, TODAY)
     assert {f["field"] for f in catalogue.facts} == {
         "model.weights_openness",
@@ -697,7 +697,7 @@ def test_calibration_keeps_vendor_hardware_out_of_verified_facts(
     assert hardware["sources"] == [{"source_id": "src-lab-docs"}]
     assert "verification" not in hardware
 
-    monkeypatch.setattr(snapshot, "collect_repo", lambda root: inputs)
+    monkeypatch.setattr(snapshot, "collect_repo", lambda root, **_: inputs)
     calibrate(catalogue, tmp_path, registry, TODAY)
     assert {f["id"] for f in catalogue.facts} == {
         "test/model#model.weights_openness",
@@ -736,7 +736,7 @@ def lab_catalogue(catalogue, registry, monkeypatch, tmp_path):
         sources={sid: row["url"] for sid, row in catalogue.sources.items()},
         verifications=[verification("fact", "lab:test#origin.lab_jurisdiction", value=["US"])],
     )
-    monkeypatch.setattr("decision.snapshot.collect_repo", lambda root: inputs)
+    monkeypatch.setattr("decision.snapshot.collect_repo", lambda root, **_: inputs)
     calibrate(catalogue, tmp_path, registry, TODAY)
     return catalogue
 
@@ -780,7 +780,7 @@ def test_unknown_lab_subject_still_errors(lab_catalogue, registry, monkeypatch, 
             ],
         }],
     )
-    monkeypatch.setattr("decision.snapshot.collect_repo", lambda root: inputs)
+    monkeypatch.setattr("decision.snapshot.collect_repo", lambda root, **_: inputs)
     with pytest.raises(SnapshotBuildError, match="must name its actual owner"):
         calibrate(lab_catalogue, tmp_path, registry, TODAY)
 
@@ -832,7 +832,7 @@ def test_ignored_prose_cannot_fail_calibrated_audit(catalogue, registry, monkeyp
 
     catalogue.findings.append(Finding("models/editorial.md", "model_id", "missing_id"))
     inputs = snapshot.SnapshotInputs(models=[{"id": MID, "lifecycle": "active", "facts": []}])
-    monkeypatch.setattr(snapshot, "collect_repo", lambda root: inputs)
+    monkeypatch.setattr(snapshot, "collect_repo", lambda root, **_: inputs)
     calibrate(catalogue, tmp_path, registry, TODAY)
     assert invariants.run(catalogue, registry, TODAY)["errors"] == 0
 
@@ -915,7 +915,7 @@ def calibrate_dated(catalogue, registry, monkeypatch, tmp_path, rows):
         offerings=[offering(MID, facts=rows)],
         sources={sid: row["url"] for sid, row in catalogue.sources.items()},
     )
-    monkeypatch.setattr("decision.snapshot.collect_repo", lambda root: inputs)
+    monkeypatch.setattr("decision.snapshot.collect_repo", lambda root, **_: inputs)
     calibrate(catalogue, tmp_path, registry, TODAY)
     return [f for f in catalogue.facts if f["field"] == DATED_FACET]
 
@@ -996,7 +996,7 @@ def calibrate_row(catalogue, registry, monkeypatch, tmp_path, refs, *, verified=
         }],
         sources={sid: source["url"] for sid, source in catalogue.sources.items()},
     )
-    monkeypatch.setattr("decision.snapshot.collect_repo", lambda root: inputs)
+    monkeypatch.setattr("decision.snapshot.collect_repo", lambda root, **_: inputs)
     calibrate(catalogue, tmp_path, registry, TODAY)
     served = [f for f in catalogue.facts if f["field"] == "model.context_window"]
     assert len(served) <= 1

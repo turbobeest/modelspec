@@ -369,7 +369,7 @@ def test_private_freshness_uses_current_data_and_its_registry_without_disclosure
     ),))
     private_snapshot.snapshot_id = "private-sentinel-snapshot"
 
-    def load(root, snapshot_file, when):
+    def load(root, snapshot_file, when, **_):
         assert when == as_of
         if root == private:
             logging.getLogger("pipeline.load").warning("private-sentinel-model")
@@ -412,7 +412,7 @@ def test_private_freshness_rejects_unreadable_inputs_without_disclosure(
             "sources": [{"id": "board", "url": "https://example.test/", "volatility": "live"}],
         }))
 
-    def load(root, snapshot_file, when):
+    def load(root, snapshot_file, when, **_):
         if problem == "malformed":
             raise ValueError("private-sentinel-content")
         snapshot = FakeSnapshot()
@@ -432,7 +432,7 @@ def test_nightly_private_freshness_keeps_reference_and_recall_on_public_inputs(
     tmp_path: Path, monkeypatch,
 ) -> None:
     public_snapshot = FakeSnapshot()
-    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args: public_snapshot)
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args, **_: public_snapshot)
     calls = []
 
     def public_layer(name):
@@ -468,7 +468,7 @@ def test_nightly_private_freshness_keeps_reference_and_recall_on_public_inputs(
 
 def test_pr_checks_frozen_engine_without_a_current_data_age_gate(tmp_path: Path, monkeypatch) -> None:
     snapshot = FakeSnapshot()
-    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args: snapshot)
+    monkeypatch.setattr(accuracy, "_load_snapshot", lambda *args, **_: snapshot)
     monkeypatch.setattr(accuracy, "check_freshness", lambda *args, **kwargs: pytest.fail("frozen age gate"))
     for name in ("deterministic_correctness", "output_parity"):
         monkeypatch.setattr(accuracy, name, lambda *args: accuracy.LayerResult("engine", "pass", True, "ok"))
@@ -819,7 +819,7 @@ def test_data_pr_report_labels_the_linked_catalogue_snapshot(tmp_path: Path, mon
     snapshot = FakeSnapshot()
     loads = []
 
-    def load(root, snapshot_file, as_of):
+    def load(root, snapshot_file, as_of, **_):
         loads.append(root)
         return snapshot
 
@@ -838,7 +838,7 @@ def test_data_pr_report_labels_the_linked_catalogue_snapshot(tmp_path: Path, mon
 def test_data_pr_report_without_a_link_omits_the_catalogue_label(monkeypatch) -> None:
     snapshot = FakeSnapshot()
 
-    def load(root, snapshot_file, as_of):
+    def load(root, snapshot_file, as_of, **_):
         return snapshot
 
     monkeypatch.setattr(accuracy, "_load_snapshot", load)

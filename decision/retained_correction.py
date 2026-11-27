@@ -532,7 +532,9 @@ def verified_winner(fact: Mapping[str, Any], subject: str,
     inline = fact.get("verification")
     if isinstance(inline, Mapping) and isinstance(inline.get("target"), Mapping):
         target = inline["target"]
-        if target.get("kind") == "fact" and target.get("id") == rid and _counts(inline) \
+        # The inline record counts by the rule ``verdicts`` was ranked under (MODEL-491).
+        if target.get("kind") == "fact" and target.get("id") == rid \
+                and _counts(inline, retire=bool(getattr(verdicts, "retire", False))) \
                 and matching_value_hashes(value, [str(target.get("value_hash") or "")],
                                           unordered=unordered):
             entries.append((str(inline["date"]), 0, inline))

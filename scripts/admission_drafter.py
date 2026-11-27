@@ -380,7 +380,7 @@ def draft_packet(*, root: Path, model_id: str, fetcher, store: CopyStore,
     lab, slug = model_id.split("/")
     names = tuple(dict.fromkeys((card.get("display_name") or slug,
                                 card.get("version") or slug, slug)))
-    inputs = collect_repo(root)
+    inputs = collect_repo(root, private=True)  # --data-dir names the private data (MODEL-491)
     model = next(m for m in inputs.models if m["id"] == model_id)
     registered = load_sources(root / "registry/sources.yaml")
     terms = load_source_terms(root)

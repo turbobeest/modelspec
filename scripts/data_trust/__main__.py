@@ -47,7 +47,8 @@ def main(argv=None) -> int:
 def _audit(args, seed) -> int:
     with tempfile.TemporaryDirectory(prefix="modelspec-trust-overlay-") as tmp:
         root = overlay(ENGINE, args.data_dir, Path(tmp))
-        c = load(root, source_root=args.data_dir)
+        # --data-dir names the private data: MODEL-491's rule applies.
+        c = load(root, source_root=args.data_dir, private=True)
         registry = load_registry(root / "registry", repo_root=root)
         try:
             calibrate(c, root, registry, args.date)

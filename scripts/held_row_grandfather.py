@@ -36,7 +36,9 @@ def missing_hashes(root: Path) -> dict[str, list[str]]:
     from decision import snapshot
     from decision.registry import default
 
-    inputs = replace(snapshot.collect_repo(root), held_row_grandfather={}, check_held_rows=False)
+    # The grandfather list is computed on the private data (--data-dir): MODEL-491's rule.
+    inputs = replace(snapshot.collect_repo(root, private=True), held_row_grandfather={},
+                     check_held_rows=False)
     compiler = snapshot._compile(inputs, default(), None, datetime.now(UTC).date(), False, None)
     found: dict[str, list[str]] = {}
     for kind, sha in compiler.missing_holds():

@@ -45,7 +45,7 @@ sys.path.insert(0, str(ROOT))
 
 from api.classes import class_for_model_type  # noqa: E402
 from decision.excluded import excluded_sources  # noqa: E402
-from decision.model import private_data, value_hash, verification_row_counts  # noqa: E402
+from decision.model import value_hash, verification_row_counts  # noqa: E402
 from decision.registry import default as default_registry  # noqa: E402
 from decision.sources import load_sources  # noqa: E402
 from scripts.premier_inputs import require_inputs  # noqa: E402
@@ -473,9 +473,9 @@ def rank_board(board: dict, *, minimum_rows: int | None = None) -> list[dict]:
     return ranked
 
 
-def load_cards(root: Path = ROOT) -> dict[str, dict]:
+def load_cards(root: Path = ROOT, *, private: bool = False) -> dict[str, dict]:
     cards: dict[str, dict] = {}
-    verifications = _verification_index(root)
+    verifications = _verification_index(root, private=private)
     guaranteed = {
         facet.id
         for facet in default_registry().facets()
@@ -552,7 +552,8 @@ def load_cards(root: Path = ROOT) -> dict[str, dict]:
     return cards
 
 
-def _verification_index(root: Path = ROOT) -> dict[tuple[str, str, str], dict]:
+def _verification_index(root: Path = ROOT, *,
+                        private: bool = False) -> dict[tuple[str, str, str], dict]:
     """Latest counting verification for each exact record value."""
     latest: dict[tuple[str, str, str], tuple[str, int, dict]] = {}
     path = root / "verification" / "log.jsonl"
@@ -560,8 +561,9 @@ def _verification_index(root: Path = ROOT) -> dict[tuple[str, str, str], dict]:
         if not line.strip():
             continue
         row = json.loads(line)
-        # The frozen public image keeps its rule as filed; the private data retires (MODEL-491).
-        if not verification_row_counts(row, retire=private_data(root)):
+        # The frozen public image keeps its rule as filed; the live lineup's caller states that it
+        # reads the private data (``private``), and MODEL-491's rule applies (premier_live).
+        if not verification_row_counts(row, retire=private):
             continue
         target = row["target"]
         key = (str(target["kind"]), str(target["id"]), str(target["value_hash"]))
@@ -644,9 +646,10 @@ def select_local_candidates(candidates: list[dict], *, max_memory_gb: float) -> 
     ]
 
 
-def local_candidate_universe(candidates: list[dict], root: Path = ROOT) -> list[dict]:
+def local_candidate_universe(candidates: list[dict], root: Path = ROOT, *,
+                             private: bool = False) -> list[dict]:
     """Attach exact-value verification state to the filed local facts."""
-    verifications = _verification_index(root)
+    verifications = _verification_index(root, private=private)
     suffixes = {
         "parameter_verified": ("model.parameters_total", "parameter_count"),
         "artifact_verified": ("local.quantised_size_bytes", "published_size_bytes"),

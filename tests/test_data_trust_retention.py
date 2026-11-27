@@ -320,7 +320,7 @@ def test_copy_findings_survive_calibration(root, monkeypatch):
     body(root)
     manifest(root, [{"url": "https://cite.example/source", "path": "page.gz"}])
     c = load(root)
-    monkeypatch.setattr(snapshot, "collect_repo", lambda root: snapshot.SnapshotInputs(
+    monkeypatch.setattr(snapshot, "collect_repo", lambda root, **_: snapshot.SnapshotInputs(
         models=[{"id": "example/model", "lifecycle": "active", "facts": []}]))
     registry = load_registry()
     calibrate(c, root, registry, TODAY)

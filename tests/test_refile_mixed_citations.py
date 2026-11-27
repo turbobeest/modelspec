@@ -799,3 +799,25 @@ def test_rule_1_recovers_on_rerun_after_a_card_write_failure(
     assert card_claim_disagreements(root) == ([], 1)
     assert script.main(args) == 0
     assert json.loads(capsys.readouterr().out)["counts"] == {"1": 0, "2": 0, "3": 0}
+
+
+def test_the_data_root_plan_counts_by_the_private_datas_rule(tmp_path, script, monkeypatch):
+    # MODEL-491, Codex review 4: --data-root names the private data, so the plan's compiler and
+    # its history check count verdicts by MODEL-491's rule, stated by main, never read from the
+    # environment.
+    root, cache, policy, _card = setup_data(tmp_path, retained_value=64000, support="open")
+    seen, real = [], script._Compiler
+
+    def compiler(inputs, *args, **kwargs):
+        seen.append(inputs.retire_rsp)
+        return real(inputs, *args, **kwargs)
+
+    monkeypatch.setattr(script, "_Compiler", compiler)
+    monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)
+    args = ["--data-root", str(root), "--source-cache", str(cache), "--policy", str(policy),
+            "--as-of", "2026-10-21"]
+    assert script.main(args) == 0
+    assert seen and all(seen)
+    seen.clear()
+    plan_in_process(script, root, cache, policy)  # the plan itself defaults to the public rule
+    assert seen and not any(seen)

@@ -649,12 +649,15 @@ def output_parity(root: Path, config: SuiteConfig, include_web: bool = True) -> 
     )
 
 
-def _load_snapshot(root: Path, snapshot_file: Path | None, as_of: date):
+def _load_snapshot(root: Path, snapshot_file: Path | None, as_of: date, *,
+                   private: bool = False):
+    """``private``: the caller states ``root`` is the private data (MODEL-491's rule)."""
     from decision.snapshot import build_from_repo, load_built_snapshot, load_snapshot
 
     if snapshot_file is not None:
         return load_snapshot(snapshot_file, key=None, include_archive=False)
-    built = build_from_repo(root, premier=root / "premier" / "slice-1.yaml", as_of=as_of)
+    built = build_from_repo(root, premier=root / "premier" / "slice-1.yaml", as_of=as_of,
+                            private=private)
     return load_built_snapshot(built, include_archive=False, source="accuracy build")
 
 
@@ -677,7 +680,7 @@ def check_private_freshness(
         sources = load_sources(root / "registry" / "sources.yaml")
         if not sources:
             raise ValueError("empty source registry")
-        snapshot = _load_snapshot(root, None, as_of)
+        snapshot = _load_snapshot(root, None, as_of, private=True)  # the private data root
         result = check_freshness(snapshot, as_of=as_of, config=config, sources=sources)
         if not result.counts["lineup_models"]:
             raise ValueError("empty lineup")
@@ -1801,9 +1804,13 @@ def run_profile(
     random_seed: str | None = None,
     approved_recall_baseline: Path | None = None,
     private_data_root: Path | None = None,
+    private_data: bool = False,
 ) -> AccuracyReport:
     del output_dir
     root = Path(root).resolve()
+    # The data-pr profile runs on the private data's own pull requests; ``private_data`` says so
+    # for any other profile. MODEL-491's counting rule follows the caller's statement.
+    private = private_data or profile == "data-pr"
     _refuse_linked_profile(root, profile)
     as_of = as_of or datetime.now(UTC).date()
     config = load_config(config_path)
@@ -1819,11 +1826,11 @@ def run_profile(
     # data-pr scores the linked catalogue. The build's completeness gate stays
     # on: a card that does not compile fails this profile before the other layers.
     if profile == "data-pr":
-        snapshot = _load_snapshot(root, snapshot_file, as_of)
+        snapshot = _load_snapshot(root, snapshot_file, as_of, private=private)
     # Load the reference snapshot before fidelity can quarantine a mismatched
     # value in this run. Both nightly layers must assess the same starting state.
     if "reference_agreement" in selected:
-        snapshot = _load_snapshot(root, snapshot_file, as_of)
+        snapshot = _load_snapshot(root, snapshot_file, as_of, private=private)
     results: list[LayerResult] = []
     for layer in selected:
         if layer == "deterministic_correctness":
@@ -1836,13 +1843,13 @@ def run_profile(
             else:
                 from decision.sources import load_sources
 
-                snapshot = snapshot or _load_snapshot(root, snapshot_file, as_of)
+                snapshot = snapshot or _load_snapshot(root, snapshot_file, as_of, private=private)
                 results.append(check_freshness(
                     snapshot, as_of=as_of, config=config.freshness,
                     sources=load_sources(root / "registry" / "sources.yaml"),
                 ))
         elif layer == "frozen_image_engine_recall":
-            snapshot = snapshot or _load_snapshot(root, snapshot_file, as_of)
+            snapshot = snapshot or _load_snapshot(root, snapshot_file, as_of, private=private)
             results.append(
                 run_golden(
                     root,
@@ -1867,7 +1874,7 @@ def run_profile(
                 )
             )
         elif layer == "reference_agreement":
-            snapshot = snapshot or _load_snapshot(root, snapshot_file, as_of)
+            snapshot = snapshot or _load_snapshot(root, snapshot_file, as_of, private=private)
             results.append(
                 reference_agreement(snapshot, root, as_of=as_of, config=config.reference)
             )

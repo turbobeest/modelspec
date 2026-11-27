@@ -653,7 +653,9 @@ def quarantine_rows(fact_ids: Sequence[str], fact: Mapping[str, Any],
     path = Path(root) / VERIFICATION_LOG
     try:
         rows = read_json_lines(path)
-        return held_rows(_Compiler._verification_log(rows), fact_ids, fact, kind=kind, owns=owns)
+        # The gate is a private-data writer: MODEL-491's rule applies.
+        return held_rows(_Compiler._verification_log(rows, retire=True), fact_ids, fact,
+                         kind=kind, owns=owns)
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
         raise LookupFailed(f"verification log: {type(error).__name__}") from None
 
@@ -671,14 +673,17 @@ def held_rows(latest: Mapping[tuple[str, str, str], Any], fact_ids: Sequence[str
               fact: Mapping[str, Any], *, kind: str = "fact",
               owns: Callable[[str], bool] | None = None
               ) -> list[tuple[tuple[str, str, str], dict[str, Any]]]:
-    """``held_verdicts`` with each held verdict's ``(kind, id, value hash)`` and winning row."""
+    """``held_verdicts`` with each held verdict's ``(kind, id, value hash)`` and winning row. The
+    fact's inline record counts by the rule ``latest`` was ranked under (``RankedLog.retire``,
+    from the caller), never by a switch looked up here (MODEL-491)."""
     from decision.snapshot import _counts
 
     ids = set(fact_ids)
+    retire = bool(getattr(latest, "retire", False))
     latest = dict(latest)
     inline = fact.get("verification")
     if isinstance(inline, Mapping) and isinstance(inline.get("target"), Mapping) \
-            and _counts(inline):
+            and _counts(inline, retire=retire):
         target = inline["target"]
         key = (target["kind"], target["id"], str(target.get("value_hash") or ""))
         entry = (str(inline["date"]), 0, dict(inline))
@@ -1710,7 +1715,8 @@ def _ranked_verdicts() -> Mapping[tuple[str, str, str], Any]:
     if not root:
         raise LookupFailed("no data directory is named")
     try:
-        return _Compiler._verification_log(read_json_lines(Path(root) / VERIFICATION_LOG))
+        return _Compiler._verification_log(read_json_lines(Path(root) / VERIFICATION_LOG),
+                                           retire=True)  # a private-data writer (MODEL-491)
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
         raise LookupFailed(f"verification log: {type(error).__name__}") from None
 
@@ -2367,7 +2373,8 @@ def _reading_held(found: ReadingLookup, data_dir: str | Path | None = None
 
     root = Path(data_dir or os.environ.get(DATA_DIR_ENV, "").strip() or ".")
     try:
-        latest = _Compiler._verification_log(read_json_lines(root / VERIFICATION_LOG))
+        latest = _Compiler._verification_log(read_json_lines(root / VERIFICATION_LOG),
+                                             retire=True)  # a private-data writer (MODEL-491)
         own = str(found.row.get("id") or "")
         earlier = {key[1] for key, _ in reading_candidates(latest, found.row,
                                                            model_id=found.model_id)

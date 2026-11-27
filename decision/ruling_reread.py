@@ -248,7 +248,7 @@ def page_status(fact: Mapping[str, Any], subject: str, *, ruling: Mapping[str, A
 def _inputs(root: Path):
     from decision.owner_ruling import read_ruling_inputs
 
-    return read_ruling_inputs(root)
+    return read_ruling_inputs(root, private=True)  # the rolling re-read writes private data
 
 
 def gate_epoch(fact: Mapping[str, Any], subject: str, *, source_id: str,

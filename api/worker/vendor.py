@@ -385,7 +385,9 @@ def export_data(out: Path, data_dir: Path) -> None:
     with tempfile.TemporaryDirectory(prefix="modelspec-worker-root-") as tmp:
         root = data_source.overlay(REPO_ROOT, data_dir, Path(tmp) / "root")
         registry.use_root(root)
-        models = load_models(root)
+        # The --data-dir export builds the private data: MODEL-491's rule applies (it is stated
+        # here, never read from the overlay, which carries no ``.engine-pin``).
+        models = load_models(root, private=True)
         cards = [ModelCard.from_yaml_file(str(model.path)) for model in models]
         require_consistent_modalities(cards, [model.front.get("facts") for model in models])
         build = export.make_build(load_catalogue(root), root).to_json()
@@ -404,6 +406,7 @@ def export_data(out: Path, data_dir: Path) -> None:
         successor_vocabulary.unlink(missing_ok=True)
         current = snapshot.build_from_repo(
             root, premier=root / "premier/slice-1.yaml", as_of=datetime.now(UTC).date(),
+            private=True,
         )
         written = current.write(out / "decision/snapshot.json.gz")
         vocabulary_path = out / "decision/vocabulary.json"
@@ -412,6 +415,7 @@ def export_data(out: Path, data_dir: Path) -> None:
         if valid_until is not None:
             snapshot.build_from_repo(
                 root, premier=root / "premier/slice-1.yaml", as_of=date.fromisoformat(valid_until),
+                private=True,
             ).write(successor)
             vocabularies.insert(0, (successor, successor_vocabulary))
         from api.worker.src.display_vocabulary import trim

@@ -67,13 +67,10 @@ def test_the_retired_method_is_found_on_the_row_or_its_verifier(tmp_path, monkey
     proof = row("retained-source-proof@1")
     by_verifier = copy.deepcopy(proof)
     by_verifier["method"] = "multi-source-primary-audit@2"
-    (tmp_path / ".engine-pin").write_text("0" * 40 + "\n")
     for r in (proof, by_verifier):
         assert not counts(r)
         assert counts(r, retire=False)
-        monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))  # a private-data build
-        assert not Verification.model_validate(r).counts
-        monkeypatch.delenv("MODELSPEC_DATA_DIR")  # the public image keeps the rule as filed
+        # ``Verification.counts`` is the public rule; a private reader passes retire=True.
         assert Verification.model_validate(r).counts
 
 
@@ -132,13 +129,17 @@ def test_a_same_family_verified_row_still_does_not_count():
     assert not counts(same) and not counts(same, retire=False)
 
 
-def test_collect_repo_retires_for_the_private_data_only(tmp_path):
+def test_collect_repo_retires_only_when_its_caller_says_the_data_is_private(tmp_path,
+                                                                           monkeypatch):
+    # Codex review 4: the switch is the caller's explicit argument. A stray ``.engine-pin`` or a
+    # data directory in the environment turns nothing on.
     from decision.snapshot import collect_repo
 
     (tmp_path / "models").mkdir()
-    assert collect_repo(tmp_path).retire_rsp is False  # the engine's frozen public image
     (tmp_path / ".engine-pin").write_text("0" * 40 + "\n")
-    assert collect_repo(tmp_path).retire_rsp is True  # the private data checkout
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))
+    assert collect_repo(tmp_path).retire_rsp is False
+    assert collect_repo(tmp_path, private=True).retire_rsp is True
 
 
 def test_a_round_one_table_header_mismatch_on_null_no_longer_holds_a_stated_fact():
@@ -157,15 +158,10 @@ def test_a_round_one_table_header_mismatch_on_null_no_longer_holds_a_stated_fact
     assert counts(other)
 
 
-def test_the_default_retires_only_for_a_private_data_directory(tmp_path, monkeypatch):
-    # ``decision.model.private_data``: the switch collect_repo uses. With no data directory, or
-    # one without ``.engine-pin`` (the public image), no caller retires a row by default.
-    from decision.model import private_data
-
+def test_the_counting_rule_takes_the_switch_from_its_caller_only(tmp_path, monkeypatch):
+    # Nothing looks the switch up: neither the environment nor a file turns it on.
     proof = row("retained-source-proof@1")
-    monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)
-    assert not private_data() and verification_row_counts(proof)
-    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))
-    assert not private_data() and verification_row_counts(proof)
     (tmp_path / ".engine-pin").write_text("0" * 40 + "\n")
-    assert private_data() and not verification_row_counts(proof)
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))
+    assert verification_row_counts(proof) and Verification.model_validate(proof).counts
+    assert not verification_row_counts(proof, retire=True)

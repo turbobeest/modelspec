@@ -104,7 +104,13 @@ def export_fixture(tmp_path, monkeypatch):
     monkeypatch.setattr("datetime.datetime", _BuildClock)
     monkeypatch.setattr(data_source, "overlay", lambda *_: root)
     monkeypatch.setattr(registry, "use_root", lambda *_: None)
-    monkeypatch.setattr(load, "load_models", lambda *_: [])
+    privates = {}
+
+    def load_models(*_, private=False, **__):
+        privates["load_models"] = private
+        return []
+
+    monkeypatch.setattr(load, "load_models", load_models)
     monkeypatch.setattr(load, "load_catalogue", lambda *_: None)
     identity = {"commit": "model402-fixture", "built_at": "2026-11-30T12:00:00+00:00"}
     monkeypatch.setattr(export, "make_build", lambda *_: SimpleNamespace(to_json=lambda: identity))
@@ -135,12 +141,14 @@ def export_fixture(tmp_path, monkeypatch):
     def configure(*, scheduled=True):
         inputs = _inputs(scheduled=scheduled)
 
-        def collect(checkout):
+        def collect(checkout, *, private=False):
             assert checkout == root
+            privates.setdefault("collect_repo", []).append(private)
             return inputs
 
         monkeypatch.setattr(snapshot, "collect_repo", collect)
-        return SimpleNamespace(vendor=vendor, root=root, inputs=inputs, public_keys=public_keys)
+        return SimpleNamespace(vendor=vendor, root=root, inputs=inputs, public_keys=public_keys,
+                               privates=privates)
 
     return configure
 
@@ -295,3 +303,13 @@ def test_vendor_bundle_is_deterministic_with_fixed_date_build_and_keys(export_fi
         envelope = json.loads(gzip.decompress(first_read("/api/" + path)))
         assert envelope["signature"]["alg"] == "hmac-sha256"
         assert envelope["signatures"][0]["alg"] == "ed25519"
+
+
+def test_the_data_dir_export_builds_the_private_data_by_its_rule(export_fixture, tmp_path):
+    # MODEL-491: the Worker's --data-dir export states that it builds the private data, so the
+    # loader and every snapshot build retire RSP. It is never read from the overlay, which carries
+    # no ``.engine-pin``.
+    fixture = export_fixture()
+    fixture.vendor.export_data(tmp_path / "exports", fixture.root)
+    assert fixture.privates["load_models"] is True
+    assert fixture.privates["collect_repo"] and all(fixture.privates["collect_repo"])
