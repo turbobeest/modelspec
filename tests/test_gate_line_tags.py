@@ -117,7 +117,10 @@ def test_the_new_tags_move_and_serve_nothing(kind):
 
 
 
-# --- the legacy prefix: untagged reads logged before the tags, for a hold only --------------------
+# --- the legacy prefix: untagged reads logged before the tags, pinned on raw bytes by path --------
+
+ATTEMPTS = "verification/cited-attempts.jsonl"
+
 
 def _line(**kw):
     base = {"subject": gate.SUBJECT, "facet": gate.FACET, "epoch": "initial", "complete": True,
@@ -130,65 +133,77 @@ LEGACY_SILENT = _line(agreed=True)
 LEGACY_AGREED = _line(agreed=True, agreed_value=gate.FILED)
 LEGACY_INCOMPLETE = _line(complete=False, agreed=None, error="ReaderError")
 PREFIX = [LEGACY_SPLIT, LEGACY_SILENT, LEGACY_AGREED, LEGACY_INCOMPLETE]
+PREFIX_BYTES = "".join(x + "\n" for x in PREFIX).encode()
 
 
-def _pin(lines):
+def _pins(data=PREFIX_BYTES, path=ATTEMPTS):
     import hashlib
 
-    data_ = "".join(x + "\n" for x in lines).encode()
-    return len(data_), hashlib.sha256(data_).hexdigest()
+    return {path: (len(data), hashlib.sha256(data).hexdigest())}
 
 
-def test_the_pinned_prefix_is_a_length_and_a_digest():
-    from decision.hold_evidence import LEGACY_ATTEMPTS
+def _legacy(data, path=ATTEMPTS, pins=None):
+    from decision.hold_evidence import legacy_lines
 
-    length, digest = LEGACY_ATTEMPTS
+    return legacy_lines(path, data, pins or _pins())
+
+
+def test_the_pin_is_a_length_and_a_digest_bound_to_the_attempt_logs_path():
+    from decision.hold_evidence import LEGACY_PREFIXES
+
+    assert set(LEGACY_PREFIXES) == {ATTEMPTS}
+    ((length, digest),) = LEGACY_PREFIXES.values()
     assert length > 0 and len(digest) == 64 and int(digest, 16) >= 0
 
 
 def test_an_untagged_read_inside_the_prefix_shows_its_hold():
-    from decision.hold_evidence import hold_kind, legacy_count
+    from decision.hold_evidence import hold_kind
 
-    pin = _pin(PREFIX)
-    log = AttemptLog([*PREFIX, _line(epoch="reread:x")])
-    assert legacy_count(log.lines, pin) == 4
-    assert hold_kind(log, LEGACY_SPLIT, pinned=pin) == "split"
-    assert hold_kind(log, LEGACY_SILENT, pinned=pin) == "silent"
+    appended = _line(epoch="reread:x")
+    legacy = _legacy(PREFIX_BYTES + (appended + "\n").encode())
+    assert legacy == tuple(PREFIX)
+    log = AttemptLog([*PREFIX, appended])
+    assert hold_kind(log, LEGACY_SPLIT, legacy=legacy) == "split"
+    assert hold_kind(log, LEGACY_SILENT, legacy=legacy) == "silent"
     # An agreed value or an incomplete attempt shows no hold, inside the prefix or not.
-    assert hold_kind(log, LEGACY_AGREED, pinned=pin) is None
-    assert hold_kind(log, LEGACY_INCOMPLETE, pinned=pin) is None
+    assert hold_kind(log, LEGACY_AGREED, legacy=legacy) is None
+    assert hold_kind(log, LEGACY_INCOMPLETE, legacy=legacy) is None
 
 
 def test_an_untagged_line_appended_after_the_prefix_shows_nothing():
     from decision.hold_evidence import hold_kind
 
-    pin = _pin(PREFIX)
     appended = _line(epoch="reread:y")
     tagged = _line(epoch="reread:z", kind="split")
+    data = PREFIX_BYTES + (appended + "\n" + tagged + "\n").encode()
+    legacy = _legacy(data)
     log = AttemptLog([*PREFIX, appended, tagged])
-    assert hold_kind(log, appended, pinned=pin) is None
-    assert hold_kind(log, tagged, pinned=pin) == "split"  # past the prefix, only the tag counts
-    assert hold_kind(log, _line(epoch="not-in-log"), pinned=pin) is None
+    assert hold_kind(log, appended, legacy=legacy) is None
+    assert hold_kind(log, tagged, legacy=legacy) == "split"  # past the prefix, only the tag counts
+    assert hold_kind(log, _line(epoch="not-in-log"), legacy=legacy) is None
 
 
-@pytest.mark.parametrize("change", ["byte", "dropped_line", "reordered", "short_log"])
-def test_a_changed_prefix_makes_no_line_legacy(change):
-    from decision.hold_evidence import hold_kind, legacy_count
-
-    pin = _pin(PREFIX)
-    lines = list(PREFIX)
+@pytest.mark.parametrize("change", ["byte", "crlf", "blank_line", "no_final_lf", "dropped_line",
+                                    "reordered", "short_file", "renamed"])
+def test_any_prefix_difference_makes_no_line_legacy(change):
+    data, path = PREFIX_BYTES, ATTEMPTS
     if change == "byte":
-        lines[2] = lines[2].replace('"initial"', '"initiaL"')
+        data = data.replace(b'"initial"', b'"initiaL"', 1)
+    elif change == "crlf":  # the same lines with Windows line ends
+        data = data.replace(b"\n", b"\r\n")
+    elif change == "blank_line":
+        data = (PREFIX[0] + "\n\n" + "".join(x + "\n" for x in PREFIX[1:])).encode()
+    elif change == "no_final_lf":
+        data = data[:-1]
     elif change == "dropped_line":
-        lines.pop(2)
+        data = "".join(x + "\n" for x in PREFIX[:2] + PREFIX[3:]).encode()
     elif change == "reordered":
-        lines[0], lines[1] = lines[1], lines[0]
-    else:
-        lines = lines[:2]
-    log = AttemptLog(lines)
-    assert legacy_count(log.lines, pin) == 0
-    assert hold_kind(log, LEGACY_SPLIT, pinned=pin) is None
-    assert hold_kind(log, LEGACY_SILENT, pinned=pin) is None
+        data = "".join(x + "\n" for x in [PREFIX[1], PREFIX[0], *PREFIX[2:]]).encode()
+    elif change == "short_file":
+        data = "".join(x + "\n" for x in PREFIX[:2]).encode()
+    else:  # the same bytes at another path
+        path = "verification/cited-attempts-old.jsonl"
+    assert _legacy(data + b'{"later": true}\n', path=path) == ()
 
 
 def test_a_legacy_line_never_serves_or_moves_a_record():
@@ -200,11 +215,41 @@ def test_a_legacy_line_never_serves_or_moves_a_record():
     # line_kind, the only tag that moves or serves, ignores the legacy prefix and the hold tags.
     for raw in PREFIX:
         assert line_kind(json.loads(raw), gate.FACET) is None
+    for kind in ("split", "silent", "refused", "refusal"):
+        assert line_kind({"kind": kind}, gate.FACET) is None
     # The prefix and hold tags are read by hold evidence alone: never by the clearing, move or
     # correction rules.
     for module in (qc, rc):
         source = inspect.getsource(module)
         assert "hold_evidence" not in source and "hold_kind" not in source
+
+
+# --- an owner's ruling rests only on a tagged or a pinned legacy split --------------------------
+
+def _split_attempt(**kw):
+    line = {"subject": gate.SUBJECT, "facet": gate.FACET, "epoch": "initial", "complete": True,
+            "agreed": False, "agreed_value": None, "harness": True,
+            "page_sha256": "3" * 64, "prompt_sha256": "4" * 64, "own_fetch": True,
+            "at": "2026-11-28T08:00:00+00:00",
+            "readers": [{"reader_id": "a", "family": "openai", "version": "1", "value": 1},
+                        {"reader_id": "b", "family": "anthropic", "version": "1", "value": 2}]}
+    return {**line, **kw}
+
+
+def test_a_ruling_split_is_gate_tagged_or_in_the_legacy_prefix():
+    from decision.hold_evidence import legacy_ids
+    from decision.owner_ruling import is_split, split_status
+
+    facet = "model.context_window"
+    untagged = _split_attempt(facet=facet)
+    tagged = _split_attempt(facet=facet, kind="split")
+    assert split_status(untagged, facet) == "split"
+    assert not is_split(untagged, facet)  # an untagged split past the prefix: no ruling
+    assert is_split(tagged, facet)
+    legacy = legacy_ids([json.dumps(untagged, sort_keys=True)])
+    assert is_split(untagged, facet, legacy=legacy)
+    other = _split_attempt(facet=facet, at="2026-11-28T09:00:00+00:00")
+    assert not is_split(other, facet, legacy=legacy)
 
 
 # --- a refusal before any read: one tagged line in its own log, never a read --------------------
@@ -228,7 +273,7 @@ def test_a_refusal_before_any_read_logs_a_tagged_refusal_line(data):
     assert line["kind"] == "refusal" and line["rule"] == REFUSAL_RULE
     assert line["reason"] == "host_unclassed" and line["source_id"] == "loose"
     assert line["fact_id"] == f"{gate.SUBJECT}#{gate.FACET}" and line["epoch"] == "initial"
-    assert line["value_hash"] == value_hash(gate.FILED)
+    assert line["value_hash"] == value_hash(gate.FILED) and line["fetched"] is False
 
 
 def test_a_refusal_line_is_not_a_read_or_a_retry(data):
@@ -262,3 +307,57 @@ def test_a_refusal_for_no_fact_logs_nothing(data):
     out = cited_change(subject=gate.SUBJECT, facet="not.a_facet", source_id="readme",
                        readers=readers(AGREED), request=gate.serve())
     assert out.outcome == "refused" and refusals(data) == []
+
+
+def test_a_refusal_after_a_fetch_but_before_a_read_says_it_fetched(data):
+    page = (302, gate.CITE_ONLY, b"")
+    gate.refused("redirect_to_cite_only_host", request=gate.serve({gate.URL: page}))
+    assert data.attempts() == []
+    (line,) = refusals(data)
+    assert line["reason"] == "redirect_to_cite_only_host" and line["fetched"] is True
+
+
+def test_an_unrelated_append_does_not_suppress_a_refusal_line(data, monkeypatch):
+    # Another writer appends to the shared attempt log while this call runs: the call still
+    # knows it read nothing, so its refusal line is written.
+    import decision.cited_change as cc
+
+    real = cc.quarantine_rows
+
+    def appending(*a, **kw):
+        path = data.root / ATTEMPTS_FILE
+        with path.open("a") as fh:
+            fh.write(_line(subject="other/model") + "\n")
+        return real(*a, **kw)
+
+    monkeypatch.setattr(cc, "quarantine_rows", appending)
+    gate.refused("host_unclassed", source_id="loose", request=gate.serve())
+    assert [x["reason"] for x in refusals(data)] == ["host_unclassed"]
+
+
+def test_a_read_that_ends_in_a_refusal_writes_its_attempt_line_only(data):
+    # The call itself knows it read: a refused read logs its attempt line and no refusal line.
+    gate.refused("readers_disagree", readers=readers(SPLIT))
+    (line,) = data.attempts()
+    assert line["kind"] == "split" and refusals(data) == []
+
+
+def test_ruling_inputs_take_the_legacy_splits_from_the_logs_raw_bytes(tmp_path, monkeypatch):
+    import hashlib
+
+    import decision.hold_evidence as he
+    from decision.owner_ruling import RULINGS_FILE, attempt_id, read_ruling_inputs
+
+    root = tmp_path / "data"
+    (root / "verification").mkdir(parents=True)
+    (root / RULINGS_FILE).write_text(json.dumps({"subject": "x"}) + "\n")
+    first, later = _split_attempt(), _split_attempt(at="2026-11-28T09:00:00+00:00")
+    prefix = (json.dumps(first, sort_keys=True) + "\n").encode()
+    (root / ATTEMPTS).write_bytes(prefix + (json.dumps(later, sort_keys=True) + "\n").encode())
+    monkeypatch.setattr(he, "LEGACY_PREFIXES",
+                        {ATTEMPTS: (len(prefix), hashlib.sha256(prefix).hexdigest())})
+    inputs = read_ruling_inputs(root, verdicts=False)
+    assert inputs.legacy == {attempt_id(first)}  # the appended untagged split is not legacy
+    # The same log written with Windows line ends pins nothing.
+    (root / ATTEMPTS).write_bytes(prefix.replace(b"\n", b"\r\n"))
+    assert read_ruling_inputs(root, verdicts=False).legacy == frozenset()

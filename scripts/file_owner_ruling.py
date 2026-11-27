@@ -324,7 +324,10 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
                       "logged for this subject, facet and epoch")
     # By default the ruling resolves each well-formed split (``split_status``); a malformed
     # look-alike still blocks the gate, which fails closed, but no ruling resolves it.
-    disagreeing = [attempt_id(a) for a in splits if is_split(a, facet)]
+    from decision.hold_evidence import legacy_ids, read_legacy
+
+    legacy = legacy_ids(read_legacy(root, ATTEMPTS_FILE))
+    disagreeing = [attempt_id(a) for a in splits if is_split(a, facet, legacy=legacy)]
     if not disagreeing and not resolves:
         raise Refused("no_disagreement", f"{len(splits)} logged split(s) for this subject, facet "
                       "and epoch, none well formed (split_status)")
@@ -350,7 +353,7 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
                   if isinstance(r, dict) and str(r.get("snapshot_ref") or "").startswith("sha256:")
                   and _zoned(r.get("retrieved_at"))}
     problem = ruling_problem(ruling, attempts=attempts, sources=urls, today=now.date(),
-                             cited=list(cited_refs))
+                             cited=list(cited_refs), legacy=legacy)
     if problem is not None:
         raise Refused(*problem)
     # One ruling per subject, facet and epoch. The same line filed already is a write that
@@ -438,7 +441,7 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
     if not admits(_plain(fact), subject,
                   rulings=[*filed, ruling] if not resuming else filed, attempts=attempts,
                   sources=urls, verdicts=verdicts, claims={location: filed_claim},
-                  today=now.date(), reopened=recorded,
+                  today=now.date(), reopened=recorded, legacy=legacy,
                   history={location: [*fact_events, *([{"event": "collected",
                                                         "claim": filed_claim}]
                                                       if result.queue_lines else [])]}):

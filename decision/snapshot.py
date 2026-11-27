@@ -392,6 +392,8 @@ class SnapshotInputs:
     #: ``(fact id, epoch)`` of the reopened epochs the rolling re-read recorded (MODEL-562): a
     #: ruling in a reopened epoch is admitted only on one (``owner_ruling.admits``).
     owner_ruling_reopened: frozenset[tuple[str, str]] = frozenset()
+    #: ``owner_ruling.RulingInputs.legacy``: the untagged legacy splits a ruling may rest on.
+    owner_ruling_legacy: frozenset[str] = frozenset()
     #: The board-owner registries (``decision.board_ruling.BoardRegistry``: source rows,
     #: publishers, benchmark owners) a ruled board row's sources are checked against (MODEL-569).
     #: ``None``: no ruled board row is admitted.
@@ -859,6 +861,7 @@ class _Compiler:
         self.owner_ruling_history = {str(k): tuple(v)
                                      for k, v in inputs.owner_ruling_history.items()}
         self.owner_ruling_reopened = frozenset(inputs.owner_ruling_reopened)
+        self.owner_ruling_legacy = frozenset(inputs.owner_ruling_legacy)
         self.quarantine_clearings = tuple(dict(r) for r in inputs.quarantine_clearings)
         self._attempt_log: Any = None
         #: Retained-page corrections the build's test refused (MODEL-573); a count, no ids.
@@ -1512,7 +1515,8 @@ class _Compiler:
         from decision.owner_ruling import RulingInputs
 
         return RulingInputs(self.owner_rulings, self.cited_attempts, self.owner_ruling_claims,
-                            self.log, self.owner_ruling_history, self.owner_ruling_reopened)
+                            self.log, self.owner_ruling_history, self.owner_ruling_reopened,
+                            self.owner_ruling_legacy)
 
     def _ruling_known(self, sid: str, fact: Mapping[str, Any]) -> bool:
         """False for a fact that carries ``derivation.owner_ruling`` whose ruling or claim line
@@ -2548,6 +2552,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
     owner_rulings, cited_attempts, ruling_claims, ruling_history = [], [], {}, {}
     board_registry = None
     ruling_reopened: frozenset[tuple[str, str]] = frozenset()
+    ruling_legacy: frozenset[str] = frozenset()
     clearings_store = root / "verification" / "quarantine-clearings.jsonl"
     quarantine_clearings: list[dict[str, Any]] = []
     if clearings_store.is_file():
@@ -2578,6 +2583,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
         ruling_claims = dict(ruling_inputs.claims)
         ruling_history = dict(ruling_inputs.history)
         ruling_reopened = ruling_inputs.reopened
+        ruling_legacy = ruling_inputs.legacy
     attempt_lines: list[str] = []
     clearing_history: dict[str, list[dict[str, Any]]] = {}
     from decision.held_list import HELD_FILE
@@ -2657,6 +2663,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
                           owner_ruling_claims=ruling_claims,
                           owner_ruling_history=ruling_history,
                           owner_ruling_reopened=ruling_reopened,
+                          owner_ruling_legacy=ruling_legacy,
                           board_registry=board_registry,
                           quarantine_clearings=quarantine_clearings,
                           held=held,
