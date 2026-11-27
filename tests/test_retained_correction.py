@@ -21,6 +21,7 @@ from decision.cited_reader import ATTEMPTS_FILE
 from decision.quarantine_clearing import AttemptLog, line_hash
 from decision.retained_correction import (
     RULE,
+    agreement_day,
     confirmation_citation,
     confirmation_problem,
     correction_problem,
@@ -852,3 +853,78 @@ def test_a_third_value_mismatch_still_blocks_a_re_read_of_a_correction(data):
     out = reread({"subject": gate.SUBJECT, "facet": gate.FACET}, source_id="readme",
                  readers=gate.pair(AGREED))
     assert out.reason == "quarantined" and len(data.attempts()) == before  # no reader asked
+
+
+# --- MODEL-491: the data-trust audit dates an admitted correction or confirmation ---------------
+
+def _compiled(row, attempts, log=(OLD,), *, as_of=TODAY):
+    from decision.registry import default
+    from decision.snapshot import SnapshotInputs, _compile
+
+    from tests.snapshot_records import SOURCES, model
+
+    inputs = SnapshotInputs(models=[model(MID, facts=[row])], sources=dict(SOURCES),
+                            verifications=list(log),
+                            cited_attempt_lines=[raw(a) for a in attempts])
+    return inputs, _compile(inputs, default(), None, as_of, False)
+
+
+def _dates(row, attempts, log=(OLD,), *, as_of=TODAY):
+    from scripts.data_trust.catalogue import _agreement_dates
+
+    return _agreement_dates(*_compiled(row, attempts, log, as_of=as_of))
+
+
+def test_an_admitted_correction_is_dated_by_its_logged_agreement():
+    attempt = agreement(at="2026-10-10T23:30:00-04:00")  # the UTC day is 2026-10-11
+    row = corrected_row(attempt)
+    row["derivation"]["cited_change"]["read_date"] = "2026-01-01"  # what the record states
+    assert _dates(row, [attempt], as_of=date(2026, 10, 19)) == {row["id"]: "2026-10-11"}
+    log = AttemptLog([raw(attempt)])
+    assert agreement_day(row, MID, log=log, verdicts={}, sources={"src-lab-docs": URL},
+                         cutoff=TODAY) == date(2026, 10, 11)
+
+
+def test_an_admitted_confirmation_is_dated_by_its_logged_agreement():
+    attempt = confirming()
+    row = confirmed_row(attempt)
+    assert _dates(row, [attempt], log=()) == {row["id"]: "2026-10-10"}
+
+
+@pytest.mark.parametrize("fails", ["no_line", "same_family", "held", "after_cutoff",
+                                   "confirmation_held", "plain_fact"])
+def test_a_record_that_fails_the_shared_test_stays_undated(fails):
+    attempt, row, log, lines = agreement(), None, [OLD], None
+    as_of = TODAY
+    if fails == "no_line":
+        row, lines = corrected_row(attempt), []
+    elif fails == "same_family":
+        attempt = agreement(families=("openai", "openai"))
+    elif fails == "held":
+        log.append(_old_mismatch(value=VALUE))
+    elif fails == "after_cutoff":
+        as_of = date(2026, 10, 9)
+    elif fails == "confirmation_held":
+        attempt = confirming()
+        row, log = confirmed_row(attempt), [_old_mismatch(value=FILED)]
+    else:
+        row = corrected_row(attempt)
+        row.pop("derivation")
+    row = row or corrected_row(attempt)
+    assert _dates(row, [attempt] if lines is None else lines, log, as_of=as_of) == {}
+
+
+def test_the_audit_dates_only_records_the_shared_test_admits():
+    from scripts.data_trust.catalogue import Catalogue, _records
+
+    attempt = agreement()
+    row = corrected_row(attempt)
+    served = {**{k: v for k, v in row.items() if k != "derivation"}, "verification": None,
+              "citation": {"status": "cited", "sources": [
+                  {"source_id": "src-lab-docs", "url": URL,
+                   "snapshot_ref": row["sources"][0]["snapshot_ref"],
+                   "retrieved_at": attempt["at"]}]}}
+    for dated, want in (({row["id"]: "2026-10-10"}, "2026-10-10"), ({}, None)):
+        c = Catalogue(sources={"src-lab-docs": {"id": "src-lab-docs", "url": URL}})
+        _records(c, [served], MID, "fact", {}, dated)
+        assert c.facts[0]["read_date"] == want

@@ -317,13 +317,7 @@ def confirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
     (MODEL-491 E1). The arguments are ``correction_problem``'s."""
     from decision.cited_change import fact_epoch
     from decision.owner_ruling import has_ruling
-    from decision.quarantine_clearing import (
-        _at,
-        _block_is,
-        agreement_problem,
-        epoch_problem,
-        line_hash,
-    )
+    from decision.quarantine_clearing import _at, epoch_problem, line_hash
     from decision.retention import cite_only_status
 
     if not is_confirmation(fact):
@@ -343,18 +337,7 @@ def confirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
     if held:
         return f"{len(held)} value(s) of the fact hold an unresolved verdict"
     value = fact.get("value")
-    index = None
-    for n, attempt in enumerate(log.entries):
-        if (attempt.get("subject"), attempt.get("facet")) != (subject, facet):
-            continue
-        try:
-            made = agreement_problem(attempt, value, str(facet)) is None \
-                and _block_is(fact, block, attempt, sources=sources)
-        except (KeyError, TypeError, AttributeError):
-            made = False
-        if made:
-            index = n  # the first logged line that made this block
-            break
+    index = _confirmation_index(fact, subject, log=log, sources=sources)
     if index is None:
         return "no logged two-reader agreement on this value made the block"
     attempt = log.entries[index]
@@ -386,6 +369,54 @@ def confirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
                 and later.get("epoch") not in {epoch, own}:
             return "an attempt in a later epoch was logged after the agreement"
     return None
+
+
+def _confirmation_index(fact: Mapping[str, Any], subject: str, *, log: Any,
+                        sources: Mapping[str, str]) -> int | None:
+    """The position of the first logged line that made a confirmation's block: a complete
+    two-reader harness agreement on the filed value (``agreement_problem``) whose page, text,
+    prompt, readers and copy are the block's (``quarantine_clearing._block_is``), or ``None``."""
+    from decision.quarantine_clearing import _block_is, agreement_problem
+
+    block = _block(fact) or {}
+    facet, value = fact.get("facet"), fact.get("value")
+    for n, attempt in enumerate(log.entries):
+        if (attempt.get("subject"), attempt.get("facet")) != (subject, facet):
+            continue
+        try:
+            if agreement_problem(attempt, value, str(facet)) is None \
+                    and _block_is(fact, block, attempt, sources=sources):
+                return n
+        except (KeyError, TypeError, AttributeError):
+            continue
+    return None
+
+
+def agreement_day(fact: Mapping[str, Any], subject: str, *, log: Any,
+                  verdicts: Mapping[tuple[str, str, str], Any], sources: Mapping[str, str],
+                  cutoff: date, ids: Sequence[str] = ()) -> date | None:
+    """The UTC day of the logged agreement an admitted correction (``correction_problem``) or
+    confirmation (``confirmation_problem``) rests on, or ``None`` when the fact is neither or
+    fails its test (MODEL-491 audit date). The day is the attempt line's own time, never a date
+    the record states about itself: the data-trust audit dates the record by it."""
+    from decision.quarantine_clearing import _at
+
+    if is_correction(fact):
+        if correction_problem(fact, subject, log=log, verdicts=verdicts, sources=sources,
+                              cutoff=cutoff, ids=ids) is not None:
+            return None
+        index = _agreement_index(fact, log)
+    elif is_confirmation(fact):
+        if confirmation_problem(fact, subject, log=log, verdicts=verdicts, sources=sources,
+                                cutoff=cutoff, ids=ids) is not None:
+            return None
+        index = _confirmation_index(fact, subject, log=log, sources=sources)
+    else:
+        return None
+    if index is None:
+        return None
+    at = _at(log.entries[index].get("at"))
+    return None if at is None else at.astimezone(UTC).date()
 
 
 def verified_winner(fact: Mapping[str, Any], subject: str,
