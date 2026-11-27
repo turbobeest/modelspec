@@ -25,6 +25,14 @@ from scripts import file_owner_ruling as filer
 from tests.test_cited_offering import FACT_ID, HEADER, SUBJECT, URL, Data, pair, refused, serve
 from tests.test_owner_ruling import RETENTION, args, attempts, offering_fact
 
+
+@pytest.fixture(autouse=True)
+def legacy_log(monkeypatch):
+    """Each test's own attempt log is its pinned legacy prefix (``tests.legacy_pin``)."""
+    from tests.legacy_pin import pin_whole_log
+
+    pin_whole_log(monkeypatch)
+
 DAY = date(2026, 12, 1)
 TARGET = f"{SUBJECT}#{RETENTION}"
 FILLER = " ".join(f"Section {i} describes how the service handles requests." for i in range(30))
@@ -510,6 +518,7 @@ def test_the_offering_file_keeps_its_header(ruled, web):
 def test_the_build_admits_a_reopened_epoch_only_when_it_is_recorded():
     """A well-shaped reopened epoch that the rolling re-read never recorded admits nothing,
     the same rule the gate applies; the recorded one admits the ruling."""
+    from decision.owner_ruling import attempt_id
     from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
     from tests.snapshot_records import SOURCES, model
     from tests.test_owner_ruling import (
@@ -532,7 +541,8 @@ def test_the_build_admits_a_reopened_epoch_only_when_it_is_recorded():
                                 owner_ruling_claims={fid: claim},
                                 owner_ruling_history={fid: [_event("collected", at, claim),
                                                             _event("checked", at)]},
-                                owner_ruling_reopened=frozenset(reopened))
+                                owner_ruling_reopened=frozenset(reopened),
+                                owner_ruling_legacy=frozenset({attempt_id(attempt)}))
         return load_built_snapshot(build_snapshot(inputs, as_of=date(2026, 10, 19))).fact(
             MID, FACET)
 

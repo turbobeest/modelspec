@@ -62,6 +62,7 @@ complete attempt that did not agree blocks any later agreement (``prior_attempt_
 
 from __future__ import annotations
 
+import contextvars
 import json
 import re
 import unicodedata
@@ -585,6 +586,7 @@ def _fetch(url: str, request: Request, *,
     current = url
     for _ in range(MAX_HOPS + 1):
         try:
+            _mark("fetched")
             status, location, body = request(current)
         except Exception as error:  # noqa: BLE001  a transport failure reads no page
             return _refuse("page_unreadable", type(error).__name__)
@@ -1067,31 +1069,36 @@ def _ruled_epoch(found: Lookup, subject: str, source_id: str, page_bytes: bytes,
                       data_dir=os.environ.get(DATA_DIR_ENV, "").strip() or ".")
 
 
+#: What one fact-gate call did (``_gate``): whether it fetched the page and whether it read it
+#: (logged an attempt line). Set only by the call itself, never by the size of a shared log.
+_CALL: contextvars.ContextVar[dict[str, bool] | None] = contextvars.ContextVar("_CALL",
+                                                                            default=None)
+
+
+def _mark(what: str) -> None:
+    call = _CALL.get()
+    if call is not None:
+        call[what] = True
+
+
 def _gate(*, subject: str, facet: str, source_id: str, **kw: Any) -> CitedChange:
     """The rule-15 gate (``_gate_read``). A fact refused before any read, so that the call logged
     no attempt line, gets one tagged refusal line in its own log (``hold_evidence``, MODEL-491):
-    hold evidence only, never a read, a retry or a disagreement."""
-    before = _attempts_size()
-    out = _gate_read(subject=subject, facet=facet, source_id=source_id, **kw)
-    if out.outcome == "refused" and before is not None and _attempts_size() == before:
+    hold evidence only, never a read, a retry or a disagreement. A read that ends in a refusal
+    logs its attempt line, as always, and no refusal line."""
+    call = {"fetched": False, "read": False}
+    token = _CALL.set(call)
+    try:
+        out = _gate_read(subject=subject, facet=facet, source_id=source_id, **kw)
+    finally:
+        _CALL.reset(token)
+    if out.outcome == "refused" and not call["read"]:
         _log_refusal(out.reason or "", subject=subject, facet=facet, source_id=source_id,
-                     now=kw.get("now"))
+                     fetched=call["fetched"], now=kw.get("now"))
     return out
 
 
-def _attempts_size() -> int | None:
-    """The attempt log's size in bytes (``0`` when it does not exist yet), or ``None`` when no
-    data directory is named."""
-    from decision.cited_reader import ReaderError, _attempts_path
-
-    try:
-        path = _attempts_path(None)
-    except ReaderError:
-        return None
-    return path.stat().st_size if path.is_file() else 0
-
-
-def _log_refusal(reason: str, *, subject: str, facet: str, source_id: str,
+def _log_refusal(reason: str, *, subject: str, facet: str, source_id: str, fetched: bool,
                  now: datetime | None) -> None:
     """Append the refusal line for a fact the gate found: its value hash and epoch as filed."""
     from decision.hold_evidence import log_refusal, refusal_line
@@ -1106,7 +1113,7 @@ def _log_refusal(reason: str, *, subject: str, facet: str, source_id: str,
     log_refusal(refusal_line(subject=subject, facet=facet,
                              value_hash=value_hash(fact_verification_value(found.fact)),
                              reason=reason, epoch=fact_epoch(found.fact), source_id=source_id,
-                             at=now or datetime.now(UTC)))
+                             fetched=fetched, at=now or datetime.now(UTC)))
 
 
 def _gate_read(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader],
@@ -1311,6 +1318,7 @@ def _gate_read(*, subject: str, facet: str, source_id: str, readers: Sequence[Re
     for _ in range(2):  # an incomplete attempt (a reader failed) may be tried once more
         if len(attempts(subject, facet, epoch)) >= MAX_ATTEMPTS:
             return _refuse("attempts_exhausted", "the attempt budget for this fact is spent")
+        _mark("read")  # read_page logs this attempt's line, complete or not
         try:
             answers = read_page(subject=subject, url=row["url"], facet_id=facet,
                                 subject_name=found.subject_name, page_bytes=page_bytes,
