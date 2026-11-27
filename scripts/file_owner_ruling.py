@@ -8,8 +8,9 @@
 Dry-run unless ``--write``. It refuses, with one named reason and nothing written, unless
 every condition holds:
 
-* a complete ``readers_disagree`` attempt is logged for exactly this subject, facet and
-  epoch (``verification/cited-attempts.jsonl``), and the epoch is the fact's current one, or a
+* an attempt the rule-15 gate counts as a disagreement (``decision.owner_ruling.blocks_rule_15``,
+  harness or seeded: the gate's own test) is logged for exactly this subject, facet and epoch
+  (``verification/cited-attempts.jsonl``), and the epoch is the fact's current one, or a
   reopened epoch of its standing ruling that the rolling re-read recorded (MODEL-562);
 * ``--ruled-by`` is an owner (``decision.owner_ruling.OWNERS``) and a ticket is given;
 * the fact is not quarantined. Lifting a quarantine is the owner's open question: refused;
@@ -20,7 +21,9 @@ On success it appends the ruling line to ``verification/owner-rulings.jsonl``, f
 matching claim in ``verification/queue/events.jsonl`` (``collected``, then ``checked`` with
 outcome ``cited``, ordered after every earlier event for the fact) and rewrites the one
 fact: the ruling's value and state, its sources at the copy each resolved attempt read
-(``snapshot_ref``, ``retrieved_at``), and ``derivation.owner_ruling``. The fact and the
+(``snapshot_ref``, ``retrieved_at``), and ``derivation.owner_ruling``. A source no resolved
+attempt read may be named too when the fact already cites it on a cite-only host at a
+``sha256`` copy with a zoned read time; it is cited at that copy (MODEL-491). The fact and the
 claim are written from one source reference, so the data checks hold: the sources equal
 the latest claim's, ``snapshot_ref`` and ``retrieved_at`` agree, and the stored id is the
 location id.
@@ -63,6 +66,7 @@ from decision.owner_ruling import (
     RULINGS_FILE,
     admits,
     attempt_id,
+    blocks_rule_15,
     cited_change_logged,
     disagreed,
     fact_epoch,
@@ -227,6 +231,22 @@ def _source_rows(root: Path) -> dict[str, dict[str, Any]]:
     return {row["id"]: row for row in rows}
 
 
+def _zoned(value: Any) -> bool:
+    try:
+        at = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return at.tzinfo is not None
+
+
+def _pins_copy(entry: dict[str, Any]) -> bool:
+    """The attempt records a zoned read time and a page hash: the copy a ruling would cite."""
+    import re
+
+    return _zoned(entry.get("at")) and bool(re.fullmatch(r"[0-9a-f]{64}",
+                                                         str(entry.get("page_sha256") or "")))
+
+
 def reopened(root: Path, found: Any, subject: str, facet: str, epoch: str,
              urls: dict[str, str], today: Any) -> bool:
     """Whether ``epoch`` is a reopened epoch of the fact's standing ruling that the rolling
@@ -304,19 +324,28 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
                       "mismatch or unreachable verdict; lifting a quarantine is the owner's "
                       "open question, not a ruling")
     key = (subject, facet, epoch)
-    disagreeing = [attempt_id(a) for a in attempts
-                   if (a.get("subject"), a.get("facet"), a.get("epoch")) == key
-                   and disagreed(a, facet)]
-    if not disagreeing:
-        raise Refused("no_disagreement", "no complete readers_disagree attempt is logged for "
-                      "this subject, facet and epoch")
+    splits = [a for a in attempts
+              if (a.get("subject"), a.get("facet"), a.get("epoch")) == key and blocks_rule_15(a)]
+    if not splits:
+        raise Refused("no_disagreement", "no attempt the gate counts as a disagreement is "
+                      "logged for this subject, facet and epoch")
+    # By default the ruling resolves each split that pins the copy it read (a zoned time and
+    # a page hash); a split without them still blocks the gate but cannot name a copy.
+    disagreeing = [attempt_id(a) for a in splits
+                   if _pins_copy(a)] or [attempt_id(a) for a in splits]
     ruling = {"subject": subject, "facet": facet, "epoch": epoch, "value": value, "state": state,
               "ruled_by": ruled_by, "ruled_at": ruled_at, "ticket": ticket,
               "source_ids": list(source_ids), "resolves": list(resolves or disagreeing),
               "basis": basis}
     assert set(ruling) == set(FIELDS)
     urls = {sid: str(row.get("url")) for sid, row in registry.items()}
-    problem = ruling_problem(ruling, attempts=attempts, sources=urls, today=now.date())
+    # Sources beyond the pages the resolved attempts read: only ones the fact cites now, at a
+    # sha256 copy with a zoned read time, which is the copy the ruled fact keeps.
+    cited_refs = {str(r.get("source_id")): r for r in found.fact.get("sources") or []
+                  if isinstance(r, dict) and str(r.get("snapshot_ref") or "").startswith("sha256:")
+                  and _zoned(r.get("retrieved_at"))}
+    problem = ruling_problem(ruling, attempts=attempts, sources=urls, today=now.date(),
+                             cited=[sid for sid in found.registered_ids if sid in cited_refs])
     if problem is not None:
         raise Refused(*problem)
     # One ruling per subject, facet and epoch. The same line filed already is a write that
@@ -338,6 +367,10 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
            for r in found.fact.get("sources") or [] if isinstance(r, dict)):
         raise Refused("not_cited", "the fact cites a source that is not on a cite-only host")
     copies = source_copies(ruling, attempts, urls)
+    for sid in source_ids:
+        if sid not in copies:
+            ref = cited_refs[sid]
+            copies[sid] = (str(ref["snapshot_ref"]), str(ref["retrieved_at"]))
     refs = [SourceRef(source_id=sid, snapshot_ref=copies[sid][0], retrieved_at=copies[sid][1],
                       cited_regions=[r["id"] for r in registry[sid].get("cited_regions") or []]
                       or ["page"])

@@ -1121,9 +1121,12 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
         return attempts(subject, facet, epoch) + (
             attempts(subject, facet, base) if clearing is not None else [])
 
+    from decision.owner_ruling import blocks_rule_15
+
     logged = attempts(subject, facet, epoch)
     history = [a for a in recorded() if a.get("complete")]
-    if any(not a.get("agreed") for a in history):
+    # The one split test the owner-ruling filer uses too (MODEL-491).
+    if any(blocks_rule_15(a) for a in history):
         return _refuse("prior_attempt_disagreed",
                        "an earlier complete attempt at this fact did not agree")
     # An answer inside an incomplete attempt counts: two that differ, or one that differs from

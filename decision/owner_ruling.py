@@ -13,18 +13,22 @@ directory, with exactly ``FIELDS``:
 * ``value``, ``state``: what the fact becomes (``known`` with a value of the facet's type,
   or ``not_disclosed`` with none);
 * ``ruled_by`` (one of ``OWNERS``, a list in code), ``ruled_at`` (a day), ``ticket``;
-* ``source_ids``: the registered cite-only sources the disagreeing readers read;
+* ``source_ids``: the registered cite-only sources the disagreeing readers read, and any
+  other registered cite-only source the fact cites (MODEL-491);
 * ``resolves``: the ``attempt_id`` of each disagreeing attempt it settles;
 * ``basis``: short, counts and field names only, never page text.
 
 ``ruling_problem`` checks a line against the attempt log and the source registry: an owner,
 a ticket, a day no earlier than the attempts it resolves, a value of the facet's type, and
-for each resolved id a complete attempt for exactly that subject, facet and epoch whose two
-readers returned different values. Every source is registered on a cite-only host and was
-read by a resolved attempt, and every resolved attempt read one of the sources.
+for each resolved id an attempt for exactly that subject, facet and epoch that the gate itself
+counts as a disagreement (``blocks_rule_15``, the one test both use: a harness or a seeded
+attempt), with a zoned time and a page hash that pin the copy it read. Every source is
+registered on a cite-only host; every page a resolved attempt read is one of them, and any
+other is a source the fact cites (``cited``), at the copy the fact and its ruling claim cite.
 
 A ruled fact carries the line as ``derivation.owner_ruling`` and cites each source at the
-copy its resolved attempt read (``snapshot_ref``, ``retrieved_at``). ``admits`` is the
+copy its resolved attempt read (``snapshot_ref``, ``retrieved_at``), or, for a source no
+resolved attempt read, at the copy its ruling claim names (``ruling_copies``). ``admits`` is the
 build's test (``decision.snapshot``): the fact's location, value, state and sources must
 be the ruling's, and the ruling valid, or the fact is not admitted. Outwardly a ruled fact
 is an admitted cited fact: ``verification`` null and the existing ``citation`` object; the
@@ -76,6 +80,14 @@ def _exact(value: Any) -> str:
     """A value in one exact spelling: keys sorted, types kept (``30`` is not ``30.0``, ``1``
     is not ``true``), no rounding and no reordering."""
     return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+
+
+def blocks_rule_15(entry: Any) -> bool:
+    """Whether the rule-15 gate counts ``entry`` as a disagreement (``prior_attempt_disagreed``):
+    a complete attempt that did not agree, made through the harness or seeded. The gate and the
+    owner-ruling filer both use this one test, so they cannot differ on whether a split exists
+    (MODEL-491)."""
+    return isinstance(entry, Mapping) and bool(entry.get("complete")) and not entry.get("agreed")
 
 
 def disagreed(entry: Mapping[str, Any], facet_id: str) -> bool:
@@ -302,6 +314,26 @@ def source_copies(ruling: Mapping[str, Any], attempts: Sequence[Mapping[str, Any
     return out
 
 
+def ruling_copies(ruling: Mapping[str, Any], attempts: Sequence[Mapping[str, Any]],
+                  sources: Mapping[str, str],
+                  claim: Mapping[str, Any] | None) -> dict[str, tuple[str, str]]:
+    """``source_copies``, and for each ruling source no resolved attempt read, the copy the
+    ruling's own claim names (a ``sha256:`` ref and a zoned read time). A source neither gives
+    is absent, so the fact does not stand on it."""
+    out = source_copies(ruling, attempts, sources)
+    refs = {str(r.get("source_id")): r for r in (claim or {}).get("sources") or ()
+            if isinstance(r, Mapping)} if isinstance(claim, Mapping) else {}
+    for source_id in ruling.get("source_ids") or ():
+        ref = refs.get(source_id)
+        if source_id in out or ref is None:
+            continue
+        snapshot, at = str(ref.get("snapshot_ref") or ""), ref.get("retrieved_at")
+        if snapshot.startswith("sha256:") and _HEX.fullmatch(snapshot[7:]) \
+                and _same_instant(at, at):
+            out[source_id] = (snapshot, str(at))
+    return out
+
+
 def _day(value: Any) -> date | None:
     if not isinstance(value, str):
         return None
@@ -322,12 +354,13 @@ def _at(entry: Mapping[str, Any]) -> datetime | None:
 
 def ruling_problem(ruling: Any, *, attempts: Sequence[Mapping[str, Any]],
                    sources: Mapping[str, str], today: date | None = None,
-                   max_score: Any = None) -> tuple[str, str] | None:
+                   max_score: Any = None, cited: Collection[str] = ()) -> tuple[str, str] | None:
     """``(reason, detail)`` when the line is not a valid ruling, else ``None``. ``sources``
     maps registered source ids to URLs. Details carry counts and field names only. A ruling on a
     board reading (facet ``benchmark:<id>``, MODEL-569) states a score in the board's range
     (``decision.board_ruling.value_problem``; ``max_score`` is the board's); every other check
-    is the fact ruling's."""
+    is the fact ruling's. ``cited`` names the sources the fact cites: a ruling may cite those
+    beyond the pages its resolved attempts read (none, by default)."""
     from decision.board_ruling import is_board_facet, value_problem
     from decision.cited_change import _facet, _value_fits
     from decision.retention import cite_only_status
@@ -376,8 +409,12 @@ def ruling_problem(ruling: Any, *, attempts: Sequence[Mapping[str, Any]],
     for entry in found.values():
         if (entry.get("subject"), entry.get("facet"), entry.get("epoch")) != key:
             return "no_disagreement", "a resolved attempt is for another subject, facet or epoch"
-        if not disagreed(entry, ruling["facet"]):
-            return "no_disagreement", "a resolved attempt is not a complete readers_disagree"
+        # A fact's split is what the fact gate counts (MODEL-491); a board reading keeps the
+        # harness-only test of MODEL-569.
+        split = disagreed(entry, ruling["facet"]) if is_board_facet(ruling["facet"]) \
+            else blocks_rule_15(entry)
+        if not split:
+            return "no_disagreement", "a resolved attempt is not one the gate counts as a split"
         at = _at(entry)
         if at is None or not _HEX.fullmatch(str(entry.get("page_sha256") or "")):
             return "no_disagreement", "a resolved attempt has no zoned time or page hash"
@@ -396,8 +433,13 @@ def ruling_problem(ruling: Any, *, attempts: Sequence[Mapping[str, Any]],
             return "source_mismatch", "a source is not on a cite-only host"
         urls.append(url)
     read = {str(entry.get("url")) for entry in found.values()}
-    if set(urls) != read:
-        return "source_mismatch", "the sources are not the pages the resolved attempts read"
+    if not read <= set(urls):
+        return "source_mismatch", "a page a resolved attempt read is not among the sources"
+    allowed = set(cited)
+    if any(url not in read and source_id not in allowed
+           for source_id, url in zip(source_ids, urls)):
+        return "source_mismatch", "a source is neither a page a resolved attempt read nor one " \
+            "the fact cites"
     return None
 
 
@@ -448,7 +490,9 @@ def admits(fact: Mapping[str, Any], subject: str, *, rulings: Sequence[Mapping[s
     ruling = lines[0]
     if _exact(dict(block)) != _exact(dict(ruling)):
         return False
-    if ruling_problem(ruling, attempts=attempts, sources=sources, today=today) is not None:
+    cited = [str(r.get("source_id")) for r in fact.get("sources") or () if isinstance(r, Mapping)]
+    if ruling_problem(ruling, attempts=attempts, sources=sources, today=today,
+                      cited=cited) is not None:
         return False
     if fact.get("state") != ruling["state"] or _exact(fact.get("value")) != _exact(ruling["value"]):
         return False
@@ -458,8 +502,9 @@ def admits(fact: Mapping[str, Any], subject: str, *, rulings: Sequence[Mapping[s
             return False
     except (KeyError, TypeError, AttributeError):
         return False
-    copies = source_copies(ruling, attempts, sources)
-    if not is_latest_change(ruling, (claims or {}).get(f"{subject}#{facet}"), copies):
+    claim = (claims or {}).get(f"{subject}#{facet}")
+    copies = ruling_copies(ruling, attempts, sources, claim)
+    if not is_latest_change(ruling, claim, copies):
         return False
     refs = [r for r in fact.get("sources") or () if isinstance(r, Mapping)]
     if sorted(str(r.get("source_id")) for r in refs) != sorted(ruling["source_ids"]) \
