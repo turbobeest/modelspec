@@ -383,7 +383,9 @@ Learned expensively during 2026-09-09/10.
     verified, through one test (`decision.retained_correction.confirmation_citation`, MODEL-491
     E1): its first logged agreement that made the block is complete, through the harness, by two
     distinct known families, on the filed value, on a retaining host, on or before the cutoff, in
-    an epoch with no disagreement and no later attempt in another epoch; the fact is no licence
+    an epoch with no disagreement, with none in the record's own re-read epoch either, and no
+    later attempt in another epoch; a measurement the build finds stale keeps it out of the site
+    too (`snapshot.fact_measurement_stale`); the fact is no licence
     fact or identity field, carries no ruling or clearing, and no value of it holds a verdict. When
     the fact's own winning verdict is an independent `verified`, the verified path wins; one that
     fails the test is decided as if it carried no block. The gate asks the same test of the record
@@ -411,10 +413,13 @@ Learned expensively during 2026-09-09/10.
     corrected fact on the correction rule. File the record with `filed_fact`. A log line is not
     signed: these checks bind it to the gate's own records, and the data repository's review
     remains the guard against a hand-written line. A `mismatch` on the value a correction
-    replaced (the block's `previous_value`), dated on or before its agreement and on no value
-    the fact now has, does not hold the correction (MODEL-491 E2,
-    `retained_correction.replaced_value_mismatch`); an `unreachable`, a later verdict, and any
-    verdict on another value still do.
+    replaced, dated on or before its agreement and on no value the fact now has, does not hold
+    the correction (MODEL-491 E2, `retained_correction.replaced_value_mismatch`). The replaced
+    value is the `filed_value` the gate logs on the agreement's own attempt line, never the
+    record's `previous_value`; a line logged without one releases nothing. An `unreachable`, a
+    later verdict, and any verdict on another value still hold it. With `correct=True`, the gate
+    reads past a hold that is only mismatches on the filed value (`mismatch_on`, the build's
+    helper); a confirmation of the filed value is still refused (`quarantined`).
 
 Public PR bodies and evidence must not contain private modelspec-data commit SHAs or per-card private values. Private PR numbers, ages and clone URLs are not sensitive.
 
