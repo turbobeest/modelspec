@@ -162,6 +162,9 @@ class Facet:
     #: False when the snapshot records the fact but the decision contract does
     #: not yet admit it in conditions or objectives.
     addressable: bool = True
+    #: True for a field that names what the subject is (an offering's provider, model id, slug,
+    #: region or tier). A change to one is the owner's (S15, MODEL-573).
+    identity: bool = False
     #: A short name for people, such as "Input price". Optional.
     label: str | None = None
     #: Plain labels for enum or set values, as ``(value, label)`` pairs, so a
@@ -653,7 +656,7 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
     required = {"id", "subject", "value_type", "definition", "tier", "risk", "permitted_source_kinds"}
     optional = {
         "unit", "parameter", "required_qualifiers", "computed_by", "addressable",
-        "label", "value_labels", "better",
+        "label", "value_labels", "better", "identity",
     }
     out: dict[str, Facet] = {}
     for e in entries:
@@ -701,6 +704,10 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
         if not isinstance(addressable, bool):
             err.add(where, "addressable must be true or false")
             addressable = True
+        identity = e.get("identity", False)
+        if not isinstance(identity, bool):
+            err.add(where, "identity must be true or false")
+            identity = False
         if vt is None or not isinstance(e.get("id"), str):
             continue
         out.setdefault(e["id"], Facet(
@@ -709,7 +716,7 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
             tier=e.get("tier"), risk=e.get("risk"), permitted_source_kinds=tuple(psk),
             unit=e.get("unit"), parameter=parameter, required_qualifiers=tuple(rq),
             computed_by=e.get("computed_by"), addressable=addressable,
-            label=label, value_labels=value_labels, better=better,
+            label=label, value_labels=value_labels, better=better, identity=identity,
             preference_values=(
                 tuple(sorted(lists[vt.values_from]()))
                 if (

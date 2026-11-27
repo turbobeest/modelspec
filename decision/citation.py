@@ -126,9 +126,19 @@ def fact_citation(record: Mapping[str, Any], sources: Mapping[str, str],
     in ``store`` for the ref's snapshot hash. Every ref is preserved, including
     non-cite-only refs in a mixed record whose verification is unattributable.
     """
-    refs = record.get("sources") or ()
     if "cited" not in ref_states(record, sources, store):
         return None
+    return citation_of(record, sources, store)
+
+
+def citation_of(record: Mapping[str, Any], sources: Mapping[str, str],
+                store: Any = None) -> dict:
+    """The citation of every source ref of ``record``, validated as ``fact_citation`` validates
+    it, whether or not a ref is cite-only. ``fact_citation`` uses it once a ref is cited; a
+    retained-page correction (MODEL-573, ``decision.retained_correction``) uses it for a value
+    that rests on a logged two-reader agreement, so it is served as cited, never as verified.
+    Invalid citations raise ValueError."""
+    refs = record.get("sources") or ()
     cited = []
     for ref in refs:
         source_id, snapshot_ref = ref.get("source_id"), ref.get("snapshot_ref")

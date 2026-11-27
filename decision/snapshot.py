@@ -833,6 +833,8 @@ class _Compiler:
         self.owner_ruling_reopened = frozenset(inputs.owner_ruling_reopened)
         self.quarantine_clearings = tuple(dict(r) for r in inputs.quarantine_clearings)
         self._attempt_log: Any = None
+        #: Retained-page corrections the build's test refused (MODEL-573); a count, no ids.
+        self.refused_corrections = 0
         #: (kind, id) of every fact and board row the data has, admitted or not (MODEL-552).
         self.seen_ids: set[tuple[str, str]] = set()
         #: Every board row the data has, for the queue-proven predecessor test.
@@ -962,15 +964,14 @@ class _Compiler:
             # The cited-change derivation (readers, prompt hashes, manifests) is internal: it
             # never enters a snapshot or its record_table.
             record = {k: v for k, v in record.items() if k != "derivation"}
-        if kind == "fact" and isinstance(record.get("derivation"), Mapping) \
-                and ("owner_ruling" in record["derivation"]
-                     or "clearing_epoch" in (record["derivation"].get("cited_change") or {})):
+        if kind == "fact" and isinstance(record.get("derivation"), Mapping):
             # The owner's ruling (MODEL-551) is internal, and so is the cited-change block a
-            # ruled re-read fact keeps, or a clearing made (MODEL-552): one served form, shared
-            # with the site exports.
-            from decision.owner_ruling import served_fact
+            # ruled re-read fact keeps, a clearing made (MODEL-552) or a retained-page correction
+            # made (MODEL-573): one served form, shared with the site exports.
+            from decision.owner_ruling import has_internal, served_fact
 
-            record = served_fact(record)
+            if has_internal(record):
+                record = served_fact(record)
         rid = str(record.get("id") or content_hash(record))
         value = (
             fact_verification_value(record)
@@ -1118,6 +1119,19 @@ class _Compiler:
             except ValueError as exc:
                 raise SnapshotBuildError(f"rule-15 attempt log: {type(exc).__name__}") from None
         return self._attempt_log
+
+    def _correction(self, sid: str, fact: Mapping[str, Any]) -> dict | None:
+        """The citation of a retained-page correction the gate's own test admits
+        (``decision.retained_correction.correction_problem``, MODEL-573), or ``None`` when it
+        fails the test (counted, by no id)."""
+        from decision.retained_correction import correction_citation, correction_problem
+
+        problem = correction_problem(fact, sid, log=self._clearing_log(), verdicts=self.log,
+                                     sources=self.sources, cutoff=self._clearing_cutoff())
+        if problem is not None:
+            self.refused_corrections += 1
+            return None
+        return correction_citation(fact, self.sources)
 
     def _cleared_fact(self, subject: str | None, record: Mapping[str, Any] | None, rid: Any,
                       inline: Any, value: Any, facet: Any) -> bool:
@@ -1310,6 +1324,8 @@ class _Compiler:
             raise SnapshotBuildError(f"facet {facet_id!r} is used on both a {seen} and a {kind}")
 
     def _add_facts(self, sid: str, kind: str, facts: Iterable[Any]) -> None:
+        from decision.retained_correction import is_correction
+
         row = self.facts.setdefault(sid, {})
         for f in self._resolve_prices(sid, facts):
             facet_id, state = str(f["facet"]), str(f["state"])
@@ -1342,7 +1358,16 @@ class _Compiler:
                 continue
             measurement = self._measurement(sid, facet_id, f.get("measurement"))
             try:
-                citation = fact_citation(f, self.sources, self.source_cache)
+                if is_correction(f):
+                    # A retained-page correction (MODEL-573) is served, as cited, only through
+                    # the gate's own test, whatever its references are; one that fails it stays
+                    # out, even beside a cite-only reference or a verified verdict.
+                    citation = self._correction(sid, f)
+                    if citation is None:
+                        self._reject((sid, facet_id), "quarantined (correction)", source_ids)
+                        continue
+                else:
+                    citation = fact_citation(f, self.sources, self.source_cache)
                 if citation is not None:
                     Fact.model_validate({**f, "verification": None},
                                         context={"registry": self.registry})
@@ -2452,6 +2477,20 @@ def collect_repo(root: Path) -> SnapshotInputs:
         ruling_reopened = ruling_inputs.reopened
     attempt_lines: list[str] = []
     clearing_history: dict[str, list[dict[str, Any]]] = {}
+    from decision.retained_correction import is_correction
+
+    # A retained-page correction (MODEL-573) is admitted only through its line in the attempt
+    # log, so the log is read whenever a fact carries one.
+    corrections = any(is_correction(f) for row in [*models, *offerings, *subscriptions]
+                      for f in row.get("facts") or [] if isinstance(f, Mapping))
+    if corrections and not quarantine_clearings:
+        from decision.cited_reader import ATTEMPTS_FILE
+        from decision.quarantine_clearing import AttemptLog
+
+        try:
+            attempt_lines = list(AttemptLog.read(root / ATTEMPTS_FILE).lines)
+        except ValueError as exc:
+            raise SnapshotBuildError(f"{ATTEMPTS_FILE}: {type(exc).__name__}") from exc
     if quarantine_clearings:
         from decision.cited_reader import ATTEMPTS_FILE
         from decision.quarantine_clearing import QUEUE_FILE, AttemptLog, queue_history

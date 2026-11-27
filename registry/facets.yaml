@@ -666,6 +666,7 @@ facets:
   # ── Offering: identity ────────────────────────────────────────────────────
   - id: offering.provider
     label: Provider
+    identity: true
     subject: offering
     value_type: {kind: enum, values_from: "registry:providers"}
     definition: >-
@@ -676,6 +677,7 @@ facets:
     permitted_source_kinds: [provider_documentation]
   - id: offering.api_model_id
     label: API model ID
+    identity: true
     subject: offering
     value_type: {kind: string}
     addressable: false
@@ -688,6 +690,7 @@ facets:
     permitted_source_kinds: [provider_documentation]
   - id: offering.router_slug
     label: OpenRouter model slug
+    identity: true
     subject: offering
     value_type: {kind: string}
     addressable: false
@@ -700,6 +703,7 @@ facets:
     permitted_source_kinds: [provider_documentation]
   - id: offering.region
     label: Inference region
+    identity: true
     subject: offering
     value_type: {kind: set, values_from: iso_3166_1_alpha_2, unordered: true}
     value_labels:
@@ -717,6 +721,7 @@ facets:
     permitted_source_kinds: [provider_documentation, provider_terms]
   - id: offering.tier
     label: Account tier
+    identity: true
     subject: offering
     value_type: {kind: enum, values: [standard, enterprise, zero_retention, government]}
     value_labels:

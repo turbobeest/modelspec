@@ -372,6 +372,25 @@ Learned expensively during 2026-09-09/10.
     class first, and one whose origin is now cite-only is listed
     (`retained_agreements_now_cite_only`), not fetched.
 
+    A correction (MODEL-573, `decision.retained_correction`): with `correct=True`, an agreed
+    value other than the filed one corrects a served value, only when the agreement is in the
+    fact's current epoch (counted from the agreement line's first occurrence, no attempt at the
+    fact is logged after it in another epoch but the corrected record's own re-read epoch), on
+    the gate's own fetch (the line records `own_fetch`, which only the gate's own transport
+    sets, and the cited-region hash the block repeats), its two readers are distinct known
+    families, no disagreement is logged in that epoch, the fact is no licence fact and no facet
+    the registry classes as identity (`identity: true` in `registry/facets.yaml`; S15), carries
+    no owner's ruling or clearing, no value of it holds a verdict (a released one included), and
+    the agreement is on or before the build's cutoff in UTC. The record carries rule
+    `two-readers-retained-correction@1`, the `epoch` it was read in, the `agreement` (the hash of
+    the attempt's exact line) and its `region_sha256`. The gate, the snapshot build and the site
+    loader decide through one test (`correction_problem`), whatever the fact's references are;
+    the build serves an admitted correction as a cited fact (`verification` null, a `citation`,
+    no derivation), never as verified, and keeps a failing one out. The rolling re-read keeps a
+    corrected fact on the correction rule. File the record with `filed_fact`. A log line is not
+    signed: these checks bind it to the gate's own records, and the data repository's review
+    remains the guard against a hand-written line.
+
 Public PR bodies and evidence must not contain private modelspec-data commit SHAs or per-card private values. Private PR numbers, ages and clone URLs are not sensitive.
 
 ## Pytest CI shards
