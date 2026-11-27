@@ -165,7 +165,15 @@ def correction_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
     if problem is not None:
         return problem
     own = fact_epoch(fact)
-    for later in log.entries[index + 1:]:
+    # A line byte-identical to an earlier line is a copy of that line, not a later attempt: an
+    # older epoch's line appended again neither suppresses the correction here nor, by fix 3's
+    # first occurrence, revives an older agreement.
+    seen = {line_hash(raw) for raw in log.lines[:index + 1]}
+    for raw, later in zip(log.lines[index + 1:], log.entries[index + 1:], strict=True):
+        digest = line_hash(raw)
+        if digest in seen:
+            continue
+        seen.add(digest)
         if (later.get("subject"), later.get("facet")) == (subject, facet) \
                 and later.get("epoch") not in {epoch, own}:
             return "an attempt in a later epoch was logged after the agreement"

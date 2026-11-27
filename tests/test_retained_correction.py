@@ -462,6 +462,19 @@ def test_a_copied_stale_agreement_does_not_move_the_scan_forward():
     assert not admitted(build(corrected_row(attempt), [attempt, later, attempt]))
 
 
+def test_a_copied_older_epoch_line_does_not_suppress_a_valid_correction():
+    # Review round 2: a byte-identical copy of an older epoch's line, appended after the
+    # agreement, is that older line, not a later attempt.
+    older = agreement("reread:" + "c" * 64, at="2026-10-01T09:00:00+00:00",
+                      values=(FILED, FILED), text_sha256="c" * 64)
+    attempt = agreement()
+    assert admitted(build(corrected_row(attempt), [older, attempt]))
+    assert admitted(build(corrected_row(attempt), [older, attempt, older]))
+    # A new line in another epoch after the agreement still undoes it.
+    fresh = {**older, "at": "2026-10-11T09:00:00+00:00"}
+    assert not admitted(build(corrected_row(attempt), [older, attempt, fresh]))
+
+
 def test_the_cutoff_is_compared_in_utc():
     # Review fix 4: 02:00 at +05:00 on the 10th is the 9th in UTC; 22:00 at -05:00 on the 9th
     # is the 10th.
