@@ -276,6 +276,7 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
                load_sources(root / "registry" / "sources.yaml").items()}
     rulings = None  # read once, and only when a card claims a ruling
     corrections = None  # read once, and only when a card carries a retained-page correction
+    clearing = None  # the clearing lines and their queue history, read once for confirmations
     #: The snapshot build's copy store (``build_from_repo``), so a ruled fact's citation is
     #: decided here exactly as there; other facts keep the registry-only citation.
     store = configured_copy_store()
@@ -346,7 +347,10 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
                 # it adds nothing.
                 if corrections is None:
                     corrections = _correction_inputs(root, as_of)
-                citation = _confirmed_citation(fact, str(model_id), corrections, sources, as_of)
+                if clearing is None:
+                    clearing = _clearing_inputs(root)
+                citation = _confirmed_citation(fact, str(model_id), corrections, sources, as_of,
+                                               clearing)
             if citation:
                 cited.append({**served_fact(fact), "verification": None, "citation": citation})
         block = front.get("benchmarks")
@@ -407,9 +411,23 @@ def _corrected_citation(fact: dict[str, Any], model_id: str, inputs: tuple[Any, 
         return None
 
 
+def _clearing_inputs(root: Path) -> tuple[Any, Any]:
+    """The MODEL-552 clearing lines and their queue history (``retained_correction.
+    clearing_inputs``), which a cleared confirmation is admitted through (MODEL-491 E4)."""
+    from decision.owner_ruling import RepeatedKeyError
+    from decision.retained_correction import clearing_inputs
+
+    try:
+        return clearing_inputs(root)
+    except RepeatedKeyError as error:
+        raise LoadError(str(error)) from None
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        raise LoadError(f"quarantine clearings: {type(error).__name__}") from None
+
+
 def _confirmed_citation(fact: dict[str, Any], model_id: str, inputs: tuple[Any, Any, date],
-                        sources: dict[str, str], as_of: date | None = None
-                        ) -> dict[str, Any] | None:
+                        sources: dict[str, str], as_of: date | None = None,
+                        clearing: tuple[Any, Any] | None = None) -> dict[str, Any] | None:
     """The snapshot's citation for a rule-16 confirmation (MODEL-491 E1), or ``None``: none for a
     fact whose measurement the build rejects as stale (``fact_measurement_stale``)."""
     from decision.retained_correction import confirmation_citation
@@ -418,8 +436,9 @@ def _confirmed_citation(fact: dict[str, Any], model_id: str, inputs: tuple[Any, 
     if fact_measurement_stale(fact, as_of):
         return None
     log, verdicts, cutoff = inputs
+    clearings, history = clearing or ((), {})
     return confirmation_citation(fact, model_id, log=log, verdicts=verdicts, sources=sources,
-                                 cutoff=cutoff)
+                                 cutoff=cutoff, clearings=clearings, history=history)
 
 
 def _ruled_row_withheld(root: Path, row: dict[str, Any], model_id: str, rulings: Any,

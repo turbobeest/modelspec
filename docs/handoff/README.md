@@ -407,7 +407,13 @@ Learned expensively during 2026-09-09/10.
     fact or identity field, carries no ruling or clearing, and no value of it holds a verdict. When
     the fact's own winning verdict is an independent `verified`, the verified path wins; one that
     fails the test is decided as if it carried no block. The gate asks the same test of the record
-    it files (`confirmation_not_admitted`). A fact that cites a cite-only page keeps that
+    it files (`confirmation_not_admitted`). A confirmation held by one mismatch may be
+    released by a MODEL-552 clearing (MODEL-491 E4): `retained_agreement(clear_quarantine=True)`
+    reads it in the verdict's clearing epoch and files the clearing line with the confirmation;
+    the build and the site loader admit it only when that line releases every held verdict
+    (`quarantine_clearing.fact_released`, through `confirmation_problem` with the clearing lines
+    and their queue history). Never with `correct`, never for a corrected fact, and only for the
+    filed value. A fact that cites a cite-only page keeps that
     citation, so its served basis is not upgraded. The rolling
     re-read re-reads these facts while their origin still retains copies; it reads the origin's
     class first, and one whose origin is now cite-only is listed

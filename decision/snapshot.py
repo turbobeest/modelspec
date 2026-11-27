@@ -1150,7 +1150,9 @@ class _Compiler:
         from decision.retained_correction import confirmation_citation
 
         return confirmation_citation(fact, sid, log=self._clearing_log(), verdicts=self.log,
-                                     sources=self.sources, cutoff=self._clearing_cutoff())
+                                     sources=self.sources, cutoff=self._clearing_cutoff(),
+                                     clearings=self.quarantine_clearings,
+                                     history=self.inputs.clearing_history)
 
     def _cleared_fact(self, subject: str | None, record: Mapping[str, Any] | None, rid: Any,
                       inline: Any, value: Any, facet: Any) -> bool:

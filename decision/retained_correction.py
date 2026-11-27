@@ -312,9 +312,19 @@ def is_confirmation(record: Mapping[str, Any]) -> bool:
 
 def confirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
                          verdicts: Mapping[tuple[str, str, str], Any], sources: Mapping[str, str],
-                         cutoff: date, ids: Sequence[str] = ()) -> str | None:
+                         cutoff: date, ids: Sequence[str] = (),
+                         clearings: Sequence[Mapping[str, Any]] = (),
+                         history: Mapping[str, Sequence[Mapping[str, Any]]] | None = None
+                         ) -> str | None:
     """Why ``fact`` is not a rule-16 confirmation this rule serves as cited, or ``None``
-    (MODEL-491 E1). The arguments are ``correction_problem``'s."""
+    (MODEL-491 E1). The arguments are ``correction_problem``'s, and the MODEL-552 clearing lines
+    with the queue history of the targets they name (``clearing_inputs``).
+
+    A confirmation held by a mismatch is served only when a valid clearing line releases every
+    held verdict (MODEL-491 E4, ``quarantine_clearing.fact_released``): the fact carries the block
+    the clearing's own fresh two-reader agreement made, read in the verdict's clearing epoch on a
+    later day than the verdict. Any other hold, and a cleared block no valid line backs, refuses.
+    """
     from decision.cited_change import fact_epoch
     from decision.owner_ruling import has_ruling
     from decision.quarantine_clearing import (
@@ -332,12 +342,22 @@ def confirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
     facet = fact.get("facet")
     if owner_only(facet):
         return "a licence fact or an identity field is the owner's"
-    if has_ruling(fact) or "clearing_epoch" in block:
-        return "a ruled or cleared fact is not a confirmation"
+    if has_ruling(fact):
+        return "a ruled fact is not a confirmation"
+    cleared = "clearing_epoch" in block
+    if cleared and not clearings:
+        return "a cleared confirmation is admitted only through its clearing line"
     if fact.get("state") != "known" or fact.get("value") is None:
         return "a confirmation is of a known value"
     try:
         held = unresolved_holds(fact, subject, verdicts=verdicts, log=log, ids=ids)
+        if held and cleared:
+            from decision.quarantine_clearing import fact_released
+
+            rows = [h[1] for h in held]
+            held = [h for h in held if not fact_released(
+                fact, subject, verdict=h[1], clearings=clearings, log=log, sources=sources,
+                history=history or {}, cutoff=cutoff, held=rows)]
     except (KeyError, TypeError, AttributeError, ValueError):
         return "the fact's verification record cannot be read"
     if held:
@@ -388,6 +408,27 @@ def confirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
     return None
 
 
+def clearing_inputs(root: Any) -> tuple[list[dict[str, Any]], dict[str, list[dict[str, Any]]]]:
+    """The MODEL-552 clearing lines under a data directory and the queue history of the targets
+    they name, as ``decision.snapshot.collect_repo`` reads them: what the gate and the site loader
+    give ``confirmation_problem`` (MODEL-491 E4). Raises ``ValueError`` on a malformed file."""
+    from pathlib import Path
+
+    from decision.quarantine_clearing import (
+        CLEARINGS_FILE,
+        QUEUE_FILE,
+        queue_history,
+        read_clearings,
+    )
+
+    root = Path(root)
+    path = root / CLEARINGS_FILE
+    clearings = read_clearings(path) if path.is_file() else []
+    targets = {str((c.get("target") or {}).get("id")) for c in clearings
+               if isinstance(c.get("target"), Mapping)}
+    return clearings, (queue_history(root / QUEUE_FILE, targets) if targets else {})
+
+
 def verified_winner(fact: Mapping[str, Any], subject: str,
                     verdicts: Mapping[tuple[str, str, str], Any]) -> bool:
     """Whether the fact's own winning verdict (the latest counting row on its stored id whose
@@ -421,11 +462,15 @@ def verified_winner(fact: Mapping[str, Any], subject: str,
 def confirmation_citation(fact: Mapping[str, Any], subject: str, *, log: Any,
                           verdicts: Mapping[tuple[str, str, str], Any],
                           sources: Mapping[str, str], cutoff: date,
-                          ids: Sequence[str] = ()) -> dict[str, Any] | None:
+                          ids: Sequence[str] = (),
+                          clearings: Sequence[Mapping[str, Any]] = (),
+                          history: Mapping[str, Sequence[Mapping[str, Any]]] | None = None
+                          ) -> dict[str, Any] | None:
     """The served ``citation`` of a confirmation the test admits and no verified verdict
     outranks, or ``None``: the one decision the build and the site loader take (MODEL-491 E1)."""
     if confirmation_problem(fact, subject, log=log, verdicts=verdicts, sources=sources,
-                            cutoff=cutoff, ids=ids) is not None:
+                            cutoff=cutoff, ids=ids, clearings=clearings,
+                            history=history) is not None:
         return None
     if verified_winner(fact, subject, verdicts):
         return None
