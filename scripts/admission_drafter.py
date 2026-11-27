@@ -343,7 +343,9 @@ class Packet:
                 "sources": [s.model_dump(mode="json", exclude_none=True)
                             for s in registered.values()],
             }, sort_keys=False, allow_unicode=True))
-        queue, log = Queue(root / "verification"), VerificationLog(root / "verification")
+        queue = Queue(root / "verification")
+        # A private-data writer: MODEL-491's counting rule applies.
+        log = VerificationLog(root / "verification", private=True)
         at = datetime.combine(self.checked_on, datetime.min.time(), tzinfo=UTC)
         filed, latest = queue.filed(), log.latest()
         for claim, result in to_file:

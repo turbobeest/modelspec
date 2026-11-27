@@ -904,13 +904,14 @@ def _latest_collected_claims(path: Path) -> list[Any]:
     return list(latest.values())
 
 
-def _verified_claims(root: Path) -> list[tuple[Any, str]]:
-    """Each verified claim with the method of the verification that admitted it."""
+def _verified_claims(root: Path, *, private: bool = False) -> list[tuple[Any, str]]:
+    """Each verified claim with the method of the verification that admitted it. ``private``:
+    the caller states ``root`` is the private data (MODEL-491's counting rule)."""
     from decision.model import value_hash
     from decision.verify import VerificationLog
 
     directory = root / "verification"
-    latest = VerificationLog(directory).latest()
+    latest = VerificationLog(directory, private=private).latest()
     claims = _latest_collected_claims(directory / "queue" / "events.jsonl")
     return [
         (claim, record.verifier.method)
@@ -933,8 +934,8 @@ def _private_corrections(
             raise ValueError("private correction checkout is missing verification records")
     public_log = VerificationLog(root / "verification").latest()
     try:
-        private_log = VerificationLog(private / "verification").latest()
-        private_claims = _verified_claims(private)
+        private_log = VerificationLog(private / "verification", private=True).latest()
+        private_claims = _verified_claims(private, private=True)
     except (ValueError, KeyError, TypeError):
         raise ValueError("private correction verification records could not be read") from None
     corrections = {}
@@ -1357,8 +1358,10 @@ def data_fidelity(
     seed: str | None = None,
     llm_reader: str | None = None,
     private_data_root: Path | None = None,
+    private: bool = False,
 ) -> LayerResult:
-    """Nightly source re-read. Plain HTTP is attempted before any paid renderer.
+    """Nightly source re-read. Plain HTTP is attempted before any paid renderer. ``private``:
+    the caller states ``root`` is the private data (MODEL-491's counting rule).
 
     Every selected source gets a plain HTTP attempt, including sources normally
     marked rendered. Firecrawl use is therefore zero and cannot exceed the
@@ -1394,7 +1397,7 @@ def data_fidelity(
     excluded = excluded_sources()
     eligible = [
         (claim, method)
-        for claim, method in _verified_claims(root)
+        for claim, method in _verified_claims(root, private=private)
         if claim.sources
         and all(
             source.source_id in sources
@@ -1871,6 +1874,7 @@ def run_profile(
                     seed=random_seed,
                     llm_reader=llm_reader,
                     private_data_root=private_data_root,
+                    private=private,
                 )
             )
         elif layer == "reference_agreement":

@@ -8591,9 +8591,18 @@ class VerificationLog:
     verifications.
     """
 
-    def __init__(self, directory: str | Path = DEFAULT_DIRECTORY) -> None:
+    def __init__(self, directory: str | Path = DEFAULT_DIRECTORY, *,
+                 private: bool = False) -> None:
         self.directory = Path(directory)
         self.path = self.directory / "log.jsonl"
+        #: MODEL-491: the caller states the log is the private data's, so its rows count by the
+        #: private rule (``verification_row_counts(..., retire=True)``); the public rule else.
+        self.private = private
+
+    def _counts(self, record: Verification) -> bool:
+        from decision.model import verification_row_counts
+
+        return verification_row_counts(record, retire=self.private)
 
     def append(self, verification: Verification) -> None:
         self.directory.mkdir(parents=True, exist_ok=True)
@@ -8626,7 +8635,7 @@ class VerificationLog:
         """
         latest: dict[tuple[str, str], Verification] = {}
         for record in self.records():
-            if not record.counts:
+            if not self._counts(record):
                 continue
             key = _key(record.target)
             if key not in latest or record.date >= latest[key].date:
@@ -8643,7 +8652,7 @@ class VerificationLog:
         counting: dict[tuple[str, str, str], Verification] = {}
         for record in self.records():
             key = (record.target.kind, record.target.id, record.target.value_hash)
-            if not record.counts:
+            if not self._counts(record):
                 vouched[key] = record.target
             elif key not in counting or record.date >= counting[key].date:
                 counting[key] = record

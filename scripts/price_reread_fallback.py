@@ -439,7 +439,8 @@ def fallback_to(
     """
     sources = load_sources(root / "registry" / "sources.yaml")
     filed = Queue(root / "verification").filed()
-    latest = VerificationLog(root / "verification").latest()
+    # A private-data writer: MODEL-491's counting rule applies.
+    latest = VerificationLog(root / "verification", private=True).latest()
     source_ids = set()
     for tracked in tracked_facts(root):
         claim = filed.get(("fact", tracked.fact["id"]))

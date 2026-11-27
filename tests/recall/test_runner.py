@@ -110,8 +110,9 @@ def test_the_ungated_fallback_keeps_the_premier_lineup(monkeypatch, tmp_path: Pa
         SnapshotInputs(models=[model("lab/alpha")], sources=SOURCES), as_of=date(2026, 9, 24)
     )
 
-    def fake_build(root, *, premier, as_of, registry, gate=True):
+    def fake_build(root, *, premier, as_of, registry, gate=True, private=False):
         calls.append((premier, gate))
+        assert private is False  # recall on the public image states nothing (MODEL-491)
         if gate:
             raise CompletenessError([Gap("lab/alpha", "lab/alpha", "model.class", "unknown")])
         return fixture

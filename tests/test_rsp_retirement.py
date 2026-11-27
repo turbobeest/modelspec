@@ -9,6 +9,8 @@ the rule as filed. Every record here is synthetic.
 from __future__ import annotations
 
 import copy
+from datetime import date
+from pathlib import Path
 
 import pytest
 from decision.model import Verification, verification_row_counts
@@ -165,3 +167,40 @@ def test_the_counting_rule_takes_the_switch_from_its_caller_only(tmp_path, monke
     monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))
     assert verification_row_counts(proof) and Verification.model_validate(proof).counts
     assert not verification_row_counts(proof, retire=True)
+
+
+def test_the_verification_log_counts_by_its_callers_rule(tmp_path):
+    # Codex review 5: VerificationLog.latest (the accuracy audit, the drafters, the price
+    # re-read) counts by the rule its caller states, so a private reader never accepts a
+    # retired row.
+    import json
+
+    from decision.verify import VerificationLog
+
+    (tmp_path / "log.jsonl").write_text(json.dumps(row("retained-source-proof@1")) + "\n")
+    assert len(VerificationLog(tmp_path).latest()) == 1  # the public rule, as filed
+    assert VerificationLog(tmp_path, private=True).latest() == {}
+    assert VerificationLog(tmp_path, private=True).requarantined() != []
+
+
+def test_the_private_accuracy_audit_reads_the_private_rule(tmp_path, monkeypatch):
+    import scripts.accuracy as accuracy
+
+    seen = []
+
+    class Log:
+        def __init__(self, directory, *, private=False):
+            seen.append((Path(directory).parent.name, private))
+
+        def latest(self):
+            return {}
+
+    import decision.verify as verify
+
+    monkeypatch.setattr(verify, "VerificationLog", Log)
+    for name in ("public", "private"):
+        for rel in ("verification/log.jsonl", "verification/queue/events.jsonl"):
+            (tmp_path / name / rel).parent.mkdir(parents=True, exist_ok=True)
+            (tmp_path / name / rel).write_text("")
+    accuracy._private_corrections(tmp_path / "public", tmp_path / "private", date(2026, 11, 27))
+    assert ("public", False) in seen and ("private", True) in seen

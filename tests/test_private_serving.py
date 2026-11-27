@@ -63,11 +63,6 @@ def private(tmp_path_factory):
               for line in log.read_text().splitlines() if base_id in line]
     with log.open("a") as stream:
         stream.write("\n" + "\n".join(copied) + "\n")
-    # The Worker's --data-dir export builds private data by MODEL-491's rule. This stand-in is the
-    # frozen public image, which rests on rows that rule retires; the real private data replaced
-    # them with re-reads. Relabel them here so the stand-in passes the same gate.
-    log.write_text(log.read_text().replace('"retained-source-proof@1"', '"fixture-reread@1"')
-                   .replace('"codex-model-143"', '"codex-model-143-fixture"'))
     premier = tree / "premier/slice-1.yaml"
     content = yaml.safe_load(premier.read_text())
     content["models"].append({"model_id": "lab/" + SENTINEL})

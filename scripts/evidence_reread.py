@@ -303,7 +303,7 @@ def select_window(root: Path, sources, terms: dict[str, str], today: date, *,
 
     directory = root / "verification"
     filed = v.Queue(directory).filed()
-    log = v.VerificationLog(directory)
+    log = v.VerificationLog(directory, private=True)  # a private-data writer (MODEL-491)
     window = Window()
     eligible: list[Row] = []
     covered_sources: set[str] = set()
@@ -477,7 +477,9 @@ def run(root: Path, *, observed_at: date, dry_run: bool, store_root: Path,
     store = CopyStore(store_root)
     regions = v.StoredRegions(store, sources, cache_documents=True)
     extractors = [v.StructuredDataExtractor()]
-    queue, log = v.Queue(root / "verification"), v.VerificationLog(root / "verification")
+    queue = v.Queue(root / "verification")
+    # A private-data writer: MODEL-491's counting rule applies.
+    log = v.VerificationLog(root / "verification", private=True)
     at = datetime.combine(observed_at, datetime.min.time(), UTC)
 
     pages: dict[str, Fetched] = {}

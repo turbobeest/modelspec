@@ -333,7 +333,8 @@ def render_to(*, root: Path, directory: Path, rendered: RenderedFetcher) -> None
     """Render only the HTML sources an in-scope re-read would fetch, once per URL."""
     sources = load_sources(root / "registry" / "sources.yaml")
     filed = Queue(root / "verification").filed()
-    latest = VerificationLog(root / "verification").latest()
+    # A private-data writer: MODEL-491's counting rule applies.
+    latest = VerificationLog(root / "verification", private=True).latest()
     source_ids = set()
     for tracked in tracked_facts(root):
         claim = filed.get(("fact", tracked.fact["id"]))
@@ -874,7 +875,7 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
     at = at or datetime.now(UTC)
     sources = load_sources(root / "registry" / "sources.yaml")
     queue = Queue(root / "verification")
-    log = VerificationLog(root / "verification")
+    log = VerificationLog(root / "verification", private=True)  # a private-data writer (MODEL-491)
     filed = queue.filed()
     latest = log.latest()
     regions = StoredRegions(store, sources)
