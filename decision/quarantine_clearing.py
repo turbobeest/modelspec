@@ -15,7 +15,9 @@ two-reader agreement may clear a mismatch quarantine, only when all of these hol
    attempt there agreed, and every answer recorded there, complete or not, is the cleared value.
    That base epoch is the one rule 15 derives for the quarantined record as filed when the
    verdict was made (``verdict_epoch``, from the claim the verdict checked in the queue); when
-   that cannot be shown, nothing is cleared. The cleared record's block names it
+   that cannot be shown, nothing is cleared. A fact's record that never left its first epoch by
+   the end of the verdict's day is in that epoch, whichever claim the check covered
+   (``never_left_first``, MODEL-491). The cleared record's block names it
    (``previous_epoch``) and its ``clearing_epoch``.
 4. Each clearing is one line of the append-only ``CLEARINGS_FILE`` (exactly ``FIELDS``) naming the
    quarantining verdict (its target, ``verdict_sha256`` and day) and the agreement that cleared it
@@ -350,9 +352,14 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
     an epoch of ``first`` (a
     reading's settings epoch or one under it, never another setting's), and an attempt in a
     clearing epoch only when a line in ``clearings`` names exactly that attempt line and epoch
-    (``epoch_after`` then names the epoch under that clearing)."""
+    (``epoch_after`` then names the epoch under that clearing).
+    When no pairing can be shown, a fact's record (no ``settings``) that never left its first
+    epoch by the end of the verdict's day is in ``first`` (``never_left_first``, MODEL-491)."""
     pair = verdict_pair(verdict, history)
     if pair is None:
+        if never_left_first(verdict, history=history, log=log, subject=subject, facet=facet,
+                            settings=settings):
+            return first
         return None
     filed_event, checked = pair
     claim = filed_event["claim"]
@@ -383,6 +390,56 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
                 and (not _CLEARED.search(epoch) or (line_hash(raw), epoch) in named):
             return epoch_after(first, entry)
     return None
+
+
+def never_left_first(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, Any]],
+                     log: AttemptLog, subject: str, facet: str,
+                     settings: Settings | None = None) -> bool:
+    """Whether a fact's record is shown to have been in its first epoch when ``verdict`` was
+    made, though no claim can be paired with the verdict's check (MODEL-491, E3).
+
+    A record leaves its first epoch only through the rule-15 gate (a claim ``two-readers-...``
+    and the agreed attempt it rests on) or an owner's ruling (a claim ``owner-ruling@1``, filed
+    past a logged disagreement). So the record was in ``first`` at the verdict when, up to the
+    end of the verdict's UTC day: the verdict's target has a claim filed and a check of that day
+    with the verdict's outcome; no claim on that target, for any value, is a rule-15 or ruling
+    claim; and no attempt at all is logged for the subject and facet. The first collection of
+    2026-09-25 is the case: its claims are stamped after the checks that day, so the check
+    cannot be paired, but nothing could have moved the record. A board reading (``settings``)
+    is not covered: its pairing shows the row's settings, so it is still required. Fails
+    closed: an unreadable day or time, or any attempt with no readable time, shows nothing."""
+    if settings is not None:
+        return False
+    day = _day(verdict.get("date"))
+    target = (verdict.get("target") or {}).get("id")
+    if day is None or not isinstance(target, str):
+        return False
+    claimed = checked = False
+    for event in history:
+        if _event_target(event) != target:
+            continue
+        at = _event_at(event)
+        if at is None:
+            return False
+        if at.astimezone(UTC).date() > day:
+            continue  # after the verdict's day: it says nothing about the record then
+        if event.get("event") == "collected":
+            method = str(((event.get("claim") or {}).get("collector") or {}).get("method") or "")
+            if method.startswith(_RULE_15) or method == _OWNER_RULING:
+                return False
+            claimed = True
+        elif event.get("event") == "checked" and event.get("outcome") == verdict.get("outcome") \
+                and at.astimezone(UTC).date() == day:
+            checked = True
+    if not (claimed and checked):
+        return False
+    for entry in log.entries:
+        if (entry.get("subject"), entry.get("facet")) != (subject, facet):
+            continue
+        at = _at(entry.get("at"))
+        if at is None or at.astimezone(UTC).date() <= day:
+            return False
+    return True
 
 
 def verdict_pair(verdict: Mapping[str, Any], history: Sequence[Mapping[str, Any]]
