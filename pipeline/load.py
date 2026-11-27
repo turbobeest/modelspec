@@ -405,6 +405,8 @@ def _held_standing(root: Path, directory: Path, private: bool) -> set[tuple[str,
     from decision.held_list import HELD_FILE, standing, summary
     from decision.held_list import read as read_held
 
+    if not private:  # MODEL-491's held list applies only when the caller states private data
+        return set()
     try:
         entries = read_held(root / HELD_FILE)
     except ValueError as error:

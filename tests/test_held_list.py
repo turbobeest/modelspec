@@ -269,8 +269,10 @@ def test_the_site_loader_withholds_a_standing_listing(tmp_path):
     split = attempt()
     (root / ATTEMPTS_FILE).write_text(raw(split) + "\n")
     (root / HELD_FILE).write_text(json.dumps(listing(split), sort_keys=True) + "\n")
-    (card_,) = load_models(root)
+    (card_,) = load_models(root, private=True)
     assert card_.cited_facts == [] and card_.withheld_facets == (FACET,)
+    (public,) = load_models(root)  # with the flag off, held.jsonl is not read at all
+    assert public.withheld_facets == ()
     assert line_hash(raw(split)) == listing(split)["line"]
 
 

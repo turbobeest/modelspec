@@ -43,16 +43,38 @@ def test_the_public_image_builds_as_under_the_rule_before_model_491(public, monk
     assert now.content_hash == _built().content_hash
 
 
-def test_a_stray_engine_pin_and_a_data_dir_change_nothing(public, tmp_path, monkeypatch):
-    # Codex review 4: a public build in a checkout with a stray ``.engine-pin``, and with
-    # MODELSPEC_DATA_DIR naming it, stays on the old rules, runs no held-row check (MODEL-552),
-    # and is byte-identical.
+def _built_inputs(inputs, root):
+    from decision.registry import default
+    from decision.snapshot import build_snapshot, load_premier
+
+    return build_snapshot(inputs, registry=default(), as_of=AS_OF,
+                          premier=load_premier(root / "premier/slice-1.yaml"))
+
+
+def test_a_pinned_checkout_with_the_flag_off_builds_as_main(public, tmp_path, monkeypatch):
+    # Codex review 6: with the flag off a build is main's, byte for byte, even in a checkout
+    # that carries ``.engine-pin``, a data directory in the environment and a held list.
+    # MODEL-491's rules and ``held.jsonl`` are not applied; MODEL-552's held-row check still
+    # fires on the pin, exactly as on main.
+    from dataclasses import replace
+
+    import decision.model as model
+    from decision.held_list import HELD_FILE
+    from decision.snapshot import SnapshotBuildError
     from pipeline.data_source import overlay
 
-    expected = _built().content_hash
     root = overlay(ROOT, ROOT, tmp_path / "root")
     (root / ".engine-pin").write_text("0" * 40 + "\n")
+    (root / HELD_FILE).write_text('{"not": "read with the flag off"}\n')
     monkeypatch.setenv("MODELSPEC_DATA_DIR", str(root))
     inputs = collect_repo(root)
-    assert inputs.retire_rsp is False and inputs.check_held_rows is False
-    assert _built(root).content_hash == expected
+    assert inputs.retire_rsp is False and inputs.held == [] and inputs.check_held_rows is True
+    with pytest.raises(SnapshotBuildError, match="held_row_missing"):
+        _built(root)  # main's MODEL-552 check, on the pin, as on main
+    now = _built_inputs(replace(inputs, check_held_rows=False), root).content_hash
+    monkeypatch.setattr(model, "RETIRED_METHODS", frozenset())
+    monkeypatch.setattr(model, "LABEL_MATCHERS", frozenset())
+    (root / HELD_FILE).unlink()
+    main = _built_inputs(replace(collect_repo(root), check_held_rows=False), root).content_hash
+    assert now == main == _built_inputs(replace(collect_repo(ROOT), check_held_rows=False),
+                                        ROOT).content_hash

@@ -1159,12 +1159,10 @@ def test_collect_repo_reads_the_list_and_checks_the_private_checkout(tmp_path, s
         (root / d).mkdir(parents=True)
     (root / "registry/sources.yaml").write_text(yaml.safe_dump({"schema_version": 1,
                                                                "sources": []}))
-    # MODEL-491, Codex review 4: the check is on only when the caller states the data is private;
-    # a ``.engine-pin`` or a data directory in the environment turns nothing on.
-    (root / ".engine-pin").write_text("0" * 40 + "\n")
-    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(root))
-    assert collect_repo(root).check_held_rows is False
-    inputs = collect_repo(root, private=True)
+    assert collect_repo(root).check_held_rows is False  # no pin: not the private checkout
+    assert collect_repo(root, private=True).check_held_rows is True  # the caller says private
+    (root / ".engine-pin").write_text("0" * 40 + "\n")  # main's own trigger, kept as on main
+    inputs = collect_repo(root)
     assert inputs.check_held_rows is True and inputs.held_row_grandfather == {}
     (root / "verification/held-row-grandfather.json").write_text(
         json.dumps(grandfather_document({"fact": [A_HASH, B_HASH]}, {"fact": [B_HASH]})))
