@@ -556,10 +556,19 @@ def test_review_5_a_correction_relabelled_as_a_confirmation_moves_nothing(line):
     fresh = agreement(MOVED_EPOCH)
     row = confirmed_row(fresh, base=MOVED)
     assert not admitted(build_moved(row, [clearing(fresh)], [own, fresh]))
-    # The same read logged as a confirmation of the filed value moves the record.
+    # An own-fetch line that logged the filed value and agreed on it, with no kind, is ambiguous:
+    # a correction's same-value re-read writes the same values (round 3). Only the kind the gate
+    # wrote into the line makes it a confirmation.
     own = own_agreement(filed_value=VALUE, own_fetch=True, region_sha256="5" * 64)
+    assert line_kind(own, FACET) is None
+    assert not admitted(build_moved(row, [clearing(fresh)], [own, fresh]))
+    own = own_agreement(filed_value=VALUE, own_fetch=True, region_sha256="5" * 64,
+                        kind="confirmation")
     assert line_kind(own, FACET) == "confirmation"
     assert admitted(build_moved(row, [clearing(fresh)], [own, fresh]))
+    own = own_agreement(filed_value=VALUE, own_fetch=True, region_sha256="5" * 64,
+                        kind="correction")  # the same values, written as a correction
+    assert not admitted(build_moved(row, [clearing(fresh)], [own, fresh]))
 
 
 def test_review_5_a_relabelled_correction_is_not_served_as_a_confirmation():

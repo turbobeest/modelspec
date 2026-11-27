@@ -1257,7 +1257,10 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
                                 subject_name=found.subject_name, page_bytes=page_bytes,
                                 readers=readers, epoch=epoch, definition=found.definition,
                                 region_sha256=_region_sha256(row, page_bytes),
-                                own_fetch=own_fetch, filed=found.fact if retaining else None)
+                                own_fetch=own_fetch, filed=found.fact if retaining else None,
+                                kind=(_retained_kind(found.fact, facet_def, correct=correct,
+                                                     clearing=clearing is not None)
+                                      if retaining else None))
             break
         except ReaderError:
             continue
@@ -1396,6 +1399,31 @@ def _reconfirmed(found: Lookup, record: dict[str, JsonValue], *, subject: str, e
         return _refuse("reconfirmation_not_admitted", problem)
     record["read_against"] = fact_sha256(found.fact)
     return CitedChange("cited_change", None, "", record)
+
+
+def _retained_kind(fact: Mapping[str, Any], facet_def: Any, *, correct: bool,
+                   clearing: bool) -> Callable[[Mapping[str, Any]], str | None]:
+    """The record a retaining-page read can file, as ``_retained_outcome`` decides it: written
+    into the attempt line by ``read_page`` (``kind``), so no later reader infers it from values
+    (MODEL-491 E4 review). ``confirmation`` for an agreement on the filed, known value of a fact
+    no correction filed; ``correction`` for an agreed value the correction rule may file (asked
+    for, or on a fact a correction filed, a same-value re-read included); ``None`` otherwise."""
+    from decision.retained_correction import is_correction
+
+    corrected = is_correction(fact)
+
+    def kind(entry: Mapping[str, Any]) -> str | None:
+        if entry.get("agreed") is not True or entry.get("agreed_value") is None:
+            return None
+        same = fact.get("state") == "known" and _canonical(entry.get("agreed_value"), facet_def) \
+            == _canonical(fact.get("value"), facet_def)
+        if same and not corrected:
+            return "confirmation"
+        if clearing:
+            return None
+        return "correction" if (correct or corrected) else None
+
+    return kind
 
 
 def _retained_outcome(subject: str, facet_def: Any, value: JsonValue, filed: JsonValue,

@@ -281,6 +281,9 @@ OLD = verification("fact", f"{MID}#{FACET}", "verified", day="2026-09-20", value
 
 def agreement(epoch="initial", *, at=AT, values=(VALUE, VALUE), families=("openai", "anthropic"),
               facet=FACET, **kw):
+    """A correction's agreement line as the gate logs it: its own fetch, its region hash, and the
+    kind it filed (MODEL-491 E4 review), unless ``kw`` says otherwise."""
+    kw.setdefault("kind", "correction")
     return {"subject": MID, "facet": facet, "epoch": epoch, "url": URL, "complete": True,
             "agreed": values[0] == values[1], "agreed_value": values[0], "harness": True,
             "page_sha256": PAGE, "text_sha256": TEXT, "prompt_sha256": PROMPT, "at": at,
@@ -615,6 +618,7 @@ def confirming(**kw):
     attempt = agreement(values=kw.pop("values", (FILED, FILED)), **kw)
     attempt.pop("own_fetch")
     attempt.pop("region_sha256")
+    attempt.pop("kind")  # an older line: no kind, and no own fetch, so a confirmation
     return attempt
 
 
@@ -852,3 +856,50 @@ def test_a_third_value_mismatch_still_blocks_a_re_read_of_a_correction(data):
     out = reread({"subject": gate.SUBJECT, "facet": gate.FACET}, source_id="readme",
                  readers=gate.pair(AGREED))
     assert out.reason == "quarantined" and len(data.attempts()) == before  # no reader asked
+
+
+def test_a_same_value_reread_of_a_correction_logs_kind_correction(data):
+    # MODEL-491 E4 review round 3: a corrected fact re-read on the same value files a correction.
+    # Its line logs filed_value equal to agreed_value, so the kind is never inferred from values:
+    # the gate writes it into the line, under the line's hash.
+    from decision.quarantine_clearing import line_kind
+
+    first = run()
+    assert first.changed and data.attempts()[-1]["kind"] == "correction"
+    file_record(data, first.record)
+    out = rr(gate.pair(AGREED), gate.PAGE + b"More text.\n")
+    assert out.outcome == "confirmed", (out.reason, out.detail)
+    line = data.attempts()[-1]
+    assert line["filed_value"] == line["agreed_value"] and line["kind"] == "correction"
+    assert line_kind(line, gate.FACET) == "correction"
+    # The same read with the record relabelled as a rule-16 confirmation serves nothing.
+    relabelled = copy.deepcopy(out.record)
+    relabelled["derivation"]["cited_change"]["rule"] = RETAINED_RULE
+    fact = filed_fact(data.fact, relabelled)
+    log = AttemptLog(raw_lines(data))
+    urls = {"readme": gate.URL}
+    assert confirmation_problem(fact, gate.SUBJECT, log=log, verdicts={}, sources=urls,
+                                cutoff=datetime.now(UTC).date()) is not None
+
+
+def test_a_confirmation_read_logs_kind_confirmation(data):
+    out = run(readers=gate.pair(), correct=False)
+    assert out.changed and data.attempts()[-1]["kind"] == "confirmation"
+
+
+@pytest.mark.parametrize("line,kind", [
+    ({"own_fetch": True}, None),  # an older own-fetch line: either path could have written it
+    ({"own_fetch": True, "filed_value": FILED}, None),  # a same-value own-fetch line
+    ({}, "confirmation"),  # no own fetch: no correction could rest on it
+    ({"own_fetch": True, "filed_value": 2048, "region_sha256": REGION}, "correction"),
+    ({"kind": "confirmation", "own_fetch": True}, "confirmation"),
+    ({"kind": "other"}, None),
+])
+def test_an_old_line_is_classed_by_the_paths_that_could_have_written_it(line, kind):
+    from decision.quarantine_clearing import line_kind
+
+    attempt = {**agreement(values=(FILED, FILED)), **line}
+    for key in ("own_fetch", "region_sha256", "kind"):
+        if key not in line:
+            attempt.pop(key, None)
+    assert line_kind(attempt, FACET) == kind

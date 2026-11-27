@@ -19,11 +19,11 @@ import html
 import json
 import os
 import re
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from collections.abc import Callable, Mapping, Sequence
 from typing import Any
-from dataclasses import dataclass
 
 from pydantic import JsonValue
 
@@ -213,7 +213,9 @@ def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_
               region_sha256: str | None = None,
               board_region_sha256: str | None = None,
               own_fetch: bool = False,
-              filed: Mapping[str, Any] | None = None) -> list[ReaderAnswer]:
+              filed: Mapping[str, Any] | None = None,
+              kind: Callable[[Mapping[str, Any]], str | None] | None = None
+              ) -> list[ReaderAnswer]:
     """Ask each reader the same prompt; record the hash of what was sent and the manifest.
 
     Every attempt, complete or not, is appended to the attempt log (``ATTEMPTS_FILE``)
@@ -268,5 +270,11 @@ def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_
     entry["agreed"] = len(answers) == 2 and (canonical(answers[0].value, facet_id)
                                              == canonical(answers[1].value, facet_id))
     entry["agreed_value"] = answers[0].value if entry["agreed"] else None
+    if kind is not None:
+        # MODEL-491 E4 review: what this read can file, decided by the gate's own emit rule and
+        # written into the line itself, so the line's hash covers it.
+        made = kind(entry)
+        if made is not None:
+            entry["kind"] = made
     log_attempt(entry, data_dir=data_dir)
     return answers

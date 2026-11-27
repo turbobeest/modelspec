@@ -665,29 +665,34 @@ def line_problem(entry: Any, *, verdict: Mapping[str, Any], subject: str, facet:
     return "", attempt
 
 
-def line_kind(attempt: Mapping[str, Any], facet: str) -> str | None:
-    """What a logged agreement line made, from the line alone, never from a record's rule label
-    (MODEL-491 E4 review): ``"confirmation"``, ``"correction"`` or ``None`` when the line cannot
-    show it.
+LINE_KINDS = ("confirmation", "correction")
 
-    - A line that logs ``filed_value`` (the gate since engine#1197) made a confirmation when it
-      agreed on that value. It made a correction when it agreed on another value and is the
-      gate's own fetch with its cited-region hash, which every correction requires.
-    - An older line logs no filed value. It cannot have made a correction unless it is the
-      gate's own fetch, so a line without ``own_fetch`` made a confirmation. One with
-      ``own_fetch`` shows neither.
+
+def line_kind(attempt: Mapping[str, Any], facet: str) -> str | None:
+    """What a logged agreement line may have filed, from the line alone, never from a record's
+    rule label or the line's values (MODEL-491 E4 review): ``"confirmation"``, ``"correction"``,
+    or ``None`` when the line cannot show it. An ambiguous line authorizes neither a move nor
+    serving.
+
+    - The gate writes ``kind`` into each retaining-page line it logs (``read_page``), and the
+      line's hash covers it: that field decides.
+    - An older line carries no ``kind``, so it is classed by the paths that could have
+      written it. Every correction rests on the gate's own fetch (``own_fetch``), so a line
+      without one made a confirmation. A line with one may have come from either path: a
+      correction's same-value re-read files a correction too. It is a ``correction`` only when
+      it logged the filed value and agreed on another, a value no confirmation files, and is
+      otherwise ambiguous.
     """
-    if "filed_value" in attempt:
-        filed = attempt.get("filed_value")
-        if filed is None:
-            return None
-        if _canonical(filed, facet) == _canonical(attempt.get("agreed_value"), facet):
-            return "confirmation"
-        if attempt.get("own_fetch") is True and _HEX.fullmatch(str(attempt.get("region_sha256")
-                                                                    or "")):
-            return "correction"
-        return None
-    return None if attempt.get("own_fetch") is True else "confirmation"
+    if "kind" in attempt:
+        return attempt["kind"] if attempt["kind"] in LINE_KINDS else None
+    if attempt.get("own_fetch") is not True:
+        return "confirmation"
+    filed = attempt.get("filed_value")
+    if "filed_value" in attempt and filed is not None \
+            and _canonical(filed, facet) != _canonical(attempt.get("agreed_value"), facet) \
+            and _HEX.fullmatch(str(attempt.get("region_sha256") or "")):
+        return "correction"
+    return None
 
 
 def confirmation_move(base: Any, derived: Any, *, verdict: Mapping[str, Any], value: Any,

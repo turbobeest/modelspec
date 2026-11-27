@@ -166,6 +166,10 @@ def correction_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
     problem = agreement_problem(attempt, value, str(facet))
     if problem is not None:
         return problem
+    from decision.quarantine_clearing import line_kind
+
+    if line_kind(attempt, str(facet)) != "correction":
+        return "the agreement line does not show it filed a correction"
     if cite_only_status(attempt.get("url")) is not False:
         return "the agreement did not read a page whose host retains copies"
     # The gate's own fetch record (as MODEL-562 and MODEL-555 require of a read that opens or
