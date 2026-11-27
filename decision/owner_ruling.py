@@ -13,23 +13,28 @@ directory, with exactly ``FIELDS``:
 * ``value``, ``state``: what the fact becomes (``known`` with a value of the facet's type,
   or ``not_disclosed`` with none);
 * ``ruled_by`` (one of ``OWNERS``, a list in code), ``ruled_at`` (a day), ``ticket``;
-* ``source_ids``: the registered cite-only sources the disagreeing readers read;
+* ``source_ids``: the registered cite-only sources the disagreeing readers read, and any
+  other registered cite-only source the fact cites (MODEL-491);
 * ``resolves``: the ``attempt_id`` of each disagreeing attempt it settles;
 * ``basis``: short, counts and field names only, never page text.
 
 ``ruling_problem`` checks a line against the attempt log and the source registry: an owner,
 a ticket, a day no earlier than the attempts it resolves, a value of the facet's type, and
-for each resolved id a complete attempt for exactly that subject, facet and epoch whose two
-readers returned different values. Every source is registered on a cite-only host and was
-read by a resolved attempt, and every resolved attempt read one of the sources.
+for each resolved id an attempt for exactly that subject, facet and epoch that the gate itself
+counts as a disagreement (``blocks_rule_15``, the one test both use: a harness or a seeded
+attempt), with a zoned time and a page hash that pin the copy it read. Every source is
+registered on a cite-only host; every page a resolved attempt read is one of them, and any
+other is a source the fact cited before the ruling (its earlier claim), at that claim's copy.
 
 A ruled fact carries the line as ``derivation.owner_ruling`` and cites each source at the
-copy its resolved attempt read (``snapshot_ref``, ``retrieved_at``). ``admits`` is the
-build's test (``decision.snapshot``): the fact's location, value, state and sources must
-be the ruling's, and the ruling valid, or the fact is not admitted. Outwardly a ruled fact
-is an admitted cited fact: ``verification`` null and the existing ``citation`` object; the
-ruling block is internal and never served. Nothing here lifts a quarantine (that is the
-owner's open question), and nothing here writes: ``scripts/file_owner_ruling.py`` does.
+copy its resolved attempt read (``snapshot_ref``, ``retrieved_at``), or, for a source no
+resolved attempt read, at the copy the fact's claim before the ruling names
+(``ruling_copies``). ``admits`` is the build's test (``decision.snapshot``): the fact's
+location, value, state and sources must be the ruling's, and the ruling valid, or the fact
+is not admitted. Outwardly a ruled fact is an admitted cited fact: ``verification`` null and
+the existing ``citation`` object; the ruling block is internal and never served. Nothing here
+lifts a quarantine (that is the owner's open question), and nothing here writes:
+``scripts/file_owner_ruling.py`` does.
 """
 
 from __future__ import annotations
@@ -76,6 +81,68 @@ def _exact(value: Any) -> str:
     """A value in one exact spelling: keys sorted, types kept (``30`` is not ``30.0``, ``1``
     is not ``true``), no rounding and no reordering."""
     return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+
+
+def split_status(entry: Any, facet_id: str) -> str | None:
+    """The one rule-15 split test (MODEL-491), for the fact gate, the filer and the build.
+
+    ``None``: the line does not block (not complete, or agreed). ``"split"``: a well-formed
+    disagreement the owner may rule past: ``complete`` is ``True`` and ``agreed`` is ``False``
+    (booleans), exactly two readers with id, family and version of two distinct known lineages
+    (the gate's own ``_check_identities``) whose values the gate's comparison tells apart, a page
+    hash and a zoned read time, and the provenance its writer records: a harness attempt's prompt
+    hash and the gate's own fetch (``own_fetch``, required since ``OWN_FETCH_SINCE``;
+    ``decision.cited_reader.read_page``), or a seeded line marked ``seeded`` with ``harness``
+    false. ``"malformed"``: any other line that looks complete and not agreed. The
+    gate fails closed and blocks on it as on a split, but no ruling can resolve it."""
+    from types import SimpleNamespace
+
+    from decision.cited_change import _check_identities
+
+    if not isinstance(entry, Mapping) or not entry.get("complete") or entry.get("agreed"):
+        return None
+    readers = entry.get("readers")
+    if not (entry.get("complete") is True and entry.get("agreed") is False
+            and isinstance(readers, list) and len(readers) == 2
+            and all(isinstance(r, Mapping) and "value" in r for r in readers)
+            and _HEX.fullmatch(str(entry.get("page_sha256") or ""))
+            and _at(entry) is not None):
+        return "malformed"
+    harness, seeded = entry.get("harness"), entry.get("seeded")
+    if not ((harness is True and seeded is not True
+             and _HEX.fullmatch(str(entry.get("prompt_sha256") or ""))
+             and _gate_fetched(entry))
+            or (harness is False and seeded is True)):
+        return "malformed"
+    pair = [SimpleNamespace(**{k: r.get(k) for k in ("reader_id", "family", "version")})
+            for r in readers]
+    first, second = (_canonical(r["value"], facet_id) for r in readers)
+    if _check_identities(pair) is not None or first == second:
+        return "malformed"
+    return "split"
+
+
+#: When the harness began recording ``own_fetch`` (MODEL-573, engine main 2026-11-27T02:30:03Z).
+#: A harness attempt logged since must carry it to be ruled on: a ruling never rests on page
+#: bytes or a transport a caller supplied. An attempt logged before cannot carry it and keeps
+#: the earlier rule (its prompt and page hashes).
+OWN_FETCH_SINCE = datetime(2026, 11, 27, 2, 30, 3, tzinfo=UTC)
+
+
+def _gate_fetched(entry: Mapping[str, Any]) -> bool:
+    at = _at(entry)
+    return at is not None and (entry.get("own_fetch") is True or at < OWN_FETCH_SINCE)
+
+
+def blocks_rule_15(entry: Any) -> bool:
+    """Whether the gate refuses on ``entry`` (``prior_attempt_disagreed``): a split or a malformed
+    look-alike (``split_status``; the gate fails closed). The facet is not needed to block."""
+    return isinstance(entry, Mapping) and bool(entry.get("complete")) and not entry.get("agreed")
+
+
+def is_split(entry: Any, facet_id: str) -> bool:
+    """A split the owner may rule past (``split_status`` is ``"split"``)."""
+    return split_status(entry, facet_id) == "split"
 
 
 def disagreed(entry: Mapping[str, Any], facet_id: str) -> bool:
@@ -302,6 +369,40 @@ def source_copies(ruling: Mapping[str, Any], attempts: Sequence[Mapping[str, Any
     return out
 
 
+def prior_claim(claim: Mapping[str, Any] | None,
+                history: Sequence[Mapping[str, Any]]) -> Mapping[str, Any] | None:
+    """The fact's claim as it stood before the ruling: the latest ``collected`` claim in
+    ``history`` (the fact's queue events, in queue order) before the ruling's own claim, which
+    must be the latest. ``None`` when the ruling's claim is not there or nothing came before."""
+    collected = [e.get("claim") for e in history
+                 if isinstance(e, Mapping) and e.get("event") == "collected"]
+    if not collected or not isinstance(claim, Mapping) or _exact(collected[-1]) != _exact(claim):
+        return None
+    before = collected[:-1]
+    return before[-1] if before and isinstance(before[-1], Mapping) else None
+
+
+def ruling_copies(ruling: Mapping[str, Any], attempts: Sequence[Mapping[str, Any]],
+                  sources: Mapping[str, str],
+                  before: Mapping[str, Any] | None) -> dict[str, tuple[str, str]]:
+    """``source_copies``, and for each ruling source no resolved attempt read, the copy the
+    fact's claim cited before the ruling (``prior_claim``: a ``sha256:`` ref and a zoned read
+    time), never one the ruling's own records name. A source neither gives is absent, so the
+    fact does not stand on it."""
+    out = source_copies(ruling, attempts, sources)
+    refs = {str(r.get("source_id")): r for r in before.get("sources") or ()
+            if isinstance(r, Mapping)} if isinstance(before, Mapping) else {}
+    for source_id in ruling.get("source_ids") or ():
+        ref = refs.get(source_id)
+        if source_id in out or ref is None:
+            continue
+        snapshot, at = str(ref.get("snapshot_ref") or ""), ref.get("retrieved_at")
+        if snapshot.startswith("sha256:") and _HEX.fullmatch(snapshot[7:]) \
+                and _same_instant(at, at):
+            out[source_id] = (snapshot, str(at))
+    return out
+
+
 def _day(value: Any) -> date | None:
     if not isinstance(value, str):
         return None
@@ -322,12 +423,13 @@ def _at(entry: Mapping[str, Any]) -> datetime | None:
 
 def ruling_problem(ruling: Any, *, attempts: Sequence[Mapping[str, Any]],
                    sources: Mapping[str, str], today: date | None = None,
-                   max_score: Any = None) -> tuple[str, str] | None:
+                   max_score: Any = None, cited: Collection[str] = ()) -> tuple[str, str] | None:
     """``(reason, detail)`` when the line is not a valid ruling, else ``None``. ``sources``
     maps registered source ids to URLs. Details carry counts and field names only. A ruling on a
     board reading (facet ``benchmark:<id>``, MODEL-569) states a score in the board's range
     (``decision.board_ruling.value_problem``; ``max_score`` is the board's); every other check
-    is the fact ruling's."""
+    is the fact ruling's. ``cited`` names the sources the fact cites: a ruling may cite those
+    beyond the pages its resolved attempts read (none, by default)."""
     from decision.board_ruling import is_board_facet, value_problem
     from decision.cited_change import _facet, _value_fits
     from decision.retention import cite_only_status
@@ -376,8 +478,12 @@ def ruling_problem(ruling: Any, *, attempts: Sequence[Mapping[str, Any]],
     for entry in found.values():
         if (entry.get("subject"), entry.get("facet"), entry.get("epoch")) != key:
             return "no_disagreement", "a resolved attempt is for another subject, facet or epoch"
-        if not disagreed(entry, ruling["facet"]):
-            return "no_disagreement", "a resolved attempt is not a complete readers_disagree"
+        # A fact's split is what the fact gate counts (MODEL-491); a board reading keeps the
+        # harness-only test of MODEL-569.
+        split = disagreed(entry, ruling["facet"]) if is_board_facet(ruling["facet"]) \
+            else is_split(entry, ruling["facet"])
+        if not split:
+            return "no_disagreement", "a resolved attempt is not one the gate counts as a split"
         at = _at(entry)
         if at is None or not _HEX.fullmatch(str(entry.get("page_sha256") or "")):
             return "no_disagreement", "a resolved attempt has no zoned time or page hash"
@@ -396,8 +502,13 @@ def ruling_problem(ruling: Any, *, attempts: Sequence[Mapping[str, Any]],
             return "source_mismatch", "a source is not on a cite-only host"
         urls.append(url)
     read = {str(entry.get("url")) for entry in found.values()}
-    if set(urls) != read:
-        return "source_mismatch", "the sources are not the pages the resolved attempts read"
+    if not read <= set(urls):
+        return "source_mismatch", "a page a resolved attempt read is not among the sources"
+    allowed = set(cited)
+    if any(url not in read and source_id not in allowed
+           for source_id, url in zip(source_ids, urls)):
+        return "source_mismatch", "a source is neither a page a resolved attempt read nor one " \
+            "the fact cites"
     return None
 
 
@@ -406,7 +517,8 @@ def admits(fact: Mapping[str, Any], subject: str, *, rulings: Sequence[Mapping[s
            verdicts: Mapping[tuple[str, str, str], Any] | None = None,
            claims: Mapping[str, Mapping[str, Any]] | None = None,
            today: date | None = None,
-           reopened: Collection[tuple[str, str]] = frozenset()) -> bool:
+           reopened: Collection[tuple[str, str]] = frozenset(),
+           history: Mapping[str, Sequence[Mapping[str, Any]]] | None = None) -> bool:
     """Whether a fact carrying ``derivation.owner_ruling`` stands on a valid ruling.
 
     ``subject`` is the fact's owner as the build places it (the card's model id, or the
@@ -448,7 +560,15 @@ def admits(fact: Mapping[str, Any], subject: str, *, rulings: Sequence[Mapping[s
     ruling = lines[0]
     if _exact(dict(block)) != _exact(dict(ruling)):
         return False
-    if ruling_problem(ruling, attempts=attempts, sources=sources, today=today) is not None:
+    claim = (claims or {}).get(f"{subject}#{facet}")
+    # Sources beyond the pages the resolved attempts read are checked against the fact as it
+    # stood before the ruling (its earlier claim), as the filer checks them, never against the
+    # ruled fact or the ruling's own claim.
+    before = prior_claim(claim, (history or {}).get(f"{subject}#{facet}", ()))
+    cited = [str(r.get("source_id")) for r in (before or {}).get("sources") or ()
+             if isinstance(r, Mapping)]
+    if ruling_problem(ruling, attempts=attempts, sources=sources, today=today,
+                      cited=cited) is not None:
         return False
     if fact.get("state") != ruling["state"] or _exact(fact.get("value")) != _exact(ruling["value"]):
         return False
@@ -458,8 +578,8 @@ def admits(fact: Mapping[str, Any], subject: str, *, rulings: Sequence[Mapping[s
             return False
     except (KeyError, TypeError, AttributeError):
         return False
-    copies = source_copies(ruling, attempts, sources)
-    if not is_latest_change(ruling, (claims or {}).get(f"{subject}#{facet}"), copies):
+    copies = ruling_copies(ruling, attempts, sources, before)
+    if not is_latest_change(ruling, claim, copies):
         return False
     refs = [r for r in fact.get("sources") or () if isinstance(r, Mapping)]
     if sorted(str(r.get("source_id")) for r in refs) != sorted(ruling["source_ids"]) \
@@ -588,7 +708,7 @@ def ruling_refused(fact: Mapping[str, Any], subject: str, *, cited: bool, inputs
     return not cited or not stands_at(fact, subject, ruling_cutoff(as_of), inputs) \
         or not admits(fact, subject, rulings=inputs.rulings, attempts=inputs.attempts,
                       sources=sources, verdicts=inputs.verdicts, claims=inputs.claims,
-                      reopened=inputs.reopened)
+                      reopened=inputs.reopened, history=inputs.history)
 
 
 def _same_instant(left: Any, right: Any) -> bool:

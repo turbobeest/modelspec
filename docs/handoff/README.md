@@ -266,6 +266,19 @@ Learned expensively during 2026-09-09/10.
     (`prior_attempt_disagreed` still holds); a fresh agreement in a later epoch follows the
     rule above.
 
+    **A split the gate counts can be ruled on (MODEL-491).** One test,
+    `decision.owner_ruling.split_status`, serves the fact gate, the filer and the build. The
+    gate blocks (`prior_attempt_disagreed`) on every complete attempt that did not agree, and it
+    fails closed on a malformed one. A ruling resolves only a well-formed split: `complete` true
+    and `agreed` false as booleans; two readers with id, family and version of distinct known
+    lineages, whose values differ; a page hash and a zoned read time, which pin the copy cited;
+    and its writer's provenance, either a harness attempt's prompt hash and the gate's own fetch
+    (`own_fetch`, required for attempts logged since the harness began recording it,
+    `OWN_FETCH_SINCE`) or a line marked `seeded` with `harness` false. A ruling may also cite a registered cite-only page that the fact's claim
+    before the ruling cites at a `sha256` copy with a zoned read time. The build checks such a
+    page against that earlier claim and takes its pin from there, never from the ruled fact or
+    the ruling's own claim. Board readings keep the harness-only test of MODEL-569.
+
     **A changed cited region reopens a ruled fact (MODEL-562).** The rolling re-read
     (`ruled_fact_rereads`, `decision.ruling_reread`) reads each page a ruling the build admits
     cites, with the host class read before any request and with the gate's own fetch

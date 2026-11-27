@@ -163,7 +163,8 @@ def test_a_resolved_attempt_with_no_region_hash_shows_no_change(data, web):
 
     found = lookup(SUBJECT, RETENTION)
     read_page(subject=SUBJECT, url=URL, facet_id=RETENTION, subject_name=found.subject_name,
-              page_bytes=RULED, readers=pair(30, "unbounded"), definition=found.definition)
+              page_bytes=RULED, readers=pair(30, "unbounded"), definition=found.definition,
+              own_fetch=True)  # as the gate's own read logs it
     assert "region_sha256" not in attempts(data)[0]
     rule(data)
     assert outcome(sweep(data, RULED, web)) == {"current": 1}
@@ -280,7 +281,7 @@ def test_a_page_read_before_the_resolved_disagreement_is_not_the_ruled_page(data
     for body, readers in ((early, pair(20, "unbounded")), (RULED, pair(30, "unbounded"))):
         read_page(subject=SUBJECT, url=URL, facet_id=RETENTION, subject_name=found.subject_name,
                   page_bytes=body, readers=readers, definition=found.definition,
-                  region_sha256=region(data, body))
+                  region_sha256=region(data, body), own_fetch=True)
     first, last = attempts(data)
     rule(data, resolves=[attempt_id(last)])
     served(web, early)
@@ -341,7 +342,8 @@ def test_the_filer_refuses_an_unrecorded_reopened_epoch_with_a_logged_disagreeme
     found = lookup(SUBJECT, RETENTION)
     # a real harness disagreement logged in an epoch the sweep never recorded
     read_page(subject=SUBJECT, url=URL, facet_id=RETENTION, subject_name=found.subject_name,
-              page_bytes=CHANGED, readers=pair(45, 60), epoch=epoch, definition=found.definition)
+              page_bytes=CHANGED, readers=pair(45, 60), epoch=epoch, definition=found.definition,
+              own_fetch=True)
     assert epochs(ruled)[-1] == epoch
     with pytest.raises(filer.Refused) as caught:
         rule(ruled, value=45, epoch=epoch)

@@ -20,9 +20,11 @@ from decision.owner_ruling import (
     RULINGS_FILE,
     admits,
     attempt_id,
+    blocks_rule_15,
     disagreed,
     fact_epoch,
     ruling_problem,
+    split_status,
 )
 from scripts import file_owner_ruling as filer
 from tests.test_cited_offering import (
@@ -35,6 +37,7 @@ from tests.test_cited_offering import (
     pair,
     plant,
     reader,
+    ref,
     refused,
     serve,
 )
@@ -56,16 +59,30 @@ def data(tmp_path, monkeypatch):
 
 
 def disagree(facet=RETENTION, **kw):
-    """One real readers_disagree attempt through the gate."""
-    if facet == RETENTION:
-        out = cited_change(subject=SUBJECT, facet=RETENTION, source_id="data",
-                           readers=pair(30, "unbounded"), request=serve(), **kw)
-    else:
-        out = cited_change(subject=SUBJECT, facet=SOC2, source_id="trust",
-                           readers=[reader("codex", "openai", "type_2"),
-                                    reader("claude", "anthropic", None)], request=serve(),
-                           accept_not_disclosed=True, **kw)
+    """One real readers_disagree attempt through the gate, which fetches the page itself with
+    its own transport (stubbed), so the attempt records ``own_fetch``."""
+    import decision.cited_change as gate_module
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(gate_module, "_http_once", serve())
+        if facet == RETENTION:
+            out = cited_change(subject=SUBJECT, facet=RETENTION, source_id="data",
+                               readers=pair(30, "unbounded"), **kw)
+        else:
+            out = cited_change(subject=SUBJECT, facet=SOC2, source_id="trust",
+                               readers=[reader("codex", "openai", "type_2"),
+                                        reader("claude", "anthropic", None)],
+                               accept_not_disclosed=True, **kw)
     refused(out, "readers_disagree")
+
+
+def own_gate(**kw):
+    """The gate, fetching the page itself with its own transport (stubbed): ``own_fetch``."""
+    import decision.cited_change as gate_module
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(gate_module, "_http_once", serve())
+        return _gate(request=None, **kw)
 
 
 def read_in(epoch, readers):
@@ -79,7 +96,7 @@ def read_in(epoch, readers):
     found = lookup(SUBJECT, RETENTION)
     return read_page(subject=SUBJECT, url=URL, facet_id=RETENTION,
                      subject_name=found.subject_name, page_bytes=PAGE, readers=readers,
-                     epoch=epoch, definition=found.definition)
+                     epoch=epoch, definition=found.definition, own_fetch=True)
 
 
 def enter_epoch(data, text_sha):
@@ -453,33 +470,217 @@ def test_disagreed_reads_only_a_real_rule_15_split():
     assert not disagreed({**base, "readers": _readers(30)}, RETENTION)
 
 
-@pytest.mark.parametrize("change", [
-    {"harness": False}, {"seeded": True, "harness": False}, {"prompt_sha256": None},
-    {"page_sha256": "short"},
+# A seeded split (marked ``seeded``, ``harness`` false) is one the owner may rule past
+# (MODEL-491); the gate blocks on it for good, as on a harness split.
+RULABLE_SPLITS = [{"seeded": True, "harness": False},
+                  {"seeded": True, "harness": False, "prompt_sha256": None}]
+# Lines that look complete and not agreed but are not well formed: the gate fails closed and
+# blocks on each, and no ruling resolves any (``split_status`` is "malformed").
+MALFORMED_SPLITS = [
+    {"harness": False},  # no seeded mark
+    {"prompt_sha256": None},  # a harness line without the prompt hash its writer records
+    {"seeded": True},  # seeded and harness at once
+    {"complete": "false", "agreed": None, "readers": None, "harness": None},  # a forged string
+    {"complete": 1}, {"agreed": None}, {"agreed": 0},
     {"readers": _readers(30, "unbounded", families=("openai", "openai"))},
     {"readers": _readers(30, "unbounded", families=("openai", "codex"))},  # one lineage
     {"readers": _readers(30, "unbounded", families=("unknown", "anthropic"))},
     {"readers": _readers(30, "unbounded", ids=("a", "a"))},
     {"readers": [{"value": 30}, {"value": "unbounded"}]},  # no identities
+    {"readers": _readers(30, 30.0)},  # the gate's comparison tells them apart: no split
     {"readers": [*_readers(30, "unbounded"), {"reader_id": "c", "family": "google",
                                              "version": "1", "value": 1}]},
-])
-def test_only_a_real_rule_15_attempt_is_a_disagreement(change):
-    """The gate's own identity check (``_check_identities``) decides, not a look-alike."""
-    base = {"complete": True, "agreed": False, "harness": True, "page_sha256": "1" * 64,
-            "prompt_sha256": "2" * 64, "readers": _readers(30, "unbounded")}
-    assert not disagreed({**base, **change}, RETENTION)
+    {"page_sha256": "short"}, {"page_sha256": None}, {"at": None}, {"at": "2026-10-11T09:00:00"},
+]
+
+
+@pytest.mark.parametrize("change", RULABLE_SPLITS)
+def test_a_fact_ruling_resolves_a_well_formed_seeded_split(change):
     attempt = {**_attempt(), **change}
+    assert split_status(attempt, FACET) == "split" and blocks_rule_15(attempt)
+    assert not disagreed(attempt, FACET)  # the MODEL-569 board test still refuses it
+    ruling = _ruling(attempt)
+    assert _build(_ruled_fact(ruling), [ruling], [attempt]).fact(MID, FACET).state == "known"
+
+
+@pytest.mark.parametrize("change", MALFORMED_SPLITS)
+def test_a_malformed_split_blocks_the_gate_but_no_ruling_resolves_it(change):
+    attempt = {**_attempt(), **change}
+    assert blocks_rule_15(attempt) and split_status(attempt, FACET) == "malformed"
     ruling = _ruling(attempt)
     assert _build(_ruled_fact(ruling), [ruling], [attempt]).fact(MID, FACET).state == "unknown"
 
 
-def test_a_seeded_disagreement_cannot_be_ruled_on(data):
-    log_attempt({"subject": SUBJECT, "facet": RETENTION, "epoch": "initial", "url": URL,
-                 "complete": True, "agreed": False, "harness": False, "seeded": True,
-                 "page_sha256": "a" * 64, "prompt_sha256": None,
-                 "at": "2026-11-01T00:00:00+00:00", "readers": _readers(30, "unbounded")})
+@pytest.mark.parametrize("change", [{"complete": False}, {"complete": None}, {"agreed": True},
+                                    {"agreed": 1}])
+def test_a_line_the_gate_does_not_count_is_no_split(change):
+    attempt = {**_attempt(), **change}
+    assert not blocks_rule_15(attempt) and split_status(attempt, FACET) is None
+    ruling = _ruling(attempt)
+    assert _build(_ruled_fact(ruling), [ruling], [attempt]).fact(MID, FACET).state == "unknown"
+
+
+AFTER_OWN_FETCH = "2026-11-27T03:00:00+00:00"  # after OWN_FETCH_SINCE
+
+
+def test_a_harness_split_since_own_fetch_needs_the_gates_own_fetch():
+    caller_bytes = {**_attempt(), "at": AFTER_OWN_FETCH}  # a caller's bytes or transport
+    assert blocks_rule_15(caller_bytes) and split_status(caller_bytes, FACET) == "malformed"
+    own = {**caller_bytes, "own_fetch": True}
+    assert split_status(own, FACET) == "split"
+    assert split_status({**caller_bytes, "own_fetch": "true"}, FACET) == "malformed"
+    before = _attempt()  # logged before the harness recorded own_fetch: the earlier rule
+    assert "own_fetch" not in before and split_status(before, FACET) == "split"
+    for attempt, state in ((caller_bytes, "unknown"), (own, "known")):
+        ruling = _ruling(attempt, ruled_at="2026-11-27")
+        row, claim = _ruled_fact(ruling), _claim(ruling)
+        row["sources"][0]["retrieved_at"] = claim["sources"][0]["retrieved_at"] = AFTER_OWN_FETCH
+        assert _build(row, [ruling], [attempt], claims={f"{MID}#{FACET}": claim},
+                      as_of=date(2026, 11, 27)).fact(MID, FACET).state == state
+
+
+def test_a_split_read_through_a_callers_transport_blocks_but_cannot_be_ruled_on(data):
+    refused(cited_change(subject=SUBJECT, facet=RETENTION, source_id="data",
+                         readers=pair(30, "unbounded"), request=serve()), "readers_disagree")
+    assert "own_fetch" not in attempts(data)[-1]
+    refused(cited_change(subject=SUBJECT, facet=RETENTION, source_id="data", readers=pair(30),
+                         request=serve()), "prior_attempt_disagreed")
     refuses(data, "no_disagreement")
+
+
+def _seed(epoch="initial", subject=SUBJECT, **kw):
+    line = {"subject": subject, "facet": RETENTION, "epoch": epoch, "url": URL,
+            "complete": True, "agreed": False, "harness": False, "seeded": True,
+            "page_sha256": "a" * 64, "prompt_sha256": None,
+            "at": "2026-11-01T00:00:00+00:00", "readers": _readers(30, "unbounded")}
+    line.update(kw)
+    log_attempt(line)
+    return line
+
+
+def test_a_seeded_split_blocks_the_gate_and_the_owner_rules_past_it(data):
+    seeded = _seed()
+    refused(cited_change(subject=SUBJECT, facet=RETENTION, source_id="data", readers=pair(30),
+                         request=serve()), "prior_attempt_disagreed")
+    file(data)
+    [line] = rulings(data)
+    assert line["resolves"] == [attempt_id(seeded)]
+    fact = offering_fact(data)
+    assert fact["value"] == 30 and fact["sources"][0]["snapshot_ref"] == "sha256:" + "a" * 64
+    # The epoch still blocks the readers after the ruling.
+    refused(cited_change(subject=SUBJECT, facet=RETENTION, source_id="data", readers=pair(30),
+                         request=serve()), "prior_attempt_disagreed")
+
+
+def test_a_seeded_split_of_another_fact_or_another_subject_is_no_split_here(data):
+    other = _seed(subject=OTHER_SUBJECT)
+    refuses(data, "no_disagreement")
+    refuses(data, "no_disagreement", resolves=[attempt_id(other)])
+    soc2_split = {"subject": SUBJECT, "facet": SOC2, "epoch": "initial", "url": URL,
+                  "complete": True, "agreed": False, "page_sha256": "a" * 64,
+                  "at": "2026-11-01T00:00:00+00:00", "readers": _readers(30, "unbounded")}
+    log_attempt(soc2_split)
+    refuses(data, "no_disagreement", resolves=[attempt_id(soc2_split)])
+
+
+def test_a_seeded_split_in_a_stale_epoch_is_refused(data):
+    stale = _seed(epoch="reread:" + "b" * 64)
+    refuses(data, "no_disagreement")  # the fact is in the initial epoch
+    refuses(data, "no_disagreement", resolves=[attempt_id(stale)])
+    refuses(data, "epoch_not_current", epoch="reread:" + "b" * 64)
+
+
+def test_a_seeded_line_that_pins_no_copy_still_blocks_but_names_no_copy(data):
+    _seed(page_sha256=None, at=None)
+    refused(cited_change(subject=SUBJECT, facet=RETENTION, source_id="data", readers=pair(30),
+                         request=serve()), "prior_attempt_disagreed")
+    refuses(data, "no_disagreement")
+
+
+def test_a_forged_string_complete_line_blocks_the_gate_and_the_filer_refuses_it(data):
+    forged = {"subject": SUBJECT, "facet": RETENTION, "epoch": "initial", "url": URL,
+              "complete": "false", "page_sha256": "a" * 64, "at": "2026-11-01T00:00:00+00:00"}
+    log_attempt(forged)
+    refused(cited_change(subject=SUBJECT, facet=RETENTION, source_id="data", readers=pair(30),
+                         request=serve()), "prior_attempt_disagreed")  # fails closed
+    refuses(data, "no_disagreement")
+    refuses(data, "no_disagreement", resolves=[attempt_id(forged)])
+
+
+EXTRA = {"source_id": "other", "snapshot_ref": "sha256:" + "c" * 64, "cited_regions": ["page"],
+         "retrieved_at": "2026-11-02T00:00:00+00:00"}
+
+
+def _claim_before(data, sources, at="2026-11-02T01:00:00+00:00"):
+    """The fact's claim as it stood before the ruling, as an earlier filing left it."""
+    path = data.root / "verification/queue/events.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    claim = {"target": {"kind": "fact", "id": FACT_ID}, "subject": SUBJECT, "field": RETENTION,
+             "value": None, "state": "not_disclosed", "sources": sources,
+             "collector": {"agent": "a-builder", "model_family": "anthropic", "method": "read"}}
+    with path.open("a") as handle:
+        handle.write(json.dumps({"event": "collected", "at": at, "claim": claim}) + "\n")
+        handle.write(json.dumps({"event": "checked", "at": at, "outcome": "cited", "diff": [],
+                                 "target": {"kind": "fact", "id": FACT_ID}}) + "\n")
+
+
+def test_a_ruling_may_cite_a_cite_only_page_the_fact_cited_before_beyond_the_read_one(data):
+    data.fact(sources=[ref("data"), EXTRA], checked_sources=["data", "other"])
+    _claim_before(data, [ref("data"), EXTRA])
+    _seed()
+    refuses(data, "source_mismatch", source_ids=["data", "trust"])  # not a source of this fact
+    refuses(data, "source_mismatch", source_ids=["other"])  # the read page must be cited
+    file(data, source_ids=["data", "other"])
+    refs = {r["source_id"]: r for r in offering_fact(data)["sources"]}
+    assert refs["other"]["snapshot_ref"] == EXTRA["snapshot_ref"]
+    assert refs["data"]["snapshot_ref"] == "sha256:" + "a" * 64
+
+
+def test_an_extra_page_the_earlier_claim_does_not_cite_is_refused(data):
+    # The fact names the page and its pin, but the claim it stood on before the ruling did not.
+    data.fact(sources=[ref("data"), EXTRA], checked_sources=["data", "other"])
+    _claim_before(data, [ref("data")])
+    _seed()
+    refuses(data, "source_mismatch", source_ids=["data", "other"])
+
+
+def test_an_extra_page_with_no_zoned_read_time_is_refused(data):
+    extra = {k: v for k, v in EXTRA.items() if k != "retrieved_at"}
+    data.fact(sources=[ref("data"), extra], checked_sources=["data", "other"])
+    _claim_before(data, [ref("data"), extra])
+    _seed()
+    refuses(data, "source_mismatch", source_ids=["data", "other"])
+
+
+def _extra_case(prior_sources):
+    attempt = _attempt()
+    ruling = _ruling(attempt, source_ids=["src-cite", "src-extra"])
+    pin = {"source_id": "src-extra", "snapshot_ref": "sha256:" + "d" * 64,
+           "retrieved_at": AT, "cited_regions": ["page"]}
+    row = _ruled_fact(ruling)
+    row["sources"].append(pin)
+    claim = _claim(ruling)
+    claim["sources"].append(pin)  # the page and its pin, added to the ruled fact and its claim
+    prior = {**claim, "collector": {"agent": "a-builder", "model_family": "anthropic",
+                                    "method": "read"}, "value": None, "state": "not_disclosed",
+             "sources": prior_sources(pin)}
+    fid = f"{MID}#{FACET}"
+    history = {fid: [_event("collected", "2026-10-11T09:00:00+00:00", prior),
+                     _event("checked", "2026-10-11T09:00:00+00:00"),
+                     _event("collected", f"{ruling['ruled_at']}T09:00:00+00:00", claim),
+                     _event("checked", f"{ruling['ruled_at']}T09:00:00+00:00")]}
+    return _build(row, [ruling], [attempt], claims={fid: claim}, history=history,
+                  extra_sources={"src-extra": CITE + "/extra"}).fact(MID, FACET).state
+
+
+def test_the_build_pins_an_extra_page_from_the_claim_before_the_ruling():
+    assert _extra_case(lambda pin: [pin]) == "known"
+
+
+def test_a_page_and_pin_added_to_the_ruled_fact_and_its_claim_alone_do_not_stand():
+    assert _extra_case(lambda pin: []) == "unknown"  # the fact did not cite it before
+    other_pin = lambda pin: [{**pin, "snapshot_ref": "sha256:" + "e" * 64}]  # noqa: E731
+    assert _extra_case(other_pin) == "unknown"  # it cited another copy
 
 
 # --- duplicate keys, in any spelling -------------------------------------------------------------
@@ -589,9 +790,9 @@ def test_the_filer_refuses_a_fabricated_cited_change_block(data):
     data.fact(derivation={"cited_change": {"sha256": "9" * 64, "text_sha256": "a" * 64,
                                            "readers": [{"prompt_sha256": "1" * 64}]}})
     # The fabricated block names the epoch, so the gate reads there (it is the fact's own).
-    refused(_gate(subject=SUBJECT, facet=RETENTION, source_id="data",
-                  readers=pair(30, "unbounded"), request=serve(), allow_unchanged=False,
-                  epoch="reread:" + "a" * 64), "readers_disagree")
+    refused(own_gate(subject=SUBJECT, facet=RETENTION, source_id="data",
+                     readers=pair(30, "unbounded"), allow_unchanged=False,
+                     epoch="reread:" + "a" * 64), "readers_disagree")
     refuses(data, "epoch_not_current", epoch="reread:" + "a" * 64)
 
 
@@ -705,9 +906,9 @@ def test_a_ruling_in_a_reread_epoch_keeps_the_reread_metadata(data):
                               readers=pair(30), request=serve()), data_dir=data.root)
     epoch = fact_epoch(offering_fact(data))
     assert epoch.startswith("reread:")
-    refused(_gate(subject=SUBJECT, facet=RETENTION, source_id="data",
-                  readers=[reader("codex", "openai", 45), reader("claude", "anthropic", 46)],
-                  request=serve(), allow_unchanged=False, epoch=epoch), "readers_disagree")
+    refused(own_gate(subject=SUBJECT, facet=RETENTION, source_id="data",
+                     readers=[reader("codex", "openai", 45), reader("claude", "anthropic", 46)],
+                     allow_unchanged=False, epoch=epoch), "readers_disagree")
     refuses(data, "no_disagreement")  # the initial epoch agreed: nothing to rule on there
     file(data, epoch=epoch, value=45)
     fact = offering_fact(data)
@@ -820,7 +1021,7 @@ def _claim(ruling):
 
 
 def _build(row, rulings, attempts, log=(), claims=None, source_cache=None,
-           as_of=date(2026, 10, 19), history=None):
+           as_of=date(2026, 10, 19), history=None, extra_sources=None):
     """By default the fact's latest claim is its own ruling block's, as after a filing."""
     from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
     from tests.snapshot_records import SOURCES, model
@@ -833,7 +1034,7 @@ def _build(row, rulings, attempts, log=(), claims=None, source_cache=None,
                          _event("checked", f"{block['ruled_at']}T09:00:00+00:00")]
                    for fid, claim in claims.items()} if block else {}
     inputs = SnapshotInputs(models=[model(MID, facts=[row])],
-                            sources={**SOURCES, "src-cite": CITE},
+                            sources={**SOURCES, "src-cite": CITE, **(extra_sources or {})},
                             owner_rulings=list(rulings), cited_attempts=list(attempts),
                             verifications=list(log), owner_ruling_claims=claims,
                             owner_ruling_history=history)
