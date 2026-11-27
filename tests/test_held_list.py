@@ -31,8 +31,11 @@ VALUE = 262144
 
 def attempt(*, facet=FACET, kind="split", values=(VALUE, 131072), filed=VALUE,
             families=("openai", "anthropic")):
+    from decision.cited_change import fact_epoch
+
     agreed = values[0] == values[1]
-    line_ = {"subject": MID, "facet": facet, "epoch": "initial",
+    epoch = fact_epoch(fact("model", MID, facet, VALUE, outcome=None))
+    line_ = {"subject": MID, "facet": facet, "epoch": epoch,
              "url": "https://lab.example.com", "complete": True, "agreed": agreed,
              "agreed_value": values[0] if agreed else None, "harness": True,
              "page_sha256": "3" * 64, "text_sha256": "a" * 64, "prompt_sha256": "4" * 64,
@@ -72,12 +75,14 @@ def mismatch(day="2026-10-01", value=VALUE, verifier=("verifier-b", "re-read")):
 MISMATCH = mismatch()
 
 
-def compiled(facts, attempts, held, log=(MISMATCH,)):
+def compiled(facts, attempts, held, log=(MISMATCH,), legacy=(), refusals=()):
     from decision.registry import default
 
     inputs = SnapshotInputs(models=[model(MID, facts=facts)], sources={**SOURCES, **CITE},
                             verifications=list(log),
-                            cited_attempt_lines=[raw(a) for a in attempts], held=list(held))
+                            cited_attempt_lines=[raw(a) for a in attempts], held=list(held),
+                            cited_attempt_legacy=[raw(a) for a in legacy],
+                            cited_refusal_lines=list(refusals))
     return _compile(inputs, default(), None, AT.date(), False)
 
 
@@ -92,9 +97,9 @@ def listing(a=None, *, reason="split", value=VALUE, verdicts=(), facet=FACET):
                 attempt_line=raw(a) if a is not None else None, verdicts=verdicts, at=AT)
 
 
-def refused(facts, attempts, held, log=(MISMATCH,)):
+def refused(facts, attempts, held, log=(MISMATCH,), **kw):
     with pytest.raises(SnapshotBuildError, match="held list"):
-        compiled(facts, attempts, held, log).held_listed()
+        compiled(facts, attempts, held, log, **kw).held_listed()
 
 
 def test_an_unlisted_held_fact_is_still_a_gap():
@@ -320,6 +325,70 @@ def test_the_site_loader_withholds_a_standing_listing(tmp_path):
     assert line_hash(raw(split)) == listing(split)["line"]
 
 
+# --- #1206: a legacy read, a refusal before any read, the fact's epoch ---------------------------
+
+def legacy_split(**kw):
+    a = attempt(kind=None, **kw)
+    a.pop("filed_value")  # a cite-only read logged before the tags carried no filed value
+    return a
+
+
+def test_an_untagged_split_in_the_legacy_prefix_justifies_a_split_hold():
+    old = legacy_split()
+    c = compiled([held_fact()], [old], [listing(old)], legacy=[old])
+    assert FACET not in gap_facets(c) and c.rejected[(MID, FACET)][0] == HELD_LISTED
+    refused([held_fact()], [old], [listing(old)])  # the same line past the prefix: refused
+
+
+def test_a_legacy_line_in_another_epoch_does_not_justify_a_hold():
+    old = legacy_split()
+    old["epoch"] = "initial-before"
+    refused([held_fact()], [old], [listing(old)], legacy=[old])
+
+
+def test_a_tagged_line_of_a_known_fact_needs_its_filed_value():
+    tagged = attempt()
+    tagged.pop("filed_value")
+    refused([held_fact()], [tagged], [listing(tagged)], legacy=[tagged])
+
+
+def refusal_raw(**kw):
+    from decision.cited_change import fact_epoch
+    from decision.hold_evidence import refusal_line
+    from decision.model import value_hash
+
+    entry = refusal_line(subject=MID, facet=FACET, value_hash=value_hash(VALUE),
+                         reason="quarantined", epoch=fact_epoch(held_fact()),
+                         source_id="src-cite", fetched=False, at=AT)
+    return json.dumps({**entry, **kw}, sort_keys=True)
+
+
+def refusal_listing(raw_line):
+    entry = listing(None, reason="refused")
+    entry["line"] = line_hash(raw_line)
+    return entry
+
+
+def test_a_refusal_before_any_read_justifies_a_refused_hold():
+    r = refusal_raw()
+    c = compiled([held_fact()], [], [refusal_listing(r)], refusals=[r])
+    assert FACET not in gap_facets(c) and c.rejected[(MID, FACET)][0] == HELD_LISTED
+
+
+@pytest.mark.parametrize("bad", ["not_logged", "other_value", "other_epoch", "other_fact",
+                                 "wrong_rule", "extra_field", "no_reason"])
+def test_a_refused_hold_needs_the_gates_refusal_of_this_fact_and_value(bad):
+    from decision.model import value_hash
+
+    change = {"other_value": {"value_hash": value_hash(131072)},
+              "other_epoch": {"epoch": "reread:x"},
+              "other_fact": {"facet": OTHER, "fact_id": f"{MID}#{OTHER}"},
+              "wrong_rule": {"rule": "gate-refusal@0"}, "extra_field": {"note": "x"},
+              "no_reason": {"reason": ""}}.get(bad, {})
+    r = refusal_raw(**change)
+    refused([held_fact()], [], [refusal_listing(r)], refusals=[] if bad == "not_logged" else [r])
+
+
 # --- the gate writes the tag a listing rests on --------------------------------------------------
 
 @pytest.fixture
@@ -367,3 +436,17 @@ def test_the_cite_only_gate_tags_a_split_or_silent_read_and_logs_its_filed_value
         assert "kind" not in line_ and "filed_value" not in line_
     else:
         assert line_["kind"] == kind and line_["filed_value"] == gate.FILED
+
+
+def test_a_split_in_a_holding_verdicts_clearing_epoch_justifies_a_hold():
+    from decision.cited_change import fact_epoch
+    from decision.quarantine_clearing import clearing_epoch
+
+    base = fact_epoch(held_fact())
+    cleared = attempt()
+    cleared["epoch"] = clearing_epoch(base, verdict_sha256(MISMATCH))
+    c = compiled([held_fact()], [cleared], [listing(cleared)])
+    assert FACET not in gap_facets(c)
+    other = attempt()
+    other["epoch"] = clearing_epoch(base, "sha256:" + "7" * 64)  # a verdict that holds nothing
+    refused([held_fact()], [other], [listing(other)])

@@ -427,6 +427,10 @@ class SnapshotInputs:
     #: listing is served as held, never cited, and is not a gap; one that does not resolve fails
     #: the build (MODEL-491).
     held: Sequence[Mapping[str, Any]] = ()
+    #: MODEL-491: the attempt log's pinned legacy prefix (``hold_evidence.read_legacy``) and
+    #: the gate's refusal log lines (``hold_evidence.REFUSALS_FILE``), for the held list.
+    cited_attempt_legacy: Sequence[str] = ()
+    cited_refusal_lines: Sequence[str] = ()
     #: Lab id -> ``decision.labs.Lab``. Empty when the checkout has no lab registry.
     labs: Mapping[str, Any] = field(default_factory=dict)
     #: Sourced hardware YAML records. Metadata, never ranking candidates.
@@ -1103,7 +1107,9 @@ class _Compiler:
                     self.inputs.held, fact_at=lambda s, fa: facts.get((s, fa)),
                     log=self._clearing_log(), verdicts=self.log,
                     clearings=self.quarantine_clearings, sources=self.sources,
-                    history=self.inputs.clearing_history, cutoff=self._clearing_cutoff())
+                    history=self.inputs.clearing_history, cutoff=self._clearing_cutoff(),
+                    refusals=self.inputs.cited_refusal_lines,
+                    legacy=self.inputs.cited_attempt_legacy)
                 if problems:
                     raise SnapshotBuildError(
                         f"held list: {len(problems)} listing(s) do not resolve "
@@ -2599,6 +2605,13 @@ def collect_repo(root: Path) -> SnapshotInputs:
         held = read_held(root / HELD_FILE)
     except ValueError as exc:
         raise SnapshotBuildError(f"{HELD_FILE}: {type(exc).__name__}") from exc
+    held_legacy: tuple[str, ...] = ()
+    held_refusals: list[str] = []
+    if held:
+        from decision.hold_evidence import REFUSALS_FILE, read_legacy, read_refusals
+
+        held_legacy = read_legacy(root)
+        held_refusals = read_refusals(root / REFUSALS_FILE)
     corrections = bool(held) or any(
         is_correction(f) or is_confirmation(f) or is_reconfirmation(f)
         for row in [*models, *offerings, *subscriptions]
@@ -2666,7 +2679,8 @@ def collect_repo(root: Path) -> SnapshotInputs:
                           owner_ruling_legacy=ruling_legacy,
                           board_registry=board_registry,
                           quarantine_clearings=quarantine_clearings,
-                          held=held,
+                          held=held, cited_attempt_legacy=held_legacy,
+                          cited_refusal_lines=held_refusals,
                           cited_attempt_lines=attempt_lines,
                           clearing_history=clearing_history,
                           held_row_grandfather=held_row_grandfather,

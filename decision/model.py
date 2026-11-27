@@ -133,10 +133,13 @@ def verification_counts(outcome: str, collector: str, verifier: str) -> bool:
 #: Methods whose rows never verify a value (MODEL-491). ``retained-source-proof@1`` (MODEL-143
 #: round 2) "proved" hard-coded values by keyword presence, and compared nothing with the page.
 RETIRED_METHODS = frozenset({"retained-source-proof@1"})
-#: Readers that match a label on a page (E5). In MODEL-143 round 1 (collector ``codex-model-143``,
-#: 2026-09-25) the claims were filed with a null value, so these readers "verified" a null on any
-#: page that named the model: no verification of a null or ``not_disclosed`` fact.
-LABEL_MATCHERS = frozenset({"model-page-label-match@1", "key-value-match@1"})
+#: Readers that find a value by its label on a page (E5): a model-page label, a key-value key,
+#: or a table column whose header is the claim's label. In MODEL-143 round 1 (collector
+#: ``codex-model-143``, 2026-09-25) the claims were filed with a null value, so these readers
+#: "verified" a null on any page that named the model, and a "mismatch" meant only that the page
+#: states a value: neither says anything about a fact's value.
+LABEL_MATCHERS = frozenset({"model-page-label-match@1", "key-value-match@1",
+                            "table-header-match@1"})
 ROUND_ONE = ("codex-model-143", "2026-09-25")
 _NULL_HASH = "sha256:74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
 

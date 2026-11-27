@@ -424,9 +424,13 @@ def _held_standing(root: Path, directory: Path) -> set[tuple[str, str]]:
     clearings, history = _clearing_inputs(root)
     sources = {sid: str(source.url) for sid, source in
                load_sources(root / "registry" / "sources.yaml").items()}
+    from decision.hold_evidence import REFUSALS_FILE, read_legacy, read_refusals
+
     listed, problems = standing(entries, fact_at=lambda s, f: facts.get((s, f)), log=log,
                                 verdicts=verdicts, clearings=clearings, sources=sources,
-                                history=history, cutoff=cutoff)
+                                history=history, cutoff=cutoff,
+                                refusals=read_refusals(root / REFUSALS_FILE),
+                                legacy=read_legacy(root))
     if problems:
         raise LoadError(f"held list: {len(problems)} listing(s) do not resolve "
                         f"({summary(problems)})")

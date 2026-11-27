@@ -92,7 +92,8 @@ def test_a_later_absence_reading_by_a_label_matcher_still_counts(change):
         assert verification_row_counts(row(matcher, value=None, fid=NULL_FID, **kw))
 
 
-@pytest.mark.parametrize("matcher", ["model-page-label-match@1", "key-value-match@1"])
+@pytest.mark.parametrize("matcher", ["model-page-label-match@1", "key-value-match@1",
+                                     "table-header-match@1"])
 def test_a_round_one_null_label_row_counts_neither_way(matcher):
     # E5, both directions: round 1 filed null claims, so its label matcher's null rows show
     # nothing. A "mismatch" on null no longer holds a fact whose value is now stated, and a
@@ -129,3 +130,19 @@ def test_collect_repo_retires_for_the_private_data_only(tmp_path):
     assert collect_repo(tmp_path).retire_rsp is False  # the engine's frozen public image
     (tmp_path / ".engine-pin").write_text("0" * 40 + "\n")
     assert collect_repo(tmp_path).retire_rsp is True  # the private data checkout
+
+
+def test_a_round_one_table_header_mismatch_on_null_no_longer_holds_a_stated_fact():
+    # Symmetric E5 drops round 1's null "verified" label rows, which had masked earlier round-1
+    # table-header mismatches on the same null key. A table header match is a label matcher
+    # too: its null mismatch shows only that the page states a value, so it holds nothing.
+    stated = fact_on_log()
+    stated["sources"] = [{"source_id": "src-cite", "snapshot_ref": "sha256:" + "6" * 64,
+                          "cited_regions": ["page"], "retrieved_at": "2026-10-10T09:00:00+00:00"}]
+    cite = {"src-cite": "https://www.perplexity.ai/pro"}
+    log = [row("table-header-match@1", outcome="mismatch", value=None),
+           row("key-value-match@1", value=None)]
+    assert shown([stated], log, sources=cite).fact(MID, FACET).state == "known"
+    # Another method's round-1 null row still counts.
+    other = row("structured-row-match@1", outcome="mismatch", value=None)
+    assert verification_row_counts(other)
