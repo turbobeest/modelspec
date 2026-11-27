@@ -795,11 +795,14 @@ def confirmation_move(base: Any, derived: Any, *, verdict: Mapping[str, Any], va
     - the attempt log holds the confirmation's own agreement in ``derived`` with that text hash:
       a complete harness agreement by two distinct known families on ``value``
       (``agreement_problem``), on a page whose host retains copies, on a later day than the
-      verdict, logged before the bound (on an earlier line than ``until``'s, and not after it in
+      verdict, read in the first epoch in force on its own day while ``derived`` is the first
+      epoch in force on the verdict's (``first_moved``, E6), logged before the bound (on an
+      earlier line than ``until``'s, and not after it in
       time; times have one-second resolution, so the line order decides a tie). With
       ``bound``, only an agreement it accepts counts: the gate binds the line to the record's
       block by the line itself (``_block_is``), never by the block's own fields. The line must
-      show it made a confirmation (``line_kind``), whatever rule label a record carries;
+      carry the kind ``confirmation`` the gate wrote into it: an untagged line moves nothing,
+      whatever rule label a record carries;
     - no disagreement is logged in ``derived``;
     - every claim on the verdict's target after the verdict's UTC day, up to the bound, is for
       ``value``: one for another value, even reverted later, refuses. The verdict's own day is
@@ -845,16 +848,25 @@ def confirmation_move(base: Any, derived: Any, *, verdict: Mapping[str, Any], va
                 and _canonical((event.get("claim") or {}).get("value"), facet) != want:
             return False  # another value was filed between the verdict and the clearing
     for attempt in log.entries[:position]:
-        if (attempt.get("subject"), attempt.get("facet"), attempt.get("epoch"),
-                attempt.get("text_sha256")) != (subject, facet, derived, text):
+        if (attempt.get("subject"), attempt.get("facet"), attempt.get("text_sha256")) \
+                != (subject, facet, text):
             continue
         at = _at(attempt.get("at"))
         if at is None or not later_than(verdict, at) or at > limit \
                 or cite_only_status(attempt.get("url")) is not False \
                 or agreement_problem(attempt, value, facet) is not None:
             continue
-        if line_kind(attempt, facet, value=value, history=history) != "confirmation":
-            continue  # the line itself must show it made a confirmation, never the record
+        # Only a tagged line moves a record (MODEL-491 E4 review 5): an untagged line's claim
+        # cannot be tied to its attempt, so no older line authorizes a move.
+        if attempt.get("kind") != "confirmation":
+            continue
+        # The confirmation was read in the first epoch in force on its own day, and the record
+        # was in the first epoch in force on the verdict's: the clearing check's E6 day rule
+        # (``first_moved``), so an ``initial`` line logged after a new definition took effect
+        # moves nothing.
+        if not first_moved(derived, str(attempt.get("epoch") or ""), facet=facet,
+                           verdict=verdict, at=attempt.get("at") or ""):
+            continue
         if bound is not None and not bound(attempt):
             continue
         return True

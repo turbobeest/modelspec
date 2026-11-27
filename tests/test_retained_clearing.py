@@ -661,3 +661,31 @@ def test_review_6_a_refused_read_never_backs_a_confirmation_in_the_build():
     line = agreement("initial", kind=None)
     row = confirmed_row(line, cleared=False)
     assert served([_claim("2026-10-10T08:59:58+00:00")])  # admitted: its writer filed the claim
+
+
+# --- E4 review round 5 ---------------------------------------------------------------------------
+
+def test_review_7_an_untagged_line_moves_nothing_even_with_an_admitting_claim():
+    # An untagged read's claim cannot be tied to its attempt, so a refused read could borrow
+    # another's claim for the same value and copy. No untagged line authorizes a move.
+    fresh = agreement(MOVED_EPOCH)
+    row = confirmed_row(fresh, base=MOVED)
+    claim = _claim("2026-10-05T08:59:58+00:00")
+    untagged = own_agreement(kind=None)
+    assert not admitted(build_moved(row, [clearing(fresh)], [untagged, fresh], extra=[claim]))
+    assert admitted(build_moved(row, [clearing(fresh)], [own_agreement(), fresh]))
+
+
+@pytest.mark.parametrize("epoch,moves", [("initial", False), ("def2", True)])
+def test_review_8_the_confirmation_is_read_in_the_definition_in_force_on_its_day(epoch, moves):
+    # model.context_window's def2 is in force from 2026-11-27. A confirmation read that day must
+    # be in def2: an ``initial`` line logged then moves nothing (the E6 day rule). The build's
+    # cutoff is never after today, so the reads are dated on that first def2 day.
+    own = own_agreement(at="2026-11-27T00:10:00+00:00")
+    own["epoch"] = epoch
+    fresh = agreement(MOVED_EPOCH, at="2026-11-27T00:20:00+00:00")
+    row = confirmed_row(fresh, base=MOVED)
+    entry = clearing(fresh)
+    entry["cleared_at"] = "2026-11-27T00:30:00+00:00"
+    index = build_moved(row, [entry], [own, fresh], as_of=date(2026, 11, 27))
+    assert admitted(index) is moves
