@@ -128,11 +128,7 @@ def reconfirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
     if held:
         return f"{len(held)} value(s) of the fact hold an unresolved verdict"
     epoch, agreement = block.get("epoch"), block.get("agreement")
-    from decision.cited_reader import epoch_root
-
-    # The epoch a plain fact is read in: ``initial``, or its facet's first epoch once the
-    # registry versions it (MODEL-491 E6); a reconfirmation made in ``initial`` before stays one.
-    if epoch not in {EPOCH, epoch_root(facet)} or not isinstance(agreement, str):
+    if not isinstance(epoch, str) or not isinstance(agreement, str):
         return "the block names no agreement in the epoch a plain fact is read in"
     # The agreement by its exact bytes, at its first position (as a MODEL-573 correction).
     found = [n for n, raw in enumerate(log.lines) if line_hash(raw) == agreement]
@@ -143,6 +139,13 @@ def reconfirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
     if (attempt.get("subject"), attempt.get("facet"), attempt.get("epoch")) \
             != (subject, facet, epoch):
         return "the agreement is not this fact's, in the epoch the block names"
+    from decision.cited_reader import epoch_root
+
+    # A plain fact is read in its facet's first epoch in force when the agreement was made
+    # (MODEL-491 E6): ``initial`` before any version opened one, ``def<v>`` after. A record keeps
+    # the epoch its own agreement validly reached, whatever version came later.
+    if epoch != epoch_root(facet, attempt.get("at") or ""):
+        return "the block names no agreement in the epoch a plain fact is read in"
     # The served value is the logged agreement's, never the block's own fields.
     problem = agreement_problem(attempt, value, facet)
     if problem is not None:

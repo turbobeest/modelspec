@@ -21,8 +21,6 @@ from decision.reconfirmation import MARK, filed, is_reconfirmation, reconfirmati
 from tests import test_cited_change as gate
 from tests.test_cited_change import FACET, SUBJECT, URL, pair, reader, seed, serve
 
-# The fixture facet keeps `initial` as its first epoch here (E6 has its own tests).
-pytestmark = pytest.mark.usefixtures("unversioned_epochs")
 
 
 @pytest.fixture(autouse=True)
@@ -401,3 +399,42 @@ def test_the_read_date_is_the_logged_agreements_day_and_cannot_be_forged(data, d
     forged["derivation"]["cited_change"]["read_date"] = day
     forged["sources"][0]["retrieved_at"] = f"{day}T09:00:00+00:00"
     assert problem(data, forged) is not None
+
+
+def test_a_reconfirmation_keeps_the_epoch_its_agreement_validly_reached(data, monkeypatch):
+    """Codex on #1200 (E6): a reconfirmation is judged by the first epoch in force when its
+    agreement was made, so a later version (a future def3) never rejects it; a block naming
+    another epoch than that one is refused."""
+    import dataclasses
+    from datetime import UTC, date, datetime, timedelta
+
+    from decision import registry as registry_module
+    from decision.cited_reader import epoch_root
+
+    fact = _filed(data)
+    block = fact["derivation"]["cited_change"]
+    assert block["epoch"] == epoch_root(FACET) == "def2"
+    assert problem(data, fact) is None
+    real = registry_module.default()
+    later = datetime.now(UTC).date() + timedelta(days=30)
+
+    def with_versions(versions):
+        facet = dataclasses.replace(real.facet(FACET), definition_version=3,
+                                    epoch_versions=versions)
+
+        class Registry:
+            def facet(self, facet_id):
+                return facet if facet_id == FACET else real.facet(facet_id)
+
+        monkeypatch.setattr(registry_module, "default", lambda: Registry())
+
+    with_versions(((2, date(2026, 11, 27)), (3, later)))  # def3 comes later: def2 stands
+    assert problem(data, fact) is None
+    with_versions(((2, date(2026, 11, 27)), (3, date(2026, 11, 27) + timedelta(days=1))))
+    if datetime.now(UTC).date() >= date(2026, 11, 28):
+        # def3 was in force when the agreement was made: def2 is not the epoch it reached.
+        assert problem(data, fact) is not None
+    edited = copy.deepcopy(fact)
+    edited["derivation"]["cited_change"]["epoch"] = "initial"
+    monkeypatch.setattr(registry_module, "default", lambda: real)
+    assert problem(data, edited) is not None

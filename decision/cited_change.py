@@ -821,9 +821,15 @@ def _epoch_at_verdict(verdict: Mapping[str, Any], *, subject: str, facet: str, f
     if derived is None:
         return _refuse("quarantined", "the record's epoch when the verdict was made cannot be "
                        f"shown; {QUARANTINED}")
+    from decision.quarantine_clearing import first_moved
+
     # A board row filed in its settings epoch is in a board epoch of it once the gate names one
     # (MODEL-555): the board moved since, and the clearing extends the epoch the row is in now.
-    if derived != base and not (derived == first and is_board_epoch(base, first)):
+    # A plain fact's first epoch moves with a definition version in force since the verdict
+    # (E6): the clearing is read in today's first epoch.
+    if derived != base and not (derived == first and is_board_epoch(base, first)) \
+            and not (settings is None and first_moved(derived, base, facet=facet,
+                                                      verdict=verdict, at=None)):
         return _refuse("epoch_not_current",
                        "the record's epoch now is not its epoch when the verdict was made")
     return None
@@ -2555,18 +2561,22 @@ def cited_change_block(fact: Mapping[str, Any]) -> Mapping[str, Any] | None:
 
 def fact_epoch(fact: Mapping[str, Any]) -> str:
     """The attempt-log epoch a fact is in: after a cited change, the re-read epoch its recorded
-    text hash names; otherwise its facet's first epoch (``cited_reader.epoch_root``: ``initial``,
-    or ``def<v>`` once the registry's ``epoch_version`` for the facet is ``v`` > 1, MODEL-491 E6).
-    A ruled fact with no cited-change block stays in ``initial``, where its ruling was made: a
-    definition version never moves a record whose question was already answered. ``reread``
-    reads in this epoch."""
+    text hash names; otherwise its facet's first epoch (``cited_reader.epoch_root``, MODEL-491
+    E6): the one in force now, or for a ruled fact the one in force when it was ruled (its
+    ruling block's ``ruled_at``, which the build binds to the ruling line), so a ruling is read in
+    the epoch of the split it resolved and a later version never moves it. ``reread`` reads in
+    this epoch."""
+    if not isinstance(fact, Mapping):
+        return "initial"
     block = cited_change_block(fact)
     if block is None:
-        from decision.owner_ruling import has_ruling
+        from decision.owner_ruling import ruling_block
 
-        if has_ruling(fact):
-            return "initial"
-        return epoch_root(str(fact.get("facet"))) if isinstance(fact, Mapping) else "initial"
+        ruling = ruling_block(fact)
+        facet = str(fact.get("facet"))
+        if ruling is not None:
+            return epoch_root(facet, ruling.get("ruled_at") or "")  # no day: the oldest
+        return epoch_root(facet)
     text = block.get('text_sha256') or block.get('sha256')
     cleared = block.get("clearing_epoch")
     # A block a quarantine clearing made (MODEL-566) is re-read in an epoch named by its

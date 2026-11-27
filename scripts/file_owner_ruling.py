@@ -366,6 +366,16 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
     if epoch not in {fact_epoch(found.fact), ruled_epoch(found.fact)} \
             and not reopened(root, found, subject, facet, epoch, urls, now.date()):
         raise Refused("epoch_not_current", "the fact is in another epoch than the ruling's")
+    from decision.cited_change import cited_change_block
+    from decision.cited_reader import epoch_root
+    from decision.owner_ruling import REOPEN_MARK
+
+    # A plain fact's ruling is read in the first epoch in force on its ruling day (MODEL-491 E6,
+    # ``cited_change.fact_epoch``): a day in another one would file a ruling the build never reads.
+    if cited_change_block(found.fact) is None \
+            and epoch.split(REOPEN_MARK, 1)[0] != epoch_root(facet, ruled_at):
+        raise Refused("epoch_not_current", "the ruling's day is in another first epoch than "
+                      "the split's")
     from decision.retention import cite_only_status
 
     if any(cite_only_status(urls.get(str(r.get("source_id")), "")) is not True

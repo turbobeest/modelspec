@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from datetime import UTC
 
 import pytest
 
@@ -103,8 +104,11 @@ def test_a_plain_fact_is_read_in_its_facets_first_epoch():
     for forged in ({"definition_version": 1}, {"epoch_version": 1}, {"epoch": "initial"},
                    {"definition_version": 3, "epoch_version": 3}):
         assert fact_epoch({**plain, **forged}) == "def2"
-    # A ruled fact stays where its ruling was made, and a block's epoch is its own page's.
-    assert fact_epoch({**plain, "derivation": {"owner_ruling": {"subject": "x"}}}) == "initial"
+    # A ruled fact is in the first epoch in force on its ruling day; a block's is its own page's.
+    for ruled_at, epoch in (("2026-10-12", "initial"), ("2026-11-27", "def2"),
+                            ("2027-01-01", "def2"), ("not a day", "initial"), (None, "initial")):
+        ruled = {**plain, "derivation": {"owner_ruling": {"subject": "x", "ruled_at": ruled_at}}}
+        assert fact_epoch(ruled) == epoch, ruled_at
     block = {"text_sha256": "b" * 64}
     assert fact_epoch({**plain, "derivation": {"cited_change": block}}) == "reread:" + "b" * 64
 
@@ -147,8 +151,8 @@ def test_without_a_version_bump_no_new_epoch(data, monkeypatch):
     import decision.cited_change as cited_change
     import decision.cited_reader as cited_reader
 
-    monkeypatch.setattr(cited_reader, "epoch_root", lambda facet_id: "initial")
-    monkeypatch.setattr(cited_change, "epoch_root", lambda facet_id: "initial")
+    monkeypatch.setattr(cited_reader, "epoch_root", lambda facet_id, at=None: "initial")
+    monkeypatch.setattr(cited_change, "epoch_root", lambda facet_id, at=None: "initial")
     _seed(data, epoch="initial", complete=True, agreed=False, harness=True)
     gate.refused("prior_attempt_disagreed")
 
@@ -181,9 +185,101 @@ def test_a_clearing_in_the_new_epoch_ignores_a_version_1_split_and_names_def2(da
     kw = dict(verdict=verdict, subject=gate.SUBJECT, facet=FACET, ids=lambda rid: True, log=log,
               first="initial", history=qc.events(verdict), cutoff=datetime.now(UTC).date())
     assert line_problem(entry, **kw)[0] == ""
+    # The verdict (2026-09-20) is judged by the version in force then: its record was in initial.
     assert verdict_epoch(verdict, history=qc.events(verdict), log=log, subject=gate.SUBJECT,
-                         facet=FACET, first="initial") == "def2"
+                         facet=FACET, first="initial") == "initial"
     # A line naming the old base, or a made-up version, is refused.
     for base in ("initial", "def3", "def1"):
         forged = {**entry, "epoch": clearing_epoch(base, verdict_sha256(verdict))}
         assert line_problem(forged, **kw)[0] != ""
+
+
+def test_the_version_in_force_is_the_one_on_the_day_a_thing_was_made():
+    from datetime import date, datetime, timezone
+
+    from decision.cited_reader import epoch_root
+
+    assert epoch_root(FACET, "2026-11-26") == "initial"
+    assert epoch_root(FACET, "2026-11-26T23:59:59+00:00") == "initial"
+    assert epoch_root(FACET, "2026-11-27T00:00:00+00:00") == "def2"
+    assert epoch_root(FACET, "2026-11-26T20:00:00-05:00") == "def2"  # the UTC day counts
+    assert epoch_root(FACET, date(2026, 9, 25)) == "initial"
+    assert epoch_root(FACET, datetime(2026, 12, 1, tzinfo=UTC)) == "def2"
+    assert epoch_root(FACET, "garbage") == "initial"
+
+
+def test_a_later_version_never_re_judges_a_record_made_under_an_earlier_one(monkeypatch):
+    """A future def3 does not move what def2 made: each thing is judged on its own day."""
+    import dataclasses
+    from datetime import date
+
+    from decision import registry as registry_module
+    from decision.cited_reader import epoch_root
+
+    real = registry_module.default()
+    facet = dataclasses.replace(real.facet(FACET), definition_version=3,
+                                epoch_versions=((2, date(2026, 11, 27)), (3, date(2027, 3, 1))))
+
+    class Registry:
+        def facet(self, facet_id):
+            return facet if facet_id == FACET else real.facet(facet_id)
+
+    monkeypatch.setattr(registry_module, "default", lambda: Registry())
+    assert epoch_root(FACET, "2026-11-01") == "initial"
+    assert epoch_root(FACET, "2026-12-15") == "def2"
+    assert epoch_root(FACET, "2027-03-01") == "def3"
+
+
+def test_an_old_clearing_in_initial_stays_valid_after_the_version(data):
+    """A clearing whose agreement was made before the version came into force is judged in
+    initial, as it was made, and still passes the build's line check."""
+    from datetime import UTC, datetime
+
+    from decision.quarantine_clearing import (
+        AttemptLog,
+        clearing_epoch,
+        line,
+        line_problem,
+        verdict_sha256,
+    )
+    from tests import test_quarantine_clearing as qc
+
+    verdict = qc.held_mismatch(data)
+    epoch = clearing_epoch("initial", verdict_sha256(verdict))
+    attempt = {"subject": gate.SUBJECT, "facet": FACET, "epoch": epoch, "url": gate.URL,
+               "complete": True, "agreed": True, "agreed_value": 262144, "harness": True,
+               "page_sha256": "3" * 64, "text_sha256": "a" * 64, "prompt_sha256": "4" * 64,
+               "at": "2026-11-20T09:00:00+00:00",
+               "readers": [{"reader_id": "a", "family": "openai", "version": "1", "value": 262144},
+                           {"reader_id": "b", "family": "anthropic", "version": "1",
+                            "value": 262144}]}
+    raw = json.dumps(attempt, sort_keys=True, ensure_ascii=False)
+    target = verdict["target"]
+    entry = line(key=(target["kind"], target["id"], target["value_hash"]), verdict=verdict,
+                 subject=gate.SUBJECT, facet=FACET, epoch=epoch, attempt_line=raw, value=262144,
+                 at=datetime(2026, 11, 20, 10, tzinfo=UTC))
+    kw = dict(verdict=verdict, subject=gate.SUBJECT, facet=FACET, ids=lambda rid: True,
+              log=AttemptLog([raw]), first="initial", history=qc.events(verdict),
+              cutoff=datetime.now(UTC).date())
+    assert line_problem(entry, **kw)[0] == ""
+
+
+def test_a_ruling_on_a_def2_split_is_read_in_def2():
+    """Codex on #1200: a ruling filed for a plain def2 split is found by the build in def2, and a
+    ruling made in initial before the version stays valid there."""
+    from datetime import date
+
+    from tests import test_owner_ruling as owner
+
+    for epoch, ruled_at, as_of in (("def2", "2026-11-27", date(2026, 11, 27)),
+                                   ("initial", "2026-10-12", date(2026, 10, 19))):
+        attempt = owner._attempt(epoch=epoch)
+        ruling = owner._ruling(attempt, epoch=epoch, ruled_at=ruled_at)
+        row = owner._ruled_fact(ruling)
+        assert owner._build(row, [ruling], [attempt], as_of=as_of).fact(owner.MID, FACET).state \
+            == "known", epoch
+    # A def2 ruling dated before the version came into force is never read.
+    attempt = owner._attempt(epoch="def2")
+    ruling = owner._ruling(attempt, epoch="def2", ruled_at="2026-11-20")
+    assert owner._build(owner._ruled_fact(ruling), [ruling], [attempt],
+                        as_of=date(2026, 11, 27)).fact(owner.MID, FACET).state != "known"

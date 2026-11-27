@@ -17,6 +17,7 @@ Two rules the engine depends on:
 
 from __future__ import annotations
 
+import datetime as _calendar
 import difflib
 import re
 import sys
@@ -181,12 +182,17 @@ class Facet:
     #: each logged attempt keeps the hash of the prompt it was read under, so an attempt made
     #: under an earlier version stays evidence for its own epoch.
     definition_version: int = 1
-    #: The definition version from which the facet's rule-15 first epoch is that version's own
-    #: (MODEL-491, E6): 1 (the default) never splits, so every version shares ``initial``; a
-    #: higher one names the first epoch ``def<epoch_version>`` (``cited_reader.epoch_root``), so
-    #: a record still in its first epoch is read afresh, and attempts made before stay evidence
-    #: for their own epoch. It comes from this registry only, never from a data line.
-    epoch_version: int = 1
+    #: The definition versions that opened the facet's rule-15 first epoch, each with the UTC day
+    #: it came into force, oldest first (MODEL-491, E6). Empty (the default): every version shares
+    #: ``initial``. From the day ``(v, since)`` is in force, a record still in its first epoch is
+    #: read in ``def<v>`` (``cited_reader.epoch_root``); anything made before is judged by the
+    #: version in force when it was made. It comes from this registry only, never a data line.
+    epoch_versions: tuple[tuple[int, date], ...] = ()
+
+    @property
+    def epoch_version(self) -> int:
+        """The latest definition version that opened the first epoch (1 when none did)."""
+        return self.epoch_versions[-1][0] if self.epoch_versions else 1
 
     def value_label(self, value: str) -> str | None:
         return dict(self.value_labels).get(value)
@@ -668,7 +674,7 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
     optional = {
         "unit", "parameter", "required_qualifiers", "computed_by", "addressable",
         "label", "value_labels", "better", "identity", "definition_version",
-        "epoch_version",
+        "epoch_versions",
     }
     out: dict[str, Facet] = {}
     for e in entries:
@@ -725,11 +731,28 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
                 or definition_version < 1:
             err.add(where, "definition_version must be a whole number of 1 or more")
             definition_version = 1
-        epoch_version = e.get("epoch_version", 1)
-        if isinstance(epoch_version, bool) or not isinstance(epoch_version, int) \
-                or not 1 <= epoch_version <= definition_version:
-            err.add(where, "epoch_version must be a whole number from 1 to definition_version")
-            epoch_version = 1
+        epoch_versions: list[tuple[int, date]] = []
+        for item in e.get("epoch_versions") or ():
+            version = item.get("version") if isinstance(item, Mapping) else None
+            since = item.get("since") if isinstance(item, Mapping) else None
+            # The calendar type itself, not the module's ``date`` (the Worker's frozen clock
+            # replaces that one): a registry day is never compared with today here.
+            if isinstance(since, str):
+                try:
+                    since = _calendar.date.fromisoformat(since)
+                except ValueError:
+                    since = None
+            if isinstance(version, bool) or not isinstance(version, int) \
+                    or not 2 <= version <= definition_version \
+                    or not isinstance(since, _calendar.date) \
+                    or set(item) != {"version", "since"} \
+                    or (epoch_versions and (version <= epoch_versions[-1][0]
+                                            or since <= epoch_versions[-1][1])):
+                err.add(where, "epoch_versions: each entry is {version, since}, a definition "
+                               "version from 2 up and its ISO day, both rising")
+                epoch_versions = []
+                break
+            epoch_versions.append((version, since))
         if vt is None or not isinstance(e.get("id"), str):
             continue
         out.setdefault(e["id"], Facet(
@@ -739,7 +762,7 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
             unit=e.get("unit"), parameter=parameter, required_qualifiers=tuple(rq),
             computed_by=e.get("computed_by"), addressable=addressable,
             label=label, value_labels=value_labels, better=better, identity=identity,
-            definition_version=definition_version, epoch_version=epoch_version,
+            definition_version=definition_version, epoch_versions=tuple(epoch_versions),
             preference_values=(
                 tuple(sorted(lists[vt.values_from]()))
                 if (

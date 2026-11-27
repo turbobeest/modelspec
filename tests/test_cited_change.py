@@ -15,12 +15,11 @@ from decision.cited_change import (
     cited_change_facts, lookup, reread, reread_due, reread_required,
 )
 from decision.cited_reader import (
-    ATTEMPTS_FILE, Reader, ReaderAnswer, ReaderError, attempts, build_prompt, input_manifest,
+    ATTEMPTS_FILE, Reader, ReaderAnswer, ReaderError, attempts, build_prompt, epoch_root,
+    input_manifest,
     parse_answer, read_page, sha256, text_sha256,
 )
 
-# The fixture facet keeps `initial` as its first epoch here (E6 has its own tests).
-pytestmark = pytest.mark.usefixtures("unversioned_epochs")
 
 FACET = "model.context_window"
 SUBJECT = "xai/grok-x"
@@ -347,7 +346,7 @@ def test_an_agreement_after_a_disagreement_is_refused(data):
     refused("readers_disagree", readers=[reader("codex", "gpt-5", 1), reader("grok", "xai", 2)])
     refused("prior_attempt_disagreed")  # a clean second read agrees, and still cannot be used
     assert len(data.log()) == 2 - 1  # the second attempt never read: the gate refused first
-    assert attempts(SUBJECT, FACET)[0]["agreed"] is False
+    assert attempts(SUBJECT, FACET, epoch_root(FACET))[0]["agreed"] is False
 
 
 def test_a_second_attempt_after_an_agreement_must_return_the_same_value(data):
@@ -365,7 +364,9 @@ def test_an_incomplete_attempt_is_logged_and_does_not_count(data):
 def seed(data, **kw):
     path = data.root / ATTEMPTS_FILE
     path.parent.mkdir(exist_ok=True)
-    entry = {"subject": SUBJECT, "facet": FACET, "url": URL, "epoch": "initial", "complete": True,
+    # A plain fact's epoch is its facet's first epoch in force now (E6: ``def2`` for this facet).
+    entry = {"subject": SUBJECT, "facet": FACET, "url": URL, "epoch": epoch_root(FACET),
+             "complete": True,
              "seeded": True, **kw}
     with path.open("a") as fh:
         fh.write(json.dumps(entry) + "\n")

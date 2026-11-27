@@ -61,8 +61,6 @@ from tests.test_quarantine_clearing import (
     reading_build,
 )
 
-# The fixture facet keeps `initial` as its first epoch here (E6 has its own tests).
-pytestmark = pytest.mark.usefixtures("unversioned_epochs")
 
 
 @pytest.fixture(autouse=True)
