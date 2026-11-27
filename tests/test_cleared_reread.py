@@ -720,6 +720,7 @@ def test_a_conflicting_incomplete_answer_blocks_a_readings_re_read(tmp_path, mon
     with (board.root / ATTEMPTS_FILE).open("a") as fh:
         fh.write(json.dumps({"subject": reading_gate.SUBJECT,
                              "facet": f"benchmark:{reading_gate.BENCH}", "epoch": epoch,
+                             "at": datetime.now(UTC).isoformat(),  # as the gate logs it
                              "complete": False, "harness": True, "readers": [
                                  {"reader_id": "claude", "family": "anthropic", "version": "1",
                                   "value": 12.5}]}) + "\n")

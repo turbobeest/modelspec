@@ -180,19 +180,21 @@ def test_same_family_readers_are_refused_by_the_gate(data):
 def test_a_disagreement_in_the_clearing_epoch_blocks(data):
     verdict = held_mismatch(data)
     seed(data, epoch=clearing_epoch("initial", verdict_sha256(verdict)), complete=True,
-         agreed=False, harness=True)
+         agreed=False, harness=True, at="2026-09-21T09:00:00+00:00")
     refused("prior_attempt_disagreed")
 
 
 def test_a_disagreement_in_the_facts_own_epoch_blocks(data):
     held_mismatch(data)
-    seed(data, epoch="initial", complete=True, agreed=False, harness=True)
+    seed(data, epoch="initial", complete=True, agreed=False, harness=True,
+         at="2026-09-21T09:00:00+00:00")
     refused("prior_attempt_disagreed")
 
 
 def test_an_answer_in_an_incomplete_attempt_that_differs_blocks(data):
     verdict = held_mismatch(data)
     seed(data, epoch=clearing_epoch("initial", verdict_sha256(verdict)), complete=False,
+         at="2026-09-21T09:00:00+00:00",
          readers=[{"reader_id": "codex", "family": "gpt-5", "version": "1", "value": 1}])
     refused("prior_attempt_disagreed")
 
@@ -621,7 +623,8 @@ def test_an_epoch_that_cannot_be_shown_clears_nothing():
     trail = events(VERDICT)
     assert verdict_epoch(VERDICT, history=trail, **kw) == "initial"
     assert verdict_epoch(VERDICT, history=trail[1:], **kw) is None  # no claim before the check
-    assert verdict_epoch(VERDICT, history=trail[:1], **kw) is None  # no check of the verdict
+    # MODEL-491: a queue check never adds eligibility, so none is needed either.
+    assert verdict_epoch(VERDICT, history=trail[:1], **kw) == "initial"
     assert verdict_epoch(VERDICT, history=[], **kw) is None
     ruled = events(VERDICT, method="owner-ruling@1")
     assert verdict_epoch(VERDICT, history=ruled, **kw) is None
@@ -777,7 +780,9 @@ def test_only_the_claim_for_the_verdicts_value_supplies_the_epoch():
     check = {**plain[1], "diff": [{"field": "value", "expected": VALUE, "found": None}]}
     trail = [plain[0], other, check]
     kw = dict(log=AttemptLog([raw(opened)]), subject=MID, facet=FACET, first="initial")
-    assert verdict_epoch(VERDICT, history=trail, **kw) == "initial"
+    # MODEL-491 (Codex round 2): the pairing names the plain claim, but a rule-15 filing for
+    # another value came after it and before the verdict's day ended, so ``initial`` is refused.
+    assert verdict_epoch(VERDICT, history=trail, **kw) is None
     assert verdict_epoch(VERDICT, history=[other, check], **kw) is None  # only another value
 
     def case(base):
@@ -786,7 +791,7 @@ def test_only_the_claim_for_the_verdicts_value_supplies_the_epoch():
                      history={FID: trail})
 
     assert not admitted(case("reread:" + "b" * 64))
-    assert admitted(case("initial"))
+    assert not admitted(case("initial"))
 
 
 def test_an_opening_attempt_logged_after_the_claim_does_not_set_the_epoch():
@@ -846,7 +851,10 @@ def test_a_check_is_bound_to_a_value_by_its_hash_or_its_diff():
     assert verdict_epoch(VERDICT, history=[plain[0], other, names_other], **kw) is None
     names_ours = {**silent, "diff": [{"field": "value", "expected": VALUE, "found": None}]}
     assert check_binds(names_ours, VERDICT, FACET) is True
-    assert verdict_epoch(VERDICT, history=[plain[0], other, names_ours], **kw) == "initial"
+    # MODEL-491 (Codex round 2): the check pairs with the plain claim, but the record's latest
+    # claim before the verdict's day ended is for another value, so ``initial`` is refused.
+    assert verdict_epoch(VERDICT, history=[plain[0], other, names_ours], **kw) is None
+    assert verdict_epoch(VERDICT, history=[plain[0], names_ours], **kw) == "initial"
     hashed = {**silent, "target": {**silent["target"], "value_hash": "sha256:" + "0" * 64}}
     assert check_binds(hashed, VERDICT, FACET) is False
     own = {**silent, "target": {**silent["target"], "value_hash": VERDICT["target"]["value_hash"]}}
@@ -1330,12 +1338,11 @@ def test_a_forged_later_claim_moves_nothing():
     attempt = agreement()
     assert not admitted(build(cleared_row(attempt, base="reread:" + "b" * 64), [clearing(attempt)],
                               [opened, attempt], history={FID: trail}))
-    # A plain claim filed on the verdict's day but with no check that day shows nothing.
+    # A queue check adds nothing: with none, or one of another outcome, the result is the same.
     no_check = [unpaired(VERDICT)[1]]
-    assert verdict_epoch(VERDICT, history=no_check, **kw) is None
-    # A check of another outcome that day is not the verdict's.
+    assert verdict_epoch(VERDICT, history=no_check, **kw) == "initial"
     verified = [{**unpaired(VERDICT)[0], "outcome": "verified"}, unpaired(VERDICT)[1]]
-    assert verdict_epoch(VERDICT, history=verified, **kw) is None
+    assert verdict_epoch(VERDICT, history=verified, **kw) == "initial"
     # Only a claim filed by the end of the day counts: a later plain one alone shows nothing.
     late_plain = [unpaired(VERDICT)[0], unpaired(VERDICT, claim_at="2026-10-02T00:00:00+00:00")[1]]
     assert verdict_epoch(VERDICT, history=late_plain, **kw) is None
@@ -1399,10 +1406,8 @@ def test_e3_takes_the_log_verdicts_own_value_as_the_authority():
     # Another value filed after the verdict's day says nothing about the record then.
     after = unpaired(VERDICT, value=1, claim_at="2026-10-02T09:00:00+00:00")[1]
     assert verdict_epoch(VERDICT, history=[*unpaired(VERDICT), after], **kw) == "initial"
-    # A check is still required, of the verdict's day and outcome.
-    assert verdict_epoch(VERDICT, history=[unpaired(VERDICT)[1]], **kw) is None
-    verified = [{**unpaired(VERDICT)[0], "outcome": "verified"}, unpaired(VERDICT)[1]]
-    assert verdict_epoch(VERDICT, history=verified, **kw) is None
+    # No check is required (Codex round 2): a queue check never adds eligibility.
+    assert verdict_epoch(VERDICT, history=[unpaired(VERDICT)[1]], **kw) == "initial"
 
 
 def test_e3_refuses_when_a_claim_was_retired_by_the_verdicts_day():
@@ -1464,3 +1469,54 @@ def test_an_undated_event_on_the_target_refuses_e3_in_the_gate_and_the_build(dat
         fh.write(json.dumps(undated) + "\n")
     out = refused("quarantined")
     assert "cannot be shown" in out.detail and not data.log()
+
+
+def test_a_later_same_day_value_change_refuses_even_a_paired_ordinary_claim():
+    """Codex round 2 on #1199: the disqualifiers run first, for a paired ordinary claim too."""
+    from decision.quarantine_clearing import verdict_epoch, verdict_pair
+
+    kw = dict(log=AttemptLog(), subject=MID, facet=FACET, first="initial")
+    plain = events(VERDICT)  # the claim 09-30, its check 10-01 21:00: a pairing
+    assert verdict_pair(VERDICT, plain) is not None
+    assert verdict_epoch(VERDICT, history=plain, **kw) == "initial"
+    for at in ("2026-10-01T21:30:00+00:00", "2026-10-01T23:59:59+00:00"):
+        change = events(VERDICT, value=1, filed=at)[0]  # another value, later that day
+        assert verdict_pair(VERDICT, [*plain, change]) is not None
+        assert verdict_epoch(VERDICT, history=[*plain, change], **kw) is None
+        attempt = agreement()
+        assert not admitted(build(cleared_row(attempt), [clearing(attempt)], [attempt],
+                                  history={FID: [*plain, change]}))
+    # Each other disqualifier refuses a paired ordinary claim too.
+    gate = events(VERDICT, method="two-readers-cited-change@3", filed="2026-10-01T22:00:00+00:00",
+                  value=1)[0]
+    ruled = events(VERDICT, method="owner-ruling@1", filed="2026-10-01T22:00:00+00:00")[0]
+    undated = {**plain[0], "at": "not a time"}
+    for extra in (gate, ruled, undated):
+        assert verdict_epoch(VERDICT, history=[*plain, extra], **kw) is None
+    logged = AttemptLog([raw({**agreement("initial"), "at": "2026-09-30T10:00:00+00:00"})])
+    assert verdict_epoch(VERDICT, history=plain, log=logged, subject=MID, facet=FACET,
+                         first="initial") is None
+    # A change after the verdict's day says nothing about the record then.
+    after = events(VERDICT, value=1, filed="2026-10-02T09:00:00+00:00")[0]
+    assert verdict_epoch(VERDICT, history=[*plain, after], **kw) == "initial"
+
+
+def test_adding_a_check_for_another_value_changes_nothing():
+    """Codex round 2 on #1199: queue checks never add eligibility, whatever value they name."""
+    from decision.model import value_hash
+    from decision.quarantine_clearing import verdict_epoch
+
+    kw = dict(log=AttemptLog(), subject=MID, facet=FACET, first="initial")
+    other_check = unpaired(VERDICT, check_hash=value_hash(1),
+                           check_at="2026-10-01T05:00:00+00:00")[0]
+    late_other = unpaired(VERDICT, value=1, claim_at="2026-10-01T23:00:00+00:00")[1]
+    for base in ([unpaired(VERDICT)[1]],  # eligible with no check
+                 [unpaired(VERDICT, value=1)[1]],  # a verdict on a value the record did not carry
+                 [*unpaired(VERDICT, check_hash=None), late_other]):
+        assert verdict_epoch(VERDICT, history=[other_check, *base], **kw) \
+            == verdict_epoch(VERDICT, history=base, **kw)
+        attempt = agreement()
+        assert admitted(build(cleared_row(attempt), [clearing(attempt)], [attempt],
+                              history={FID: [other_check, *base]})) \
+            == admitted(build(cleared_row(attempt), [clearing(attempt)], [attempt],
+                              history={FID: base}))
