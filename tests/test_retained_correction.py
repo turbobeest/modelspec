@@ -869,6 +869,12 @@ def _compiled(row, attempts, log=(OLD,), *, as_of=TODAY):
     return inputs, _compile(inputs, default(), None, as_of, False)
 
 
+def _key(row):
+    from decision.model import value_hash
+
+    return MID, row["id"], value_hash(row["value"])
+
+
 def _dates(row, attempts, log=(OLD,), *, as_of=TODAY):
     from scripts.data_trust.catalogue import _agreement_dates
 
@@ -879,7 +885,7 @@ def test_an_admitted_correction_is_dated_by_its_logged_agreement():
     attempt = agreement(at="2026-10-10T23:30:00-04:00")  # the UTC day is 2026-10-11
     row = corrected_row(attempt)
     row["derivation"]["cited_change"]["read_date"] = "2026-01-01"  # what the record states
-    assert _dates(row, [attempt], as_of=date(2026, 10, 19)) == {row["id"]: "2026-10-11"}
+    assert _dates(row, [attempt], as_of=date(2026, 10, 19)) == {_key(row): "2026-10-11"}
     log = AttemptLog([raw(attempt)])
     assert agreement_day(row, MID, log=log, verdicts={}, sources={"src-lab-docs": URL},
                          cutoff=TODAY) == date(2026, 10, 11)
@@ -888,7 +894,7 @@ def test_an_admitted_correction_is_dated_by_its_logged_agreement():
 def test_an_admitted_confirmation_is_dated_by_its_logged_agreement():
     attempt = confirming()
     row = confirmed_row(attempt)
-    assert _dates(row, [attempt], log=()) == {row["id"]: "2026-10-10"}
+    assert _dates(row, [attempt], log=()) == {_key(row): "2026-10-10"}
 
 
 @pytest.mark.parametrize("fails", ["no_line", "same_family", "held", "after_cutoff",
@@ -914,17 +920,59 @@ def test_a_record_that_fails_the_shared_test_stays_undated(fails):
     assert _dates(row, [attempt] if lines is None else lines, log, as_of=as_of) == {}
 
 
+def test_only_a_record_the_build_admitted_is_dated():
+    # Codex review 1: a date is keyed by (card, fact id, value hash) and given only to the record
+    # the build admitted for that subject and facet, never to another with the same id.
+    from scripts.data_trust.catalogue import _agreement_dates
+
+    attempt = agreement()
+    row = corrected_row(attempt)
+    inputs, compiler = _compiled(row, [attempt])
+    assert _agreement_dates(inputs, compiler) == {_key(row): "2026-10-10"}
+    rid = row["id"]
+    kept = compiler.records[rid]
+    compiler.records[rid] = {**kept, "value": 16384}  # the served record has another value
+    assert _agreement_dates(inputs, compiler) == {}
+    compiler.records[rid] = kept
+    compiler.fact_records[MID].pop(FACET)  # the build did not admit it
+    assert _agreement_dates(inputs, compiler) == {}
+
+
+def _served(row, attempt, verification=None):
+    return {**{k: v for k, v in row.items() if k != "derivation"}, "verification": verification,
+            "citation": {"status": "cited", "sources": [
+                {"source_id": "src-lab-docs", "url": URL,
+                 "snapshot_ref": row["sources"][0]["snapshot_ref"],
+                 "retrieved_at": attempt["at"]}]}}
+
+
 def test_the_audit_dates_only_records_the_shared_test_admits():
     from scripts.data_trust.catalogue import Catalogue, _records
 
     attempt = agreement()
     row = corrected_row(attempt)
-    served = {**{k: v for k, v in row.items() if k != "derivation"}, "verification": None,
-              "citation": {"status": "cited", "sources": [
-                  {"source_id": "src-lab-docs", "url": URL,
-                   "snapshot_ref": row["sources"][0]["snapshot_ref"],
-                   "retrieved_at": attempt["at"]}]}}
-    for dated, want in (({row["id"]: "2026-10-10"}, "2026-10-10"), ({}, None)):
+    for dated, want in (({_key(row): "2026-10-10"}, "2026-10-10"), ({}, None),
+                        ({(MID, row["id"], "sha256:" + "0" * 64): "2026-10-10"}, None),
+                        ({("lab/beta", row["id"], _key(row)[2]): "2026-10-10"}, None)):
         c = Catalogue(sources={"src-lab-docs": {"id": "src-lab-docs", "url": URL}})
-        _records(c, [served], MID, "fact", {}, dated)
+        _records(c, [_served(row, attempt)], MID, "fact", {}, dated)
         assert c.facts[0]["read_date"] == want
+
+
+def test_the_agreement_day_is_authoritative_over_a_logged_verification():
+    # Codex review 2: a matching logged verification never sets an admitted correction's date.
+    from scripts.data_trust.catalogue import Catalogue, _records
+
+    attempt = agreement()
+    row = corrected_row(attempt)
+    other = verification("fact", row["id"], "verified", day="2026-11-20", value=VALUE)
+    c = Catalogue(sources={"src-lab-docs": {"id": "src-lab-docs", "url": URL}})
+    c.verifications[("fact", row["id"])] = other
+    c.logged_verifications[("fact", row["id"])] = other
+    _records(c, [_served(row, attempt)], MID, "fact", {}, {_key(row): "2026-10-10"})
+    assert c.facts[0]["read_date"] == "2026-10-10"
+    c = Catalogue(sources={"src-lab-docs": {"id": "src-lab-docs", "url": URL}})
+    c.verifications[("fact", row["id"])] = other
+    c.logged_verifications[("fact", row["id"])] = other
+    _records(c, [_served(row, attempt)], MID, "fact", {}, {})
+    assert c.facts[0]["read_date"] != "2026-10-10"
