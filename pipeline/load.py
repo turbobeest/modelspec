@@ -344,16 +344,24 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
                                    "withheld", model_id)
                     withheld.append(str(fact.get("facet")))
                     continue
-            elif not citation and is_confirmation(fact):
-                # A rule-16 retained-page agreement (MODEL-491 E1) is shown as cited when the
-                # snapshot's own test admits it and no verified verdict outranks it; otherwise
-                # it adds nothing.
+            elif is_confirmation(fact):
+                # A rule-16 retained-page agreement (MODEL-491 E1) takes the snapshot's own
+                # decision, whatever its references are: shown as cited when the shared test
+                # admits it, decided by its verified verdict when one outranks it, and withheld
+                # otherwise, even beside a cite-only reference (Codex review of #1203).
                 if corrections is None:
                     corrections = _correction_inputs(root, as_of)
                 if clearing is None:
                     clearing = _clearing_inputs(root)
-                citation = _confirmed_citation(fact, str(model_id), corrections, sources, as_of,
-                                               clearing)
+                decision, confirmed = _confirmation_decision(fact, str(model_id), corrections,
+                                                             sources, as_of, clearing)
+                if decision == "refused":
+                    logger.warning("%s: a fact's retained-page agreement does not stand; "
+                                   "withheld", model_id)
+                    withheld.append(str(fact.get("facet")))
+                    continue
+                if decision == "cited":
+                    citation = confirmed
             if citation:
                 cited.append({**served_fact(fact), "verification": None, "citation": citation})
         block = front.get("benchmarks")
@@ -428,20 +436,30 @@ def _clearing_inputs(root: Path) -> tuple[Any, Any]:
         raise LoadError(f"quarantine clearings: {type(error).__name__}") from None
 
 
-def _confirmed_citation(fact: dict[str, Any], model_id: str, inputs: tuple[Any, Any, date],
-                        sources: dict[str, str], as_of: date | None = None,
-                        clearing: tuple[Any, Any] | None = None) -> dict[str, Any] | None:
-    """The snapshot's citation for a rule-16 confirmation (MODEL-491 E1), or ``None``: none for a
-    fact whose measurement the build rejects as stale (``fact_measurement_stale``)."""
-    from decision.retained_correction import confirmation_citation
+def _confirmation_decision(fact: dict[str, Any], model_id: str, inputs: tuple[Any, Any, date],
+                           sources: dict[str, str], as_of: date | None = None,
+                           clearing: tuple[Any, Any] | None = None
+                           ) -> tuple[str, dict[str, Any] | None]:
+    """The snapshot's decision for a fact that carries a rule-16 block
+    (``retained_correction.confirmation_decision``, MODEL-491 E1). A fact whose measurement the
+    build rejects as stale (``fact_measurement_stale``) is refused here as there."""
+    from decision.retained_correction import confirmation_decision
     from decision.snapshot import fact_measurement_stale
 
     if fact_measurement_stale(fact, as_of):
-        return None
+        return "refused", None
     log, verdicts, cutoff = inputs
     clearings, history = clearing or ((), {})
-    return confirmation_citation(fact, model_id, log=log, verdicts=verdicts, sources=sources,
+    return confirmation_decision(fact, model_id, log=log, verdicts=verdicts, sources=sources,
                                  cutoff=cutoff, clearings=clearings, history=history)
+
+
+def _confirmed_citation(fact: dict[str, Any], model_id: str, inputs: tuple[Any, Any, date],
+                        sources: dict[str, str], as_of: date | None = None,
+                        clearing: tuple[Any, Any] | None = None) -> dict[str, Any] | None:
+    """The citation ``_confirmation_decision`` serves the fact under, or ``None``."""
+    decision, confirmed = _confirmation_decision(fact, model_id, inputs, sources, as_of, clearing)
+    return confirmed if decision == "cited" else None
 
 
 def _ruled_row_withheld(root: Path, row: dict[str, Any], model_id: str, rulings: Any,

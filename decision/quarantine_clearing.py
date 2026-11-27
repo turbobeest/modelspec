@@ -687,95 +687,16 @@ def line_problem(entry: Any, *, verdict: Mapping[str, Any], subject: str, facet:
 LINE_KINDS = ("confirmation", "correction")
 
 
-#: The rule each kind's writer files its claim under (``decision.cited_change.RETAINED_RULE``,
-#: ``decision.retained_correction.RULE``): the queue's proof that a read was admitted.
-KIND_RULES = {"confirmation": "two-readers-retained-agreement@1",
-              "correction": "two-readers-retained-correction@1"}
+def line_kind(attempt: Mapping[str, Any], facet: str) -> str | None:
+    """What a logged agreement line filed: the kind the gate wrote into it (``read_page``), which
+    the line's hash covers. ``"confirmation"``, ``"correction"``, or ``None`` (MODEL-491).
 
-
-def line_kind(attempt: Mapping[str, Any], facet: str, *, value: Any = None,
-              history: Sequence[Mapping[str, Any]] = ()) -> str | None:
-    """What a logged agreement line filed, from the line and the log alone, never from a record's
-    rule label (MODEL-491 E4 review): ``"confirmation"``, ``"correction"`` or ``None``. ``None``
-    authorizes neither a move nor serving.
-
-    - The gate writes ``kind`` into each retaining-page line it logs (``read_page``), and the
-      line's hash covers it: that field decides.
-    - An older line carries no ``kind`` and refuses by default. It is a kind only on the full
-      positive test for ``value``, the value served, with ``history``, the target's queue events:
-      - it is a complete harness agreement on a page whose host retains copies;
-      - it agreed on ``value``;
-      - its read was admitted, not refused: that kind's writer filed a claim under its rule for
-        ``value``, citing this line's page copy, on the line's UTC day or later. A refused read
-        files no claim.
-      - A ``confirmation`` also needs any ``filed_value`` it logged to equal ``value``.
-      - A ``correction`` must have logged a different ``filed_value``, on the gate's own fetch
-        with its region hash.
-    """
-    if "kind" in attempt:
-        return attempt["kind"] if attempt["kind"] in LINE_KINDS else None
-    from decision.retention import cite_only_status
-
-    if value is None or attempt.get("complete") is not True or attempt.get("agreed") is not True \
-            or attempt.get("harness") is not True \
-            or cite_only_status(attempt.get("url")) is not False:
-        return None
-    want = _canonical(value, facet)
-    if _canonical(attempt.get("agreed_value"), facet) != want:
-        return None
-    at = _at(attempt.get("at"))
-    if at is None or not _HEX.fullmatch(str(attempt.get("page_sha256") or "")):
-        return None
-    copy = f"sha256:{attempt['page_sha256']}"
-
-    def admitted(rule: str) -> bool:
-        for event in history:
-            claim = event.get("claim") or {}
-            when = _event_at(event)
-            if event.get("event") != "collected" or when is None \
-                    or str((claim.get("collector") or {}).get("method") or "") != rule \
-                    or _canonical(claim.get("value"), facet) != want \
-                    or when.astimezone(UTC).date() < at.astimezone(UTC).date():
-                continue
-            if any(isinstance(ref, Mapping) and ref.get("snapshot_ref") == copy
-                   for ref in claim.get("sources") or ()):
-                return True
-        return False
-
-    logged = "filed_value" in attempt
-    filed = attempt.get("filed_value")
-    if (not logged or (filed is not None and _canonical(filed, facet) == want)) \
-            and admitted(KIND_RULES["confirmation"]):
-        return "confirmation"
-    if logged and filed is not None and _canonical(filed, facet) != want \
-            and attempt.get("own_fetch") is True \
-            and _HEX.fullmatch(str(attempt.get("region_sha256") or "")) \
-            and admitted(KIND_RULES["correction"]):
-        return "correction"
-    return None
-
-
-def retained_targets(path: Path) -> set[str]:
-    """Every target a retaining-page writer filed a claim for (``KIND_RULES``): whose queue
-    history ``line_kind`` needs to class an older line (MODEL-491 E4 review)."""
-    from decision.owner_ruling import loads
-
-    out: set[str] = set()
-    if not path.is_file():
-        return out
-    rules = set(KIND_RULES.values())
-    with path.open(encoding="utf-8") as fh:
-        for raw in fh:
-            if "two-readers-retained" not in raw:
-                continue
-            event = loads(raw)
-            claim = event.get("claim") if isinstance(event, Mapping) else None
-            if isinstance(claim, Mapping) and str((claim.get("collector") or {}).get("method")
-                                                   or "") in rules:
-                target = _event_target(event)
-                if target:
-                    out.add(target)
-    return out
+    An untagged line authorizes nothing: neither a move nor serving. An older line's claim cannot
+    be tied to its attempt, so no queue event or value can stand in for the kind. A fact that
+    rested on one needs a fresh read through the gate, which tags it. ``facet`` is kept for the
+    callers' one signature."""
+    kind = attempt.get("kind")
+    return kind if kind in LINE_KINDS else None
 
 
 def confirmation_move(base: Any, derived: Any, *, verdict: Mapping[str, Any], value: Any,

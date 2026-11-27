@@ -441,7 +441,11 @@ Learned expensively during 2026-09-09/10.
     families, be with that text hash on a retaining page, and fall on a later day than the
     verdict. The first epoch must hold no disagreement, and no claim for another value may fall
     after the verdict's day. A forged re-read epoch is no move, and an existing agreement never
-    stands in for the clearing's own fresh read. A fact that cites a cite-only page keeps that
+    stands in for the clearing's own fresh read. What a retaining-page read filed is the kind
+    the gate writes into its attempt line (`confirmation` or `correction`, under the line's
+    hash; `quarantine_clearing.line_kind`). A line without one moves, clears or serves nothing,
+    so a fact resting on an older line needs a fresh read through the gate. A fact that cites a
+    cite-only page keeps that
     citation, so its served basis is not upgraded. The rolling
     re-read re-reads these facts while their origin still retains copies; it reads the origin's
     class first, and one whose origin is now cite-only is listed
