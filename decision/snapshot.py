@@ -438,6 +438,16 @@ def _counts(v: Mapping[str, Any]) -> bool:
                                str(v["verifier"]["model_family"]))
 
 
+def fact_measurement_stale(fact: Mapping[str, Any], as_of: date | None) -> bool:
+    """Whether a fact's measurement is stale on ``as_of``: the build's ``stale_measurement``
+    test, which the site loader asks too (MODEL-491 review). No measurement, or no day, is never
+    stale."""
+    raw = fact.get("measurement") if isinstance(fact, Mapping) else None
+    if raw is None or as_of is None:
+        return False
+    return Measurement.model_validate(_as_dict(raw)).stale(as_of)
+
+
 def _offering_id(o: Mapping[str, Any]) -> str:
     return f"{o['provider']}/{o['model']}/{o['region']}/{o['tier']}"
 
@@ -1406,8 +1416,7 @@ class _Compiler:
                 continue
             reason = (
                 "stale_measurement"
-                if measurement is not None and self.as_of is not None
-                and measurement.stale(self.as_of)
+                if measurement is not None and fact_measurement_stale(f, self.as_of)
                 else self._admit(
                     "fact", f.get("id"), f.get("verification"),
                     fact_verification_value(f), source_ids, citation=citation, facet=facet_id,

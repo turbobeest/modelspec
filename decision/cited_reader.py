@@ -21,7 +21,8 @@ import os
 import re
 from datetime import UTC, datetime
 from pathlib import Path
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any
 from dataclasses import dataclass
 
 from pydantic import JsonValue
@@ -211,7 +212,8 @@ def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_
               definition: str | None = None,
               region_sha256: str | None = None,
               board_region_sha256: str | None = None,
-              own_fetch: bool = False) -> list[ReaderAnswer]:
+              own_fetch: bool = False,
+              filed: Mapping[str, Any] | None = None) -> list[ReaderAnswer]:
     """Ask each reader the same prompt; record the hash of what was sent and the manifest.
 
     Every attempt, complete or not, is appended to the attempt log (``ATTEMPTS_FILE``)
@@ -239,6 +241,10 @@ def read_page(*, subject: str, url: str, facet_id: str, subject_name: str, page_
     if board_region_sha256 is not None:
         # MODEL-555: the row's board region (``cited_change.row_region_sha256``), its own field.
         entry["board_region_sha256"] = board_region_sha256
+    if filed is not None and filed.get("state") == "known" and "value" in filed:
+        # MODEL-491 E2: the value the fact was filed with when it was read, so a correction made
+        # from this attempt names the value it replaced from the log, never from its own record.
+        entry["filed_value"] = filed["value"]
     if own_fetch:
         # MODEL-573: the gate fetched these bytes itself, with its own transport; a caller's
         # bytes or transport never set it. A retained-page correction rests only on such a read.

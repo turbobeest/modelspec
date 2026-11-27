@@ -331,7 +331,7 @@ def load_models(root: Path | None = None, *, as_of: date | None = None) -> list[
                 # it adds nothing.
                 if corrections is None:
                     corrections = _correction_inputs(root, as_of)
-                citation = _confirmed_citation(fact, str(model_id), corrections, sources)
+                citation = _confirmed_citation(fact, str(model_id), corrections, sources, as_of)
             if citation:
                 cited.append({**served_fact(fact), "verification": None, "citation": citation})
         block = front.get("benchmarks")
@@ -393,10 +393,15 @@ def _corrected_citation(fact: dict[str, Any], model_id: str, inputs: tuple[Any, 
 
 
 def _confirmed_citation(fact: dict[str, Any], model_id: str, inputs: tuple[Any, Any, date],
-                        sources: dict[str, str]) -> dict[str, Any] | None:
-    """The snapshot's citation for a rule-16 confirmation (MODEL-491 E1), or ``None``."""
+                        sources: dict[str, str], as_of: date | None = None
+                        ) -> dict[str, Any] | None:
+    """The snapshot's citation for a rule-16 confirmation (MODEL-491 E1), or ``None``: none for a
+    fact whose measurement the build rejects as stale (``fact_measurement_stale``)."""
     from decision.retained_correction import confirmation_citation
+    from decision.snapshot import fact_measurement_stale
 
+    if fact_measurement_stale(fact, as_of):
+        return None
     log, verdicts, cutoff = inputs
     return confirmation_citation(fact, model_id, log=log, verdicts=verdicts, sources=sources,
                                  cutoff=cutoff)

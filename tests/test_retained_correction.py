@@ -159,11 +159,37 @@ def _held(data, value):
     data.write()
 
 
-@pytest.mark.parametrize("value", [gate.FILED, AGREED])
+@pytest.mark.parametrize("value", [AGREED, ["text"]])
 def test_a_held_fact_is_refused_before_any_read(data, value):
+    # A mismatch on the agreed value, or on a third value, holds the fact before any read; one on
+    # the filed value is the one a correction may replace (MODEL-491 E2, below).
     _held(data, value)
     request = gate.serve()
     refused("quarantined", request=request)
+    assert request.calls == [] and data.attempts() == []
+
+
+def test_the_gate_reads_past_a_mismatch_on_the_value_a_correction_replaces(data):
+    # Codex review 1: the gate used to refuse a mismatch on the filed value before any read, so
+    # E2 helped only corrections filed already. Now it reads, logs the filed value with the
+    # attempt, and the correction stands by the build's own test.
+    _held(data, gate.FILED)
+    out = run()
+    assert out.changed, (out.reason, out.detail)
+    assert out.record["value"] == AGREED
+    assert data.attempts()[-1]["filed_value"] == gate.FILED
+
+
+def test_a_mismatch_on_the_filed_value_still_holds_a_confirmation(data):
+    _held(data, gate.FILED)
+    out = run(readers=gate.pair())
+    assert out.outcome == "refused" and out.reason == "quarantined" and out.record is None
+
+
+def test_without_correct_a_mismatch_on_the_filed_value_holds_before_any_read(data):
+    _held(data, gate.FILED)
+    request = gate.serve()
+    refused("quarantined", request=request, correct=False)
     assert request.calls == [] and data.attempts() == []
 
 
@@ -524,7 +550,7 @@ def _old_mismatch(day="2026-10-01", value=FILED, outcome="mismatch"):
 
 
 def test_a_mismatch_on_the_replaced_value_no_longer_holds_the_correction():
-    attempt = agreement()
+    attempt = agreement(filed_value=FILED)
     index = build(corrected_row(attempt), [attempt], log=[_old_mismatch()])
     assert admitted(index)
     record = index.record(index.fact(MID, FACET).record_id)
@@ -536,33 +562,41 @@ def test_a_mismatch_on_the_replaced_value_no_longer_holds_the_correction():
                               sources={"src-lab-docs": URL}, cutoff=TODAY) is None
 
 
-@pytest.mark.parametrize("bypass", ["unreachable", "after_agreement", "previous_is_value",
-                                    "no_previous", "not_a_correction"])
+@pytest.mark.parametrize("bypass", ["unreachable", "after_agreement", "filed_is_value",
+                                    "no_filed_value", "not_a_correction"])
 def test_only_an_earlier_mismatch_on_the_replaced_value_is_set_aside(bypass):
-    attempt = agreement()
+    attempt = agreement(filed_value=FILED)
     row, log = corrected_row(attempt), [_old_mismatch()]
     if bypass == "unreachable":  # an unreachable source says nothing about the old value
         log = [_old_mismatch(outcome="unreachable")]
     elif bypass == "after_agreement":  # a verdict after the agreement is not on what it replaced
         log = [_old_mismatch(day="2026-10-11")]
-    elif bypass == "previous_is_value":  # a block naming the corrected value releases nothing
-        row["derivation"]["cited_change"]["previous_value"] = VALUE
+    elif bypass == "filed_is_value":  # a line logging the corrected value as filed releases nothing
+        attempt = agreement(filed_value=VALUE)
+        row = corrected_row(attempt)
         log.append(_old_mismatch(value=VALUE))
-    elif bypass == "no_previous":
-        row["derivation"]["cited_change"].pop("previous_value")
+    elif bypass == "no_filed_value":  # an agreement logged without the filed value
+        attempt = agreement()
+        row = corrected_row(attempt)
     else:  # a cite-only rule-15 change or a confirmation is not a correction
         row["derivation"]["cited_change"]["rule"] = RETAINED_RULE
     assert not admitted(build(row, [attempt], log=log))
 
 
-def test_a_forged_previous_value_releases_only_a_verdict_older_than_the_agreement():
-    # A block may name any previous value; only a mismatch on it from before the logged agreement
-    # is set aside, and never one on the value the fact now has.
-    attempt = agreement()
+def test_a_third_value_mismatch_is_never_relabelled_by_the_record():
+    # Codex review 2: the record's own ``previous_value`` names nothing; the replaced value is the
+    # one logged on the agreement's line. A mismatch on a third value still holds the correction.
+    attempt = agreement(filed_value=FILED)
     row = corrected_row(attempt)
     row["derivation"]["cited_change"]["previous_value"] = 16384
-    later = _old_mismatch(day="2026-10-12", value=16384)
-    assert not admitted(build(row, [attempt], log=[later]))
+    third = _old_mismatch(value=16384)
+    assert not admitted(build(row, [attempt], log=[third]))
+    log = AttemptLog([raw(attempt)])
+    verdicts = _Compiler._verification_log([third])
+    assert correction_problem(row, MID, log=log, verdicts=verdicts,
+                              sources={"src-lab-docs": URL}, cutoff=TODAY) is not None
+    # The real replaced value is still set aside, whatever the record states.
+    assert admitted(build(row, [attempt], log=[_old_mismatch()]))
 
 
 # --- MODEL-491 E1: a rule-16 confirmation is served as cited -------------------------------------
@@ -715,3 +749,63 @@ def test_a_card_without_a_stated_id_is_ranked_on_its_location_id():
     verdicts = _Compiler._verification_log([OLD])
     assert confirmation_citation(row, MID, log=AttemptLog([raw(attempt)]), verdicts=verdicts,
                                  sources={"src-lab-docs": URL}, cutoff=TODAY) is None
+
+
+def test_a_disagreement_in_the_current_reread_epoch_voids_a_confirmation():
+    # Codex review 3: a later disagreement in the record's own re-read epoch voids an earlier
+    # confirmation, for the build, the site loader and the gate (one test).
+    from decision.cited_change import fact_epoch
+    from pipeline.load import _confirmed_citation
+
+    attempt = confirming()
+    row = confirmed_row(attempt)
+    own = fact_epoch(row)
+    assert own != attempt["epoch"]
+    for later in (confirming(epoch=own, values=(FILED, VALUE), at="2026-10-12T09:00:00+00:00"),
+                  confirming(epoch=own, values=(VALUE, VALUE), at="2026-10-12T09:00:00+00:00"),
+                  {**confirming(epoch=own, at="2026-10-12T09:00:00+00:00"), "complete": False,
+                   "agreed": None, "readers": [{"reader_id": "a", "family": "openai",
+                                                "version": "1", "value": VALUE}]}):
+        lines = [attempt, later]
+        log = AttemptLog([raw(a) for a in lines])
+        assert confirmation_problem(row, MID, log=log, verdicts={},
+                                    sources={"src-lab-docs": URL}, cutoff=TODAY) is not None
+        assert _confirmed_citation(row, MID, (log, {}, TODAY), {"src-lab-docs": URL}) is None
+        assert not admitted(build(row, lines, log=()), value=FILED)
+    # An agreeing re-read in that epoch keeps it.
+    again = confirming(epoch=own, at="2026-10-12T09:00:00+00:00")
+    assert admitted(build(row, [attempt, again], log=()), value=FILED)
+
+
+def test_the_loader_drops_a_confirmation_the_build_rejects_as_stale(monkeypatch):
+    # Codex review 4: one staleness test for the build and the site loader.
+    import decision.snapshot as snapshot
+    from pipeline.load import _confirmed_citation
+
+    attempt = confirming()
+    row = confirmed_row(attempt)
+    inputs = (AttemptLog([raw(attempt)]), {}, TODAY)
+    sources = {"src-lab-docs": URL}
+    assert _confirmed_citation(row, MID, inputs, sources, TODAY) is not None
+    stale = {**row, "measurement": {"window": {"end": "2026-08-01T00:00:00+00:00"}}}
+    monkeypatch.setattr(snapshot, "fact_measurement_stale",
+                        lambda fact, as_of: fact.get("measurement") is not None)
+    assert _confirmed_citation(stale, MID, inputs, sources, TODAY) is None
+    assert _confirmed_citation(row, MID, inputs, sources, TODAY) is not None
+
+
+def test_the_staleness_helper_is_the_builds_own_test():
+    from decision.model import MEASUREMENT_STALE_AFTER_DAYS
+    from decision.snapshot import fact_measurement_stale
+
+    measurement = {
+        "measured_by": "ModelSpec", "method": "m", "method_url": "https://lab.example.com/m",
+        "workload": "w", "effort": "high", "reasoning_tokens": 0, "provenance": "live",
+        "run_id": "r", "vantage": "v", "n": 1, "time_slots": 1, "days": 1, "failure_rate": 0,
+        "median": 1.0, "iqr": [1.0, 1.0], "interval": [1.0, 1.0],
+        "window": {"start": "2026-09-01T00:00:00+00:00", "end": "2026-09-02T00:00:00+00:00"}}
+    fact = {"measurement": measurement}
+    fresh = date(2026, 9, 2)
+    late = date.fromordinal(fresh.toordinal() + MEASUREMENT_STALE_AFTER_DAYS + 1)
+    assert not fact_measurement_stale(fact, fresh) and fact_measurement_stale(fact, late)
+    assert not fact_measurement_stale({}, late) and not fact_measurement_stale(fact, None)

@@ -1065,6 +1065,19 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
             return got
         held, chains = got
         released = bool(chains)
+    replaced_hold = False
+    if held and retaining and found.fact.get("state") == "known":
+        from decision.owner_ruling import has_ruling as ruled
+        from decision.retained_correction import is_correction, mismatch_on, owner_only
+
+        if (correct or is_correction(found.fact)) and not owner_only(facet) \
+                and not ruled(found.fact) and all(
+                    mismatch_on(found.fact, key, verdict, found.fact.get("value"))
+                    for key, verdict in held):
+            # MODEL-491 E2: a mismatch on the filed value does not hold a correction of it. The
+            # read proceeds; a confirmation of the filed value is still refused below, and a
+            # correction stands only if the build's own test sets that verdict aside.
+            held, replaced_hold = [], True
     clearing = None
     if held:
         refusal, clearing = _clearing_target(held, found.fact, now,
@@ -1185,7 +1198,7 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
                                 subject_name=found.subject_name, page_bytes=page_bytes,
                                 readers=readers, epoch=epoch, definition=found.definition,
                                 region_sha256=_region_sha256(row, page_bytes),
-                                own_fetch=own_fetch)
+                                own_fetch=own_fetch, filed=found.fact if retaining else None)
             break
         except ReaderError:
             continue
@@ -1218,7 +1231,8 @@ def _gate(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader]
     if retaining:
         return _retained_outcome(subject, facet_def, value, filed, found, row, source_id, now,
                                  page_bytes, answers, resolved, history, epoch=epoch,
-                                 correct=correct, released=released, own_fetch=own_fetch)
+                                 correct=correct, released=released, own_fetch=own_fetch,
+                                 replaced_hold=replaced_hold)
     if value is None:
         if not accept_not_disclosed:
             return _refuse("no_value",
@@ -1262,7 +1276,7 @@ def _retained_outcome(subject: str, facet_def: Any, value: JsonValue, filed: Jso
                       resolved: Sequence[str],
                       history: Sequence[Mapping[str, Any]], *, epoch: str,
                       correct: bool = False, released: bool = False,
-                      own_fetch: bool = False) -> CitedChange:
+                      own_fetch: bool = False, replaced_hold: bool = False) -> CitedChange:
     """A retaining page confirms: the agreed value must be the filed, known value. With
     ``correct``, or for a fact a correction filed, an agreed other value corrects it within
     ``decision.retained_correction``'s limits (MODEL-573); anything else is ``value_differs``."""
@@ -1280,6 +1294,9 @@ def _retained_outcome(subject: str, facet_def: Any, value: JsonValue, filed: Jso
     same = found.fact.get("state") == "known" \
         and _canonical(value, facet_def) == _canonical(filed, facet_def)
     corrected = is_correction(found.fact)
+    if same and replaced_hold:
+        return _refuse("quarantined", "a mismatch on the filed value holds it; only a correction "
+                       f"of that value sets the verdict aside; {QUARANTINED}")
     if same and not corrected:
         # The filed value is kept as filed (a set's order too): a confirmation changes nothing.
         record = _record(subject, facet_def.id, filed, row, source_id, now, sha256(page_bytes),

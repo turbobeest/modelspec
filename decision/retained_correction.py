@@ -33,8 +33,9 @@ record as it will be filed, and so does the build (``decision.snapshot``) and th
 (``owner_ruling.served_fact``). It is never served as verified. A correction that fails the test
 adds nothing: the fact is decided as if it carried no block. Nothing here writes.
 
-A correction replaces a value, so a ``mismatch`` on the value it replaced (the block's
-``previous_value``) does not hold it (MODEL-491 E2, orchestrator 2026-11-27, J11): such a verdict
+A correction replaces a value, so a ``mismatch`` on the value it replaced (the value the gate
+logged with its agreement, ``filed_value``; never the record's own ``previous_value``) does not
+hold it (MODEL-491 E2, orchestrator 2026-11-27, J11): such a verdict
 says the page did not support the old value, which is what the correction found. Any other
 verdict still holds it: an ``unreachable`` on any value, and any verdict on a third value or on
 the corrected value itself (``replaced_value_mismatch``).
@@ -220,42 +221,51 @@ def _binds(fact: Mapping[str, Any], value: Any, value_hash: str) -> bool:
     return bool(matching_value_hashes(bound, [value_hash], unordered=_unordered(fact.get("facet"))))
 
 
-def _agreement_day(fact: Mapping[str, Any], log: Any) -> date | None:
-    """The UTC day of the attempt line a correction's block names (``agreement``), or ``None``."""
-    from decision.quarantine_clearing import _at, line_hash
+def _agreement_attempt(fact: Mapping[str, Any], log: Any) -> Mapping[str, Any] | None:
+    """The attempt line a correction's block names (``agreement``, by the hash of its exact
+    bytes), or ``None``."""
+    from decision.quarantine_clearing import line_hash
 
     agreement = (_block(fact) or {}).get("agreement")
     if not isinstance(agreement, str):
         return None
     for raw, entry in zip(log.lines, log.entries, strict=True):
         if line_hash(raw) == agreement:
-            at = _at(entry.get("at"))
-            return None if at is None else at.astimezone(UTC).date()
+            return entry
     return None
+
+
+def mismatch_on(fact: Mapping[str, Any], key: Sequence[str], row: Mapping[str, Any],
+                value: Any) -> bool:
+    """Whether a held verdict (``key`` = ``(kind, id, value hash)``, ``row`` its winning row) is a
+    ``mismatch`` whose hash binds ``value`` as this fact's value: the one test the gate (before a
+    correction read) and the build (``replaced_value_mismatch``) ask (MODEL-491 E2)."""
+    return row.get("outcome") == "mismatch" and len(key) == 3 and value is not None \
+        and _binds(fact, value, str(key[2]))
 
 
 def replaced_value_mismatch(fact: Mapping[str, Any], key: Sequence[str],
                             row: Mapping[str, Any], *, log: Any) -> bool:
-    """Whether a held verdict (``key`` = ``(kind, id, value hash)``, ``row`` its winning row) is a
-    ``mismatch`` on the value a correction replaced, on no value the fact now has, dated on or
-    before the day of the agreement the block names in ``log``: such a verdict does not hold the
-    correction (MODEL-491 E2). Only a correction's block counts, and only a replaced value other
-    than the corrected one; a verdict after the agreement is not about the value it replaced."""
-    from decision.quarantine_clearing import _canonical
+    """Whether a held verdict is a ``mismatch`` on the value a correction replaced, on no value
+    the fact now has, dated on or before the agreement: such a verdict does not hold the
+    correction (MODEL-491 E2). The replaced value is the one the gate logged with the agreement
+    (``filed_value`` on the attempt line the block names by hash), never a field the record
+    states about itself; an agreement logged without one releases nothing."""
+    from decision.quarantine_clearing import _at, _canonical
 
-    if not is_correction(fact) or row.get("outcome") != "mismatch" or len(key) != 3:
+    if not is_correction(fact):
         return False
-    day = _agreement_day(fact, log)
-    if day is None or not str(row.get("date") or "9999") <= day.isoformat():
+    attempt = _agreement_attempt(fact, log)
+    if attempt is None or "filed_value" not in attempt:
         return False
-    block = _block(fact) or {}
-    if "previous_value" not in block or block.get("previous_value") is None:
+    at = _at(attempt.get("at"))
+    if at is None or not str(row.get("date") or "9999") <= at.astimezone(UTC).date().isoformat():
         return False
     facet = str(fact.get("facet"))
-    previous, value = block["previous_value"], fact.get("value")
-    if _canonical(previous, facet) == _canonical(value, facet):
+    replaced, value = attempt["filed_value"], fact.get("value")
+    if replaced is None or _canonical(replaced, facet) == _canonical(value, facet):
         return False
-    return _binds(fact, previous, str(key[2])) and not _binds(fact, value, str(key[2]))
+    return mismatch_on(fact, key, row, replaced) and not _binds(fact, value, str(key[2]))
 
 
 def is_confirmation(record: Mapping[str, Any]) -> bool:
@@ -328,6 +338,12 @@ def confirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
     if problem is not None:
         return problem
     own = fact_epoch(fact)
+    if own != epoch:
+        # The record's own re-read epoch: any disagreement there, which is always later than the
+        # agreement, voids the confirmation (MODEL-491 review).
+        problem = epoch_problem(log.keyed(subject, str(facet), own), value, str(facet))
+        if problem is not None:
+            return f"in the current re-read epoch: {problem}"
     seen = {line_hash(raw) for raw in log.lines[:index + 1]}
     for raw, later in zip(log.lines[index + 1:], log.entries[index + 1:], strict=True):
         digest = line_hash(raw)
