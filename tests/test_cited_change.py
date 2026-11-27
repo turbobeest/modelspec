@@ -19,6 +19,9 @@ from decision.cited_reader import (
     parse_answer, read_page, sha256, text_sha256,
 )
 
+# The fixture facet keeps `initial` as its first epoch here (E6 has its own tests).
+pytestmark = pytest.mark.usefixtures("unversioned_epochs")
+
 FACET = "model.context_window"
 SUBJECT = "xai/grok-x"
 URL = "https://docs.x.ai/docs/models/grok-x"

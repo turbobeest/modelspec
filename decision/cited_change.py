@@ -80,7 +80,8 @@ from schema.yaml_loader import load_yaml_unique
 
 from decision.cited_reader import (
     INPUT_FIELDS, MAX_PAGE_CHARS, Reader, ReaderAnswer, ReaderError, attempts, build_prompt,
-    canonical, facet_definition, input_manifest, normalised_text, read_page, sha256, text_sha256,
+    canonical, epoch_root, facet_definition, input_manifest, normalised_text, read_page, sha256,
+    text_sha256,
 )
 from decision.model import _LINEAGES, _NO_LINEAGE, DETERMINISTIC, model_family
 from decision.retention import (
@@ -2554,10 +2555,18 @@ def cited_change_block(fact: Mapping[str, Any]) -> Mapping[str, Any] | None:
 
 def fact_epoch(fact: Mapping[str, Any]) -> str:
     """The attempt-log epoch a fact is in: after a cited change, the re-read epoch its recorded
-    text hash names; otherwise ``initial``. ``reread`` reads in this epoch."""
+    text hash names; otherwise its facet's first epoch (``cited_reader.epoch_root``: ``initial``,
+    or ``def<v>`` once the registry's ``epoch_version`` for the facet is ``v`` > 1, MODEL-491 E6).
+    A ruled fact with no cited-change block stays in ``initial``, where its ruling was made: a
+    definition version never moves a record whose question was already answered. ``reread``
+    reads in this epoch."""
     block = cited_change_block(fact)
     if block is None:
-        return "initial"
+        from decision.owner_ruling import has_ruling
+
+        if has_ruling(fact):
+            return "initial"
+        return epoch_root(str(fact.get("facet"))) if isinstance(fact, Mapping) else "initial"
     text = block.get('text_sha256') or block.get('sha256')
     cleared = block.get("clearing_epoch")
     # A block a quarantine clearing made (MODEL-566) is re-read in an epoch named by its

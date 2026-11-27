@@ -42,6 +42,9 @@ from tests.test_cited_offering import (
     serve,
 )
 
+# The fixture facet keeps `initial` as its first epoch here (E6 has its own tests).
+pytestmark = pytest.mark.usefixtures("unversioned_epochs")
+
 RETENTION = "offering.data.retention"
 SOC2 = "offering.attestation.soc2"
 OTHER_SUBJECT = "openai/openai/gpt-x/eu/standard"

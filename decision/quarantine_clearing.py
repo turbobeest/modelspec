@@ -360,11 +360,19 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
     ``first`` is returned only when no disqualifier applies (``first_epoch_disqualified``), for
     a paired ordinary claim too: a later value by the end of the day, a rule-15, ruling, retired
     or undated claim, or an attempt."""
+    # A fact's first epoch is its facet's (``cited_reader.epoch_root``, MODEL-491 E6): the epoch a
+    # record that never left it is in, by the pinned registry, never by a data line.
+    if first == "initial" and settings is None:
+        from decision.cited_reader import epoch_root
+
+        start = epoch_root(facet)
+    else:
+        start = first
     pair = verdict_pair(verdict, history)
     if pair is None:
         if never_left_first(verdict, history=history, log=log, subject=subject, facet=facet,
                             settings=settings):
-            return first
+            return start
         return None
     filed_event, checked = pair
     claim = filed_event["claim"]
@@ -376,7 +384,7 @@ def verdict_epoch(verdict: Mapping[str, Any], *, history: Sequence[Mapping[str, 
     if not method.startswith(_RULE_15):
         disqualified = first_epoch_disqualified(verdict, history=history, log=log,
                                                 subject=subject, facet=facet)
-        return None if disqualified else first
+        return None if disqualified else start
     copies = {str(ref.get("snapshot_ref")) for ref in claim.get("sources") or ()
               if isinstance(ref, Mapping)}
     filed_at, checked_at = _event_at(filed_event), _event_at(checked)

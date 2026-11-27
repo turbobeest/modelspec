@@ -31,6 +31,9 @@ from tests import test_cited_change as fact_gate
 from tests import test_cited_reading as reading_gate
 from tests.snapshot_records import verification
 
+# The fixture facet keeps `initial` as its first epoch here (E6 has its own tests).
+pytestmark = pytest.mark.usefixtures("unversioned_epochs")
+
 
 @pytest.fixture(autouse=True)
 def offline(monkeypatch):

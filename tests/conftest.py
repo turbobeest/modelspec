@@ -78,3 +78,15 @@ def pytest_configure(config):
     # Timing assertions. CI runs them in their own serial step (no xdist), so
     # the bound measures the code, not four workers fighting for the runner.
     config.addinivalue_line("markers", "perf: wall-clock bound; CI runs these serially")
+
+
+@pytest.fixture
+def unversioned_epochs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The rule-15 epoch suites test epoch mechanics with `model.context_window` as their fixture
+    facet. Since E6 (MODEL-491) that facet's first epoch is `def2`; these suites keep `initial`
+    so they stay about the mechanics. E6 itself is tested in test_context_window_definition.py."""
+    import decision.cited_change as cited_change
+    import decision.cited_reader as cited_reader
+
+    monkeypatch.setattr(cited_reader, "epoch_root", lambda facet_id: "initial")
+    monkeypatch.setattr(cited_change, "epoch_root", lambda facet_id: "initial")

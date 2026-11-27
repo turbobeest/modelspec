@@ -128,7 +128,11 @@ def reconfirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
     if held:
         return f"{len(held)} value(s) of the fact hold an unresolved verdict"
     epoch, agreement = block.get("epoch"), block.get("agreement")
-    if epoch != EPOCH or not isinstance(agreement, str):
+    from decision.cited_reader import epoch_root
+
+    # The epoch a plain fact is read in: ``initial``, or its facet's first epoch once the
+    # registry versions it (MODEL-491 E6); a reconfirmation made in ``initial`` before stays one.
+    if epoch not in {EPOCH, epoch_root(facet)} or not isinstance(agreement, str):
         return "the block names no agreement in the epoch a plain fact is read in"
     # The agreement by its exact bytes, at its first position (as a MODEL-573 correction).
     found = [n for n, raw in enumerate(log.lines) if line_hash(raw) == agreement]

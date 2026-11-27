@@ -181,6 +181,12 @@ class Facet:
     #: each logged attempt keeps the hash of the prompt it was read under, so an attempt made
     #: under an earlier version stays evidence for its own epoch.
     definition_version: int = 1
+    #: The definition version from which the facet's rule-15 first epoch is that version's own
+    #: (MODEL-491, E6): 1 (the default) never splits, so every version shares ``initial``; a
+    #: higher one names the first epoch ``def<epoch_version>`` (``cited_reader.epoch_root``), so
+    #: a record still in its first epoch is read afresh, and attempts made before stay evidence
+    #: for their own epoch. It comes from this registry only, never from a data line.
+    epoch_version: int = 1
 
     def value_label(self, value: str) -> str | None:
         return dict(self.value_labels).get(value)
@@ -662,6 +668,7 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
     optional = {
         "unit", "parameter", "required_qualifiers", "computed_by", "addressable",
         "label", "value_labels", "better", "identity", "definition_version",
+        "epoch_version",
     }
     out: dict[str, Facet] = {}
     for e in entries:
@@ -718,6 +725,11 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
                 or definition_version < 1:
             err.add(where, "definition_version must be a whole number of 1 or more")
             definition_version = 1
+        epoch_version = e.get("epoch_version", 1)
+        if isinstance(epoch_version, bool) or not isinstance(epoch_version, int) \
+                or not 1 <= epoch_version <= definition_version:
+            err.add(where, "epoch_version must be a whole number from 1 to definition_version")
+            epoch_version = 1
         if vt is None or not isinstance(e.get("id"), str):
             continue
         out.setdefault(e["id"], Facet(
@@ -727,7 +739,7 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
             unit=e.get("unit"), parameter=parameter, required_qualifiers=tuple(rq),
             computed_by=e.get("computed_by"), addressable=addressable,
             label=label, value_labels=value_labels, better=better, identity=identity,
-            definition_version=definition_version,
+            definition_version=definition_version, epoch_version=epoch_version,
             preference_values=(
                 tuple(sorted(lists[vt.values_from]()))
                 if (

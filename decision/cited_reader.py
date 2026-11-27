@@ -84,6 +84,20 @@ def page_text(page_bytes: bytes) -> str:
     return normalised_text(page_bytes)[:MAX_PAGE_CHARS]
 
 
+def epoch_root(facet_id: str) -> str:
+    """The rule-15 first epoch of a record of this facet (MODEL-491, E6): ``initial``, or
+    ``def<v>`` when the registry's ``epoch_version`` for the facet is ``v`` > 1. The one place the
+    gate, the build and the writers derive it: from ``registry/facets.yaml`` at the engine in use,
+    never from a data line. A facet that is not in the registry (a board reading) is ``initial``."""
+    from decision.registry import default
+
+    try:
+        version = default().facet(facet_id).epoch_version
+    except KeyError:
+        return "initial"
+    return "initial" if version <= 1 else f"def{version}"
+
+
 def facet_definition(facet_id: str) -> str:
     from decision.registry import default
 

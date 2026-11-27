@@ -21,6 +21,9 @@ from decision.reconfirmation import MARK, filed, is_reconfirmation, reconfirmati
 from tests import test_cited_change as gate
 from tests.test_cited_change import FACET, SUBJECT, URL, pair, reader, seed, serve
 
+# The fixture facet keeps `initial` as its first epoch here (E6 has its own tests).
+pytestmark = pytest.mark.usefixtures("unversioned_epochs")
+
 
 @pytest.fixture(autouse=True)
 def offline(monkeypatch):

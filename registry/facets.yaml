@@ -257,6 +257,9 @@ facets:
     # lab's separate input and output limits; an attempt read under it keeps its own prompt hash
     # and stays evidence for its own epoch.
     definition_version: 2
+    # Version 2 opens the facet's first epoch afresh (E6): a record still in it is read under this
+    # definition in `def2`, and the splits logged under version 1 stay in `initial`.
+    epoch_version: 2
     definition: >-
       The context window the lab states for this model, in tokens, for its
       largest supported configuration. When the lab states separate input and

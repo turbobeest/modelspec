@@ -83,8 +83,14 @@ Learned expensively during 2026-09-09/10.
     orchestrator's convention of 2026-11-25): the context window the lab states
     for the model, and, when the lab states separate input and output token
     limits, the input token limit, never their sum. Version 1 read "input and
-    output together". `tests/test_context_window_definition.py` pins the text;
-    as above, the version opens no epoch.
+    output together". `tests/test_context_window_definition.py` pins the text.
+    Unlike weights_openness, this version opens the facet's first epoch afresh
+    (E6): `epoch_version: 2` in `registry/facets.yaml` names a plain record's
+    first epoch `def2` (`cited_reader.epoch_root`, the one helper the gate, the
+    build and the writers use), so a record still in it is read under the new
+    definition, and the splits logged under version 1 stay in `initial`. A ruled
+    fact and a fact with a cited-change block keep their epochs. The version
+    comes from the pinned registry only, never from a data line.
 13. **User cap when a provider's terms state none** (MODEL-490, decided by the
     owner, 2026-11-14). `licence.user_cap` is `unbounded`, as the facet
     definition says, when the provider's commercial terms were read in full and
