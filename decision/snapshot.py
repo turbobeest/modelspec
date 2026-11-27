@@ -1144,13 +1144,13 @@ class _Compiler:
             return None
         return correction_citation(fact, self.sources)
 
-    def _confirmation(self, sid: str, fact: Mapping[str, Any]) -> dict | None:
-        """The citation of a rule-16 confirmation the shared test admits and no verified verdict
-        outranks (``decision.retained_correction.confirmation_citation``, MODEL-491 E1), or
-        ``None``."""
-        from decision.retained_correction import confirmation_citation
+    def _confirmation(self, sid: str, fact: Mapping[str, Any]) -> tuple[str, dict | None]:
+        """The shared decision for a fact that carries a rule-16 block: served as cited, left to
+        its verified verdict, or refused (``decision.retained_correction.confirmation_decision``,
+        MODEL-491 E1)."""
+        from decision.retained_correction import confirmation_decision
 
-        return confirmation_citation(fact, sid, log=self._clearing_log(), verdicts=self.log,
+        return confirmation_decision(fact, sid, log=self._clearing_log(), verdicts=self.log,
                                      sources=self.sources, cutoff=self._clearing_cutoff(),
                                      clearings=self.quarantine_clearings,
                                      history=self.inputs.clearing_history)
@@ -1405,13 +1405,19 @@ class _Compiler:
                     if citation is None:
                         self._reject((sid, facet_id), "quarantined (correction)", source_ids)
                         continue
+                elif is_confirmation(f):
+                    # A rule-16 retained-page agreement (MODEL-491 E1) is served as cited only
+                    # through the shared test, whatever its references are, unless its own
+                    # verified verdict decides it; one that fails stays out, even beside a
+                    # cite-only reference (Codex review of #1203).
+                    decision, confirmed = self._confirmation(sid, f)
+                    if decision == "refused":
+                        self._reject((sid, facet_id), "quarantined (confirmation)", source_ids)
+                        continue
+                    citation = confirmed if decision == "cited" \
+                        else fact_citation(f, self.sources, self.source_cache)
                 else:
                     citation = fact_citation(f, self.sources, self.source_cache)
-                    if citation is None and is_confirmation(f):
-                        # A rule-16 retained-page agreement (MODEL-491 E1) is served as cited
-                        # through the shared test, unless a verified verdict outranks it; one
-                        # that fails adds nothing.
-                        citation = self._confirmation(sid, f)
                 if citation is not None:
                     Fact.model_validate({**f, "verification": None},
                                         context={"registry": self.registry})

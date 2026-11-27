@@ -1028,3 +1028,30 @@ def test_the_agreement_day_is_authoritative_over_a_logged_verification():
     c.logged_verifications[("fact", row["id"])] = other
     _records(c, [_served(row, attempt)], MID, "fact", {}, {})
     assert c.facts[0]["read_date"] != "2026-10-10"
+
+
+def test_an_untagged_correction_is_not_served_even_with_an_admitting_claim():
+    # Codex review of #1203: the build regression for corrections. An older correction line,
+    # untagged, with a claim its writer filed for this read, serves nothing; tagged, it serves.
+    from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+
+    from tests.snapshot_records import SOURCES, model
+
+    claim = {"event": "collected", "at": "2026-10-10T08:59:58+00:00", "claim": {
+        "target": {"kind": "fact", "id": f"{MID}#{FACET}"}, "value": VALUE, "field": FACET,
+        "names": [MID], "conditions": {},
+        "sources": [{"source_id": "src-lab-docs", "snapshot_ref": f"sha256:{PAGE}"}],
+        "collector": {"agent": "cited-change-gate", "model_family": "deterministic",
+                      "method": RULE}}}
+
+    def served(attempt):
+        inputs = SnapshotInputs(models=[model(MID, facts=[corrected_row(attempt)])],
+                                sources=dict(SOURCES), verifications=[OLD],
+                                cited_attempt_lines=[raw(attempt)],
+                                clearing_history={f"{MID}#{FACET}": [claim]})
+        return admitted(load_built_snapshot(build_snapshot(inputs, as_of=TODAY)))
+
+    untagged = agreement(filed_value=FILED)
+    untagged.pop("kind")
+    assert not served(untagged)
+    assert served(agreement(filed_value=FILED))

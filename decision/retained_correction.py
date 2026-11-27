@@ -566,6 +566,32 @@ def confirmation_citation(fact: Mapping[str, Any], subject: str, *, log: Any,
         return None
 
 
+def confirmation_decision(fact: Mapping[str, Any], subject: str, *, log: Any,
+                          verdicts: Mapping[tuple[str, str, str], Any],
+                          sources: Mapping[str, str], cutoff: date,
+                          ids: Sequence[str] = (),
+                          clearings: Sequence[Mapping[str, Any]] = (),
+                          history: Mapping[str, Sequence[Mapping[str, Any]]] | None = None
+                          ) -> tuple[str, dict[str, Any] | None]:
+    """What a fact that carries a rule-16 block is served as: the one decision the build and
+    the site loader take (MODEL-491, Codex review of #1203). One of:
+    - ``("verified", None)``: the fact's own winning verdict is an independent ``verified``, so
+      the verified path decides and the block adds nothing;
+    - ``("cited", citation)``: the shared test (``confirmation_problem``) admits it;
+    - ``("refused", None)``: it fails the test, so it stays out, whatever other reference it has.
+      A cite-only reference beside the block is no way around the test, as for a correction."""
+    if verified_winner(fact, subject, verdicts):
+        return "verified", None
+    if confirmation_problem(fact, subject, log=log, verdicts=verdicts, sources=sources,
+                            cutoff=cutoff, ids=ids, clearings=clearings,
+                            history=history) is not None:
+        return "refused", None
+    try:
+        return "cited", correction_citation(fact, sources)
+    except ValueError:
+        return "refused", None
+
+
 def correction_citation(fact: Mapping[str, Any], sources: Mapping[str, str]) -> dict[str, Any]:
     """The served ``citation`` of an admitted correction: every reference, as a cited fact's
     (``decision.citation``). It says the value is not machine-verified. Raises ``ValueError`` on

@@ -599,18 +599,28 @@ def _claim(at, *, value=VALUE, rule="two-readers-retained-agreement@1", copy=PAG
                                         "model_family": "deterministic", "method": rule}}}
 
 
-@pytest.mark.parametrize("case", ["admitted", "filed_same", "refused", "filed_differs"])
+@pytest.mark.parametrize("case", ["admitted", "refused", "filed_same", "filed_differs"])
 def test_untagged_lines_serve_nothing_whatever_the_queue_shows(case):
     # MODEL-491 follow-up: an older line's claim cannot be tied to its attempt, so no claim, value
-    # or filed value makes an untagged line a kind. Only the kind the gate wrote into it does.
+    # or filed value makes an untagged line a kind; only the kind the gate wrote into it does.
+    # "admitted" has a claim filed for this read, "refused" has none: the build serves neither.
     from decision.quarantine_clearing import line_kind
+    from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
 
-    line = own_agreement(kind=None)
+    from tests.snapshot_records import SOURCES, model
+
+    line = agreement("initial", kind=None)
+    events = [_claim("2026-10-10T08:59:58+00:00")] if case != "refused" else []
     if case == "filed_same":
         line["filed_value"] = VALUE
     elif case == "filed_differs":
         line["filed_value"] = 131072
     assert line_kind(line, FACET) is None
+    row = confirmed_row(line, cleared=False)
+    inputs = SnapshotInputs(models=[model(MID, facts=[row])], sources=dict(SOURCES),
+                            verifications=[], cited_attempt_lines=[raw(line)],
+                            clearing_history={FID: events})
+    assert not admitted(load_built_snapshot(build_snapshot(inputs, as_of=TODAY)))
     assert line_kind({**line, "kind": "confirmation"}, FACET) == "confirmation"
 
 
@@ -658,3 +668,52 @@ def test_review_8_the_confirmation_is_read_in_the_definition_in_force_on_its_day
     entry["cleared_at"] = "2026-11-27T00:30:00+00:00"
     index = build_moved(row, [entry], [own, fresh], as_of=date(2026, 11, 27))
     assert admitted(index) is moves
+
+
+# --- Codex review of #1203: a cite-only reference beside a rule-16 block is no way around it ------
+
+CITE_ONLY = "https://www.perplexity.ai/pro"
+
+
+def _beside_cite_only(row):
+    row = copy.deepcopy(row)
+    row["sources"].append({"source_id": "src-cite", "snapshot_ref": "sha256:" + "6" * 64,
+                           "retrieved_at": AT, "cited_regions": ["page"]})
+    return row
+
+
+def _served_with(row, lines, log=()):
+    from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+
+    from tests.snapshot_records import SOURCES, model
+
+    inputs = SnapshotInputs(models=[model(MID, facts=[row])],
+                            sources={**SOURCES, "src-cite": CITE_ONLY}, verifications=list(log),
+                            cited_attempt_lines=[raw(a) for a in lines])
+    return load_built_snapshot(build_snapshot(inputs, as_of=TODAY))
+
+
+def test_a_failed_confirmation_stays_out_beside_a_cite_only_reference():
+    line = agreement("initial")
+    row = _beside_cite_only(confirmed_row(line, cleared=False))
+    assert not admitted(_served_with(row, []))  # no logged agreement: refused
+    untagged = agreement("initial", kind=None)
+    assert not admitted(_served_with(_beside_cite_only(confirmed_row(untagged, cleared=False)),
+                                     [untagged]))
+    assert admitted(_served_with(row, [line]))  # the tagged agreement: served as cited
+    # Its own verified verdict decides it, and the block adds nothing.
+    verified = verification("fact", FID, "verified", day="2026-10-12", value=VALUE)
+    index = _served_with(row, [], log=[verified])
+    assert admitted(index)
+
+
+def test_the_loader_withholds_what_the_build_refuses_beside_a_cite_only_reference():
+    from pipeline.load import _confirmation_decision
+
+    line = agreement("initial")
+    row = _beside_cite_only(confirmed_row(line, cleared=False))
+    sources = {"src-lab-docs": URL, "src-cite": CITE_ONLY}
+    assert _confirmation_decision(row, MID, (AttemptLog([]), {}, TODAY), sources)[0] == "refused"
+    decision, citation = _confirmation_decision(row, MID, (AttemptLog([raw(line)]), {}, TODAY),
+                                                sources)
+    assert decision == "cited" and citation["status"] == "cited"
