@@ -333,6 +333,7 @@ def confirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
         agreement_problem,
         epoch_problem,
         line_hash,
+        line_kind,
     )
     from decision.retention import cite_only_status
 
@@ -373,6 +374,7 @@ def confirmation_problem(fact: Mapping[str, Any], subject: str, *, log: Any,
             continue  # a cleared confirmation rests on its clearing's own agreement (E4)
         try:
             made = agreement_problem(attempt, value, str(facet)) is None \
+                and line_kind(attempt, str(facet)) == "confirmation" \
                 and _block_is(fact, block, attempt, sources=sources)
         except (KeyError, TypeError, AttributeError):
             made = False

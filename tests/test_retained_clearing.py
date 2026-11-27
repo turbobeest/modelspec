@@ -537,3 +537,38 @@ def test_review_4_with_no_hold_an_unrelated_clearing_line_backs_nothing():
         assert not admitted(build(row, clears, [attempt], log))
     # Its own line, naming the verdict the log holds, still backs it.
     assert admitted(build(row, [clearing(attempt)], [attempt]))
+
+
+# --- E4 review round 2: the line, not the record's label, says what it made -----------------------
+
+@pytest.mark.parametrize("line", ["relabelled_correction", "own_fetch_unshown"])
+def test_review_5_a_correction_relabelled_as_a_confirmation_moves_nothing(line):
+    # A correction's agreement line (it logged the value it replaced, agreed on another, on the
+    # gate's own fetch) is never a confirmation, whatever rule label the record carries.
+    from decision.quarantine_clearing import line_kind
+
+    if line == "relabelled_correction":
+        own = own_agreement(filed_value=131072, own_fetch=True, region_sha256="5" * 64)
+        assert line_kind(own, FACET) == "correction"
+    else:  # an older own-fetch line that logged no filed value shows neither
+        own = own_agreement(own_fetch=True, region_sha256="5" * 64)
+        assert line_kind(own, FACET) is None
+    fresh = agreement(MOVED_EPOCH)
+    row = confirmed_row(fresh, base=MOVED)
+    assert not admitted(build_moved(row, [clearing(fresh)], [own, fresh]))
+    # The same read logged as a confirmation of the filed value moves the record.
+    own = own_agreement(filed_value=VALUE, own_fetch=True, region_sha256="5" * 64)
+    assert line_kind(own, FACET) == "confirmation"
+    assert admitted(build_moved(row, [clearing(fresh)], [own, fresh]))
+
+
+def test_review_5_a_relabelled_correction_is_not_served_as_a_confirmation():
+    from decision.quarantine_clearing import line_kind
+
+    attempt = {**agreement("initial", values=(VALUE, VALUE)), "filed_value": 131072,
+               "own_fetch": True, "region_sha256": "5" * 64}
+    assert line_kind(attempt, FACET) == "correction"
+    row = confirmed_row(attempt, cleared=False)  # labelled a rule-16 confirmation
+    assert confirmation_problem(row, MID, log=AttemptLog([raw(attempt)]), verdicts={},
+                                sources={"src-lab-docs": URL}, cutoff=TODAY) is not None
+    assert not admitted(build(row, [], [attempt], log=()))

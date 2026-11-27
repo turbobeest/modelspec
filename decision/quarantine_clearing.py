@@ -665,6 +665,31 @@ def line_problem(entry: Any, *, verdict: Mapping[str, Any], subject: str, facet:
     return "", attempt
 
 
+def line_kind(attempt: Mapping[str, Any], facet: str) -> str | None:
+    """What a logged agreement line made, from the line alone, never from a record's rule label
+    (MODEL-491 E4 review): ``"confirmation"``, ``"correction"`` or ``None`` when the line cannot
+    show it.
+
+    - A line that logs ``filed_value`` (the gate since engine#1197) made a confirmation when it
+      agreed on that value. It made a correction when it agreed on another value and is the
+      gate's own fetch with its cited-region hash, which every correction requires.
+    - An older line logs no filed value. It cannot have made a correction unless it is the
+      gate's own fetch, so a line without ``own_fetch`` made a confirmation. One with
+      ``own_fetch`` shows neither.
+    """
+    if "filed_value" in attempt:
+        filed = attempt.get("filed_value")
+        if filed is None:
+            return None
+        if _canonical(filed, facet) == _canonical(attempt.get("agreed_value"), facet):
+            return "confirmation"
+        if attempt.get("own_fetch") is True and _HEX.fullmatch(str(attempt.get("region_sha256")
+                                                                    or "")):
+            return "correction"
+        return None
+    return None if attempt.get("own_fetch") is True else "confirmation"
+
+
 def confirmation_move(base: Any, derived: Any, *, verdict: Mapping[str, Any], value: Any,
                       log: AttemptLog, subject: str, facet: str,
                       history: Sequence[Mapping[str, Any]], first: str = "initial",
@@ -685,7 +710,8 @@ def confirmation_move(base: Any, derived: Any, *, verdict: Mapping[str, Any], va
       verdict, logged before the bound (on an earlier line than ``until``'s, and not after it in
       time; times have one-second resolution, so the line order decides a tie). With
       ``bound``, only an agreement it accepts counts: the gate binds the line to the record's
-      block by the line itself (``_block_is``), never by the block's own fields;
+      block by the line itself (``_block_is``), never by the block's own fields. The line must
+      show it made a confirmation (``line_kind``), whatever rule label a record carries;
     - no disagreement is logged in ``derived``;
     - every claim on the verdict's target after the verdict's UTC day, up to the bound, is for
       ``value``: one for another value, even reverted later, refuses. The verdict's own day is
@@ -739,6 +765,8 @@ def confirmation_move(base: Any, derived: Any, *, verdict: Mapping[str, Any], va
                 or cite_only_status(attempt.get("url")) is not False \
                 or agreement_problem(attempt, value, facet) is not None:
             continue
+        if line_kind(attempt, facet) != "confirmation":
+            continue  # the line itself must show it made a confirmation, never the record
         if bound is not None and not bound(attempt):
             continue
         return True
