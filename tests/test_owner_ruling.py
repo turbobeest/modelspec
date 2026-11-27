@@ -24,6 +24,7 @@ from decision.owner_ruling import (
     disagreed,
     fact_epoch,
     ruling_problem,
+    split_status,
 )
 from scripts import file_owner_ruling as filer
 from tests.test_cited_offering import (
@@ -455,37 +456,52 @@ def test_disagreed_reads_only_a_real_rule_15_split():
     assert not disagreed({**base, "readers": _readers(30)}, RETENTION)
 
 
-# Splits the gate counts but the MODEL-569 harness test did not: a fact ruling resolves them
-# (MODEL-491), because the gate blocks on every one of them for good.
-GATE_ONLY_SPLITS = [
-    {"harness": False}, {"seeded": True, "harness": False}, {"prompt_sha256": None},
+# A seeded split (marked ``seeded``, ``harness`` false) is one the owner may rule past
+# (MODEL-491); the gate blocks on it for good, as on a harness split.
+RULABLE_SPLITS = [{"seeded": True, "harness": False},
+                  {"seeded": True, "harness": False, "prompt_sha256": None}]
+# Lines that look complete and not agreed but are not well formed: the gate fails closed and
+# blocks on each, and no ruling resolves any (``split_status`` is "malformed").
+MALFORMED_SPLITS = [
+    {"harness": False},  # no seeded mark
+    {"prompt_sha256": None},  # a harness line without the prompt hash its writer records
+    {"seeded": True},  # seeded and harness at once
+    {"complete": "false", "agreed": None, "readers": None, "harness": None},  # a forged string
+    {"complete": 1}, {"agreed": None}, {"agreed": 0},
     {"readers": _readers(30, "unbounded", families=("openai", "openai"))},
     {"readers": _readers(30, "unbounded", families=("openai", "codex"))},  # one lineage
     {"readers": _readers(30, "unbounded", families=("unknown", "anthropic"))},
     {"readers": _readers(30, "unbounded", ids=("a", "a"))},
     {"readers": [{"value": 30}, {"value": "unbounded"}]},  # no identities
+    {"readers": _readers(30, 30.0)},  # the gate's comparison tells them apart: no split
     {"readers": [*_readers(30, "unbounded"), {"reader_id": "c", "family": "google",
                                              "version": "1", "value": 1}]},
+    {"page_sha256": "short"}, {"page_sha256": None}, {"at": None}, {"at": "2026-10-11T09:00:00"},
 ]
 
 
-@pytest.mark.parametrize("change", GATE_ONLY_SPLITS)
-def test_a_fact_ruling_resolves_any_split_the_gate_counts(change):
-    """One test decides, for the gate and the ruling alike (``blocks_rule_15``)."""
-    base = {"complete": True, "agreed": False, "harness": True, "page_sha256": "1" * 64,
-            "prompt_sha256": "2" * 64, "readers": _readers(30, "unbounded")}
-    assert blocks_rule_15({**base, **change}) and not disagreed({**base, **change}, RETENTION)
+@pytest.mark.parametrize("change", RULABLE_SPLITS)
+def test_a_fact_ruling_resolves_a_well_formed_seeded_split(change):
     attempt = {**_attempt(), **change}
+    assert split_status(attempt, FACET) == "split" and blocks_rule_15(attempt)
+    assert not disagreed(attempt, FACET)  # the MODEL-569 board test still refuses it
     ruling = _ruling(attempt)
     assert _build(_ruled_fact(ruling), [ruling], [attempt]).fact(MID, FACET).state == "known"
 
 
-@pytest.mark.parametrize("change", [
-    {"complete": False}, {"complete": None}, {"agreed": True}, {"agreed": 1},
-    {"page_sha256": "short"}, {"page_sha256": None}, {"at": None}, {"at": "2026-10-11T09:00:00"},
-])
-def test_a_forged_line_the_gate_does_not_count_or_that_pins_no_copy_is_no_split(change):
+@pytest.mark.parametrize("change", MALFORMED_SPLITS)
+def test_a_malformed_split_blocks_the_gate_but_no_ruling_resolves_it(change):
     attempt = {**_attempt(), **change}
+    assert blocks_rule_15(attempt) and split_status(attempt, FACET) == "malformed"
+    ruling = _ruling(attempt)
+    assert _build(_ruled_fact(ruling), [ruling], [attempt]).fact(MID, FACET).state == "unknown"
+
+
+@pytest.mark.parametrize("change", [{"complete": False}, {"complete": None}, {"agreed": True},
+                                    {"agreed": 1}])
+def test_a_line_the_gate_does_not_count_is_no_split(change):
+    attempt = {**_attempt(), **change}
+    assert not blocks_rule_15(attempt) and split_status(attempt, FACET) is None
     ruling = _ruling(attempt)
     assert _build(_ruled_fact(ruling), [ruling], [attempt]).fact(MID, FACET).state == "unknown"
 
@@ -539,36 +555,90 @@ def test_a_seeded_line_that_pins_no_copy_still_blocks_but_names_no_copy(data):
     refuses(data, "no_disagreement")
 
 
-def test_a_ruling_may_cite_a_cite_only_page_the_fact_cites_beyond_the_read_one(data):
-    extra = {"source_id": "other", "snapshot_ref": "sha256:" + "c" * 64, "cited_regions": ["page"],
-             "retrieved_at": "2026-11-02T00:00:00+00:00"}
-    data.fact(sources=[ref("data"), extra], checked_sources=["data", "other"])
+def test_a_forged_string_complete_line_blocks_the_gate_and_the_filer_refuses_it(data):
+    forged = {"subject": SUBJECT, "facet": RETENTION, "epoch": "initial", "url": URL,
+              "complete": "false", "page_sha256": "a" * 64, "at": "2026-11-01T00:00:00+00:00"}
+    log_attempt(forged)
+    refused(cited_change(subject=SUBJECT, facet=RETENTION, source_id="data", readers=pair(30),
+                         request=serve()), "prior_attempt_disagreed")  # fails closed
+    refuses(data, "no_disagreement")
+    refuses(data, "no_disagreement", resolves=[attempt_id(forged)])
+
+
+EXTRA = {"source_id": "other", "snapshot_ref": "sha256:" + "c" * 64, "cited_regions": ["page"],
+         "retrieved_at": "2026-11-02T00:00:00+00:00"}
+
+
+def _claim_before(data, sources, at="2026-11-02T01:00:00+00:00"):
+    """The fact's claim as it stood before the ruling, as an earlier filing left it."""
+    path = data.root / "verification/queue/events.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    claim = {"target": {"kind": "fact", "id": FACT_ID}, "subject": SUBJECT, "field": RETENTION,
+             "value": None, "state": "not_disclosed", "sources": sources,
+             "collector": {"agent": "a-builder", "model_family": "anthropic", "method": "read"}}
+    with path.open("a") as handle:
+        handle.write(json.dumps({"event": "collected", "at": at, "claim": claim}) + "\n")
+        handle.write(json.dumps({"event": "checked", "at": at, "outcome": "cited", "diff": [],
+                                 "target": {"kind": "fact", "id": FACT_ID}}) + "\n")
+
+
+def test_a_ruling_may_cite_a_cite_only_page_the_fact_cited_before_beyond_the_read_one(data):
+    data.fact(sources=[ref("data"), EXTRA], checked_sources=["data", "other"])
+    _claim_before(data, [ref("data"), EXTRA])
     _seed()
     refuses(data, "source_mismatch", source_ids=["data", "trust"])  # not a source of this fact
     refuses(data, "source_mismatch", source_ids=["other"])  # the read page must be cited
     file(data, source_ids=["data", "other"])
     refs = {r["source_id"]: r for r in offering_fact(data)["sources"]}
-    assert refs["other"]["snapshot_ref"] == extra["snapshot_ref"]
+    assert refs["other"]["snapshot_ref"] == EXTRA["snapshot_ref"]
     assert refs["data"]["snapshot_ref"] == "sha256:" + "a" * 64
 
 
-def test_an_extra_page_with_no_zoned_read_time_is_refused(data):
-    extra = {"source_id": "other", "snapshot_ref": "sha256:" + "c" * 64, "cited_regions": ["page"]}
-    data.fact(sources=[ref("data"), extra], checked_sources=["data", "other"])
+def test_an_extra_page_the_earlier_claim_does_not_cite_is_refused(data):
+    # The fact names the page and its pin, but the claim it stood on before the ruling did not.
+    data.fact(sources=[ref("data"), EXTRA], checked_sources=["data", "other"])
+    _claim_before(data, [ref("data")])
     _seed()
     refuses(data, "source_mismatch", source_ids=["data", "other"])
 
 
-def test_an_extra_page_without_its_copy_on_the_claim_does_not_stand():
+def test_an_extra_page_with_no_zoned_read_time_is_refused(data):
+    extra = {k: v for k, v in EXTRA.items() if k != "retrieved_at"}
+    data.fact(sources=[ref("data"), extra], checked_sources=["data", "other"])
+    _claim_before(data, [ref("data"), extra])
+    _seed()
+    refuses(data, "source_mismatch", source_ids=["data", "other"])
+
+
+def _extra_case(prior_sources):
     attempt = _attempt()
     ruling = _ruling(attempt, source_ids=["src-cite", "src-extra"])
+    pin = {"source_id": "src-extra", "snapshot_ref": "sha256:" + "d" * 64,
+           "retrieved_at": AT, "cited_regions": ["page"]}
     row = _ruled_fact(ruling)
-    row["sources"].append({"source_id": "src-extra", "snapshot_ref": "sha256:" + "d" * 64,
-                           "retrieved_at": AT, "cited_regions": ["page"]})
-    claim = _claim(ruling)  # names only the read page: the extra copy is unbound
-    assert _build(row, [ruling], [attempt], claims={f"{MID}#{FACET}": claim},
-                  extra_sources={"src-extra": CITE + "/extra"}
-                  ).fact(MID, FACET).state == "unknown"
+    row["sources"].append(pin)
+    claim = _claim(ruling)
+    claim["sources"].append(pin)  # the page and its pin, added to the ruled fact and its claim
+    prior = {**claim, "collector": {"agent": "a-builder", "model_family": "anthropic",
+                                    "method": "read"}, "value": None, "state": "not_disclosed",
+             "sources": prior_sources(pin)}
+    fid = f"{MID}#{FACET}"
+    history = {fid: [_event("collected", "2026-10-11T09:00:00+00:00", prior),
+                     _event("checked", "2026-10-11T09:00:00+00:00"),
+                     _event("collected", f"{ruling['ruled_at']}T09:00:00+00:00", claim),
+                     _event("checked", f"{ruling['ruled_at']}T09:00:00+00:00")]}
+    return _build(row, [ruling], [attempt], claims={fid: claim}, history=history,
+                  extra_sources={"src-extra": CITE + "/extra"}).fact(MID, FACET).state
+
+
+def test_the_build_pins_an_extra_page_from_the_claim_before_the_ruling():
+    assert _extra_case(lambda pin: [pin]) == "known"
+
+
+def test_a_page_and_pin_added_to_the_ruled_fact_and_its_claim_alone_do_not_stand():
+    assert _extra_case(lambda pin: []) == "unknown"  # the fact did not cite it before
+    other_pin = lambda pin: [{**pin, "snapshot_ref": "sha256:" + "e" * 64}]  # noqa: E731
+    assert _extra_case(other_pin) == "unknown"  # it cited another copy
 
 
 # --- duplicate keys, in any spelling -------------------------------------------------------------

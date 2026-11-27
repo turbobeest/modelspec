@@ -8,8 +8,8 @@
 Dry-run unless ``--write``. It refuses, with one named reason and nothing written, unless
 every condition holds:
 
-* an attempt the rule-15 gate counts as a disagreement (``decision.owner_ruling.blocks_rule_15``,
-  harness or seeded: the gate's own test) is logged for exactly this subject, facet and epoch
+* a well-formed split (``decision.owner_ruling.split_status``, the test the gate blocks on:
+  harness or seeded) is logged for exactly this subject, facet and epoch
   (``verification/cited-attempts.jsonl``), and the epoch is the fact's current one, or a
   reopened epoch of its standing ruling that the rolling re-read recorded (MODEL-562);
 * ``--ruled-by`` is an owner (``decision.owner_ruling.OWNERS``) and a ticket is given;
@@ -22,11 +22,11 @@ matching claim in ``verification/queue/events.jsonl`` (``collected``, then ``che
 outcome ``cited``, ordered after every earlier event for the fact) and rewrites the one
 fact: the ruling's value and state, its sources at the copy each resolved attempt read
 (``snapshot_ref``, ``retrieved_at``), and ``derivation.owner_ruling``. A source no resolved
-attempt read may be named too when the fact already cites it on a cite-only host at a
-``sha256`` copy with a zoned read time; it is cited at that copy (MODEL-491). The fact and the
-claim are written from one source reference, so the data checks hold: the sources equal
-the latest claim's, ``snapshot_ref`` and ``retrieved_at`` agree, and the stored id is the
-location id.
+attempt read may be named too when the fact's claim before the ruling cites it on a cite-only
+host at a ``sha256`` copy with a zoned read time; it is cited at that copy (MODEL-491).
+The fact and the claim are written from one source reference, so the data checks hold: the
+sources equal the latest claim's, ``snapshot_ref`` and ``retrieved_at`` agree, and the stored
+id is the location id.
 
 Each file is read once. The plan and the write use those bytes; each append goes only to a
 file that still has the planned size and sha256, and the fact file is replaced whole only
@@ -70,6 +70,7 @@ from decision.owner_ruling import (
     cited_change_logged,
     disagreed,
     fact_epoch,
+    is_split,
     loads,
     ruled_epoch,
     ruling_problem,
@@ -239,14 +240,6 @@ def _zoned(value: Any) -> bool:
     return at.tzinfo is not None
 
 
-def _pins_copy(entry: dict[str, Any]) -> bool:
-    """The attempt records a zoned read time and a page hash: the copy a ruling would cite."""
-    import re
-
-    return _zoned(entry.get("at")) and bool(re.fullmatch(r"[0-9a-f]{64}",
-                                                         str(entry.get("page_sha256") or "")))
-
-
 def reopened(root: Path, found: Any, subject: str, facet: str, epoch: str,
              urls: dict[str, str], today: Any) -> bool:
     """Whether ``epoch`` is a reopened epoch of the fact's standing ruling that the rolling
@@ -329,23 +322,35 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
     if not splits:
         raise Refused("no_disagreement", "no attempt the gate counts as a disagreement is "
                       "logged for this subject, facet and epoch")
-    # By default the ruling resolves each split that pins the copy it read (a zoned time and
-    # a page hash); a split without them still blocks the gate but cannot name a copy.
-    disagreeing = [attempt_id(a) for a in splits
-                   if _pins_copy(a)] or [attempt_id(a) for a in splits]
+    # By default the ruling resolves each well-formed split (``split_status``); a malformed
+    # look-alike still blocks the gate, which fails closed, but no ruling resolves it.
+    disagreeing = [attempt_id(a) for a in splits if is_split(a, facet)]
+    if not disagreeing and not resolves:
+        raise Refused("no_disagreement", f"{len(splits)} logged split(s) for this subject, facet "
+                      "and epoch, none well formed (split_status)")
     ruling = {"subject": subject, "facet": facet, "epoch": epoch, "value": value, "state": state,
               "ruled_by": ruled_by, "ruled_at": ruled_at, "ticket": ticket,
               "source_ids": list(source_ids), "resolves": list(resolves or disagreeing),
               "basis": basis}
     assert set(ruling) == set(FIELDS)
     urls = {sid: str(row.get("url")) for sid, row in registry.items()}
-    # Sources beyond the pages the resolved attempts read: only ones the fact cites now, at a
-    # sha256 copy with a zoned read time, which is the copy the ruled fact keeps.
-    cited_refs = {str(r.get("source_id")): r for r in found.fact.get("sources") or []
+    # Sources beyond the pages the resolved attempts read: only ones the fact's claim before the
+    # ruling cites, at a sha256 copy with a zoned read time, which is the copy the ruled fact
+    # keeps. The build checks the same claim (``decision.owner_ruling.prior_claim``).
+    try:
+        fact_events = [e for e in sorted(events, key=event_time)
+                       if event_target(e) == ("fact", location)]
+    except (KeyError, TypeError, ValueError):
+        raise Refused("registry_lookup_failed", "the queue does not parse") from None
+    collected = [e["claim"] for e in fact_events if e.get("event") == "collected"]
+    if collected and (collected[-1].get("collector") or {}).get("agent") == AGENT:
+        collected = collected[:-1]  # a rerun: the ruling's own claim is filed already
+    before = collected[-1] if collected else None
+    cited_refs = {str(r.get("source_id")): r for r in (before or {}).get("sources") or []
                   if isinstance(r, dict) and str(r.get("snapshot_ref") or "").startswith("sha256:")
                   and _zoned(r.get("retrieved_at"))}
     problem = ruling_problem(ruling, attempts=attempts, sources=urls, today=now.date(),
-                             cited=[sid for sid in found.registered_ids if sid in cited_refs])
+                             cited=list(cited_refs))
     if problem is not None:
         raise Refused(*problem)
     # One ruling per subject, facet and epoch. The same line filed already is a write that
@@ -423,7 +428,10 @@ def plan(*, data_dir: Path, subject: str, facet: str, value: Any, state: str, ru
     if not admits(_plain(fact), subject,
                   rulings=[*filed, ruling] if not resuming else filed, attempts=attempts,
                   sources=urls, verdicts=verdicts, claims={location: filed_claim},
-                  today=now.date(), reopened=recorded):
+                  today=now.date(), reopened=recorded,
+                  history={location: [*fact_events, *([{"event": "collected",
+                                                        "claim": filed_claim}]
+                                                      if result.queue_lines else [])]}):
         raise Refused("malformed", "the fact as planned would not stand on its ruling")
     return result
 

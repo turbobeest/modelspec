@@ -266,16 +266,17 @@ Learned expensively during 2026-09-09/10.
     (`prior_attempt_disagreed` still holds); a fresh agreement in a later epoch follows the
     rule above.
 
-    **A split the gate counts can be ruled on (MODEL-491).** For a fact, "a complete
-    disagreement" is exactly what the gate refuses on as `prior_attempt_disagreed`: any
-    complete attempt that did not agree, made through the harness or seeded
-    (`decision.owner_ruling.blocks_rule_15`, the one test the gate, the filer and the build
-    use). A resolved attempt must still record a zoned read time and a page hash, which pin
-    the copy the ruling cites; a split without them still blocks but cannot be resolved. A
-    ruling may also cite a registered cite-only page the fact already cites at a `sha256` copy
-    with a zoned read time, beyond the pages the resolved attempts read; the fact keeps that
-    copy, and the build admits it only when the ruling's claim names the same copy. Board
-    readings keep the harness-only test of MODEL-569.
+    **A split the gate counts can be ruled on (MODEL-491).** One test,
+    `decision.owner_ruling.split_status`, serves the fact gate, the filer and the build. The
+    gate blocks (`prior_attempt_disagreed`) on every complete attempt that did not agree, and it
+    fails closed on a malformed one. A ruling resolves only a well-formed split: `complete` true
+    and `agreed` false as booleans; two readers with id, family and version of distinct known
+    lineages, whose values differ; a page hash and a zoned read time, which pin the copy cited;
+    and its writer's provenance, either a harness attempt's prompt hash or a line marked `seeded`
+    with `harness` false. A ruling may also cite a registered cite-only page that the fact's claim
+    before the ruling cites at a `sha256` copy with a zoned read time. The build checks such a
+    page against that earlier claim and takes its pin from there, never from the ruled fact or
+    the ruling's own claim. Board readings keep the harness-only test of MODEL-569.
 
     **A changed cited region reopens a ruled fact (MODEL-562).** The rolling re-read
     (`ruled_fact_rereads`, `decision.ruling_reread`) reads each page a ruling the build admits
