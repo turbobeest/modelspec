@@ -430,8 +430,10 @@ def fallback_to(
     reader=None,
     fake: bool = False,
     unavailable: str | None = None,
+    private: bool = False,
 ) -> None:
     """Read in-scope, allowed HTML URLs whose primary fetch failed, through ``reader``.
+    ``private`` (``--private-data``): MODEL-491's counting rule; off, main's.
 
     ``reader`` is the class-checked Playwright fetcher (or ``FakeReader`` for the demo).
     With no reader, every page that needed the fallback is listed as skipped with
@@ -439,8 +441,7 @@ def fallback_to(
     """
     sources = load_sources(root / "registry" / "sources.yaml")
     filed = Queue(root / "verification").filed()
-    # A private-data writer: MODEL-491's counting rule applies.
-    latest = VerificationLog(root / "verification", private=True).latest()
+    latest = VerificationLog(root / "verification", private=private).latest()
     source_ids = set()
     for tracked in tracked_facts(root):
         claim = filed.get(("fact", tracked.fact["id"]))

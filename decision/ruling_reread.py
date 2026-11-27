@@ -246,9 +246,12 @@ def page_status(fact: Mapping[str, Any], subject: str, *, ruling: Mapping[str, A
 
 
 def _inputs(root: Path):
+    """The ruling inputs a gate call reads, ranked by the rule its caller stated
+    (``cited_change._PRIVATE``, set only by the gate entry point's ``private`` argument)."""
+    from decision.cited_change import _PRIVATE
     from decision.owner_ruling import read_ruling_inputs
 
-    return read_ruling_inputs(root, private=True)  # the rolling re-read writes private data
+    return read_ruling_inputs(root, private=_PRIVATE.get())
 
 
 def gate_epoch(fact: Mapping[str, Any], subject: str, *, source_id: str,

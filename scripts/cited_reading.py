@@ -123,7 +123,7 @@ def _needs_derivation(row: dict) -> bool:
 def run(root: Path, benchmark: str, source_id: str, readers: list[Reader], *,
         apply: bool = True, request=None, reconfirm: bool = False,
         cost_day: str | None = None, subject_only: str | None = None,
-        clear_quarantine: bool = False) -> Counter:
+        clear_quarantine: bool = False, private: bool = False) -> Counter:
     os.environ["MODELSPEC_DATA_DIR"] = str(root)
     counts: Counter = Counter()
     for subject, path, row in card_paths(root, benchmark, source_id):
@@ -135,7 +135,7 @@ def run(root: Path, benchmark: str, source_id: str, readers: list[Reader], *,
         outcome = cited_reading(subject=subject, benchmark_id=benchmark, reading=reading,
                                 source_id=source_id, readers=readers, request=request,
                                 allow_unchanged=reconfirm or subject_only is not None,
-                                clear_quarantine=clear_quarantine)
+                                clear_quarantine=clear_quarantine, private=private)
         counts[outcome.outcome + (f":{outcome.reason}" if outcome.reason else "")] += 1
         if apply and (outcome.changed or outcome.marked):
             refresh._rewrite_card(path, [(evidence_key(row), rewritten_row(subject, row, outcome, cost_day))])
@@ -149,6 +149,8 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--data-dir", required=True, type=Path)
     ap.add_argument("--benchmark", required=True)
+    ap.add_argument("--private-data", action="store_true",
+                    help="--data-dir is the private data: apply MODEL-491's counting rule")
     ap.add_argument("--source", required=True)
     ap.add_argument("--local-model", default=DEFAULT_LOCAL)
     ap.add_argument("--reconfirm", action="store_true",
@@ -167,7 +169,7 @@ def main(argv: list[str] | None = None) -> int:
     counts = run(args.data_dir, args.benchmark, args.source, default_readers(args.local_model),
                  apply=not args.no_write, reconfirm=args.reconfirm,
                  cost_day=args.cost_day, subject_only=args.subject,
-                 clear_quarantine=args.clear_quarantine)
+                 clear_quarantine=args.clear_quarantine, private=args.private_data)
     print(json.dumps({"at": datetime.now(UTC).replace(microsecond=0).isoformat(),
                       "outcomes": dict(sorted(counts.items()))}, indent=1))
     return 0

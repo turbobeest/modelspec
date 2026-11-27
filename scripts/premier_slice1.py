@@ -876,7 +876,8 @@ def mixed_slice1_boards(boards: list[dict]) -> list[str]:
 
 
 def build(*, data_dir: Path | None = None, as_of: date | None = None,
-          allow_mixed_boards: bool = False, baseline_ids: frozenset[str] = frozenset()) -> dict:
+          allow_mixed_boards: bool = False, baseline_ids: frozenset[str] = frozenset(),
+          private: bool = False) -> dict:
     audit_note = None
     if data_dir is None:
         require_inputs(INPUTS, ["aliases.json", SLICE2_INPUT.name])
@@ -898,7 +899,7 @@ def build(*, data_dir: Path | None = None, as_of: date | None = None,
         from scripts.premier_live import load_inputs
 
         as_of = as_of or datetime.now(UTC).date()
-        live = load_inputs(data_dir, as_of)
+        live = load_inputs(data_dir, as_of, private=private)
         audit_note = {"completeness_audit": live["completeness_audit"],
                       "unregistered_offerings": live["unregistered_offerings"]}
         cards, boards, aliases = live["cards"], live["boards"], live["aliases"]
@@ -1467,6 +1468,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="fail if the YAML differs")
     parser.add_argument("--report", action="store_true", help="print a short summary")
+    parser.add_argument("--private-data", action="store_true",
+                        help="--data-dir is the private data: apply MODEL-491's counting rule")
     parser.add_argument("--data-dir", type=Path,
                         help="read live private data instead of frozen inputs")
     parser.add_argument("--as-of", type=date.fromisoformat,
@@ -1521,6 +1524,7 @@ def main() -> int:
                 as_of=as_of,
                 allow_mixed_boards=args.allow_mixed_boards,
                 baseline_ids=baseline_ids,
+                private=args.private_data,
             )
         except MixedBoards as error:
             print(error, file=sys.stderr)

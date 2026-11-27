@@ -521,6 +521,8 @@ def apply(plan):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, required=True)
+    parser.add_argument("--private-data", action="store_true",
+                        help="--data-root is the private data: apply MODEL-491's counting rule")
     parser.add_argument("--policy", type=Path, required=True)
     parser.add_argument("--source-cache", type=Path, required=True)
     parser.add_argument("--as-of", type=date.fromisoformat, required=True)
@@ -529,10 +531,9 @@ def main(argv=None):
     retention.POLICY_PATH = args.policy.resolve()
     retention.cite_only_hosts.cache_clear()
     retention.cite_only_hosts()
-    # --data-root names the private data: MODEL-491's rule applies.
     planned = plan(
         args.data_root.resolve(), CopyStore(args.source_cache.resolve()), args.as_of,
-        private=True,
+        private=args.private_data,
     )
     changes, half_done = planned.changes, None
     if args.write:

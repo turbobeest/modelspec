@@ -41,6 +41,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
 from pathlib import Path
+from typing import Any
 from urllib.error import HTTPError
 from urllib.parse import urljoin, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
@@ -296,14 +297,15 @@ class Window:
 
 
 def select_window(root: Path, sources, terms: dict[str, str], today: date, *,
-                  cap: int = WEEKLY_ROW_CAP, min_age_days: int = MIN_AGE_DAYS) -> Window:
+                  cap: int = WEEKLY_ROW_CAP, min_age_days: int = MIN_AGE_DAYS,
+                  private: bool = False) -> Window:
     """The oldest-verified rows first, whole page groups, at most ``cap`` rows."""
     from decision import verify as v
     from decision.model import verification_value_hash
 
     directory = root / "verification"
     filed = v.Queue(directory).filed()
-    log = v.VerificationLog(directory, private=True)  # a private-data writer (MODEL-491)
+    log = v.VerificationLog(directory, private=private)
     window = Window()
     eligible: list[Row] = []
     covered_sources: set[str] = set()
@@ -461,16 +463,25 @@ class Report:
         return data
 
 
-def run(root: Path, *, observed_at: date, dry_run: bool, store_root: Path,
-        cap: int = WEEKLY_ROW_CAP, request=None, pacer: Pacer | None = None,
-        min_age_days: int = MIN_AGE_DAYS) -> Report:
+def run(root: Path, *, private: bool = False, **kwargs: Any) -> Report:
+    """``private`` (``--private-data``): ``root`` is the private data, so verdicts count by
+    MODEL-491's rule, in this script and in every gate helper it calls; off, it is main's."""
+    from decision.cited_change import stating_private
+
+    with stating_private(private):
+        return _run(root, private=private, **kwargs)
+
+
+def _run(root: Path, *, observed_at: date, dry_run: bool, store_root: Path,
+         cap: int = WEEKLY_ROW_CAP, request=None, pacer: Pacer | None = None,
+         min_age_days: int = MIN_AGE_DAYS, private: bool = False) -> Report:
     from decision import verify as v
     from decision.sources import CopyStore, load_sources
 
     pacer = pacer or Pacer()
     terms = load_terms(root)
     sources = load_sources(root / "registry" / "sources.yaml")
-    window = select_window(root, sources, terms, observed_at, cap=cap,
+    window = select_window(root, sources, terms, observed_at, cap=cap, private=private,
                            min_age_days=min_age_days)
     report = Report(observed_at.isoformat(), dry_run, cap, selected=len(window.rows),
                     waiting=window.waiting, unclassed_hosts=dict(window.unclassed))
@@ -478,8 +489,7 @@ def run(root: Path, *, observed_at: date, dry_run: bool, store_root: Path,
     regions = v.StoredRegions(store, sources, cache_documents=True)
     extractors = [v.StructuredDataExtractor()]
     queue = v.Queue(root / "verification")
-    # A private-data writer: MODEL-491's counting rule applies.
-    log = v.VerificationLog(root / "verification", private=True)
+    log = v.VerificationLog(root / "verification", private=private)
     at = datetime.combine(observed_at, datetime.min.time(), UTC)
 
     pages: dict[str, Fetched] = {}
@@ -562,6 +572,7 @@ def run(root: Path, *, observed_at: date, dry_run: bool, store_root: Path,
     watched_page_rereads(root, terms, report, sources=sources, request=request, pacer=pacer,
                          observed_at=observed_at, dry_run=dry_run)
     ruled_fact_rereads(root, terms, report, sources=sources, request=request, pacer=pacer,
+                       private=private,
                        observed_at=observed_at, dry_run=dry_run)
     ruled_reading_rereads(root, terms, report, request=request, pacer=pacer,
                           observed_at=observed_at, dry_run=dry_run)
@@ -719,7 +730,7 @@ def ruled_reading_rereads(root: Path, terms: dict[str, str], report: Report, *, 
 
 def ruled_fact_rereads(root: Path, terms: dict[str, str], report: Report, *, sources=None,
                        request=None, pacer: Pacer | None = None, observed_at: date | None = None,
-                       dry_run: bool = True) -> None:
+                       dry_run: bool = True, private: bool = False) -> None:
     """Read each page an owner-ruled fact cites and reopen the fact when its cited region
     changed (MODEL-562, ``decision.ruling_reread``).
 
@@ -744,7 +755,7 @@ def ruled_fact_rereads(root: Path, terms: dict[str, str], report: Report, *, sou
     pacer = pacer or Pacer()
     day = observed_at or date.today()
     try:
-        inputs = read_ruling_inputs(root, private=True)  # a private-data writer (MODEL-491)
+        inputs = read_ruling_inputs(root, private=private)
         records = rr.Records.read(root)
     except (OSError, ValueError, KeyError, TypeError):  # a log that cannot be read stands nothing
         report.ruled_facts_checked += len(facts)
@@ -1000,9 +1011,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--source-cache", type=Path, required=True)
     parser.add_argument("--report-json", type=Path)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--private-data", action="store_true",
+                        help="--root is the private data: apply MODEL-491's counting rule")
     args = parser.parse_args(argv)
     report = run(args.root.resolve(), observed_at=date.fromisoformat(args.observed_at),
-                 dry_run=args.dry_run, store_root=args.source_cache)
+                 dry_run=args.dry_run, store_root=args.source_cache, private=args.private_data)
     print(render(report))
     if args.report_json:
         args.report_json.write_text(json.dumps(report.to_dict(), indent=2, sort_keys=True) + "\n",

@@ -802,9 +802,9 @@ def test_rule_1_recovers_on_rerun_after_a_card_write_failure(
 
 
 def test_the_data_root_plan_counts_by_the_private_datas_rule(tmp_path, script, monkeypatch):
-    # MODEL-491, Codex review 4: --data-root names the private data, so the plan's compiler and
-    # its history check count verdicts by MODEL-491's rule, stated by main, never read from the
-    # environment.
+    # MODEL-491, Codex reviews 4 and 7: with --private-data the plan's compiler and its history
+    # check count verdicts by MODEL-491's rule; without it, on any --data-root, by main's. The
+    # rule is never read from the environment.
     root, cache, policy, _card = setup_data(tmp_path, retained_value=64000, support="open")
     seen, real = [], script._Compiler
 
@@ -817,6 +817,9 @@ def test_the_data_root_plan_counts_by_the_private_datas_rule(tmp_path, script, m
     args = ["--data-root", str(root), "--source-cache", str(cache), "--policy", str(policy),
             "--as-of", "2026-10-21"]
     assert script.main(args) == 0
+    assert seen and not any(seen)
+    seen.clear()
+    assert script.main([*args, "--private-data"]) == 0
     assert seen and all(seen)
     seen.clear()
     plan_in_process(script, root, cache, policy)  # the plan itself defaults to the public rule

@@ -203,4 +203,8 @@ def test_the_private_accuracy_audit_reads_the_private_rule(tmp_path, monkeypatch
             (tmp_path / name / rel).parent.mkdir(parents=True, exist_ok=True)
             (tmp_path / name / rel).write_text("")
     accuracy._private_corrections(tmp_path / "public", tmp_path / "private", date(2026, 11, 27))
+    assert ("public", False) in seen and ("private", False) in seen  # main's rule by default
+    seen.clear()
+    accuracy._private_corrections(tmp_path / "public", tmp_path / "private", date(2026, 11, 27),
+                                  rules=True)  # --private-data
     assert ("public", False) in seen and ("private", True) in seen

@@ -653,9 +653,9 @@ def quarantine_rows(fact_ids: Sequence[str], fact: Mapping[str, Any],
     path = Path(root) / VERIFICATION_LOG
     try:
         rows = read_json_lines(path)
-        # The gate is a private-data writer: MODEL-491's rule applies.
-        return held_rows(_Compiler._verification_log(rows, retire=True), fact_ids, fact,
-                         kind=kind, owns=owns)
+        # MODEL-491's rule when the gate's caller states the data is private.
+        return held_rows(_Compiler._verification_log(rows, retire=_PRIVATE.get()), fact_ids,
+                         fact, kind=kind, owns=owns)
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
         raise LookupFailed(f"verification log: {type(error).__name__}") from None
 
@@ -1078,6 +1078,48 @@ def _ruled_epoch(found: Lookup, subject: str, source_id: str, page_bytes: bytes,
 #: (logged an attempt line). Set only by the call itself, never by the size of a shared log.
 _CALL: contextvars.ContextVar[dict[str, bool] | None] = contextvars.ContextVar("_CALL",
                                                                             default=None)
+
+
+#: MODEL-491: whether the caller of this gate call states that it reads the private data, so
+#: the held verdicts are ranked by MODEL-491's rule. Set only by an entry point's own ``private``
+#: argument (``_states_private``), for the length of that call; off by default. Nothing else sets
+#: it, and it is never read from a file or the environment.
+_PRIVATE: contextvars.ContextVar[bool] = contextvars.ContextVar("_PRIVATE", default=False)
+
+
+def _states_private(entry: Callable[..., Any]) -> Callable[..., Any]:
+    """Give a gate entry point a ``private`` argument: ``True`` or ``False`` states, for the
+    call, whether it reads the private data (MODEL-491); ``None``, the default, keeps the
+    statement of an enclosing gate call, and off at the top."""
+    import functools
+
+    @functools.wraps(entry)
+    def stated(*args: Any, private: bool | None = None, **kwargs: Any) -> Any:
+        if private is None:
+            return entry(*args, **kwargs)
+        token = _PRIVATE.set(bool(private))
+        try:
+            return entry(*args, **kwargs)
+        finally:
+            _PRIVATE.reset(token)
+
+    return stated
+
+
+def stating_private(private: bool):
+    """For a script that calls the gate's helpers, not an entry point: state, for a block,
+    whether it reads the private data (MODEL-491). A context manager; off by default."""
+    import contextlib
+
+    @contextlib.contextmanager
+    def stated():
+        token = _PRIVATE.set(bool(private))
+        try:
+            yield
+        finally:
+            _PRIVATE.reset(token)
+
+    return stated()
 
 
 def _mark(what: str) -> None:
@@ -1716,11 +1758,12 @@ def _ranked_verdicts() -> Mapping[tuple[str, str, str], Any]:
         raise LookupFailed("no data directory is named")
     try:
         return _Compiler._verification_log(read_json_lines(Path(root) / VERIFICATION_LOG),
-                                           retire=True)  # a private-data writer (MODEL-491)
+                                           retire=_PRIVATE.get())  # the caller's statement
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
         raise LookupFailed(f"verification log: {type(error).__name__}") from None
 
 
+@_states_private
 def retained_agreement(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader],
                        request: Request | None = None, correct: bool = False,
                        clear_quarantine: bool = False) -> CitedChange:
@@ -1757,6 +1800,7 @@ def retained_agreement(*, subject: str, facet: str, source_id: str, readers: Seq
                  clear_quarantine=clear_quarantine and not correct)
 
 
+@_states_private
 def cited_change(*, subject: str, facet: str, source_id: str, readers: Sequence[Reader],
                  request: Request | None = None,
                  accept_not_disclosed: bool = False,
@@ -2353,7 +2397,8 @@ def reading_lookup(subject: str, benchmark_id: str, reading: Mapping[str, Any],
                          model_id)
 
 
-def _reading_held(found: ReadingLookup, data_dir: str | Path | None = None
+def _reading_held(found: ReadingLookup, data_dir: str | Path | None = None, *,
+                  retire: bool | None = None
                   ) -> list[tuple[tuple[str, str, str], dict[str, Any]]]:
     """The verdicts that hold the reading, by the one predicate the build applies too
     (``quarantine_clearing.reading_held``): on its own id (any value), or on an earlier id under
@@ -2374,7 +2419,7 @@ def _reading_held(found: ReadingLookup, data_dir: str | Path | None = None
     root = Path(data_dir or os.environ.get(DATA_DIR_ENV, "").strip() or ".")
     try:
         latest = _Compiler._verification_log(read_json_lines(root / VERIFICATION_LOG),
-                                             retire=True)  # a private-data writer (MODEL-491)
+                                             retire=_PRIVATE.get() if retire is None else retire)
         own = str(found.row.get("id") or "")
         earlier = {key[1] for key, _ in reading_candidates(latest, found.row,
                                                            model_id=found.model_id)
@@ -2524,6 +2569,7 @@ def pending_absences(history: Sequence[Mapping[str, Any]]) -> list[Mapping[str, 
     return sorted(out, key=_entry_time)
 
 
+@_states_private
 def cited_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any], source_id: str,
                   readers: Sequence[Reader], request: Request | None = None,
                   allow_unchanged: bool = False, clear_quarantine: bool = False) -> CitedChange:
@@ -2903,6 +2949,7 @@ class Reread:
     detail: str = field(default="")
 
 
+@_states_private
 def reread(fact: Mapping[str, Any], *, source_id: str, readers: Sequence[Reader],
            request: Request | None = None) -> Reread:
     """Re-read a cited-change fact. The gate fetches the page; a changed sha256 needs two
@@ -2988,6 +3035,7 @@ def _reread_ruled(found: Lookup, subject: str, facet: str, source_id: str,
     return Reread("confirmed" if same else "changed", None, outcome.record)
 
 
+@_states_private
 def reread_reading(*, subject: str, benchmark_id: str, reading: Mapping[str, Any], source_id: str,
                    readers: Sequence[Reader], request: Request | None = None) -> Reread:
     """Re-read a board reading that a cited change filed. The gate fetches the page; a page

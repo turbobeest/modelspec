@@ -662,7 +662,7 @@ def _load_snapshot(root: Path, snapshot_file: Path | None, as_of: date, *,
 
 
 def check_private_freshness(
-    root: Path, *, as_of: date, config: FreshnessConfig,
+    root: Path, *, as_of: date, config: FreshnessConfig, private: bool = False,
 ) -> LayerResult:
     """Check current data without publishing private records or parse errors."""
     from decision.sources import load_sources
@@ -680,7 +680,7 @@ def check_private_freshness(
         sources = load_sources(root / "registry" / "sources.yaml")
         if not sources:
             raise ValueError("empty source registry")
-        snapshot = _load_snapshot(root, None, as_of, private=True)  # the private data root
+        snapshot = _load_snapshot(root, None, as_of, private=private)
         result = check_freshness(snapshot, as_of=as_of, config=config, sources=sources)
         if not result.counts["lineup_models"]:
             raise ValueError("empty lineup")
@@ -923,7 +923,7 @@ def _verified_claims(root: Path, *, private: bool = False) -> list[tuple[Any, st
 
 
 def _private_corrections(
-    root: Path, private: Path, as_of: date
+    root: Path, private: Path, as_of: date, *, rules: bool = False
 ) -> dict[tuple[str, str], tuple[Any, date, date]]:
     """Match frozen targets to independently verified, newer private values."""
     from decision.verify import VerificationLog
@@ -934,8 +934,9 @@ def _private_corrections(
             raise ValueError("private correction checkout is missing verification records")
     public_log = VerificationLog(root / "verification").latest()
     try:
-        private_log = VerificationLog(private / "verification", private=True).latest()
-        private_claims = _verified_claims(private, private=True)
+        # ``rules`` (``--private-data``): MODEL-491's counting rule; off, main's.
+        private_log = VerificationLog(private / "verification", private=rules).latest()
+        private_claims = _verified_claims(private, private=rules)
     except (ValueError, KeyError, TypeError):
         raise ValueError("private correction verification records could not be read") from None
     corrections = {}
@@ -1359,6 +1360,7 @@ def data_fidelity(
     llm_reader: str | None = None,
     private_data_root: Path | None = None,
     private: bool = False,
+    private_root_rules: bool = False,
 ) -> LayerResult:
     """Nightly source re-read. Plain HTTP is attempted before any paid renderer. ``private``:
     the caller states ``root`` is the private data (MODEL-491's counting rule).
@@ -1391,7 +1393,8 @@ def data_fidelity(
 
     wanted = sample_size or config.sample_size
     private_corrections = (
-        _private_corrections(root, private_data_root, as_of) if private_data_root else {}
+        _private_corrections(root, private_data_root, as_of, rules=private_root_rules)
+        if private_data_root else {}
     )
     sources = load_sources(root / "registry" / "sources.yaml")
     excluded = excluded_sources()
@@ -1811,9 +1814,12 @@ def run_profile(
 ) -> AccuracyReport:
     del output_dir
     root = Path(root).resolve()
-    # The data-pr profile runs on the private data's own pull requests; ``private_data`` says so
-    # for any other profile. MODEL-491's counting rule follows the caller's statement.
-    private = private_data or profile == "data-pr"
+    # MODEL-491's counting rule only when the caller states the data is private
+    # (``--private-data``); off, every profile is main's. The statement names the private data
+    # this run reads: ``--private-data-root`` when given (``--root`` is then the public image),
+    # else ``--root`` (the data-pr profile on the private data's own pull requests).
+    private = private_data and private_data_root is None
+    private_root_rules = private_data and private_data_root is not None
     _refuse_linked_profile(root, profile)
     as_of = as_of or datetime.now(UTC).date()
     config = load_config(config_path)
@@ -1842,6 +1848,7 @@ def run_profile(
             if private_data_root is not None:
                 results.append(check_private_freshness(
                     Path(private_data_root), as_of=as_of, config=config.freshness,
+                    private=private_root_rules,
                 ))
             else:
                 from decision.sources import load_sources
@@ -1875,6 +1882,7 @@ def run_profile(
                     llm_reader=llm_reader,
                     private_data_root=private_data_root,
                     private=private,
+                    private_root_rules=private_root_rules,
                 )
             )
         elif layer == "reference_agreement":
@@ -1979,6 +1987,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--snapshot-file", type=Path)
+    parser.add_argument(
+        "--private-data", action="store_true",
+        help="the data read is the private data: apply MODEL-491's counting rule",
+    )
     parser.add_argument(
         "--private-data-root", type=Path,
         help="Check private freshness and newer verified corrections without replacing the public image.",
@@ -2128,6 +2140,7 @@ def _publish_profile(args: argparse.Namespace) -> int:
         random_seed=args.seed,
         approved_recall_baseline=args.approved_recall_baseline,
         private_data_root=args.private_data_root,
+        private_data=args.private_data,
     )
     if args.stage_failure:
         report = replace(report, layers=(*report.layers, STAGED_FAILURE))
