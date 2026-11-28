@@ -84,7 +84,7 @@ jobs:
           if [ "$STAGE_FAILURE" = "true" ]; then stage=(--stage-failure); fi
           corrections=()
           if [ "$DATA_SPLIT_ENABLED" = "true" ]; then
-            corrections=(--private-data-root .accuracy-private)
+            corrections=(--private-data-root .accuracy-private --private-data)
           fi
           python scripts/accuracy.py --profile nightly --output-dir accuracy-report "${stage[@]}" "${corrections[@]}"
 

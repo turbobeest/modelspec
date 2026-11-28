@@ -288,7 +288,7 @@ jobs:
           args=()
           if [ -d modelspec-data ]; then
             python -m pip install "pydantic==2.13.5" "PyYAML==6.0.3" "httpx==0.28.1" "cryptography>=43,<46"
-            args+=(--data-dir modelspec-data)
+            args+=(--data-dir modelspec-data --private-data)
           fi
           python api/worker/vendor.py "${args[@]}"
 
@@ -402,7 +402,7 @@ jobs:
           args=()
           if [ -d modelspec-data ]; then
             python -m pip install "pydantic==2.13.5" "PyYAML==6.0.3" "httpx==0.28.1" "cryptography>=43,<46"
-            args+=(--data-dir modelspec-data)
+            args+=(--data-dir modelspec-data --private-data)
           fi
           python api/worker/vendor.py "${args[@]}"
 
