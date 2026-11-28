@@ -429,11 +429,21 @@ PRIVATE_FILES = {"private-audit.yml": WEEKLY, "private-reread.yml": WEEKLY,
                  "private-daily.yml": DAILY_CRON, "hidden-writer.yml": WEEKLY}
 
 
+#: Workflow states the fake API serves (MODEL-574); a file not named is active.
+STATES: dict[str, str] = {}
+
+
 def _leaky_gh(args, stdin=None):
     """Serve the fixture; fail the hidden writer with stderr naming it."""
     import subprocess
 
     target = args[-1]
+    if "/actions/workflows?" in target:
+        names = [*PRIVATE_FILES] if "modelspec-data/" in target else [
+            p.name for p in (ROOT / ".github" / "workflows").glob("*.yml")]
+        return json.dumps({"total_count": len(names), "workflows": [
+            {"path": f".github/workflows/{n}", "state": STATES.get(n, "active")}
+            for n in names]})
     if target.endswith("contents/.github/workflows?ref=main"):
         return json.dumps([{"name": n, "path": f".github/workflows/{n}", "type": "file"}
                            for n in PRIVATE_FILES])
@@ -483,10 +493,163 @@ def test_no_private_workflow_name_url_date_or_stderr_reaches_public_output(
         with_token=lambda token: _leaky_gh, **kw))
     assert cli.main(["workflows", "--now", NOW.isoformat()]) == 1
     outputs["cli"] = capsys.readouterr().out
-    assert "modelspec-data: 4 scheduled workflow(s), private; counts only" in outputs["cli"]
+    assert "modelspec-data: 4 scheduled workflow(s), 0 disabled, private; counts only" \
+        in outputs["cli"]
     for where, text in outputs.items():
         for word in _forbidden():
             assert word not in text, (where, word)
+
+
+# ── MODEL-574: a disabled workflow is listed, never red ────────────────────
+
+
+def test_a_disabled_workflow_is_not_red_even_when_failed_and_overdue() -> None:
+    off = WatchedWorkflow(PUBLIC, "off.yml", 24, 36, state="disabled_manually")
+    runs = {off.key: [_run("failure", 300)], DAILY.key: [_run("success", 1)]}
+    check = check_workflows(runs, [off, DAILY], NOW)
+    assert (check.measured, check.findings, check.errors) == (2, (), ())
+    assert settle(TARGET, check).status == "met"
+
+
+def test_a_repository_whose_every_workflow_is_disabled_is_met_not_empty() -> None:
+    off = WatchedWorkflow(PRIVATE, "off.yml", 168, 252, state="disabled_manually")
+    check = check_workflows({}, [off], NOW, (), CONFIG.private_repos)
+    assert (check.measured, check.findings, check.errors) == (1, (), ())
+    assert settle(TARGET, check).status == "met"
+
+
+def test_an_enabled_overdue_or_failed_workflow_is_still_red() -> None:
+    on = WatchedWorkflow(PUBLIC, "daily.yml", 24, 36, state="active")
+    check = check_workflows({on.key: [_run("failure", 300)]}, [on], NOW)
+    assert [f.detail.split(" ")[0:2] for f in check.findings] == [
+        ["latest", "run"], ["has", "not"]]
+    assert settle(TARGET, check).status == "breach"
+
+
+def test_a_disabled_private_workflow_leaves_the_private_counts() -> None:
+    off = WatchedWorkflow(PRIVATE, "off.yml", 168, 252, state="disabled_inactivity")
+    on = WatchedWorkflow(PRIVATE, "on.yml", 168, 252)
+    runs = {off.key: [_run("failure", 400)], on.key: [_run("failure", 1)]}
+    check = check_workflows(runs, [off, on], NOW, (), CONFIG.private_repos)
+    assert [(f.subject, f.detail.split(";")[0]) for f in check.findings] == [
+        ("modelspec-data", "1 of 1 scheduled workflow(s) red")]
+
+
+def test_states_come_from_one_listing_call_and_no_runs_are_read_when_disabled() -> None:
+    from scripts.slo.report import read_workflow_health
+
+    calls: list = []
+
+    def gh(args, stdin=None):
+        calls.append(args[-1])
+        return _leaky_gh(args, stdin)
+
+    STATES["private-reread.yml"] = "disabled_manually"
+    try:
+        watched, errors, runs = read_workflow_health(
+            ROOT, CONFIG, gh=gh, environ={"MODELSPEC_DATA_TOKEN": "t"},
+            with_token=lambda token: gh)
+    finally:
+        STATES.clear()
+    assert not any("states" in e for _, e in errors)
+    [off] = [w for w in watched if not w.enabled]
+    assert (off.key, off.state) == ("modelspec-data/private-reread.yml", "disabled_manually")
+    assert off.key not in runs
+    listing = [c for c in calls if "/actions/workflows?" in c]
+    assert listing == [f"repos/{PUBLIC}/actions/workflows?per_page=100&page=1",
+                       f"repos/{PRIVATE}/actions/workflows?per_page=100&page=1"]
+    assert not any("private-reread.yml/runs" in c for c in calls)
+
+
+def test_the_state_listing_pages_past_one_hundred_workflows() -> None:
+    from scripts.slo.report import fetch_workflow_states
+
+    pages = {1: [{"path": f".github/workflows/w{i}.yml", "state": "active"}
+                 for i in range(100)],
+             2: [{"path": ".github/workflows/last.yml", "state": "disabled_manually"},
+                 {"path": "dynamic/pages/pages-build-deployment", "state": "active"}]}
+
+    def gh(args, stdin=None):
+        page = int(args[-1].rsplit("page=", 1)[1])
+        return json.dumps({"total_count": 102, "workflows": pages[page]})
+
+    states = fetch_workflow_states(PUBLIC, gh)
+    assert len(states) == 101 and states["last.yml"] == "disabled_manually"
+
+
+OMITTED = "omitted"
+
+
+@pytest.mark.parametrize("answer", [
+    "raise", "{}", '{"workflows": [{"path": 1}]}', "nope",
+    '{"total_count": 0, "workflows": {}}',
+    # A blank state is unreadable, not disabled.
+    "empty",
+    # The listing leaves out a watched workflow (every other one disabled).
+    OMITTED,
+])
+def test_unreadable_workflow_states_fail_closed(answer) -> None:
+    import subprocess
+
+    from scripts.slo.report import read_workflow_health
+
+    def gh(args, stdin=None):
+        if "/actions/workflows?" in args[-1]:
+            if answer == "raise":
+                raise subprocess.CalledProcessError(1, ["gh"], stderr=SECRET_STDERR)
+            if answer in ("empty", OMITTED):
+                body = json.loads(_leaky_gh(args, stdin))
+                for w in body["workflows"]:
+                    w["state"] = " " if answer == "empty" else "disabled_manually"
+                if answer == OMITTED:
+                    body["workflows"] = [w for w in body["workflows"] if not w["path"].endswith(
+                        ("/release-watch.yml", "/private-audit.yml"))]
+                return json.dumps(body)
+            return answer
+        return _leaky_gh(args, stdin)
+
+    watched, errors, runs = read_workflow_health(
+        ROOT, CONFIG, gh=gh, environ={"MODELSPEC_DATA_TOKEN": "t"},
+        with_token=lambda token: gh)
+    # Every workflow stays enabled, so a red one is still red, and the check errors.
+    assert all(w.enabled for w in watched)
+    assert sorted(repo for repo, e in errors if "states" in e) == [PUBLIC, PRIVATE]
+    check = check_workflows(runs, watched, NOW, errors, CONFIG.private_repos)
+    assert settle(CONFIG.target("workflow-health"), check).status == "error"
+    assert "modelspec-data: could not list its scheduled workflows" in check.errors
+    assert SECRET_STDERR not in json.dumps(check.errors)
+
+
+def test_a_disabled_private_workflow_is_a_count_in_public_output_and_named_in_private(
+        monkeypatch, capsys) -> None:
+    from scripts.slo import __main__ as cli
+
+    real = cli.read_workflow_health
+    monkeypatch.setattr(cli, "read_workflow_health", lambda root, config, **kw: real(
+        root, config, gh=_leaky_gh, environ={"MODELSPEC_DATA_TOKEN": "t"},
+        with_token=lambda token: _leaky_gh, **kw))
+    monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
+    monkeypatch.delenv("GITHUB_WORKFLOW_REF", raising=False)
+    STATES["private-reread.yml"] = "disabled_manually"
+    try:
+        cli.main(["workflows", "--now", NOW.isoformat()])
+        public = capsys.readouterr().out
+        assert cli.main(["workflows", "--repo", PRIVATE, "--quiet",
+                         "--now", NOW.isoformat()]) == 1
+        quiet = capsys.readouterr()
+        cli.main(["workflows", "--repo", PRIVATE, "--private-detail",
+                  "--now", NOW.isoformat()])
+        private = capsys.readouterr().out
+    finally:
+        STATES.clear()
+    assert "modelspec-data: 3 scheduled workflow(s), 1 disabled, private; counts only" \
+        in public
+    for word in _forbidden():
+        assert word not in public, word
+    assert (quiet.out, quiet.err) == ("", "")
+    assert "  disabled modelspec-data/private-reread.yml" in private
+    assert "RED   modelspec-data/private-reread.yml" not in private
+    assert "modelspec-data/private-reread.yml:" not in private
 
 
 def test_private_detail_is_refused_outside_the_private_repository(monkeypatch) -> None:
