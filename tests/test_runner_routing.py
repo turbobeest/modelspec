@@ -51,27 +51,35 @@ READ_SCOPES = frozenset({"contents", "actions"})
 PRIVILEGED_TRIGGERS = frozenset({"pull_request_target", "workflow_run"})
 PRIVATE_DATA_MARKERS = ("modelspec-data", "MODELSPEC_DATA", "--private-data")
 DEPLOY_ACTIONS = ("cloudflare/wrangler-action", "pypa/gh-action-pypi-publish")
-CACHE_ACTIONS = ("actions/cache", "actions/cache/restore")
-# Any input of any action whose name holds "cache" (cache, enable-cache,
-# bundler-cache, package-manager-cache, ...) counts as a cache unless it is
-# off; these actions cache unless told not to (setup-uv's `auto`, setup-go).
+# An action whose name holds "cache" restores one, whatever its inputs.
+CACHE_ACTION_NAME = re.compile(r"cache", re.I)
+# Any input whose name holds "cache" (cache, enable-cache, bundler-cache,
+# package-manager-cache, ...) turns a cache on unless it is off. A negated input
+# (cache-disabled, no-cache, skip-cache) turns it on unless it is true.
 CACHE_INPUT = re.compile(r"cache", re.I)
+NEGATED_INPUT = re.compile(r"disable|^no-|skip", re.I)
+# These cache unless told not to (setup-uv's `auto`, setup-go's default).
 CACHE_ON_BY_DEFAULT = {"astral-sh/setup-uv": "enable-cache", "actions/setup-go": "cache"}
 OFF = (None, "", False, "false")
-# The actions a privileged job may run, read for what they cache. A local or
-# new action, or a reusable workflow, is opaque here: review it, then add it.
-PRIVILEGED_ACTIONS = frozenset(
+ON = (True, "true")
+# Every action, at its exact pin, that may run in a workflow holding a
+# privileged job, upstream jobs included: each was read for what it caches
+# (MODEL-582). A new action, a new pin, a local action or a reusable workflow
+# is opaque here: review it, then add it.
+REVIEWED_ACTIONS = frozenset(
     {
-        "actions/checkout",
-        "actions/download-artifact",
-        "actions/github-script",
-        "actions/setup-node",
-        "actions/setup-python",
-        "actions/upload-artifact",
-        "astral-sh/setup-uv",
-        "cloudflare/wrangler-action",
-        "peter-evans/create-pull-request",
-        "pypa/gh-action-pypi-publish",
+        "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+        "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093",
+        "actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b",
+        "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",  # v4: no default cache
+        "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+        "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+        "astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e",
+        "cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd",
+        "peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676",
+        "pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086",
+        # Detected as a cache wherever it appears.
+        "actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830",
     }
 )
 EXPRESSION = re.compile(r"\$\{\{(.*?)\}\}", re.S)
@@ -148,13 +156,13 @@ def _restores_cache(job: dict) -> bool:
     for step in job.get("steps", []):
         uses = step.get("uses", "").split("@", 1)[0]
         with_ = step.get("with") or {}
-        if uses in CACHE_ACTIONS:
+        if CACHE_ACTION_NAME.search(uses):
             return True
-        if any(
-            CACHE_INPUT.search(str(key)) and not str(key).startswith("no-cache") and value not in OFF
-            for key, value in with_.items()
-        ):
-            return True
+        for key, value in with_.items():
+            if not CACHE_INPUT.search(str(key)):
+                continue
+            if (value not in ON) if NEGATED_INPUT.search(str(key)) else (value not in OFF):
+                return True
         default_input = CACHE_ON_BY_DEFAULT.get(uses)
         if default_input and (default_input not in with_ or with_[default_input] not in OFF):
             return True
@@ -177,7 +185,7 @@ def _opaque_actions(job: dict) -> list[str]:
         found.append(f"reusable workflow {job['uses']}")
     for step in job.get("steps", []):
         uses = step.get("uses")
-        if uses and uses.split("@", 1)[0] not in PRIVILEGED_ACTIONS:
+        if uses and uses not in REVIEWED_ACTIONS:
             found.append(uses)
     return found
 
@@ -234,6 +242,11 @@ def cache_failures(name: str, workflow: dict) -> list[str]:
     failures = []
     jobs = _jobs(workflow)
     caching = {job_name for job_name, job in jobs.items() if _restores_cache(job)}
+    if any(_holds_privilege(workflow, job) for job in jobs.values()):
+        # What an upstream job runs can reach a privileged job, so every job counts.
+        for job_name, job in jobs.items():
+            for action in _opaque_actions(job):
+                failures.append(f"{name}:{job_name}: unreviewed action beside a privileged job: {action}")
     for job_name, job in jobs.items():
         if not _holds_privilege(workflow, job):
             continue
@@ -242,8 +255,6 @@ def cache_failures(name: str, workflow: dict) -> list[str]:
             failures.append(f"{where}: privileged and restores a cache")
         if caching and _downloads_artifacts(job):
             failures.append(f"{where}: privileged and downloads artifacts in a run that caches")
-        for action in _opaque_actions(job):
-            failures.append(f"{where}: privileged and runs an unreviewed action: {action}")
         if caching and _reads_needs_data(job):
             # Data can relay what any ancestor computed or downloaded.
             upstream = _ancestors(jobs, job_name)
@@ -434,9 +445,20 @@ CACHE_STEPS = [
 ]
 
 
+_PINS = {uses.split("@", 1)[0]: uses for uses in REVIEWED_ACTIONS}
+
+
+def _pin(step: dict) -> dict:
+    """Swap a placeholder `name@x` for the reviewed pin of that action, if any."""
+    uses = step.get("uses", "")
+    if uses.endswith("@x") and uses[:-2] in _PINS:
+        return {**step, "uses": _PINS[uses[:-2]]}
+    return step
+
+
 def _job(*steps, **extra) -> dict:
     job = {"runs-on": "ubuntu-latest", **extra}
-    job["steps"] = [*steps, *extra.get("steps", [])]
+    job["steps"] = [_pin(step) for step in [*steps, *extra.get("steps", [])]]
     return job
 
 
@@ -534,10 +556,36 @@ def test_the_guard_accepts_a_privileged_job_reading_only_a_result() -> None:
     [
         {"uses": "actions/setup-dotnet@x", "with": {"cache": True}},
         {"uses": "ruby/setup-ruby@x", "with": {"bundler-cache": True}},
+        {"uses": "Swatinem/rust-cache@x"},
+        {"uses": "some/tool@x", "with": {"cache-disabled": False}},
+        {"uses": "some/tool@x", "with": {"cache-disabled": "${{ vars.X }}"}},
     ],
 )
 def test_the_guard_reads_cache_inputs_on_any_action(step) -> None:
     assert _restores_cache(_job(step))
+
+
+def test_a_negated_cache_input_set_to_true_is_off() -> None:
+    assert not _restores_cache(_job({"uses": "some/tool@x", "with": {"cache-disabled": True}}))
+
+
+@pytest.mark.parametrize(
+    "upstream",
+    [
+        _job({"uses": "./.github/actions/setup"}, outputs={"v": "x"}),
+        _job({"uses": "gradle/actions/setup-gradle@x"}, outputs={"v": "x"}),
+        # A reviewed action at a new pin is opaque until reviewed again.
+        _job({"uses": "actions/setup-node@v9"}, outputs={"v": "x"}),
+    ],
+)
+def test_the_guard_rejects_an_unreviewed_action_upstream_of_a_privileged_job(upstream) -> None:
+    deploy = _job({"run": "echo ${{ needs.build.outputs.v }}"}, needs="build", environment="production")
+    assert routing_failures({"o.yml": _other(build=upstream, deploy=deploy)}, frozenset())
+
+
+def test_the_guard_ignores_unreviewed_actions_in_a_workflow_without_privilege() -> None:
+    lint = _job({"uses": "Swatinem/rust-cache@x"})
+    assert routing_failures({"o.yml": _other(lint=lint)}, frozenset()) == []
 
 
 @pytest.mark.parametrize(
