@@ -134,7 +134,7 @@ jobs:
           fi
       - name: Score the approved answers on private data
         run: |
-          if ! python scripts/recall_run.py --root "$PWD" \
+          if ! python scripts/recall_run.py --root "$PWD" --private-data \
             --output-dir "$RUNNER_TEMP/private-recall" \
             > "$RUNNER_TEMP/private-recall.log" 2>&1; then
             echo '::error::Private recall did not complete.'

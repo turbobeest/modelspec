@@ -106,7 +106,7 @@ jobs:
           set -euo pipefail
           python -I -c 'import runpy,sys; sys.path.insert(0, sys.argv.pop(1)); runpy.run_module("scripts.admission_drafter", run_name="__main__")' \
             "$GITHUB_WORKSPACE/engine" \
-            --data-dir "$GITHUB_WORKSPACE/data" \
+            --data-dir "$GITHUB_WORKSPACE/data" --private-data \
             --model "$MODEL_ID" \
             --write \
             --report "$GITHUB_WORKSPACE/data/reports/admission/$MODEL_ID.json" \

@@ -1143,6 +1143,7 @@ python() {
     )
     assert (tmp_path / "argv").read_text().splitlines() == [
         "-I", "-m", "scripts.price_reread", "--render-to", str(tmp_path / "rendered"),
+        "--private-data",
     ]
 
 

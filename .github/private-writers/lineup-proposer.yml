@@ -92,7 +92,7 @@ jobs:
         run: |
           set -euo pipefail
           python -I "$GITHUB_WORKSPACE/engine/scripts/premier_slice1.py" \
-            --data-dir "$GITHUB_WORKSPACE/data" \
+            --data-dir "$GITHUB_WORKSPACE/data" --private-data \
             --output "$RUNNER_TEMP/lineup.yaml" \
             --diff "$RUNNER_TEMP/lineup.json"
       - name: Prepare the membership proposal
