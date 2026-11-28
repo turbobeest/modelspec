@@ -34,7 +34,7 @@ import sys
 import tempfile
 import time
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import asdict, dataclass, field, replace
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -951,27 +951,42 @@ def _private_corrections(
     return corrections
 
 
-def _retired_targets(path: Path, as_of: date) -> dict[tuple[str, str], date]:
-    """Targets whose latest queue event, in ``_latest_collected_claims``'s order, is a
-    ``retired`` event dated on or before ``as_of``, with that date."""
+def _private_queue_view(path: Path, as_of: date) -> dict[tuple[str, str], dict[str, Any]]:
+    """Per target, the private queue as of the end of ``as_of`` (UTC), in ``Queue`` order.
+
+    Events after the cutoff are dropped first, then events are ordered by UTC instant, a
+    later line on a tie. Each entry holds ``last`` (the latest event), ``claim`` (the latest
+    filed claim, ``None`` once retired) and ``since_check`` (``collected`` events since the
+    check before ``last``).
+    """
+    from decision.verify import Claim
+
     if not path.is_file():
         return {}
+    cutoff = datetime.combine(as_of, datetime.max.time(), tzinfo=UTC)
 
     def event_time(event: dict[str, Any]) -> datetime:
         at = datetime.fromisoformat(event["at"])
-        return at if at.tzinfo is not None else at.replace(tzinfo=UTC)
+        return (at if at.tzinfo is not None else at.replace(tzinfo=UTC)).astimezone(UTC)
 
     events = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()
               if line.strip()]
-    events = [e for e in events if e.get("event") in ("collected", "retired")]
-    last: dict[tuple[str, str], dict[str, Any]] = {}
+    events = [e for e in events if e.get("event") in ("collected", "retired", "checked")
+              and event_time(e) <= cutoff]
+    view: dict[tuple[str, str], dict[str, Any]] = {}
     for _, event in sorted(enumerate(events), key=lambda pair: (event_time(pair[1]), pair[0])):
-        target = event["target"] if event["event"] == "retired" else event["claim"]["target"]
-        last[(target["kind"], target["id"])] = event
-    return {
-        key: event_time(event).date() for key, event in last.items()
-        if event["event"] == "retired" and event_time(event).date() <= as_of
-    }
+        target = event["claim"]["target"] if event["event"] == "collected" else event["target"]
+        entry = view.setdefault((target["kind"], target["id"]),
+                                {"last": None, "claim": None, "since_check": 0, "pending": 0})
+        if event["event"] == "collected":
+            entry["claim"] = Claim.from_dict(event["claim"])
+            entry["pending"] += 1
+        elif event["event"] == "retired":
+            entry["claim"], entry["pending"] = None, 0
+        else:
+            entry["since_check"], entry["pending"] = entry["pending"], 0
+        entry["last"] = {**event, "at_utc": event_time(event)}
+    return view
 
 
 #: Why a draw the private data has moved on from is replaced (MODEL-575).
@@ -979,88 +994,138 @@ SUPERSEDED_RECITED = "superseded_private_sources"
 SUPERSEDED_RETIRED = "retired_in_private_data"
 
 
+def _same_fact(frozen: Any, private: Any) -> bool:
+    """The private claim states the frozen claim's value for the same scope."""
+    from decision.model import value_hash
+    from decision.registry import UnknownIdError, facet
+
+    same_unit = frozen.unit == private.unit
+    if not same_unit and (frozen.unit is None or private.unit is None):
+        # An omitted unit is the facet's unit, as ``verify_fidelity_sample`` reads it.
+        try:
+            unit = facet(frozen.field).unit
+        except UnknownIdError:
+            unit = None
+        same_unit = unit is not None and (frozen.unit or unit) == (private.unit or unit)
+    return (value_hash(frozen.value) == value_hash(private.value)
+            and same_unit
+            and all(getattr(frozen, field) == getattr(private, field)
+                    for field in ("subject", "field", "conditions", "base_model")))
+
+
 def _private_supersessions(
-    root: Path, private: Path, as_of: date, *, rules: bool = False
+    root: Path, private: Path, as_of: date
 ) -> dict[tuple[str, str], tuple[str, frozenset[str], date, date]]:
     """Frozen targets the private data has moved on from without a new value (MODEL-575).
 
-    A target is superseded when the private data holds a newer checked version of it that
-    cites a different set of sources (``SUPERSEDED_RECITED``), or when its latest private
-    queue event retires it (``SUPERSEDED_RETIRED``). Newer means after the frozen record and
-    on or before ``as_of``. Checked means either a verified log record for the private
-    value, or a latest queue event that checks the latest filed claim as ``verified`` or
-    ``cited`` (a cite-only re-home, as MODEL-556 filed them; the nightly counts ``cited``
-    as not machine-verified, never as a failure). Each entry carries the source ids the
-    private version still cites (none for a retired target): a source that version still
-    cites is never excused.
+    Read as of the end of ``as_of`` (UTC). A target is superseded when either holds:
+
+    - ``SUPERSEDED_RECITED``: its latest private queue event checks the latest filed claim
+      as ``verified`` or ``cited`` (a cite-only re-home, as MODEL-556 filed them; the
+      nightly counts ``cited`` as not machine-verified, never as a failure), after the
+      frozen record's date; exactly one claim was filed since the check before it, so the
+      check can only be of that claim; and that claim states the frozen value for the same
+      scope and unit (``_same_fact``) on a different set of sources. A changed value is
+      left to ``_private_corrections``.
+    - ``SUPERSEDED_RETIRED``: its latest private queue event retires it, after the frozen
+      record's date.
+
+    Each entry carries the source ids the private version cites (none when retired). The
+    caller excuses a draw only when those sources are healthy and none is a failed one.
     """
-    from decision.verify import Queue, VerificationLog
+    from decision.verify import VerificationLog
 
     public_log = VerificationLog(root / "verification").latest()
     try:
-        private_log = VerificationLog(private / "verification", private=rules).latest()
-        private_claims = _verified_claims(private, private=rules)
-        retired = _retired_targets(private / "verification" / "queue" / "events.jsonl", as_of)
-        queue_state = Queue(private / "verification")._state()
+        view = _private_queue_view(private / "verification" / "queue" / "events.jsonl", as_of)
     except (ValueError, KeyError, TypeError):
         raise ValueError("private correction verification records could not be read") from None
     public_claims = {
-        (claim.target.kind, claim.target.id): claim for claim, _ in _verified_claims(root)
+        (claim.target.kind, claim.target.id): claim
+        for claim, _ in _verified_claims(root)
     }
     superseded: dict[tuple[str, str], tuple[str, frozenset[str], date, date]] = {}
-    for key, retired_on in retired.items():
-        previous = public_log.get(key)
-        if key in public_claims and previous is not None:
-            superseded[key] = (SUPERSEDED_RETIRED, frozenset(), previous.date, retired_on)
-    for claim, _ in private_claims:
-        key = (claim.target.kind, claim.target.id)
-        frozen = public_claims.get(key)
-        previous, current = public_log.get(key), private_log[key]
-        if frozen is None or previous is None or not previous.date < current.date <= as_of:
+    for key, entry in view.items():
+        frozen, previous, last = public_claims.get(key), public_log.get(key), entry["last"]
+        if frozen is None or previous is None or last is None:
+            continue
+        on = last["at_utc"].date()
+        if not previous.date < on:
+            continue
+        if last["event"] == "retired":
+            superseded[key] = (SUPERSEDED_RETIRED, frozenset(), previous.date, on)
+            continue
+        claim = entry["claim"]
+        if (last["event"] != "checked" or last.get("outcome") not in ("verified", "cited")
+                or claim is None or entry["since_check"] != 1 or not _same_fact(frozen, claim)):
             continue
         cited = frozenset(source.source_id for source in claim.sources)
         if cited != frozenset(source.source_id for source in frozen.sources):
-            superseded[key] = (SUPERSEDED_RECITED, cited, previous.date, current.date)
-    for key, entry in queue_state.items():
-        frozen, previous = public_claims.get(key), public_log.get(key)
-        last = entry.last or {}
-        if (key in superseded or frozen is None or previous is None or entry.claim is None
-                or last.get("event") != "checked"
-                or last.get("outcome") not in ("verified", "cited")):
-            continue
-        at = datetime.fromisoformat(last["at"])
-        checked_on = (at if at.tzinfo is not None else at.replace(tzinfo=UTC)).date()
-        if not previous.date < checked_on <= as_of:
-            continue
-        cited = frozenset(source.source_id for source in entry.claim.sources)
-        if cited != frozenset(source.source_id for source in frozen.sources):
-            superseded[key] = (SUPERSEDED_RECITED, cited, previous.date, checked_on)
+            superseded[key] = (SUPERSEDED_RECITED, cited, previous.date, on)
     return superseded
+
+
+#: Terms-register refusals (MODEL-509). Loud whatever the private data says.
+_REFUSAL_CATEGORIES = frozenset({"redirect_unclassified", "terms_register_unreadable"})
 
 
 def _excused_by_private_data(
     key: tuple[str, str],
     rows: Sequence[Mapping[str, Any]],
     superseded: Mapping[tuple[str, str], tuple[str, frozenset[str], date, date]],
+    *,
+    private_urls: Mapping[str, str] | None = None,
+    healthy: Collection[str] = (),
 ) -> bool:
     """True when this draw's failed sources are all ones its private version dropped.
 
-    At least one source must have failed this fetch, and every failed one must be absent
-    from the private version's sources. A terms-register refusal is never excused
-    (MODEL-509), and a source the private version still cites is never excused.
+    At least one source must have failed this fetch. No failed source may be a
+    terms-register refusal (MODEL-509), and none may share a source id or canonical URL
+    with a source the private version cites. Every source the private version cites must
+    be registered in the private data (``private_urls``) and have fetched a copy this run
+    (``healthy``): a broken replacement never excuses a broken original.
     """
+    from decision.sources import canonical_url
+
     entry = superseded.get(key)
     if entry is None:
         return False
+    private_urls = private_urls or {}
+    cited = entry[1]
+    if any(sid not in private_urls or sid not in healthy for sid in cited):
+        return False
+    cited_urls = {canonical_url(private_urls[sid]) for sid in cited}
     failed = [row for row in rows if row["error_category"] is not None]
     return bool(failed) and all(
-        row["error_category"] not in _REFUSAL_CATEGORIES and row["source_id"] not in entry[1]
+        row["error_category"] not in _REFUSAL_CATEGORIES
+        and row["source_id"] not in cited
+        and canonical_url(str(row["url"])) not in cited_urls
         for row in failed
     )
 
 
-#: Terms-register refusals (MODEL-509). Loud whatever the private data says.
-_REFUSAL_CATEGORIES = frozenset({"redirect_unclassified", "terms_register_unreadable"})
+def _healthy_private_sources(
+    source_ids: Collection[str],
+    sources: Mapping[str, Any],
+    *,
+    store: Any,
+    fetcher: Any,
+    as_of: date,
+) -> set[str]:
+    """The private sources that fetched a copy by plain HTTP this run, as the nightly fetches
+    every source (MODEL-575). A shell, a refusal, an error or a missing registration is not
+    healthy. Nothing is reported per source: only the excuse depends on it."""
+    from decision.sources import recheck
+
+    wanted = sorted(sid for sid in source_ids if sid in sources)
+    if not wanted:
+        return set()
+    report = recheck(
+        [sources[sid].model_copy(update={"fetch": "http"}) for sid in wanted], {}, (),
+        fetcher=fetcher, store=store,
+        now=datetime.combine(as_of, datetime.min.time(), tzinfo=UTC),
+    )
+    return {sid for sid, state in report.states.items() if state.snapshot is not None}
 
 
 def _superseded_detail(
@@ -1088,7 +1153,7 @@ def _superseded_detail(
         "verifier": None,
         "private_correction": {
             "public_verified_date": public_date.isoformat(),
-            "verified_date": private_date.isoformat(),
+            "superseded_date": private_date.isoformat(),
         },
     }
 
@@ -1543,9 +1608,12 @@ def data_fidelity(
         if private_data_root else {}
     )
     superseded = (
-        _private_supersessions(root, private_data_root, as_of, rules=private_root_rules)
-        if private_data_root else {}
+        _private_supersessions(root, private_data_root, as_of) if private_data_root else {}
     )
+    private_sources = (
+        load_sources(private_data_root / "registry" / "sources.yaml") if superseded else {}
+    )
+    private_urls = {sid: str(source.url) for sid, source in private_sources.items()}
     sources = load_sources(root / "registry" / "sources.yaml")
     excluded = excluded_sources()
     eligible = [
@@ -1603,9 +1671,20 @@ def data_fidelity(
             # A draw whose failed sources the private data has dropped (re-cited elsewhere,
             # or the target retired) is replaced as lag (MODEL-575). Every other draw's
             # rows still count, so a source any kept draw cites stays loud.
-            excused = {
+            candidates = {
                 key for key, rows in fetch_diagnostics.items()
-                if _excused_by_private_data(key, rows, superseded)
+                if _excused_by_private_data(
+                    key, rows, superseded, private_urls=private_urls,
+                    healthy=superseded.get(key, ("", frozenset()))[1])
+            }
+            healthy = _healthy_private_sources(
+                {sid for key in candidates for sid in superseded[key][1]},
+                private_sources, store=store, fetcher=fetcher, as_of=as_of,
+            )
+            excused = {
+                key for key in candidates
+                if _excused_by_private_data(key, fetch_diagnostics[key], superseded,
+                                            private_urls=private_urls, healthy=healthy)
             }
             refused_sources.update(
                 row["source_id"] for key, rows in fetch_diagnostics.items()
@@ -1652,14 +1731,15 @@ def data_fidelity(
         # A shell page is loud too (MODEL-519): the layer fails.
         status = "fail"
         summary += f" {len(shell_sources)} source(s) returned a shell page (shell_page)."
-    summary += (
-        f" {counts['public_image_lag']} draw(s) lagged a newer verified private correction."
-    )
     superseded_draws = sum(
         row["reason"] in (SUPERSEDED_RECITED, SUPERSEDED_RETIRED) for row in sample)
+    summary += (
+        f" {counts['public_image_lag'] - superseded_draws} draw(s) lagged a newer verified "
+        "private correction."
+    )
     if superseded_draws:
-        summary += (f" {superseded_draws} of them failed only on sources the private data "
-                    "no longer cites for that value.")
+        summary += (f" {superseded_draws} draw(s) were superseded in the private data "
+                    "(re-cited or retired) and failed only on sources it no longer cites.")
     assessed = sum(counts[name] for name in _ASSESSED)
     return LayerResult(
         "data_fidelity",
