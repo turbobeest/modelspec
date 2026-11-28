@@ -274,7 +274,7 @@ jobs:
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.12.19'
-          enable-cache: ${{ vars.DATA_SPLIT_ENABLED != 'true' }}
+          enable-cache: false
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -388,7 +388,7 @@ jobs:
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.12.19'
-          enable-cache: ${{ vars.DATA_SPLIT_ENABLED != 'true' }}
+          enable-cache: false
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
