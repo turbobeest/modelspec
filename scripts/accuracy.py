@@ -1116,9 +1116,14 @@ def _healthy_private_sources(
 ) -> dict[str, tuple[str, datetime, list[str]]]:
     """The private sources that fetched a copy by plain HTTP this run, as the nightly fetches
     every source (MODEL-575), with that copy's ref, read time and resolved URLs. A shell,
-    a refusal, an error or a missing registration is not healthy. Nothing is reported per
-    source: only the excuse depends on it."""
-    from decision.sources import recheck
+    a refusal, an error or a missing registration is not healthy. Shell status is judged
+    again once every fetch of this call is in: two different URLs on one host that return
+    identical bytes are both shells (MODEL-519's same-bytes rule), so neither is healthy,
+    whichever was fetched first. Nothing is reported per source: only the excuse depends on
+    it."""
+    from urllib.parse import urlsplit
+
+    from decision.sources import canonical_url, fingerprint_bytes, recheck, shell_alias_urls
 
     wanted = sorted(sid for sid in source_ids if sid in sources)
     if not wanted:
@@ -1128,10 +1133,24 @@ def _healthy_private_sources(
         fetcher=fetcher, store=store,
         now=datetime.combine(as_of, datetime.min.time(), tzinfo=UTC),
     )
+    fetched: dict[str, tuple[str, str, str]] = {}
+    for sid in wanted:
+        response = report.fetches.get(sid)
+        if response is not None and response.outcome == "ok" and response.body is not None:
+            url = canonical_url(str(sources[sid].url))
+            fetched[sid] = (urlsplit(url).hostname or "", fingerprint_bytes(response.body), url)
+    shells = {
+        sid for sid, (host, digest, url) in fetched.items()
+        if any(other != sid and other_host == host and other_digest == digest
+               and other_url != url
+               and other_url not in shell_alias_urls(sources[sid], sources.values())
+               for other, (other_host, other_digest, other_url) in fetched.items())
+    }
     return {
         sid: (state.snapshot.copy_ref, state.snapshot.retrieved_at,
               list(report.fetches[sid].resolved_urls))
-        for sid, state in report.states.items() if state.snapshot is not None
+        for sid, state in report.states.items()
+        if state.snapshot is not None and sid not in shells
     }
 
 
@@ -1704,6 +1723,9 @@ def data_fidelity(
         # bytes must never touch a public draw's copy of the same bytes (MODEL-575).
         private_store = CopyStore(Path(temporary) / "private")
         fetcher = Fetcher()
+        # Their own HTTP client too: no cookie a private response sets reaches a public
+        # request (MODEL-575).
+        private_fetcher = Fetcher() if superseded else None
         while drawn < len(order):
             assessed = sum(counts[name] for name in _ASSESSED)
             if assessed >= wanted:
@@ -1732,7 +1754,7 @@ def data_fidelity(
             }
             healthy = _healthy_private_sources(
                 {sid for key in candidates for sid in superseded[key][1]},
-                private_sources, store=private_store, fetcher=fetcher, as_of=as_of,
+                private_sources, store=private_store, fetcher=private_fetcher, as_of=as_of,
             )
             excused = {
                 key for key in candidates

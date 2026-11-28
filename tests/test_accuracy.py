@@ -1477,7 +1477,7 @@ def _shell_fidelity(tmp_path: Path, monkeypatch, *, kept_on_shell: int = 0, reho
     alias = _text_source("lag-alias", "http").model_copy(
         update={"url": "https://example.test/lag"})
     _write_registry(private, {
-        **{sid: _text_source(sid, "http") for sid in ("lag", "plain", "rehomed")},
+        **{sid: _text_source(sid, "http") for sid in ("lag", "plain", "rehomed", "rehomed2")},
         "lag-alias": alias,
         "citeonly": _text_source("citeonly", "http").model_copy(
             update={"url": "https://x.ai/rehomed"}),
@@ -1496,6 +1496,7 @@ def _shell_fidelity(tmp_path: Path, monkeypatch, *, kept_on_shell: int = 0, reho
         "https://example.test/lag": _SHELL,
         "https://example.test/plain": _OK,
         "https://example.test/rehomed": rehomed,
+        "https://example.test/rehomed2": rehomed,
         "https://x.ai/rehomed": cite_only,
     }))
     return public, private, lag, len(claims)
@@ -1632,6 +1633,13 @@ def test_a_fresh_cite_only_copy_of_the_replacement_excuses_a_shell(
     assert result.status == "pass", result.summary
     assert _lag_row(result, lag)["reason"] == accuracy.SUPERSEDED_RECITED
     assert "x.ai" not in json.dumps(result.details)
+    # The cite-only copy has the very bytes of the public ``plain`` page; its citation
+    # record must not turn those public draws into ``cited``.
+    assert _OK.body == _PAGE
+    assert result.counts["verified"] == 12
+    assert result.counts.get("cited", 0) == 0
+    assert {row["outcome"] for row in result.details["sample"]
+            if row["target"].startswith("fact:lab/ok-")} == {"verified"}
 
 
 def test_a_stale_cite_only_redirect_never_grants_cited_to_a_fresh_wrong_page(
@@ -1647,6 +1655,71 @@ def test_a_stale_cite_only_redirect_never_grants_cited_to_a_fresh_wrong_page(
     _file_checked(private, stale, datetime(2026, 10, 10, tzinfo=UTC), "cited")
 
     _assert_shell_fails(_shell_run(public, private, size), lag)
+
+
+def test_two_identical_same_host_replacements_are_both_shells(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    # Two different URLs on one host, the same bytes: MODEL-519 calls both shells, so the
+    # one fetched first may not excuse the draw either.
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch)
+    _file_checked(private, _rehomed(lag, "rehomed", "rehomed2"),
+                  datetime(2026, 10, 10, tzinfo=UTC))
+
+    _assert_shell_fails(_shell_run(public, private, size), lag)
+
+
+def test_two_identical_same_host_replacements_are_both_shells_unit(tmp_path: Path) -> None:
+    from decision.sources import CopyStore
+
+    sources = {sid: _text_source(sid, "http") for sid in ("rehomed", "rehomed2", "solo")}
+    bodies = {"https://example.test/rehomed": _OK, "https://example.test/rehomed2": _OK,
+              "https://example.test/solo": FetchResult(
+                  "ok", 200, body=b"Model: Model\ncontext: 11\n", content_type="text/plain")}
+    healthy = accuracy._healthy_private_sources(
+        {"rehomed", "rehomed2", "solo"}, sources, store=CopyStore(tmp_path / "copies"),
+        fetcher=_FetchResults(bodies), as_of=date(2026, 10, 13))
+    assert set(healthy) == {"solo"}
+
+
+def test_private_re_reads_use_their_own_http_client(tmp_path: Path, monkeypatch) -> None:
+    import httpx
+
+    from decision import sources as source_module
+
+    real_fetcher = source_module.Fetcher
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch)
+    _file_checked(private, _rehomed(lag, "rehomed"), datetime(2026, 10, 10, tzinfo=UTC))
+    seen: list[tuple[int, str, str | None]] = []
+    clients: list[int] = []
+
+    def factory():
+        index = len(clients)
+        clients.append(index)
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            url = str(request.url)
+            seen.append((index, url, request.headers.get("cookie")))
+            if url.endswith("/rehomed"):
+                # A private response that sets a cookie for the whole host.
+                return httpx.Response(200, content=_PAGE, headers={
+                    "content-type": "text/plain", "set-cookie": "private=1; Path=/"})
+            if url.endswith("/lag"):
+                return httpx.Response(200, content=b"", headers={"content-type": "text/plain"})
+            return httpx.Response(200, content=_PAGE, headers={"content-type": "text/plain"})
+
+        return real_fetcher(
+            httpx.Client(transport=httpx.MockTransport(handler)), sleep=lambda _: None)
+
+    monkeypatch.setattr(source_module, "Fetcher", factory)
+
+    result = _shell_run(public, private, size)
+
+    assert result.counts["public_image_lag"] == 1, result.summary
+    private_clients = {index for index, url, _ in seen if url.endswith("/rehomed")}
+    public_clients = {index for index, url, _ in seen if not url.endswith("/rehomed")}
+    assert private_clients and public_clients and not private_clients & public_clients
+    assert all(cookie is None for index, url, cookie in seen if index in public_clients)
 
 
 def test_a_private_re_read_that_raises_keeps_the_draw(tmp_path: Path, monkeypatch) -> None:
