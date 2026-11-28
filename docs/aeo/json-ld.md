@@ -12,7 +12,7 @@
 | `/decide/`, `/decide/details/` | `BreadcrumbList`, `WebApplication` (free offer) |
 | Every other page in `CRUMBS` | `BreadcrumbList` |
 
-`Organization.sameAs` comes from `brand/social/profiles.json`. Every handle there is empty, so no `sameAs` ships.
+`Organization.sameAs` comes from `brand/social/profiles.json`. Only the `x` handle is set so far; the other networks stay empty and add nothing.
 
 ## Changes (MODEL-252)
 
