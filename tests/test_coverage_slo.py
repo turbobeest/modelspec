@@ -570,7 +570,17 @@ def test_the_state_listing_pages_past_one_hundred_workflows() -> None:
     assert len(states) == 101 and states["last.yml"] == "disabled_manually"
 
 
-@pytest.mark.parametrize("answer", ["raise", "{}", '{"workflows": [{"path": 1}]}', "nope"])
+OMITTED = "omitted"
+
+
+@pytest.mark.parametrize("answer", [
+    "raise", "{}", '{"workflows": [{"path": 1}]}', "nope",
+    '{"total_count": 0, "workflows": {}}',
+    # An empty state is unreadable, not disabled.
+    "empty",
+    # The listing leaves out a watched workflow (every other one disabled).
+    OMITTED,
+])
 def test_unreadable_workflow_states_fail_closed(answer) -> None:
     import subprocess
 
@@ -580,6 +590,14 @@ def test_unreadable_workflow_states_fail_closed(answer) -> None:
         if "/actions/workflows?" in args[-1]:
             if answer == "raise":
                 raise subprocess.CalledProcessError(1, ["gh"], stderr=SECRET_STDERR)
+            if answer in ("empty", OMITTED):
+                body = json.loads(_leaky_gh(args, stdin))
+                for w in body["workflows"]:
+                    w["state"] = "" if answer == "empty" else "disabled_manually"
+                if answer == OMITTED:
+                    body["workflows"] = [w for w in body["workflows"] if not w["path"].endswith(
+                        ("/release-watch.yml", "/private-audit.yml"))]
+                return json.dumps(body)
             return answer
         return _leaky_gh(args, stdin)
 

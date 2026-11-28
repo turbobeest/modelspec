@@ -707,9 +707,11 @@ def fetch_workflow_states(repo: str, gh: Gh) -> dict[str, str] | None:
             body = json.loads(gh(["api", f"repos/{repo}/actions/workflows"
                                          f"?per_page=100&page={page}"]))
             listed = body["workflows"]
+            if not isinstance(listed, list):
+                return None
             for w in listed:
                 path, state = w["path"], w["state"]
-                if not isinstance(path, str) or not isinstance(state, str):
+                if not isinstance(path, str) or not isinstance(state, str) or not state:
                     return None
                 if path.startswith(".github/workflows/"):
                     states[path.rsplit("/", 1)[-1]] = state
@@ -724,18 +726,21 @@ def with_states(watched: Sequence[WatchedWorkflow], clients: Mapping[str, Gh | s
                 ) -> tuple[tuple[WatchedWorkflow, ...], tuple[ListingError, ...]]:
     """``watched`` with each workflow's GitHub state, and the repositories unread.
 
-    Fails closed: a repository whose states cannot be read is an error, and its
-    workflows stay ``active``, so a red one is still red. A workflow missing
-    from the listing stays ``active`` too.
+    Fails closed: a repository whose states cannot be read, or whose listing
+    leaves out any watched workflow, is an error, and every workflow of that
+    repository stays ``active``, so a red one is still red.
     """
     states: dict[str, dict[str, str] | None] = {}
     for repo in dict.fromkeys(w.repo for w in watched):
         gh = clients.get(repo)
-        states[repo] = fetch_workflow_states(repo, gh) if callable(gh) else None
+        got = fetch_workflow_states(repo, gh) if callable(gh) else None
+        if got is not None and any(w.repo == repo and w.file not in got for w in watched):
+            got = None
+        states[repo] = got
     errors = tuple((repo, "its workflow states could not be read, so a disabled "
                           "workflow cannot be told from a red one")
                    for repo, got in states.items() if got is None)
-    return tuple(replace(w, state=(states[w.repo] or {}).get(w.file, ACTIVE))
+    return tuple(replace(w, state=states[w.repo][w.file]) if states[w.repo] else w
                  for w in watched), errors
 
 
