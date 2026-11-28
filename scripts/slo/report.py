@@ -711,7 +711,7 @@ def fetch_workflow_states(repo: str, gh: Gh) -> dict[str, str] | None:
                 return None
             for w in listed:
                 path, state = w["path"], w["state"]
-                if not isinstance(path, str) or not isinstance(state, str) or not state:
+                if not isinstance(path, str) or not isinstance(state, str) or not state.strip():
                     return None
                 if path.startswith(".github/workflows/"):
                     states[path.rsplit("/", 1)[-1]] = state

@@ -583,7 +583,7 @@ OMITTED = "omitted"
 @pytest.mark.parametrize("answer", [
     "raise", "{}", '{"workflows": [{"path": 1}]}', "nope",
     '{"total_count": 0, "workflows": {}}',
-    # An empty state is unreadable, not disabled.
+    # A blank state is unreadable, not disabled.
     "empty",
     # The listing leaves out a watched workflow (every other one disabled).
     OMITTED,
@@ -600,7 +600,7 @@ def test_unreadable_workflow_states_fail_closed(answer) -> None:
             if answer in ("empty", OMITTED):
                 body = json.loads(_leaky_gh(args, stdin))
                 for w in body["workflows"]:
-                    w["state"] = "" if answer == "empty" else "disabled_manually"
+                    w["state"] = " " if answer == "empty" else "disabled_manually"
                 if answer == OMITTED:
                     body["workflows"] = [w for w in body["workflows"] if not w["path"].endswith(
                         ("/release-watch.yml", "/private-audit.yml"))]
