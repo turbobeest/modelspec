@@ -1603,6 +1603,18 @@ def test_a_broken_replacement_never_excuses_a_broken_original(
     _assert_shell_fails(_shell_run(public, private, size), lag)
 
 
+def test_a_replacement_that_does_not_state_the_value_never_excuses_a_shell(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    # The private queue says "verified", but this run's copy of the replacement reads
+    # another value: the check may have been of an earlier claim (MODEL-575 review).
+    other = FetchResult("ok", 200, body=b"Model: Model\ncontext: 30\n", content_type="text/plain")
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch, rehomed=other)
+    _file_checked(private, _rehomed(lag, "rehomed"), datetime(2026, 10, 10, tzinfo=UTC))
+
+    _assert_shell_fails(_shell_run(public, private, size), lag)
+
+
 @pytest.mark.parametrize("outcome", ["mismatch", "unreachable", None],
                          ids=["mismatch", "unreachable", "never_checked"])
 def test_a_draw_not_verified_in_private_data_still_fails_on_a_shell(

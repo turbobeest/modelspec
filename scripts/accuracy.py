@@ -1015,7 +1015,7 @@ def _same_fact(frozen: Any, private: Any) -> bool:
 
 def _private_supersessions(
     root: Path, private: Path, as_of: date
-) -> dict[tuple[str, str], tuple[str, frozenset[str], date, date]]:
+) -> dict[tuple[str, str], tuple[str, frozenset[str], date, date, Any]]:
     """Frozen targets the private data has moved on from without a new value (MODEL-575).
 
     Read as of the end of ``as_of`` (UTC). A target is superseded when either holds:
@@ -1030,8 +1030,10 @@ def _private_supersessions(
     - ``SUPERSEDED_RETIRED``: its latest private queue event retires it, after the frozen
       record's date.
 
-    Each entry carries the source ids the private version cites (none when retired). The
-    caller excuses a draw only when those sources are healthy and none is a failed one.
+    Each entry carries the source ids the private version cites (none when retired) and
+    that claim (``None`` when retired). The queue's ``checked`` event names no claim, so it
+    is only a hint: the caller re-verifies the private claim on fresh copies of its sources
+    before it excuses anything, and excuses a draw only when none of them is a failed one.
     """
     from decision.verify import VerificationLog
 
@@ -1044,7 +1046,7 @@ def _private_supersessions(
         (claim.target.kind, claim.target.id): claim
         for claim, _ in _verified_claims(root)
     }
-    superseded: dict[tuple[str, str], tuple[str, frozenset[str], date, date]] = {}
+    superseded: dict[tuple[str, str], tuple[str, frozenset[str], date, date, Any]] = {}
     for key, entry in view.items():
         frozen, previous, last = public_claims.get(key), public_log.get(key), entry["last"]
         if frozen is None or previous is None or last is None:
@@ -1053,7 +1055,7 @@ def _private_supersessions(
         if not previous.date < on:
             continue
         if last["event"] == "retired":
-            superseded[key] = (SUPERSEDED_RETIRED, frozenset(), previous.date, on)
+            superseded[key] = (SUPERSEDED_RETIRED, frozenset(), previous.date, on, None)
             continue
         claim = entry["claim"]
         if (last["event"] != "checked" or last.get("outcome") not in ("verified", "cited")
@@ -1061,7 +1063,7 @@ def _private_supersessions(
             continue
         cited = frozenset(source.source_id for source in claim.sources)
         if cited != frozenset(source.source_id for source in frozen.sources):
-            superseded[key] = (SUPERSEDED_RECITED, cited, previous.date, on)
+            superseded[key] = (SUPERSEDED_RECITED, cited, previous.date, on, claim)
     return superseded
 
 
@@ -1072,7 +1074,7 @@ _REFUSAL_CATEGORIES = frozenset({"redirect_unclassified", "terms_register_unread
 def _excused_by_private_data(
     key: tuple[str, str],
     rows: Sequence[Mapping[str, Any]],
-    superseded: Mapping[tuple[str, str], tuple[str, frozenset[str], date, date]],
+    superseded: Mapping[tuple[str, str], tuple[str, frozenset[str], date, date, Any]],
     *,
     private_urls: Mapping[str, str] | None = None,
     healthy: Collection[str] = (),
@@ -1111,26 +1113,59 @@ def _healthy_private_sources(
     store: Any,
     fetcher: Any,
     as_of: date,
-) -> set[str]:
+) -> dict[str, str]:
     """The private sources that fetched a copy by plain HTTP this run, as the nightly fetches
-    every source (MODEL-575). A shell, a refusal, an error or a missing registration is not
-    healthy. Nothing is reported per source: only the excuse depends on it."""
+    every source (MODEL-575), with that copy's ref. A shell, a refusal, an error or a missing
+    registration is not healthy. Nothing is reported per source: only the excuse depends on
+    it."""
     from decision.sources import recheck
 
     wanted = sorted(sid for sid in source_ids if sid in sources)
     if not wanted:
-        return set()
+        return {}
     report = recheck(
         [sources[sid].model_copy(update={"fetch": "http"}) for sid in wanted], {}, (),
         fetcher=fetcher, store=store,
         now=datetime.combine(as_of, datetime.min.time(), tzinfo=UTC),
     )
-    return {sid for sid, state in report.states.items() if state.snapshot is not None}
+    return {sid: state.snapshot.copy_ref for sid, state in report.states.items()
+            if state.snapshot is not None}
+
+
+def _private_version_reads(
+    claim: Any,
+    copies: Mapping[str, str],
+    sources: Mapping[str, Any],
+    *,
+    store: Any,
+    extractors: Sequence[Any],
+    today: date,
+) -> bool:
+    """The private claim, pinned to this run's copies of its sources, reads as ``verified``
+    by a nightly reader, or as ``cited`` when the engine's own cite-only rule grants it
+    (a cite-only source with a citation record for this run's copy; the nightly never fails
+    a ``cited`` draw either). A retirement (``claim`` is ``None``) needs no read. Anything
+    else, a reader the nightly does not run included, keeps the draw (MODEL-575)."""
+    from decision.verify import StoredRegions, verify
+
+    if claim is None:
+        return True
+    if any(source.source_id not in copies for source in claim.sources):
+        return False
+    pinned = replace(claim, sources=tuple(
+        source.model_copy(update={"snapshot_ref": copies[source.source_id]})
+        for source in claim.sources
+    ))
+    try:
+        result = verify(pinned, StoredRegions(store, sources), extractors, today=today)
+    except (KeyError, TypeError, ValueError):
+        return False
+    return result.outcome in ("verified", "cited")
 
 
 def _superseded_detail(
     claim: Any,
-    entry: tuple[str, frozenset[str], date, date],
+    entry: tuple[str, frozenset[str], date, date, Any],
     rows: list[dict[str, Any]],
     source_urls: Mapping[str, str],
     today: date,
@@ -1138,7 +1173,7 @@ def _superseded_detail(
     """The sample row of an excused draw: the frozen claim's sources only, no private ids."""
     from decision.verify import ref_str
 
-    reason, _, public_date, private_date = entry
+    reason, _, public_date, private_date, _ = entry
     return {
         "target": ref_str(claim.target),
         "category": claim_category(claim),
@@ -1685,6 +1720,8 @@ def data_fidelity(
                 key for key in candidates
                 if _excused_by_private_data(key, fetch_diagnostics[key], superseded,
                                             private_urls=private_urls, healthy=healthy)
+                and _private_version_reads(superseded[key][4], healthy, private_sources,
+                                           store=store, extractors=extractors, today=as_of)
             }
             refused_sources.update(
                 row["source_id"] for key, rows in fetch_diagnostics.items()
