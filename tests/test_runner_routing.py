@@ -63,10 +63,17 @@ PR_CACHE_EXCEPTIONS: dict[tuple[str, str], str] = {
 }
 
 
-def test_cache_exceptions_name_real_jobs() -> None:
+def test_each_cache_exception_is_still_needed() -> None:
+    # Once the follow-up removes the cache (or the privilege), the exception
+    # must go too, so it cannot silently allow a later reintroduction.
     workflows = _workflows()
-    for name, job in PR_CACHE_EXCEPTIONS:
-        assert job in (workflows[name].get("jobs") or {}), (name, job)
+    for name, job_name in PR_CACHE_EXCEPTIONS:
+        workflow = workflows[name]
+        job = (workflow.get("jobs") or {})[job_name]
+        assert "pull_request" in _triggers(workflow), (name, job_name)
+        assert _runs_on_pull_request(job), (name, job_name)
+        assert _restores_cache(job), (name, job_name)
+        assert _privileged(workflow, job, on_pull_request=True), (name, job_name)
 
 
 PRIVILEGED_TRIGGERS = frozenset({"pull_request_target", "workflow_run"})
@@ -151,6 +158,26 @@ def _restores_cache(job: dict) -> bool:
     return False
 
 
+CROSS_RUN_DOWNLOAD = re.compile(
+    r"\bgh\s+run\s+download\b|actions/artifacts|actions/runs/.*?/artifacts"
+    r"|listWorkflowRunArtifacts|downloadArtifact|getArtifact"
+)
+
+
+def _cross_run_downloads(job: dict) -> bool:
+    for step in job.get("steps", []):
+        uses = step.get("uses", "")
+        with_ = step.get("with") or {}
+        if uses.startswith("actions/download-artifact") and (
+            "run-id" in with_ or "github-token" in with_
+        ):
+            return True
+        text = str(step.get("run", "")) + str(with_.get("script", ""))
+        if CROSS_RUN_DOWNLOAD.search(text):
+            return True
+    return False
+
+
 def _privileged(workflow: dict, job: dict, *, on_pull_request: bool) -> bool:
     """Holds a secret, a write token, an environment or deploys, for that event."""
     body = _dump(job) + _dump(workflow.get("env") or {})
@@ -220,11 +247,8 @@ def routing_failures(workflows: dict[str, dict]) -> list[str]:
             failures.append(f"{name}: workflow_run can consume artifacts of PR runs")
         for job_name, job in (workflow.get("jobs") or {}).items():
             where = f"{name}:{job_name}"
-            for step in job.get("steps", []):
-                if step.get("uses", "").startswith("actions/download-artifact") and "run-id" in (
-                    step.get("with") or {}
-                ):
-                    failures.append(f"{where}: downloads artifacts from another run")
+            if _cross_run_downloads(job):
+                failures.append(f"{where}: downloads artifacts from another run")
             runs_on = job.get("runs-on")
             if runs_on is None:
                 failures.append(f"{where}: no runs-on")
@@ -292,16 +316,24 @@ def routing_failures(workflows: dict[str, dict]) -> list[str]:
             tainted = upstream & lane
             if tainted and _privileged(workflow, job, on_pull_request=True):
                 body = _dump(job)
-                for source in sorted(tainted):
-                    if f"needs.{source}.outputs" in body:
-                        failures.append(
-                            f"{where}: privileged job reads outputs of PR-runner job {source}"
-                        )
-                if "actions/download-artifact" in body:
+                # Any `needs` output may relay a lane output, so read none.
+                if re.search(r"needs\.[A-Za-z0-9_-]+\.outputs", body):
                     failures.append(
-                        f"{where}: privileged job downloads artifacts after PR-runner"
+                        f"{where}: privileged job reads needs outputs after PR-runner"
                         f" jobs {sorted(tainted)}"
                     )
+            # Artifacts are run-scoped: a privileged PR job can fetch a lane
+            # job's artifact without any `needs` path, so it may fetch none.
+            if (
+                lane
+                and on_pr
+                and "actions/download-artifact" in _dump(job)
+                and _privileged(workflow, job, on_pull_request=True)
+            ):
+                failures.append(
+                    f"{where}: privileged on pull_request and downloads artifacts in a workflow"
+                    f" with PR-runner jobs {sorted(lane)}"
+                )
             # Across workflows: the PR cache scope.
             if (
                 lane_exists
@@ -500,5 +532,66 @@ def test_the_guard_rejects_a_privileged_pr_job_restoring_a_shared_cache(
             "permissions": {"contents": "read"},
             "jobs": {"other": other},
         },
+    }
+    assert routing_failures(workflows)
+
+
+@pytest.mark.parametrize(
+    "step",
+    [
+        {"run": "gh run download 123 -n x"},
+        {"run": "gh api repos/o/r/actions/artifacts/1/zip"},
+        {"run": "curl https://api.github.com/repos/o/r/actions/runs/9/artifacts"},
+        {
+            "uses": "actions/github-script@x",
+            "with": {"script": "github.rest.actions.downloadArtifact({})"},
+        },
+        {"uses": "actions/download-artifact@x", "with": {"github-token": "${{ github.token }}"}},
+    ],
+)
+def test_the_guard_rejects_every_cross_run_artifact_download(step) -> None:
+    assert routing_failures(_workflow({"runs-on": "ubuntu-latest", "steps": [step]}))
+
+
+def test_the_guard_rejects_an_output_relayed_through_an_intermediate_job() -> None:
+    relay = {
+        "runs-on": "ubuntu-latest",
+        "needs": "lane",
+        "outputs": {"y": "${{ needs.lane.outputs.x }}"},
+        "steps": [{"run": "true"}],
+    }
+    consumer = {
+        "runs-on": "ubuntu-latest",
+        "needs": "relay",
+        "env": {"K": "${{ secrets.K }}"},
+        "steps": [{"run": "echo ${{ needs.relay.outputs.y }}"}],
+    }
+    workflows = {
+        "fixture.yml": {
+            "on": {"pull_request": {}},
+            "permissions": {"contents": "read"},
+            "jobs": {"lane": _job(), "relay": relay, "consumer": consumer},
+        }
+    }
+    assert routing_failures(workflows)
+
+
+def test_the_guard_rejects_a_rest_artifact_path_with_a_spaced_expression() -> None:
+    step = {"run": "gh api repos/o/r/actions/runs/${{ inputs.run_id }}/artifacts"}
+    assert routing_failures(_workflow({"runs-on": "ubuntu-latest", "steps": [step]}))
+
+
+def test_the_guard_rejects_a_privileged_artifact_download_without_needs() -> None:
+    consumer = {
+        "runs-on": "ubuntu-latest",
+        "env": {"K": "${{ secrets.K }}"},
+        "steps": [{"uses": "actions/download-artifact@x", "with": {"name": "a"}}],
+    }
+    workflows = {
+        "fixture.yml": {
+            "on": {"pull_request": {}},
+            "permissions": {"contents": "read"},
+            "jobs": {"lane": _job(), "consumer": consumer},
+        }
     }
     assert routing_failures(workflows)
