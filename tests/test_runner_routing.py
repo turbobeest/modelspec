@@ -20,10 +20,12 @@ workflow has to be traced:
    variable.
 3. Nothing a moved workflow produces can reach a privileged job in another
    workflow: no workflow may trigger on `workflow_run` or download artifacts
-   from another run, and no job that is privileged on a `pull_request` event
-   may restore a cache (a third-party runner can write any key in the PR's
-   cache scope). Push-time caches are main-scope, which moved workflows never
-   write, because of the event gate.
+   from another run.
+
+Rule 4 holds on every trigger, with or without the variable (MODEL-582): a job
+that holds a secret, a write scope, an environment, a reusable-workflow call or
+a deploy step restores no cache. Nor does it take an artifact from a run that
+has any cache-restoring job, or read `needs` outputs relayed from one.
 """
 
 from __future__ import annotations
@@ -45,12 +47,6 @@ ALLOWED_LABELS = frozenset({"ubuntu-latest"})
 # Adding a workflow here is a reviewed decision: read every job and trigger.
 MOVED_WORKFLOWS = frozenset({"chart-check.yml", "data-freeze.yml", "test.yml"})
 
-# Jobs privileged on pull_request that restore a cache. Each names its ticket;
-# the list may only shrink, and the variable stays unset while it is non-empty.
-PR_CACHE_EXCEPTIONS: dict[tuple[str, str], str] = {
-    ("validate-cards.yml", "validate"): "MODEL-582: pip cache under a pull-requests: write token",
-}
-
 READ_SCOPES = frozenset({"contents", "actions"})
 PRIVILEGED_TRIGGERS = frozenset({"pull_request_target", "workflow_run"})
 PRIVATE_DATA_MARKERS = ("modelspec-data", "MODELSPEC_DATA", "--private-data")
@@ -63,19 +59,15 @@ SETUP_ACTIONS = (
     "actions/setup-java",
     "astral-sh/setup-uv",
 )
+# Inputs that turn a setup action's cache on, and actions whose cache is on
+# unless the input says false (setup-uv's `auto` and setup-go's default).
+CACHE_INPUTS = ("cache", "enable-cache", "package-manager-cache")
+CACHE_ON_BY_DEFAULT = {"astral-sh/setup-uv": "enable-cache", "actions/setup-go": "cache"}
+OFF = (False, "false")
+NEEDS_OUTPUT = re.compile(r"\bneeds\.([A-Za-z0-9_-]+)\.outputs\b")
 CROSS_RUN_DOWNLOAD = re.compile(
     r"\bgh\s+run\s+download\b|actions/artifacts|actions/runs/.*?/artifacts"
     r"|listWorkflowRunArtifacts|downloadArtifact|getArtifact"
-)
-# `${{ github.event_name != 'pull_request' && secrets.X || '' }}` is empty on a PR.
-PR_GATED_SECRET = re.compile(
-    r"\$\{\{\s*github\.event_name\s*!=\s*'pull_request'\s*&&\s*secrets\.[A-Za-z0-9_]+"
-    r"\s*\|\|\s*''\s*\}\}"
-)
-NOT_ON_PULL_REQUEST = re.compile(
-    r"^(github\.ref\s*==\s*'refs/heads/main'"
-    r"|github\.event_name\s*!=\s*'pull_request'"
-    r"|github\.event_name\s*==\s*'(push|schedule|workflow_dispatch)')$"
 )
 
 
@@ -146,11 +138,36 @@ def _restores_cache(job: dict) -> bool:
         with_ = step.get("with") or {}
         if uses in CACHE_ACTIONS:
             return True
-        if uses in SETUP_ACTIONS and (
-            with_.get("cache") or with_.get("enable-cache") not in (None, False, "false")
-        ):
+        if uses not in SETUP_ACTIONS:
+            continue
+        if any(with_.get(key) not in (None, "", *OFF) for key in CACHE_INPUTS):
+            return True
+        default_input = CACHE_ON_BY_DEFAULT.get(uses)
+        if default_input and with_.get(default_input) not in OFF:
             return True
     return False
+
+
+def _needs(job: dict) -> list[str]:
+    needs = job.get("needs") or []
+    return [needs] if isinstance(needs, str) else list(needs)
+
+
+def _ancestors(jobs: dict[str, dict], job_name: str) -> set[str]:
+    seen, todo = set(), list(_needs(jobs[job_name]))
+    while todo:
+        name = todo.pop()
+        if name not in seen and name in jobs:
+            seen.add(name)
+            todo.extend(_needs(jobs[name]))
+    return seen
+
+
+def _downloads_artifacts(job: dict) -> bool:
+    return _cross_run_download(job) or any(
+        step.get("uses", "").startswith("actions/download-artifact")
+        for step in job.get("steps", [])
+    )
 
 
 def _cross_run_download(job: dict) -> bool:
@@ -165,40 +182,9 @@ def _cross_run_download(job: dict) -> bool:
     return False
 
 
-def _split(expression: str, operator: str) -> list[str]:
-    parts, depth, start, i = [], 0, 0, 0
-    while i < len(expression):
-        if expression[i] == "(":
-            depth += 1
-        elif expression[i] == ")":
-            depth -= 1
-        elif depth == 0 and expression.startswith(operator, i):
-            parts.append(expression[start:i])
-            start = i = i + len(operator)
-            continue
-        i += 1
-    parts.append(expression[start:])
-    return [part.strip() for part in parts]
-
-
-def _runs_on_pull_request(workflow: dict, job: dict) -> bool:
-    """False only if the workflow lacks pull_request, or every top-level `||`
-    branch of the job's `if` has a top-level `&&` term false on a PR."""
-    if "pull_request" not in _triggers(workflow):
-        return False
-    condition = str(job.get("if") or "").strip()
-    if condition.startswith("${{") and condition.endswith("}}"):
-        condition = condition[3:-2].strip()
-    if not condition:
-        return True
-    return any(
-        not any(NOT_ON_PULL_REQUEST.match(term) for term in _split(branch, "&&"))
-        for branch in _split(condition, "||")
-    )
-
-
-def _privileged_on_pull_request(workflow: dict, job: dict) -> bool:
-    body = PR_GATED_SECRET.sub("", _dump(job) + _dump(workflow.get("env") or {}))
+def _holds_privilege(workflow: dict, job: dict) -> bool:
+    """On any trigger: a PR-gated secret is still a secret on push."""
+    body = _dump(job) + _dump(workflow.get("env") or {})
     permissions = job.get("permissions", workflow.get("permissions"))
     return (
         "secrets" in body
@@ -207,6 +193,29 @@ def _privileged_on_pull_request(workflow: dict, job: dict) -> bool:
         or _grants_write(permissions)
         or bool(_deploy_steps(job))
     )
+
+
+def cache_failures(name: str, workflow: dict) -> list[str]:
+    """Rule 4: no cache, and nothing built under one, inside a privileged job."""
+    failures = []
+    jobs = _jobs(workflow)
+    caching = {job_name for job_name, job in jobs.items() if _restores_cache(job)}
+    for job_name, job in jobs.items():
+        if not _holds_privilege(workflow, job):
+            continue
+        where = f"{name}:{job_name}"
+        if job_name in caching:
+            failures.append(f"{where}: privileged and restores a cache")
+        if caching and _downloads_artifacts(job):
+            failures.append(f"{where}: privileged and downloads artifacts in a run that caches")
+        for needed in sorted(set(NEEDS_OUTPUT.findall(_dump(job))) & set(jobs)):
+            # An output can relay what an ancestor computed or downloaded.
+            upstream = {needed} | _ancestors(jobs, needed)
+            if caching and (
+                upstream & caching or any(_downloads_artifacts(jobs[u]) for u in upstream)
+            ):
+                failures.append(f"{where}: privileged and reads outputs of {needed}, built under a cache")
+    return failures
 
 
 def unprivileged_failures(name: str, workflow: dict) -> list[str]:
@@ -259,34 +268,15 @@ def routing_failures(workflows: dict[str, dict], moved: frozenset[str]) -> list[
         if "workflow_run" in _triggers(workflow):
             failures.append(f"{name}: workflow_run trigger")
         for job_name, job in _jobs(workflow).items():
-            where = f"{name}:{job_name}"
             if _cross_run_download(job):
-                failures.append(f"{where}: downloads artifacts from another run")
-            if (
-                moved
-                and name not in moved
-                and _runs_on_pull_request(workflow, job)
-                and _restores_cache(job)
-                and _privileged_on_pull_request(workflow, job)
-                and (name, job_name) not in PR_CACHE_EXCEPTIONS
-            ):
-                failures.append(f"{where}: privileged on pull_request and restores a cache")
+                failures.append(f"{name}:{job_name}: downloads artifacts from another run")
+        failures.extend(cache_failures(name, workflow))
     return failures
 
 
 def test_workflows_route_by_the_structural_rules() -> None:
     failures = routing_failures(_workflows(), MOVED_WORKFLOWS)
     assert not failures, "\n".join(failures)
-
-
-def test_each_cache_exception_is_still_needed() -> None:
-    workflows = _workflows()
-    for name, job_name in PR_CACHE_EXCEPTIONS:
-        workflow = workflows[name]
-        job = _jobs(workflow)[job_name]
-        assert _runs_on_pull_request(workflow, job), (name, job_name)
-        assert _restores_cache(job), (name, job_name)
-        assert _privileged_on_pull_request(workflow, job), (name, job_name)
 
 
 # The guard itself.
@@ -387,43 +377,94 @@ def test_the_guard_rejects_a_workflow_run_trigger() -> None:
     assert routing_failures({"o.yml": workflow}, frozenset())
 
 
-@pytest.mark.parametrize(
-    "privilege",
-    [
-        {"permissions": {"pull-requests": "write"}},
-        {"env": {"K": "${{ secrets.K }}"}},
-        {"environment": "production"},
-    ],
-)
-@pytest.mark.parametrize(
-    "cache_step",
-    [
-        {"uses": "actions/setup-python@x", "with": {"cache": "pip"}},
-        {"uses": "actions/setup-node@x", "with": {"cache": "npm"}},
-        {"uses": "astral-sh/setup-uv@x", "with": {"enable-cache": True}},
-        {"uses": "actions/cache@x", "with": {"path": "p", "key": "k"}},
-        {"uses": "actions/cache/restore@x", "with": {"path": "p", "key": "k"}},
-    ],
-)
-def test_the_guard_rejects_a_privileged_pr_job_restoring_a_cache(privilege, cache_step) -> None:
-    other = {"runs-on": "ubuntu-latest", "steps": [cache_step], **privilege}
-    workflows = {"m.yml": _wf(), "o.yml": _wf(other)}
-    assert routing_failures(workflows, frozenset({"m.yml"}))
+PRIVILEGES = [
+    {"permissions": {"pull-requests": "write"}},
+    {"permissions": {"issues": "write"}},
+    {"env": {"K": "${{ secrets.K }}"}},
+    # A PR-gated secret is still a secret on push and dispatch.
+    {"env": {"K": "${{ github.event_name != 'pull_request' && secrets.K || '' }}"}},
+    {"environment": "production"},
+    {"steps": [{"run": "npx wrangler deploy"}]},
+]
+CACHE_STEPS = [
+    {"uses": "actions/setup-python@x", "with": {"cache": "pip"}},
+    {"uses": "actions/setup-node@x", "with": {"cache": "npm"}},
+    {"uses": "actions/setup-node@x", "with": {"package-manager-cache": True}},
+    {"uses": "astral-sh/setup-uv@x", "with": {"enable-cache": True}},
+    {"uses": "astral-sh/setup-uv@x", "with": {"enable-cache": "${{ vars.X != 'true' }}"}},
+    {"uses": "astral-sh/setup-uv@x"},  # `auto` caches on GitHub's runners
+    {"uses": "actions/setup-go@x"},  # caches unless told not to
+    {"uses": "actions/cache@x", "with": {"path": "p", "key": "k"}},
+    {"uses": "actions/cache/restore@x", "with": {"path": "p", "key": "k"}},
+]
 
 
-def test_the_guard_allows_cache_restore_by_a_job_that_is_privileged_only_off_pr() -> None:
-    gated = "${{ github.event_name != 'pull_request' && secrets.K || '' }}"
-    build = {
-        "runs-on": "ubuntu-latest",
-        "steps": [{"uses": "actions/setup-python@x", "with": {"cache": "pip"}}],
-        "env": {"K": gated},
-    }
-    deploy = {
-        "runs-on": "ubuntu-latest",
-        "if": "github.ref == 'refs/heads/main' && github.event_name != 'pull_request'",
-        "env": {"K": "${{ secrets.K }}"},
-        "steps": [{"uses": "actions/setup-node@x", "with": {"cache": "npm"}}],
-    }
-    other = _wf(build)
-    other["jobs"]["deploy"] = deploy
-    assert routing_failures({"m.yml": _wf(), "o.yml": other}, frozenset({"m.yml"})) == []
+def _job(*steps, **extra) -> dict:
+    job = {"runs-on": "ubuntu-latest", **extra}
+    job["steps"] = [*steps, *extra.get("steps", [])]
+    return job
+
+
+def _other(**jobs) -> dict:
+    return {"on": {"push": {}, "workflow_dispatch": {}}, "permissions": {"contents": "read"}, "jobs": jobs}
+
+
+@pytest.mark.parametrize("privilege", PRIVILEGES)
+@pytest.mark.parametrize("cache_step", CACHE_STEPS)
+@pytest.mark.parametrize("moved", [frozenset(), frozenset({"m.yml"})])
+def test_the_guard_rejects_a_privileged_job_restoring_a_cache(privilege, cache_step, moved) -> None:
+    # On any trigger, whether or not any workflow is in the PR-runner lane.
+    workflows = {"m.yml": _wf(), "o.yml": _other(j=_job(cache_step, **privilege))}
+    assert routing_failures(workflows, moved)
+
+
+@pytest.mark.parametrize(
+    "step",
+    [
+        {"uses": "actions/setup-python@x", "with": {"python-version": "3.11"}},
+        {"uses": "actions/setup-node@x", "with": {"node-version": "22"}},
+        {"uses": "astral-sh/setup-uv@x", "with": {"enable-cache": False}},
+        {"uses": "astral-sh/setup-uv@x", "with": {"enable-cache": "false"}},
+        {"uses": "actions/setup-go@x", "with": {"cache": False}},
+        {"uses": "actions/setup-python@x", "with": {"cache": ""}},
+    ],
+)
+def test_the_guard_accepts_a_privileged_job_without_a_cache(step) -> None:
+    workflow = _other(j=_job(step, environment="production", env={"K": "${{ secrets.K }}"}))
+    assert routing_failures({"o.yml": workflow}, frozenset()) == []
+
+
+def test_the_guard_accepts_a_cache_in_an_unprivileged_job_beside_a_privileged_one() -> None:
+    build = _job({"uses": "actions/setup-node@x", "with": {"cache": "npm"}})
+    deploy = _job({"run": "x"}, needs="build", environment="production", **{"if": "needs.build.result == 'success'"})
+    assert routing_failures({"o.yml": _other(build=build, deploy=deploy)}, frozenset()) == []
+
+
+def test_the_guard_rejects_a_privileged_job_taking_artifacts_from_a_run_that_caches() -> None:
+    # Any job in the run can upload an artifact, needs or not.
+    lint = _job({"uses": "actions/setup-node@x", "with": {"cache": "npm"}})
+    build = _job({"uses": "actions/upload-artifact@x", "with": {"name": "site"}})
+    deploy = _job(
+        {"uses": "actions/download-artifact@x", "with": {"name": "site"}},
+        needs="build",
+        environment="production",
+    )
+    workflow = _other(lint=lint, build=build, deploy=deploy)
+    assert routing_failures({"o.yml": workflow}, frozenset())
+    del workflow["jobs"]["lint"]
+    assert routing_failures({"o.yml": workflow}, frozenset()) == []
+
+
+@pytest.mark.parametrize("relay", [False, True])
+def test_the_guard_rejects_a_privileged_job_reading_outputs_built_under_a_cache(relay) -> None:
+    cached = _job({"uses": "actions/setup-python@x", "with": {"cache": "pip"}}, outputs={"v": "x"})
+    jobs = {"build": cached}
+    if relay:
+        jobs["relay"] = _job({"run": "x"}, needs="build", outputs={"v": "${{ needs.build.outputs.v }}"})
+    source = "relay" if relay else "build"
+    jobs["deploy"] = _job(
+        {"run": f"echo ${{{{ needs.{source}.outputs.v }}}}"},
+        needs=source,
+        env={"K": "${{ secrets.K }}"},
+    )
+    assert routing_failures({"o.yml": _other(**jobs)}, frozenset())
