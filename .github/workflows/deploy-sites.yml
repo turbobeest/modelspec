@@ -43,7 +43,7 @@ concurrency:
 jobs:
   decide-browser:
     name: Test decide page (human gate ${{ matrix.human_gate }}, visit gate ${{ matrix.visit_gate }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'pull_request' && vars.MODELSPEC_PR_RUNNER || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
       matrix:

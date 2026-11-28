@@ -42,7 +42,7 @@ jobs:
   memory:
     if: github.event_name == 'pull_request'
     name: Worker memory headroom
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'pull_request' && vars.MODELSPEC_PR_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
     env:
       MODELSPEC_SNAPSHOT_KEY: model247-ci-fixture-key
@@ -110,7 +110,7 @@ jobs:
   bundle:
     if: github.event_name != 'schedule' || vars.DATA_SPLIT_ENABLED == 'true'
     name: Rank Worker bundle
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'pull_request' && vars.MODELSPEC_PR_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
