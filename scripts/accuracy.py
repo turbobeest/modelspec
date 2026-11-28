@@ -1113,11 +1113,11 @@ def _healthy_private_sources(
     store: Any,
     fetcher: Any,
     as_of: date,
-) -> dict[str, str]:
+) -> dict[str, tuple[str, datetime, list[str]]]:
     """The private sources that fetched a copy by plain HTTP this run, as the nightly fetches
-    every source (MODEL-575), with that copy's ref. A shell, a refusal, an error or a missing
-    registration is not healthy. Nothing is reported per source: only the excuse depends on
-    it."""
+    every source (MODEL-575), with that copy's ref, read time and resolved URLs. A shell,
+    a refusal, an error or a missing registration is not healthy. Nothing is reported per
+    source: only the excuse depends on it."""
     from decision.sources import recheck
 
     wanted = sorted(sid for sid in source_ids if sid in sources)
@@ -1128,24 +1128,29 @@ def _healthy_private_sources(
         fetcher=fetcher, store=store,
         now=datetime.combine(as_of, datetime.min.time(), tzinfo=UTC),
     )
-    return {sid: state.snapshot.copy_ref for sid, state in report.states.items()
-            if state.snapshot is not None}
+    return {
+        sid: (state.snapshot.copy_ref, state.snapshot.retrieved_at,
+              list(report.fetches[sid].resolved_urls))
+        for sid, state in report.states.items() if state.snapshot is not None
+    }
 
 
 def _private_version_reads(
     claim: Any,
-    copies: Mapping[str, str],
+    copies: Mapping[str, tuple[str, datetime, list[str]]],
     sources: Mapping[str, Any],
     *,
     store: Any,
     extractors: Sequence[Any],
     today: date,
 ) -> bool:
-    """The private claim, pinned to this run's copies of its sources, reads as ``verified``
-    by a nightly reader, or as ``cited`` when the engine's own cite-only rule grants it
-    (a cite-only source with a citation record for this run's copy; the nightly never fails
-    a ``cited`` draw either). A retirement (``claim`` is ``None``) needs no read. Anything
-    else, a reader the nightly does not run included, keeps the draw (MODEL-575)."""
+    """The private claim, pinned to this run's copies of its sources (ref, read time and
+    resolved URLs all from this run, none from the queue), reads as ``verified`` by a
+    nightly reader, or as ``cited`` when the engine's own cite-only rule grants it and this
+    run's store holds a citation record for a fresh copy at its registered URL (the nightly
+    never fails a ``cited`` draw either). A retirement (``claim`` is ``None``) needs no read.
+    Anything else, an exception or a reader the nightly does not run included, keeps the
+    draw (MODEL-575)."""
     from decision.verify import StoredRegions, verify
 
     if claim is None:
@@ -1153,14 +1158,24 @@ def _private_version_reads(
     if any(source.source_id not in copies for source in claim.sources):
         return False
     pinned = replace(claim, sources=tuple(
-        source.model_copy(update={"snapshot_ref": copies[source.source_id]})
+        source.model_copy(update={
+            "snapshot_ref": copies[source.source_id][0],
+            "retrieved_at": copies[source.source_id][1],
+            "resolved_urls": copies[source.source_id][2],
+        })
         for source in claim.sources
     ))
     try:
         result = verify(pinned, StoredRegions(store, sources), extractors, today=today)
-    except (KeyError, TypeError, ValueError):
+        if result.outcome == "cited":
+            return any(
+                store.citation(copies[source.source_id][0],
+                               url=str(sources[source.source_id].url)) is not None
+                for source in claim.sources
+            )
+    except Exception:  # noqa: BLE001  (a failed private re-read only keeps the draw)
         return False
-    return result.outcome in ("verified", "cited")
+    return result.outcome == "verified"
 
 
 def _superseded_detail(
@@ -1684,7 +1699,10 @@ def data_fidelity(
     refused_sources: set[str] = set()
     shell_sources: set[str] = set()
     with tempfile.TemporaryDirectory(prefix="modelspec-accuracy-sources-") as temporary:
-        store = CopyStore(Path(temporary))
+        store = CopyStore(Path(temporary) / "public")
+        # The private re-reads keep their own store: a citation record written for their
+        # bytes must never touch a public draw's copy of the same bytes (MODEL-575).
+        private_store = CopyStore(Path(temporary) / "private")
         fetcher = Fetcher()
         while drawn < len(order):
             assessed = sum(counts[name] for name in _ASSESSED)
@@ -1714,14 +1732,15 @@ def data_fidelity(
             }
             healthy = _healthy_private_sources(
                 {sid for key in candidates for sid in superseded[key][1]},
-                private_sources, store=store, fetcher=fetcher, as_of=as_of,
+                private_sources, store=private_store, fetcher=fetcher, as_of=as_of,
             )
             excused = {
                 key for key in candidates
                 if _excused_by_private_data(key, fetch_diagnostics[key], superseded,
                                             private_urls=private_urls, healthy=healthy)
                 and _private_version_reads(superseded[key][4], healthy, private_sources,
-                                           store=store, extractors=extractors, today=as_of)
+                                           store=private_store, extractors=extractors,
+                                           today=as_of)
             }
             refused_sources.update(
                 row["source_id"] for key, rows in fetch_diagnostics.items()

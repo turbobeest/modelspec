@@ -1464,10 +1464,12 @@ def _write_registry(root: Path, sources: dict[str, Source]) -> None:
     }))
 
 
-def _shell_fidelity(tmp_path: Path, monkeypatch, *, kept_on_shell: int = 0, rehomed=_OK):
+def _shell_fidelity(tmp_path: Path, monkeypatch, *, kept_on_shell: int = 0, rehomed=_OK,
+                    cite_only=_OK):
     """A public image whose ``lag`` source now answers a shell (MODEL-575), with 12 values
     on a readable source and ``kept_on_shell`` more values on the shell source. The private
-    data registers ``rehomed`` (answering ``rehomed``) and ``lag-alias`` (``lag``'s URL)."""
+    data registers ``rehomed`` (answering ``rehomed``), ``lag-alias`` (``lag``'s URL) and
+    ``citeonly`` on a cite-only host (answering ``cite_only``)."""
     from decision import sources as source_module
 
     public, private = tmp_path / "public", tmp_path / "private"
@@ -1477,6 +1479,8 @@ def _shell_fidelity(tmp_path: Path, monkeypatch, *, kept_on_shell: int = 0, reho
     _write_registry(private, {
         **{sid: _text_source(sid, "http") for sid in ("lag", "plain", "rehomed")},
         "lag-alias": alias,
+        "citeonly": _text_source("citeonly", "http").model_copy(
+            update={"url": "https://x.ai/rehomed"}),
     })
     lag = _sourced("lab/lag#context", "lag")
     kept = [_sourced(f"lab/kept-{i}#context", "lag") for i in range(kept_on_shell)]
@@ -1492,6 +1496,7 @@ def _shell_fidelity(tmp_path: Path, monkeypatch, *, kept_on_shell: int = 0, reho
         "https://example.test/lag": _SHELL,
         "https://example.test/plain": _OK,
         "https://example.test/rehomed": rehomed,
+        "https://x.ai/rehomed": cite_only,
     }))
     return public, private, lag, len(claims)
 
@@ -1611,6 +1616,52 @@ def test_a_replacement_that_does_not_state_the_value_never_excuses_a_shell(
     other = FetchResult("ok", 200, body=b"Model: Model\ncontext: 30\n", content_type="text/plain")
     public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch, rehomed=other)
     _file_checked(private, _rehomed(lag, "rehomed"), datetime(2026, 10, 10, tzinfo=UTC))
+
+    _assert_shell_fails(_shell_run(public, private, size), lag)
+
+
+def test_a_fresh_cite_only_copy_of_the_replacement_excuses_a_shell(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch)
+    _file_checked(private, _rehomed(lag, "citeonly"), datetime(2026, 10, 10, tzinfo=UTC),
+                  "cited")
+
+    result = _shell_run(public, private, size)
+
+    assert result.status == "pass", result.summary
+    assert _lag_row(result, lag)["reason"] == accuracy.SUPERSEDED_RECITED
+    assert "x.ai" not in json.dumps(result.details)
+
+
+def test_a_stale_cite_only_redirect_never_grants_cited_to_a_fresh_wrong_page(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    # The queued claim remembers a cite-only redirect; this run's copy is an ordinary page
+    # that states another value. Only this run's fetch metadata counts.
+    other = FetchResult("ok", 200, body=b"Model: Model\ncontext: 30\n", content_type="text/plain")
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch, rehomed=other)
+    stale = _rehomed(lag, "rehomed")
+    stale = replace(stale, sources=(stale.sources[0].model_copy(
+        update={"resolved_urls": ["https://x.ai/rehomed"]}),))
+    _file_checked(private, stale, datetime(2026, 10, 10, tzinfo=UTC), "cited")
+
+    _assert_shell_fails(_shell_run(public, private, size), lag)
+
+
+def test_a_private_re_read_that_raises_keeps_the_draw(tmp_path: Path, monkeypatch) -> None:
+    from decision import verify as verify_module
+
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch)
+    _file_checked(private, _rehomed(lag, "rehomed"), datetime(2026, 10, 10, tzinfo=UTC))
+    real = verify_module.verify
+
+    def flaky(claim, *args, **kwargs):
+        if any(source.source_id == "rehomed" for source in claim.sources):
+            raise RuntimeError("reader failed")
+        return real(claim, *args, **kwargs)
+
+    monkeypatch.setattr(verify_module, "verify", flaky)
 
     _assert_shell_fails(_shell_run(public, private, size), lag)
 
