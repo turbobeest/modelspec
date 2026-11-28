@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import sys
 from dataclasses import replace
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -15,7 +15,9 @@ from typer.testing import CliRunner
 from cli.modelspec import legacy as cli_mod
 from decision.model import SourceRef, TargetRef, VerificationActor
 from decision.sources import CopyStore, FetchResult, Source
-from decision.verify import Claim, KeyValueExtractor, Queue, StoredRegions, VerificationLog, verify
+from decision.verify import (
+    Claim, KeyValueExtractor, Queue, Result, StoredRegions, VerificationLog, verify,
+)
 from scripts import accuracy
 from scripts.recall_run import Finding, QuestionResult
 
@@ -1447,6 +1449,395 @@ def test_nightly_cli_loads_private_corrections(tmp_path: Path, monkeypatch) -> N
     ]) == 0
     report = json.loads((output / "accuracy.json").read_text())
     assert report["layers"][0]["counts"]["public_image_lag"] == 1
+
+
+_SHELL = FetchResult("ok", 200, body=b"", content_type="text/plain")
+_OK = FetchResult("ok", 200, body=_PAGE, content_type="text/plain")
+
+
+def _write_registry(root: Path, sources: dict[str, Source]) -> None:
+    registry = root / "registry" / "sources.yaml"
+    registry.parent.mkdir(parents=True, exist_ok=True)
+    registry.write_text(yaml.safe_dump({
+        "schema_version": 1,
+        "sources": [source.model_dump(mode="json") for source in sources.values()],
+    }))
+
+
+def _shell_fidelity(tmp_path: Path, monkeypatch, *, kept_on_shell: int = 0, rehomed=_OK,
+                    cite_only=_OK):
+    """A public image whose ``lag`` source now answers a shell (MODEL-575), with 12 values
+    on a readable source and ``kept_on_shell`` more values on the shell source. The private
+    data registers ``rehomed`` (answering ``rehomed``), ``lag-alias`` (``lag``'s URL) and
+    ``citeonly`` on a cite-only host (answering ``cite_only``)."""
+    from decision import sources as source_module
+
+    public, private = tmp_path / "public", tmp_path / "private"
+    _write_registry(public, {sid: _text_source(sid, "http") for sid in ("lag", "plain")})
+    alias = _text_source("lag-alias", "http").model_copy(
+        update={"url": "https://example.test/lag"})
+    _write_registry(private, {
+        **{sid: _text_source(sid, "http") for sid in ("lag", "plain", "rehomed", "rehomed2")},
+        "lag-alias": alias,
+        "citeonly": _text_source("citeonly", "http").model_copy(
+            update={"url": "https://x.ai/rehomed"}),
+    })
+    lag = _sourced("lab/lag#context", "lag")
+    kept = [_sourced(f"lab/kept-{i}#context", "lag") for i in range(kept_on_shell)]
+    claims = [lag, *kept, *[_sourced(f"lab/ok-{i}#context", "plain") for i in range(12)]]
+    for claim in claims:
+        _file_verified(public, claim, date(2026, 10, 6))
+    # The private data starts as the image did: each claim filed and checked.
+    for claim in claims:
+        _file_verified(private, claim, date(2026, 10, 6))
+        Queue(private / "verification").checked(
+            Result(claim.target, "verified"), at=datetime(2026, 10, 6, 1, tzinfo=UTC))
+    monkeypatch.setattr(source_module, "Fetcher", lambda: _FetchResults({
+        "https://example.test/lag": _SHELL,
+        "https://example.test/plain": _OK,
+        "https://example.test/rehomed": rehomed,
+        "https://example.test/rehomed2": rehomed,
+        "https://x.ai/rehomed": cite_only,
+    }))
+    return public, private, lag, len(claims)
+
+
+def _file_checked(root: Path, claim: Claim, at: datetime, outcome: str = "verified") -> None:
+    queue = Queue(root / "verification")
+    queue.file(claim, at=at)
+    queue.checked(Result(claim.target, outcome), at=at + timedelta(hours=1))
+
+
+def _rehomed(claim: Claim, *source_ids: str) -> Claim:
+    return replace(claim, sources=tuple(
+        SourceRef(source_id=sid, snapshot_ref="sha256:" + "e" * 64, cited_regions=["table"])
+        for sid in source_ids))
+
+
+def _shell_run(public: Path, private: Path, size: int, as_of: date = date(2026, 10, 13)):
+    # Every value is drawn: the sample asks for all of them but one.
+    return accuracy.data_fidelity(
+        public, as_of=as_of, config=accuracy.load_config().data_fidelity,
+        sample_size=size - 1, seed="model575", private_data_root=private,
+    )
+
+
+def _lag_row(result, lag: Claim) -> dict:
+    return next(row for row in result.details["sample"] if row["target"] == "fact:" + lag.target.id)
+
+
+@pytest.mark.parametrize("outcome", ["verified", "cited"])
+def test_a_draw_re_cited_on_other_sources_in_private_data_is_lag_not_a_shell_failure(
+    tmp_path: Path, monkeypatch, outcome,
+) -> None:
+    # ``cited``: MODEL-556 filed cite-only re-homes with a cited check and no log record.
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch)
+    _file_checked(private, _rehomed(lag, "rehomed"), datetime(2026, 10, 10, tzinfo=UTC), outcome)
+
+    result = _shell_run(public, private, size)
+
+    assert result.status == "pass", result.summary
+    assert result.counts["public_image_lag"] == 1
+    assert result.counts["unreachable"] == 0
+    assert result.details["shell_page"] == 0
+    assert result.details["values_drawn"] == size
+    row = _lag_row(result, lag)
+    assert row["outcome"] == "public_image_lag"
+    assert row["reason"] == accuracy.SUPERSEDED_RECITED
+    assert row["sources"][0]["error_category"] == "shell_page"
+    assert row["private_correction"] == {
+        "public_verified_date": "2026-10-06", "superseded_date": "2026-10-10"}
+    # The private version's sources never reach the report.
+    assert "rehomed" not in json.dumps(result.details)
+    assert "0 draw(s) lagged a newer verified private correction" in result.summary
+    assert "1 draw(s) were superseded in the private data" in result.summary
+    frozen = VerificationLog(public / "verification").latest()[("fact", lag.target.id)]
+    assert frozen.outcome == "verified"
+    assert Queue(public / "verification").recrawl_requests() == []
+
+
+def test_a_draw_retired_in_private_data_is_lag_not_a_shell_failure(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch)
+    _append_retired(private, lag, "2026-10-09T00:00:00+00:00")
+
+    result = _shell_run(public, private, size)
+
+    assert result.status == "pass", result.summary
+    assert result.counts["public_image_lag"] == 1
+    assert result.details["shell_page"] == 0
+    row = _lag_row(result, lag)
+    assert row["reason"] == accuracy.SUPERSEDED_RETIRED
+    assert row["private_correction"]["superseded_date"] == "2026-10-09"
+
+
+def _append_retired(private: Path, claim: Claim, at: str) -> None:
+    events = private / "verification" / "queue" / "events.jsonl"
+    with events.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps({"event": "retired", "at": at,
+                                 "target": claim.target.model_dump(), "reason": "no_data_row"})
+                     + "\n")
+
+
+def _assert_shell_fails(result, lag: Claim) -> None:
+    assert result.status == "fail"
+    assert result.details["shell_page"] == 1
+    assert "returned a shell page (shell_page)" in result.summary
+    assert _lag_row(result, lag)["outcome"] != "public_image_lag"
+
+
+@pytest.mark.parametrize("private_sources", [
+    ("lag",), ("lag", "rehomed"), ("lag-alias",), ("unregistered",),
+], ids=["same_sources", "still_cites_the_shell", "same_url_other_id", "unregistered"])
+def test_a_shell_source_the_private_version_still_cites_still_fails(
+    tmp_path: Path, monkeypatch, private_sources,
+) -> None:
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch)
+    _file_checked(private, _rehomed(lag, *private_sources), datetime(2026, 10, 10, tzinfo=UTC))
+
+    _assert_shell_fails(_shell_run(public, private, size), lag)
+
+
+@pytest.mark.parametrize("replacement", [_SHELL, _FORBIDDEN], ids=["shell", "forbidden"])
+def test_a_broken_replacement_never_excuses_a_broken_original(
+    tmp_path: Path, monkeypatch, replacement,
+) -> None:
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch, rehomed=replacement)
+    _file_checked(private, _rehomed(lag, "rehomed"), datetime(2026, 10, 10, tzinfo=UTC))
+
+    _assert_shell_fails(_shell_run(public, private, size), lag)
+
+
+def test_a_replacement_that_does_not_state_the_value_never_excuses_a_shell(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    # The private queue says "verified", but this run's copy of the replacement reads
+    # another value: the check may have been of an earlier claim (MODEL-575 review).
+    other = FetchResult("ok", 200, body=b"Model: Model\ncontext: 30\n", content_type="text/plain")
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch, rehomed=other)
+    _file_checked(private, _rehomed(lag, "rehomed"), datetime(2026, 10, 10, tzinfo=UTC))
+
+    _assert_shell_fails(_shell_run(public, private, size), lag)
+
+
+def test_a_fresh_cite_only_copy_of_the_replacement_excuses_a_shell(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch)
+    _file_checked(private, _rehomed(lag, "citeonly"), datetime(2026, 10, 10, tzinfo=UTC),
+                  "cited")
+
+    result = _shell_run(public, private, size)
+
+    assert result.status == "pass", result.summary
+    assert _lag_row(result, lag)["reason"] == accuracy.SUPERSEDED_RECITED
+    assert "x.ai" not in json.dumps(result.details)
+    # The cite-only copy has the very bytes of the public ``plain`` page; its citation
+    # record must not turn those public draws into ``cited``.
+    assert _OK.body == _PAGE
+    assert result.counts["verified"] == 12
+    assert result.counts.get("cited", 0) == 0
+    assert {row["outcome"] for row in result.details["sample"]
+            if row["target"].startswith("fact:lab/ok-")} == {"verified"}
+
+
+def test_a_stale_cite_only_redirect_never_grants_cited_to_a_fresh_wrong_page(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    # The queued claim remembers a cite-only redirect; this run's copy is an ordinary page
+    # that states another value. Only this run's fetch metadata counts.
+    other = FetchResult("ok", 200, body=b"Model: Model\ncontext: 30\n", content_type="text/plain")
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch, rehomed=other)
+    stale = _rehomed(lag, "rehomed")
+    stale = replace(stale, sources=(stale.sources[0].model_copy(
+        update={"resolved_urls": ["https://x.ai/rehomed"]}),))
+    _file_checked(private, stale, datetime(2026, 10, 10, tzinfo=UTC), "cited")
+
+    _assert_shell_fails(_shell_run(public, private, size), lag)
+
+
+def test_two_identical_same_host_replacements_are_both_shells(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    # Two different URLs on one host, the same bytes: MODEL-519 calls both shells, so the
+    # one fetched first may not excuse the draw either.
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch)
+    _file_checked(private, _rehomed(lag, "rehomed", "rehomed2"),
+                  datetime(2026, 10, 10, tzinfo=UTC))
+
+    _assert_shell_fails(_shell_run(public, private, size), lag)
+
+
+def test_two_identical_same_host_replacements_are_both_shells_unit(tmp_path: Path) -> None:
+    from decision.sources import CopyStore
+
+    sources = {sid: _text_source(sid, "http") for sid in ("rehomed", "rehomed2", "solo")}
+    bodies = {"https://example.test/rehomed": _OK, "https://example.test/rehomed2": _OK,
+              "https://example.test/solo": FetchResult(
+                  "ok", 200, body=b"Model: Model\ncontext: 11\n", content_type="text/plain")}
+    healthy = accuracy._healthy_private_sources(
+        {"rehomed", "rehomed2", "solo"}, sources, store=CopyStore(tmp_path / "copies"),
+        fetcher=_FetchResults(bodies), as_of=date(2026, 10, 13))
+    assert set(healthy) == {"solo"}
+
+
+def test_private_re_reads_use_their_own_http_client(tmp_path: Path, monkeypatch) -> None:
+    import httpx
+
+    from decision import sources as source_module
+
+    real_fetcher = source_module.Fetcher
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch)
+    _file_checked(private, _rehomed(lag, "rehomed"), datetime(2026, 10, 10, tzinfo=UTC))
+    seen: list[tuple[int, str, str | None]] = []
+    clients: list[int] = []
+
+    def factory():
+        index = len(clients)
+        clients.append(index)
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            url = str(request.url)
+            seen.append((index, url, request.headers.get("cookie")))
+            if url.endswith("/rehomed"):
+                # A private response that sets a cookie for the whole host.
+                return httpx.Response(200, content=_PAGE, headers={
+                    "content-type": "text/plain", "set-cookie": "private=1; Path=/"})
+            if url.endswith("/lag"):
+                return httpx.Response(200, content=b"", headers={"content-type": "text/plain"})
+            return httpx.Response(200, content=_PAGE, headers={"content-type": "text/plain"})
+
+        return real_fetcher(
+            httpx.Client(transport=httpx.MockTransport(handler)), sleep=lambda _: None)
+
+    monkeypatch.setattr(source_module, "Fetcher", factory)
+
+    result = _shell_run(public, private, size)
+
+    assert result.counts["public_image_lag"] == 1, result.summary
+    private_clients = {index for index, url, _ in seen if url.endswith("/rehomed")}
+    public_clients = {index for index, url, _ in seen if not url.endswith("/rehomed")}
+    assert private_clients and public_clients and not private_clients & public_clients
+    assert all(cookie is None for index, url, cookie in seen if index in public_clients)
+
+
+def test_a_private_re_read_that_raises_keeps_the_draw(tmp_path: Path, monkeypatch) -> None:
+    from decision import verify as verify_module
+
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch)
+    _file_checked(private, _rehomed(lag, "rehomed"), datetime(2026, 10, 10, tzinfo=UTC))
+    real = verify_module.verify
+
+    def flaky(claim, *args, **kwargs):
+        if any(source.source_id == "rehomed" for source in claim.sources):
+            raise RuntimeError("reader failed")
+        return real(claim, *args, **kwargs)
+
+    monkeypatch.setattr(verify_module, "verify", flaky)
+
+    _assert_shell_fails(_shell_run(public, private, size), lag)
+
+
+@pytest.mark.parametrize("outcome", ["mismatch", "unreachable", None],
+                         ids=["mismatch", "unreachable", "never_checked"])
+def test_a_draw_not_verified_in_private_data_still_fails_on_a_shell(
+    tmp_path: Path, monkeypatch, outcome,
+) -> None:
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch)
+    rehomed = _rehomed(lag, "rehomed")
+    if outcome is None:
+        Queue(private / "verification").file(rehomed, at=datetime(2026, 10, 10, tzinfo=UTC))
+    else:
+        _file_checked(private, rehomed, datetime(2026, 10, 10, tzinfo=UTC), outcome)
+
+    _assert_shell_fails(_shell_run(public, private, size), lag)
+
+
+def test_a_check_that_may_belong_to_an_earlier_filing_does_not_excuse_a_shell(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    # Two filings, then one check: the check may be of the first, still on the shell.
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch)
+    queue = Queue(private / "verification")
+    queue.file(_rehomed(lag, "lag"), at=datetime(2026, 10, 9, tzinfo=UTC))
+    queue.file(_rehomed(lag, "rehomed"), at=datetime(2026, 10, 10, tzinfo=UTC))
+    queue.checked(Result(lag.target, "verified"), at=datetime(2026, 10, 10, 1, tzinfo=UTC))
+
+    _assert_shell_fails(_shell_run(public, private, size), lag)
+
+
+def test_a_re_cite_with_a_changed_value_is_not_a_supersession(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch)
+    _file_checked(private, replace(_rehomed(lag, "rehomed"), value=20),
+                  datetime(2026, 10, 10, tzinfo=UTC))
+
+    result = _shell_run(public, private, size)
+
+    assert result.details["shell_page"] == 1
+    assert result.status == "fail"
+
+
+@pytest.mark.parametrize(("at", "as_of"), [
+    ("2026-10-20T00:00:00+00:00", date(2026, 10, 13)),   # after the run date
+    ("2026-10-05T00:00:00+00:00", date(2026, 10, 13)),   # older than the frozen record
+    ("2026-10-13T20:00:00-05:00", date(2026, 10, 13)),   # the 14th in UTC
+], ids=["after_run", "before_frozen_record", "after_run_in_utc"])
+def test_a_retirement_outside_the_window_does_not_excuse_a_shell(
+    tmp_path: Path, monkeypatch, at, as_of,
+) -> None:
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch)
+    _append_retired(private, lag, at)
+
+    _assert_shell_fails(_shell_run(public, private, size, as_of), lag)
+
+
+def test_a_re_filing_after_the_run_date_does_not_undo_a_retirement(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch)
+    _append_retired(private, lag, "2026-10-09T00:00:00+00:00")
+    Queue(private / "verification").file(lag, at=datetime(2026, 10, 20, tzinfo=UTC))
+
+    result = _shell_run(public, private, size)
+
+    assert result.status == "pass", result.summary
+    assert _lag_row(result, lag)["reason"] == accuracy.SUPERSEDED_RETIRED
+
+
+def test_an_excused_draw_does_not_hide_a_shell_another_kept_draw_cites(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    public, private, lag, size = _shell_fidelity(tmp_path, monkeypatch, kept_on_shell=1)
+    _file_checked(private, _rehomed(lag, "rehomed"), datetime(2026, 10, 10, tzinfo=UTC))
+
+    result = _shell_run(public, private, size)
+
+    assert result.status == "fail"
+    assert result.counts["public_image_lag"] == 1
+    assert result.details["shell_page"] == 1
+
+
+def test_a_terms_register_refusal_is_never_excused_by_private_data() -> None:
+    key = ("fact", "lab/lag#context")
+    superseded = {key: (accuracy.SUPERSEDED_RECITED, frozenset({"rehomed"}),
+                        date(2026, 10, 6), date(2026, 10, 10))}
+    urls = {"rehomed": "https://example.test/rehomed"}
+
+    def excused(category, *, key=key, healthy=("rehomed",)):
+        rows = [{"source_id": "lag", "url": "https://example.test/lag",
+                 "error_category": category}]
+        return accuracy._excused_by_private_data(
+            key, rows, superseded, private_urls=urls, healthy=healthy)
+
+    assert excused("shell_page")
+    assert not excused("redirect_unclassified")
+    assert not excused("terms_register_unreadable")
+    assert not excused(None)
+    assert not excused("shell_page", healthy=())
+    assert not excused("shell_page", key=("fact", "other"))
 
 
 @pytest.mark.parametrize(("value", "verified_date"), [
