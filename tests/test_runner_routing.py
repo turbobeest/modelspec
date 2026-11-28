@@ -1,23 +1,29 @@
 """Runner routing guard (MODEL-578).
 
 PR test jobs may run on a third party's runner when the repository variable
-MODELSPEC_PR_RUNNER names one, and only for `pull_request` events. Unset, or on
-any other event (push to main, schedule, dispatch), they run on GitHub's
-runner, so deleting the variable rolls every job back and nothing a trusted
-trigger runs, caches or deploys ever comes from the third party.
+MODELSPEC_PR_RUNNER names one, and only for `pull_request` events:
 
-A job on the variable must never see a secret, the private data or a deploy
-credential: no `secrets` reference (workflow env included), no environment,
-no write permission, no deploy command and no private-data checkout.
+    runs-on: ${{ github.event_name == 'pull_request' && vars.MODELSPEC_PR_RUNNER
+                 || 'ubuntu-latest' }}   (one line in the workflows)
 
-Three channels could carry a third-party runner's output into a privileged
-job, and each is checked:
-- artifacts and job outputs (`needs`) inside the workflow;
-- artifacts across runs (`workflow_run` triggers, `download-artifact` with a
-  `run-id`), which no workflow may use;
-- caches. A PR's cache scope is shared by every workflow that runs on that
-  PR, so a job that holds a write token or a secret on `pull_request` must not
-  restore a cache, unless it is a reviewed exception below.
+Unset, or on push, schedule or dispatch, every job runs on GitHub's runner.
+
+The lane is partitioned by WORKFLOW, not by job, so no data flow inside a
+workflow has to be traced:
+
+1. Only the workflows in MOVED_WORKFLOWS use the variable, and every job in
+   them uses it. Each moved workflow is unprivileged on every trigger: no
+   `secrets`, no permission beyond `contents: read` / `actions: read`
+   (declared explicitly), no environment, no reusable-workflow call, no
+   deploy or publish step, no private-data read, no privileged trigger.
+2. Every other workflow keeps an allowed GitHub label and never names the
+   variable.
+3. Nothing a moved workflow produces can reach a privileged job in another
+   workflow: no workflow may trigger on `workflow_run` or download artifacts
+   from another run, and no job that is privileged on a `pull_request` event
+   may restore a cache (a third-party runner can write any key in the PR's
+   cache scope). Push-time caches are main-scope, which moved workflows never
+   write, because of the event gate.
 """
 
 from __future__ import annotations
@@ -36,46 +42,16 @@ PR_RUNNER = (
 )
 ALLOWED_LABELS = frozenset({"ubuntu-latest"})
 
-# The PR test lane. Adding a job here is a reviewed decision: read its steps.
-PR_LANE = frozenset(
-    {
-        ("accuracy.yml", "accuracy"),
-        ("chart-check.yml", "check-evidence-charts"),
-        ("data-freeze.yml", "freeze"),
-        ("deploy-sites.yml", "decide-browser"),
-        ("mcp.yml", "test"),
-        ("rank-api.yml", "bundle"),
-        ("rank-api.yml", "memory"),
-        ("test.yml", "package-smoke"),
-        ("test.yml", "pytest-perf-and-collection"),
-        ("test.yml", "pytest-shards"),
-        ("test.yml", "required-pytest"),
-    }
-)
+# Adding a workflow here is a reviewed decision: read every job and trigger.
+MOVED_WORKFLOWS = frozenset({"chart-check.yml", "data-freeze.yml", "test.yml"})
 
-# PR-privileged jobs that restore a cache the lane can write. Each needs a
-# reason and a ticket; the list may only shrink.
+# Jobs privileged on pull_request that restore a cache. Each names its ticket;
+# the list may only shrink, and the variable stays unset while it is non-empty.
 PR_CACHE_EXCEPTIONS: dict[tuple[str, str], str] = {
-    ("validate-cards.yml", "validate"): (
-        "MODEL-578 follow-up: restores the pip cache with a pull-requests: write token. "
-        "Drop its `cache: 'pip'` (a non-runs-on edit) before MODELSPEC_PR_RUNNER is set."
-    ),
+    ("validate-cards.yml", "validate"): "MODEL-582: pip cache under a pull-requests: write token",
 }
 
-
-def test_each_cache_exception_is_still_needed() -> None:
-    # Once the follow-up removes the cache (or the privilege), the exception
-    # must go too, so it cannot silently allow a later reintroduction.
-    workflows = _workflows()
-    for name, job_name in PR_CACHE_EXCEPTIONS:
-        workflow = workflows[name]
-        job = (workflow.get("jobs") or {})[job_name]
-        assert "pull_request" in _triggers(workflow), (name, job_name)
-        assert _runs_on_pull_request(job), (name, job_name)
-        assert _restores_cache(job), (name, job_name)
-        assert _privileged(workflow, job, on_pull_request=True), (name, job_name)
-
-
+READ_SCOPES = frozenset({"contents", "actions"})
 PRIVILEGED_TRIGGERS = frozenset({"pull_request_target", "workflow_run"})
 PRIVATE_DATA_MARKERS = ("modelspec-data", "MODELSPEC_DATA", "--private-data")
 DEPLOY_ACTIONS = ("cloudflare/wrangler-action", "pypa/gh-action-pypi-publish")
@@ -87,129 +63,15 @@ SETUP_ACTIONS = (
     "actions/setup-java",
     "astral-sh/setup-uv",
 )
-# `${{ github.event_name != 'pull_request' && secrets.X || '' }}` is empty on a PR.
-PR_GATED_SECRET = re.compile(
-    r"\$\{\{\s*github\.event_name\s*!=\s*'pull_request'\s*&&\s*secrets\.[A-Za-z0-9_]+\s*\|\|\s*''\s*\}\}"
-)
-
-
-def _load(path: Path) -> dict:
-    return yaml.safe_load(path.read_text(encoding="utf-8"))
-
-
-def _workflows() -> dict[str, dict]:
-    return {
-        path.name: _load(path)
-        for path in sorted(WORKFLOWS.iterdir())
-        if path.suffix in {".yml", ".yaml"}
-    }
-
-
-def _triggers(workflow: dict) -> set[str]:
-    # PyYAML reads the bare key `on` as True.
-    on = workflow.get("on", workflow.get(True))
-    if isinstance(on, str):
-        return {on}
-    if isinstance(on, list):
-        return set(on)
-    return set(on or {})
-
-
-def _dump(value) -> str:
-    return yaml.safe_dump(value, sort_keys=True)
-
-
-def _has_write_permission(permissions) -> bool:
-    if permissions is None:
-        return True  # the repository default may grant write
-    if isinstance(permissions, str):
-        return permissions != "read-all"
-    return any(str(level) not in {"read", "none"} for level in permissions.values())
-
-
-def _deploy_commands(job: dict) -> list[str]:
-    found = []
-    for step in job.get("steps", []):
-        uses = step.get("uses", "")
-        if uses.startswith(DEPLOY_ACTIONS):
-            found.append(uses)
-        for line in str(step.get("run", "")).splitlines():
-            code = "" if line.lstrip().startswith("#") else line
-            wrangler = re.search(r"wrangler", code, re.I) and re.search(
-                r"\b(deploy|publish|pages|secret|kv|d1|r2|versions)\b", code
-            )
-            publish = re.search(
-                r"\b(npm|uv|twine|poetry|hatch)\s+(publish|upload)\b|\bgh\s+release\b", code
-            )
-            if (wrangler or publish) and "--dry-run" not in code:
-                found.append(code.strip())
-    return found
-
-
-def _restores_cache(job: dict) -> bool:
-    for step in job.get("steps", []):
-        uses = step.get("uses", "").split("@", 1)[0]
-        if uses in CACHE_ACTIONS:
-            return True
-        if uses in SETUP_ACTIONS:
-            with_ = step.get("with") or {}
-            if with_.get("cache") or with_.get("enable-cache") not in (None, False, "false"):
-                return True
-    return False
-
-
 CROSS_RUN_DOWNLOAD = re.compile(
     r"\bgh\s+run\s+download\b|actions/artifacts|actions/runs/.*?/artifacts"
     r"|listWorkflowRunArtifacts|downloadArtifact|getArtifact"
 )
-
-
-def _cross_run_downloads(job: dict) -> bool:
-    for step in job.get("steps", []):
-        uses = step.get("uses", "")
-        with_ = step.get("with") or {}
-        if uses.startswith("actions/download-artifact") and (
-            "run-id" in with_ or "github-token" in with_
-        ):
-            return True
-        text = str(step.get("run", "")) + str(with_.get("script", ""))
-        if CROSS_RUN_DOWNLOAD.search(text):
-            return True
-    return False
-
-
-def _privileged(workflow: dict, job: dict, *, on_pull_request: bool) -> bool:
-    """Holds a secret, a write token, an environment or deploys, for that event."""
-    body = _dump(job) + _dump(workflow.get("env") or {})
-    if on_pull_request:
-        body = PR_GATED_SECRET.sub("", body)
-    permissions = job.get("permissions", workflow.get("permissions"))
-    return (
-        "secrets" in body
-        or "environment" in job
-        or _has_write_permission(permissions)
-        or bool(_deploy_commands(job))
-    )
-
-
-def _top_level_split(expression: str, operator: str) -> list[str]:
-    parts, depth, start, i = [], 0, 0, 0
-    while i < len(expression):
-        char = expression[i]
-        if char == "(":
-            depth += 1
-        elif char == ")":
-            depth -= 1
-        elif depth == 0 and expression.startswith(operator, i):
-            parts.append(expression[start:i])
-            start = i + len(operator)
-            i += len(operator)
-            continue
-        i += 1
-    parts.append(expression[start:])
-    return [part.strip() for part in parts]
-
-
+# `${{ github.event_name != 'pull_request' && secrets.X || '' }}` is empty on a PR.
+PR_GATED_SECRET = re.compile(
+    r"\$\{\{\s*github\.event_name\s*!=\s*'pull_request'\s*&&\s*secrets\.[A-Za-z0-9_]+"
+    r"\s*\|\|\s*''\s*\}\}"
+)
 NOT_ON_PULL_REQUEST = re.compile(
     r"^(github\.ref\s*==\s*'refs/heads/main'"
     r"|github\.event_name\s*!=\s*'pull_request'"
@@ -217,286 +79,312 @@ NOT_ON_PULL_REQUEST = re.compile(
 )
 
 
-def _runs_on_pull_request(job: dict) -> bool:
-    """False only when every top-level `||` branch of the job's `if` has a
-    top-level `&&` term that cannot hold on a pull_request event."""
-    condition = str(job.get("if", "") or "").strip()
-    if condition.startswith("${{") and condition.endswith("}}"):
-        condition = condition[3:-2].strip()
-    if not condition:
-        return True
-    for branch in _top_level_split(condition, "||"):
-        terms = _top_level_split(branch, "&&")
-        if not any(NOT_ON_PULL_REQUEST.match(term) for term in terms):
+def _workflows() -> dict[str, dict]:
+    return {
+        path.name: yaml.safe_load(path.read_text(encoding="utf-8"))
+        for path in sorted(WORKFLOWS.iterdir())
+        if path.suffix in {".yml", ".yaml"}
+    }
+
+
+def _triggers(workflow: dict) -> set[str]:
+    on = workflow.get("on", workflow.get(True))  # PyYAML reads bare `on` as True
+    if isinstance(on, str):
+        return {on}
+    if isinstance(on, list):
+        return set(on)
+    return set(on or {})
+
+
+def _jobs(workflow: dict) -> dict[str, dict]:
+    return workflow.get("jobs") or {}
+
+
+def _dump(value) -> str:
+    return yaml.safe_dump(value, sort_keys=True)
+
+
+def _read_only(permissions) -> bool:
+    if not isinstance(permissions, dict):
+        return False  # None means the repository default; strings grant broadly
+    return all(
+        scope in READ_SCOPES and level in {"read", "none"} for scope, level in permissions.items()
+    )
+
+
+def _grants_write(permissions) -> bool:
+    if permissions is None:
+        return True  # the repository default may grant write
+    if isinstance(permissions, str):
+        return permissions != "read-all"
+    return any(level not in {"read", "none"} for level in permissions.values())
+
+
+def _deploy_steps(job: dict) -> list[str]:
+    found = []
+    for step in job.get("steps", []):
+        uses = step.get("uses", "")
+        if uses.startswith(DEPLOY_ACTIONS):
+            found.append(uses)
+        for line in str(step.get("run", "")).splitlines():
+            if line.lstrip().startswith("#") or "--dry-run" in line:
+                continue
+            wrangler = re.search(r"wrangler", line, re.I) and re.search(
+                r"\b(deploy|publish|pages|secret|kv|d1|r2|versions)\b", line
+            )
+            publish = re.search(
+                r"\b(npm|uv|twine|poetry|hatch)\s+(publish|upload)\b|\bgh\s+release\b", line
+            )
+            if wrangler or publish:
+                found.append(line.strip())
+    return found
+
+
+def _restores_cache(job: dict) -> bool:
+    for step in job.get("steps", []):
+        uses = step.get("uses", "").split("@", 1)[0]
+        with_ = step.get("with") or {}
+        if uses in CACHE_ACTIONS:
+            return True
+        if uses in SETUP_ACTIONS and (
+            with_.get("cache") or with_.get("enable-cache") not in (None, False, "false")
+        ):
             return True
     return False
 
 
-def _needs(job: dict) -> list[str]:
-    needs = job.get("needs") or []
-    return [needs] if isinstance(needs, str) else list(needs)
+def _cross_run_download(job: dict) -> bool:
+    for step in job.get("steps", []):
+        with_ = step.get("with") or {}
+        if step.get("uses", "").startswith("actions/download-artifact") and (
+            "run-id" in with_ or "github-token" in with_
+        ):
+            return True
+        if CROSS_RUN_DOWNLOAD.search(str(step.get("run", "")) + str(with_.get("script", ""))):
+            return True
+    return False
 
 
-def routing_failures(workflows: dict[str, dict]) -> list[str]:
-    """Every rule this guard enforces, as a list of failures (empty = pass)."""
-    failures = []
-    on_variable: dict[str, set[str]] = {}
-    for name, workflow in workflows.items():
-        triggers = _triggers(workflow)
-        if "workflow_run" in triggers:
-            failures.append(f"{name}: workflow_run can consume artifacts of PR runs")
-        for job_name, job in (workflow.get("jobs") or {}).items():
-            where = f"{name}:{job_name}"
-            if _cross_run_downloads(job):
-                failures.append(f"{where}: downloads artifacts from another run")
-            runs_on = job.get("runs-on")
-            if runs_on is None:
-                failures.append(f"{where}: no runs-on")
-                continue
-            if runs_on == PR_RUNNER:
-                on_variable.setdefault(name, set()).add(job_name)
-            elif not (isinstance(runs_on, str) and runs_on in ALLOWED_LABELS):
-                failures.append(
-                    f"{where}: runs-on {runs_on!r} is neither {PR_RUNNER} nor an allowed label"
-                )
-                continue
-            if "MODELSPEC_PR_RUNNER" in _dump({k: v for k, v in job.items() if k != "runs-on"}):
-                failures.append(f"{where}: MODELSPEC_PR_RUNNER used outside runs-on")
-            if runs_on != PR_RUNNER:
-                continue
-            body = _dump(job)
-            if "secrets" in body:
-                failures.append(f"{where}: on the PR runner but references secrets")
-            if "secrets" in _dump(workflow.get("env") or {}):
-                failures.append(
-                    f"{where}: on the PR runner in a workflow whose env references secrets"
-                )
-            if "environment" in job:
-                failures.append(f"{where}: on the PR runner but uses a deployment environment")
-            permissions = job.get("permissions", workflow.get("permissions"))
-            if permissions is None:
-                failures.append(f"{where}: on the PR runner without explicit read-only permissions")
-            elif _has_write_permission(permissions):
-                failures.append(f"{where}: on the PR runner with write permission {permissions!r}")
-            for marker in PRIVATE_DATA_MARKERS:
-                if marker in body:
-                    failures.append(
-                        f"{where}: on the PR runner but mentions private data ({marker})"
-                    )
-            for command in _deploy_commands(job):
-                failures.append(f"{where}: on the PR runner but deploys or publishes: {command}")
-            privileged_triggers = triggers & PRIVILEGED_TRIGGERS
-            if privileged_triggers:
-                failures.append(
-                    f"{where}: on the PR runner in a {sorted(privileged_triggers)} workflow"
-                )
-            if "pull_request" not in triggers:
-                failures.append(
-                    f"{where}: on the PR runner but its workflow does not run on pull_request"
-                )
-
-    lane_exists = any(on_variable.values())
-    for name, workflow in workflows.items():
-        lane = on_variable.get(name, set())
-        on_pr = "pull_request" in _triggers(workflow)
-        for job_name, job in (workflow.get("jobs") or {}).items():
-            if job_name in lane or not _runs_on_pull_request(job):
-                # The lane is PR-only: a job that never runs on pull_request
-                # only ever sees GitHub-runner artifacts and main-ref caches.
-                continue
-            where = f"{name}:{job_name}"
-            # Within the workflow: no artifacts or outputs from the lane (direct or transitive).
-            upstream, frontier = set(), _needs(job)
-            jobs = workflow.get("jobs") or {}
-            while frontier:
-                item = frontier.pop()
-                if item not in upstream:
-                    upstream.add(item)
-                    frontier.extend(_needs(jobs.get(item, {})))
-            tainted = upstream & lane
-            if tainted and _privileged(workflow, job, on_pull_request=True):
-                body = _dump(job)
-                # Any `needs` output may relay a lane output, so read none.
-                if re.search(r"needs\.[A-Za-z0-9_-]+\.outputs", body):
-                    failures.append(
-                        f"{where}: privileged job reads needs outputs after PR-runner"
-                        f" jobs {sorted(tainted)}"
-                    )
-            # Artifacts are run-scoped: a privileged PR job can fetch a lane
-            # job's artifact without any `needs` path, so it may fetch none.
-            if (
-                lane
-                and on_pr
-                and "actions/download-artifact" in _dump(job)
-                and _privileged(workflow, job, on_pull_request=True)
-            ):
-                failures.append(
-                    f"{where}: privileged on pull_request and downloads artifacts in a workflow"
-                    f" with PR-runner jobs {sorted(lane)}"
-                )
-            # Across workflows: the PR cache scope.
-            if (
-                lane_exists
-                and on_pr
-                and _restores_cache(job)
-                and _privileged(workflow, job, on_pull_request=True)
-            ):
-                if (name, job_name) not in PR_CACHE_EXCEPTIONS:
-                    failures.append(
-                        f"{where}: privileged on pull_request and restores a cache"
-                        " the PR runner can write"
-                    )
-    return failures
+def _split(expression: str, operator: str) -> list[str]:
+    parts, depth, start, i = [], 0, 0, 0
+    while i < len(expression):
+        if expression[i] == "(":
+            depth += 1
+        elif expression[i] == ")":
+            depth -= 1
+        elif depth == 0 and expression.startswith(operator, i):
+            parts.append(expression[start:i])
+            start = i = i + len(operator)
+            continue
+        i += 1
+    parts.append(expression[start:])
+    return [part.strip() for part in parts]
 
 
-def _lane(workflows: dict[str, dict]) -> set[tuple[str, str]]:
-    return {
-        (name, job_name)
-        for name, workflow in workflows.items()
-        for job_name, job in (workflow.get("jobs") or {}).items()
-        if job.get("runs-on") == PR_RUNNER
-    }
-
-
-def test_every_workflow_job_routes_by_the_approved_rules() -> None:
-    failures = routing_failures(_workflows())
-    assert not failures, "\n".join(failures)
-
-
-def test_the_pr_runner_lane_is_exactly_the_reviewed_job_list() -> None:
-    assert _lane(_workflows()) == PR_LANE
-
-
-def test_the_runner_expression_falls_back_on_every_trusted_event() -> None:
-    # The expression only picks the variable on pull_request; push, schedule
-    # and dispatch runs keep GitHub's runner even with the variable set.
-    assert PR_RUNNER.startswith(
-        "${{ github.event_name == 'pull_request' && vars.MODELSPEC_PR_RUNNER || "
+def _runs_on_pull_request(workflow: dict, job: dict) -> bool:
+    """False only if the workflow lacks pull_request, or every top-level `||`
+    branch of the job's `if` has a top-level `&&` term false on a PR."""
+    if "pull_request" not in _triggers(workflow):
+        return False
+    condition = str(job.get("if") or "").strip()
+    if condition.startswith("${{") and condition.endswith("}}"):
+        condition = condition[3:-2].strip()
+    if not condition:
+        return True
+    return any(
+        not any(NOT_ON_PULL_REQUEST.match(term) for term in _split(branch, "&&"))
+        for branch in _split(condition, "||")
     )
 
 
-# The guard itself must catch each way a privileged job could reach the PR runner.
+def _privileged_on_pull_request(workflow: dict, job: dict) -> bool:
+    body = PR_GATED_SECRET.sub("", _dump(job) + _dump(workflow.get("env") or {}))
+    permissions = job.get("permissions", workflow.get("permissions"))
+    return (
+        "secrets" in body
+        or "environment" in job
+        or "uses" in job
+        or _grants_write(permissions)
+        or bool(_deploy_steps(job))
+    )
 
 
-def _workflow(job: dict, **extra) -> dict:
-    base = {"on": {"pull_request": {}}, "permissions": {"contents": "read"}, "jobs": {"j": job}}
+def unprivileged_failures(name: str, workflow: dict) -> list[str]:
+    """Rule 1: a moved workflow holds no privilege on any trigger."""
+    failures = []
+    privileged = _triggers(workflow) & PRIVILEGED_TRIGGERS
+    if privileged:
+        failures.append(f"{name}: privileged trigger {sorted(privileged)}")
+    if "pull_request" not in _triggers(workflow):
+        failures.append(f"{name}: does not run on pull_request")
+    if "secrets" in _dump(workflow.get("env") or {}):
+        failures.append(f"{name}: workflow env references secrets")
+    if not _read_only(workflow.get("permissions")):
+        failures.append(f"{name}: workflow permissions are not explicit and read-only")
+    for job_name, job in _jobs(workflow).items():
+        where = f"{name}:{job_name}"
+        body = _dump(job)
+        if job.get("runs-on") != PR_RUNNER:
+            failures.append(f"{where}: runs-on is not the PR runner expression")
+        if "secrets" in body:
+            failures.append(f"{where}: references secrets")
+        if "environment" in job:
+            failures.append(f"{where}: uses an environment")
+        if "uses" in job:
+            failures.append(f"{where}: calls a reusable workflow")
+        if "permissions" in job and not _read_only(job["permissions"]):
+            failures.append(f"{where}: permissions beyond contents/actions read")
+        for marker in PRIVATE_DATA_MARKERS:
+            if marker in body:
+                failures.append(f"{where}: reads private data ({marker})")
+        for step in _deploy_steps(job):
+            failures.append(f"{where}: deploys or publishes: {step}")
+    return failures
+
+
+def routing_failures(workflows: dict[str, dict], moved: frozenset[str]) -> list[str]:
+    failures = []
+    for name in sorted(moved - set(workflows)):
+        failures.append(f"{name}: listed as moved but missing")
+    for name, workflow in workflows.items():
+        if name in moved:
+            failures.extend(unprivileged_failures(name, workflow))
+        else:
+            if "MODELSPEC_PR_RUNNER" in _dump(workflow):
+                failures.append(f"{name}: not a moved workflow but names MODELSPEC_PR_RUNNER")
+            for job_name, job in _jobs(workflow).items():
+                if job.get("runs-on") not in ALLOWED_LABELS:
+                    failures.append(f"{name}:{job_name}: runs-on {job.get('runs-on')!r}")
+        # Rule 3, across workflows.
+        if "workflow_run" in _triggers(workflow):
+            failures.append(f"{name}: workflow_run trigger")
+        for job_name, job in _jobs(workflow).items():
+            where = f"{name}:{job_name}"
+            if _cross_run_download(job):
+                failures.append(f"{where}: downloads artifacts from another run")
+            if (
+                moved
+                and name not in moved
+                and _runs_on_pull_request(workflow, job)
+                and _restores_cache(job)
+                and _privileged_on_pull_request(workflow, job)
+                and (name, job_name) not in PR_CACHE_EXCEPTIONS
+            ):
+                failures.append(f"{where}: privileged on pull_request and restores a cache")
+    return failures
+
+
+def test_workflows_route_by_the_structural_rules() -> None:
+    failures = routing_failures(_workflows(), MOVED_WORKFLOWS)
+    assert not failures, "\n".join(failures)
+
+
+def test_each_cache_exception_is_still_needed() -> None:
+    workflows = _workflows()
+    for name, job_name in PR_CACHE_EXCEPTIONS:
+        workflow = workflows[name]
+        job = _jobs(workflow)[job_name]
+        assert _runs_on_pull_request(workflow, job), (name, job_name)
+        assert _restores_cache(job), (name, job_name)
+        assert _privileged_on_pull_request(workflow, job), (name, job_name)
+
+
+# The guard itself.
+
+
+def _wf(job: dict | None = None, **extra) -> dict:
+    base = {
+        "on": {"pull_request": {}, "push": {}},
+        "permissions": {"contents": "read"},
+        "jobs": {"j": job if job is not None else {"runs-on": PR_RUNNER, "steps": [{"run": "t"}]}},
+    }
     base.update(extra)
-    return {"fixture.yml": base}
+    return base
 
 
-def _job(**extra) -> dict:
-    job = {"runs-on": PR_RUNNER, "steps": [{"run": "pytest -q"}]}
-    job.update(extra)
-    return job
+def _lane_job(**extra) -> dict:
+    return {"runs-on": PR_RUNNER, "steps": [{"run": "pytest -q"}], **extra}
 
 
-def test_the_guard_accepts_a_plain_pr_test_job() -> None:
-    assert routing_failures(_workflow(_job())) == []
-
-
-def test_the_guard_accepts_a_secret_that_is_empty_on_pull_request() -> None:
-    secret = "${{ github.event_name != 'pull_request' && secrets.K || '' }}"
-    workflows = {
-        "fixture.yml": {
-            "on": {"pull_request": {}, "push": {}},
-            "permissions": {"contents": "read"},
-            "jobs": {
-                "lane": _job(),
-                "build": {
-                    "runs-on": "ubuntu-latest",
-                    "needs": "lane",
-                    "steps": [
-                        {"uses": "actions/setup-python@x", "with": {"cache": "pip"}},
-                        {"run": "make", "env": {"K": secret}},
-                    ],
-                },
-            },
-        }
-    }
-    assert routing_failures(workflows) == []
+def test_the_guard_accepts_an_unprivileged_moved_workflow() -> None:
+    assert routing_failures({"m.yml": _wf()}, frozenset({"m.yml"})) == []
 
 
 @pytest.mark.parametrize(
-    "workflows",
+    "workflow",
     [
-        _workflow(_job(env={"TOKEN": "${{ secrets.DEPLOY_TOKEN }}"})),
-        _workflow(_job(steps=[{"run": "x", "env": {"K": "${{ secrets.K }}"}}])),
-        _workflow(_job(secrets="inherit")),
-        _workflow(_job(), env={"K": "${{ secrets.K }}"}),
-        _workflow(_job(environment="production")),
-        _workflow(_job(permissions={"contents": "write"})),
-        _workflow(_job(permissions={"id-token": "write"})),
-        _workflow(_job(permissions="write-all")),
-        _workflow(_job(), permissions=None),
-        _workflow(_job(steps=[{"run": "npx wrangler deploy"}])),
-        _workflow(_job(steps=[{"run": "uv run pywrangler deploy --env staging"}])),
-        _workflow(_job(steps=[{"uses": "cloudflare/wrangler-action@" + "a" * 40}])),
-        _workflow(_job(steps=[{"uses": "pypa/gh-action-pypi-publish@" + "a" * 40}])),
-        _workflow(
-            _job(steps=[{"run": "git clone https://github.com/turbobeest/modelspec-data.git"}])
-        ),
-        _workflow(_job(steps=[{"run": "python vendor.py --data-dir d --private-data"}])),
-        _workflow(_job(), on={"pull_request_target": {}}),
-        _workflow(_job(), on={"schedule": [{"cron": "0 0 * * *"}]}),
-        _workflow({"runs-on": "${{ vars.MODELSPEC_PR_RUNNER || 'ubuntu-latest' }}"}),  # every event
-        _workflow({"runs-on": "${{ vars.OTHER || 'ubuntu-latest' }}"}),
-        _workflow({"runs-on": "self-hosted"}),
-        _workflow({"runs-on": "ubicloud-standard-4"}),
-        _workflow({"runs-on": "ubuntu-latest", "env": {"R": "${{ vars.MODELSPEC_PR_RUNNER }}"}}),
-        _workflow({"runs-on": "ubuntu-latest"}, on={"workflow_run": {"workflows": ["x"]}}),
-        _workflow(
-            {
-                "runs-on": "ubuntu-latest",
-                "steps": [
-                    {
-                        "uses": "actions/download-artifact@x",
-                        "with": {"run-id": "${{ github.event.workflow_run.id }}"},
-                    }
-                ],
-            }
-        ),
+        _wf(_lane_job(env={"K": "${{ secrets.K }}"})),
+        _wf(_lane_job(steps=[{"run": "x", "env": {"K": "${{ secrets.K }}"}}])),
+        # A PR-gated secret is still a secret on push: the whole workflow stays.
+        _wf(_lane_job(env={"K": "${{ github.event_name != 'pull_request' && secrets.K || '' }}"})),
+        _wf(env={"K": "${{ secrets.K }}"}),
+        _wf(_lane_job(environment="production")),
+        _wf({"uses": "./.github/workflows/r.yml", "secrets": "inherit"}),
+        _wf(_lane_job(permissions={"pull-requests": "write"})),
+        _wf(_lane_job(permissions={"pull-requests": "read"})),
+        _wf(_lane_job(permissions={"id-token": "write"})),
+        _wf(permissions=None),
+        _wf(permissions="read-all"),
+        _wf(_lane_job(steps=[{"run": "npx wrangler deploy"}])),
+        _wf(_lane_job(steps=[{"uses": "cloudflare/wrangler-action@x"}])),
+        _wf(_lane_job(steps=[{"uses": "pypa/gh-action-pypi-publish@x"}])),
+        _wf(_lane_job(steps=[{"run": "git clone https://github.com/turbobeest/modelspec-data"}])),
+        _wf(on={"pull_request_target": {}}),
+        _wf(on={"schedule": [{"cron": "0 0 * * *"}]}),
+        _wf({"runs-on": "ubuntu-latest"}),  # a job left behind in a moved workflow
+        _wf({"runs-on": "${{ vars.MODELSPEC_PR_RUNNER || 'ubuntu-latest' }}"}),  # no event gate
     ],
 )
-def test_the_guard_rejects_each_privileged_route(workflows) -> None:
-    assert routing_failures(workflows)
+def test_the_guard_rejects_a_privileged_moved_workflow(workflow) -> None:
+    assert routing_failures({"m.yml": workflow}, frozenset({"m.yml"}))
+
+
+def test_a_privileged_job_anywhere_keeps_its_whole_workflow_on_github() -> None:
+    workflow = _wf()
+    workflow["jobs"]["deploy"] = {
+        "runs-on": "ubuntu-latest",
+        "if": "github.ref == 'refs/heads/main'",
+        "env": {"K": "${{ secrets.K }}"},
+        "steps": [{"run": "x"}],
+    }
+    assert routing_failures({"m.yml": workflow}, frozenset({"m.yml"}))
 
 
 @pytest.mark.parametrize(
-    "consumer",
+    "job",
     [
+        {"runs-on": PR_RUNNER},
+        {"runs-on": "self-hosted"},
+        {"runs-on": "ubicloud-standard-4"},
+        {"runs-on": "ubuntu-latest", "env": {"R": "${{ vars.MODELSPEC_PR_RUNNER }}"}},
+    ],
+)
+def test_the_guard_rejects_the_variable_or_a_new_label_outside_moved_workflows(job) -> None:
+    assert routing_failures({"o.yml": _wf(job)}, frozenset())
+
+
+@pytest.mark.parametrize(
+    "step",
+    [
+        {"uses": "actions/download-artifact@x", "with": {"run-id": "1"}},
+        {"uses": "actions/download-artifact@x", "with": {"github-token": "${{ github.token }}"}},
+        {"run": "gh run download 123 -n x"},
+        {"run": "gh api repos/o/r/actions/artifacts/1/zip"},
+        {"run": "gh api repos/o/r/actions/runs/${{ inputs.run_id }}/artifacts"},
         {
-            "needs": ["lane"],
-            "steps": [
-                {"uses": "actions/download-artifact@" + "a" * 40},
-                {"run": "x", "env": {"K": "${{ secrets.K }}"}},
-            ],
-        },
-        {
-            "needs": "lane",
-            "env": {"K": "${{ secrets.K }}"},
-            "steps": [{"run": "echo ${{ needs.lane.outputs.mode }}"}],
-        },
-        {
-            "needs": "middle",
-            "permissions": {"contents": "write"},  # transitive
-            "steps": [{"uses": "actions/download-artifact@" + "a" * 40}],
+            "uses": "actions/github-script@x",
+            "with": {"script": "github.rest.actions.downloadArtifact()"},
         },
     ],
 )
-def test_the_guard_rejects_a_privileged_job_that_trusts_the_pr_runner(consumer) -> None:
-    consumer = {"runs-on": "ubuntu-latest", **consumer}
-    workflows = {
-        "fixture.yml": {
-            "on": {"pull_request": {}},
-            "permissions": {"contents": "read"},
-            "jobs": {
-                "lane": _job(),
-                "middle": {"runs-on": "ubuntu-latest", "needs": "lane"},
-                "consumer": consumer,
-            },
-        }
-    }
-    assert routing_failures(workflows)
+def test_the_guard_rejects_every_cross_run_artifact_download(step) -> None:
+    job = {"runs-on": "ubuntu-latest", "steps": [step]}
+    assert routing_failures({"o.yml": _wf(job)}, frozenset())
+
+
+def test_the_guard_rejects_a_workflow_run_trigger() -> None:
+    workflow = _wf({"runs-on": "ubuntu-latest"}, on={"workflow_run": {"workflows": ["Test suite"]}})
+    assert routing_failures({"o.yml": workflow}, frozenset())
 
 
 @pytest.mark.parametrize(
@@ -517,81 +405,25 @@ def test_the_guard_rejects_a_privileged_job_that_trusts_the_pr_runner(consumer) 
         {"uses": "actions/cache/restore@x", "with": {"path": "p", "key": "k"}},
     ],
 )
-def test_the_guard_rejects_a_privileged_pr_job_restoring_a_shared_cache(
-    privilege, cache_step
-) -> None:
+def test_the_guard_rejects_a_privileged_pr_job_restoring_a_cache(privilege, cache_step) -> None:
     other = {"runs-on": "ubuntu-latest", "steps": [cache_step], **privilege}
-    workflows = {
-        "lane.yml": {
-            "on": {"pull_request": {}},
-            "permissions": {"contents": "read"},
-            "jobs": {"lane": _job()},
-        },
-        "other.yml": {
-            "on": {"pull_request": {}},
-            "permissions": {"contents": "read"},
-            "jobs": {"other": other},
-        },
-    }
-    assert routing_failures(workflows)
+    workflows = {"m.yml": _wf(), "o.yml": _wf(other)}
+    assert routing_failures(workflows, frozenset({"m.yml"}))
 
 
-@pytest.mark.parametrize(
-    "step",
-    [
-        {"run": "gh run download 123 -n x"},
-        {"run": "gh api repos/o/r/actions/artifacts/1/zip"},
-        {"run": "curl https://api.github.com/repos/o/r/actions/runs/9/artifacts"},
-        {
-            "uses": "actions/github-script@x",
-            "with": {"script": "github.rest.actions.downloadArtifact({})"},
-        },
-        {"uses": "actions/download-artifact@x", "with": {"github-token": "${{ github.token }}"}},
-    ],
-)
-def test_the_guard_rejects_every_cross_run_artifact_download(step) -> None:
-    assert routing_failures(_workflow({"runs-on": "ubuntu-latest", "steps": [step]}))
-
-
-def test_the_guard_rejects_an_output_relayed_through_an_intermediate_job() -> None:
-    relay = {
+def test_the_guard_allows_cache_restore_by_a_job_that_is_privileged_only_off_pr() -> None:
+    gated = "${{ github.event_name != 'pull_request' && secrets.K || '' }}"
+    build = {
         "runs-on": "ubuntu-latest",
-        "needs": "lane",
-        "outputs": {"y": "${{ needs.lane.outputs.x }}"},
-        "steps": [{"run": "true"}],
+        "steps": [{"uses": "actions/setup-python@x", "with": {"cache": "pip"}}],
+        "env": {"K": gated},
     }
-    consumer = {
+    deploy = {
         "runs-on": "ubuntu-latest",
-        "needs": "relay",
+        "if": "github.ref == 'refs/heads/main' && github.event_name != 'pull_request'",
         "env": {"K": "${{ secrets.K }}"},
-        "steps": [{"run": "echo ${{ needs.relay.outputs.y }}"}],
+        "steps": [{"uses": "actions/setup-node@x", "with": {"cache": "npm"}}],
     }
-    workflows = {
-        "fixture.yml": {
-            "on": {"pull_request": {}},
-            "permissions": {"contents": "read"},
-            "jobs": {"lane": _job(), "relay": relay, "consumer": consumer},
-        }
-    }
-    assert routing_failures(workflows)
-
-
-def test_the_guard_rejects_a_rest_artifact_path_with_a_spaced_expression() -> None:
-    step = {"run": "gh api repos/o/r/actions/runs/${{ inputs.run_id }}/artifacts"}
-    assert routing_failures(_workflow({"runs-on": "ubuntu-latest", "steps": [step]}))
-
-
-def test_the_guard_rejects_a_privileged_artifact_download_without_needs() -> None:
-    consumer = {
-        "runs-on": "ubuntu-latest",
-        "env": {"K": "${{ secrets.K }}"},
-        "steps": [{"uses": "actions/download-artifact@x", "with": {"name": "a"}}],
-    }
-    workflows = {
-        "fixture.yml": {
-            "on": {"pull_request": {}},
-            "permissions": {"contents": "read"},
-            "jobs": {"lane": _job(), "consumer": consumer},
-        }
-    }
-    assert routing_failures(workflows)
+    other = _wf(build)
+    other["jobs"]["deploy"] = deploy
+    assert routing_failures({"m.yml": _wf(), "o.yml": other}, frozenset({"m.yml"})) == []
