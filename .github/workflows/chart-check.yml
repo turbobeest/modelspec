@@ -13,7 +13,7 @@ permissions:
 jobs:
   check-evidence-charts:
     name: Check evidence against release charts
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'pull_request' && vars.MODELSPEC_PR_RUNNER || 'ubuntu-latest' }}
 
     steps:
       - name: Checkout PR branch
