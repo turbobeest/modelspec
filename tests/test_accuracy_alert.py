@@ -755,7 +755,7 @@ _PRIVATE_JOB_TAILS = {
         ),
         (
             ('uses', 'astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e'),
-            ('with_sha256', '152c8de28c3c497da56a854b15f412a7c116edb16274e5408735aed83891a7aa'),
+            ('with_sha256', '2a82d4fec1b8aed4d4e11cc2c8a27e2e94b449dbfd7883fd6b23e85fc3ddd65a'),
         ),
         (
             ('uses', 'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020'),
@@ -800,7 +800,7 @@ _PRIVATE_JOB_TAILS = {
         ),
         (
             ('uses', 'astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e'),
-            ('with_sha256', '152c8de28c3c497da56a854b15f412a7c116edb16274e5408735aed83891a7aa'),
+            ('with_sha256', '2a82d4fec1b8aed4d4e11cc2c8a27e2e94b449dbfd7883fd6b23e85fc3ddd65a'),
         ),
         (
             ('uses', 'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020'),
@@ -1271,9 +1271,9 @@ _STEP_PINS = {
     ("data-lag.yml", "lag"):
         "4073d896920e594663d02fadb66fe4e029259f3436f32ab9f2d95602e1c9f835",
     ("rank-api.yml", "deploy-staging"):
-        "629a7d82cc7a1bbb1a213c1cb08fd875a35574b0a56c6206f2ee71f778e96da6",
+        "de6510f8f6a8324cfd67bfbed3aa0945d49580ce79229dd9438e0ec55f62e733",
     ("rank-api.yml", "deploy"):
-        "b7c3e593dbd5a5d344a0106a1e5351ca5c1cd4805f9502243af37f324f59c883",
+        "0b6fde568e278210ce7fdafdf991d2e32c78356ac866cbbfc0524d6a2ae91bbc",
 }
 _FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
 _DOCKER_PIN = re.compile(r"^docker://[^@\s]+@sha256:[0-9a-f]{64}$")
