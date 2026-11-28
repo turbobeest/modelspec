@@ -36,6 +36,8 @@ RELEASE_STAGES = {
 }
 
 Status = Literal["met", "breach", "error", "not_in_force"]
+#: The one workflow state that is switched on (MODEL-574).
+ACTIVE = "active"
 
 
 # ── configuration ──────────────────────────────────────────────────────────
@@ -85,6 +87,14 @@ class WatchedWorkflow:
     file: str
     cadence_hours: float | None = None
     max_age_hours: float | None = None
+    #: GitHub's ``state`` for the workflow (MODEL-574). Anything but ``active``
+    #: (``disabled_manually``, ``disabled_inactivity``, ...) is switched off: it
+    #: is listed as disabled, never red or overdue, and its runs are not read.
+    state: str = "active"
+
+    @property
+    def enabled(self) -> bool:
+        return self.state == ACTIVE
 
     @property
     def key(self) -> str:
@@ -684,6 +694,51 @@ def fetch_workflow_files(repo: str, gh: Gh) -> dict[str, str] | None:
         return None
 
 
+def fetch_workflow_states(repo: str, gh: Gh) -> dict[str, str] | None:
+    """Each workflow file's ``state`` on GitHub, keyed by file name (MODEL-574).
+
+    One call per repository (``actions/workflows``, 100 a page; a second page
+    only past 100 workflows). ``None`` when any call fails or the answer is
+    malformed; the stderr is dropped, as for the runs (MODEL-421).
+    """
+    states: dict[str, str] = {}
+    try:
+        for page in range(1, 11):
+            body = json.loads(gh(["api", f"repos/{repo}/actions/workflows"
+                                         f"?per_page=100&page={page}"]))
+            listed = body["workflows"]
+            for w in listed:
+                path, state = w["path"], w["state"]
+                if not isinstance(path, str) or not isinstance(state, str):
+                    return None
+                if path.startswith(".github/workflows/"):
+                    states[path.rsplit("/", 1)[-1]] = state
+            if len(listed) < 100 or page * 100 >= int(body["total_count"]):
+                return states
+    except (subprocess.CalledProcessError, ValueError, KeyError, TypeError):
+        return None
+    return None
+
+
+def with_states(watched: Sequence[WatchedWorkflow], clients: Mapping[str, Gh | str]
+                ) -> tuple[tuple[WatchedWorkflow, ...], tuple[ListingError, ...]]:
+    """``watched`` with each workflow's GitHub state, and the repositories unread.
+
+    Fails closed: a repository whose states cannot be read is an error, and its
+    workflows stay ``active``, so a red one is still red. A workflow missing
+    from the listing stays ``active`` too.
+    """
+    states: dict[str, dict[str, str] | None] = {}
+    for repo in dict.fromkeys(w.repo for w in watched):
+        gh = clients.get(repo)
+        states[repo] = fetch_workflow_states(repo, gh) if callable(gh) else None
+    errors = tuple((repo, "its workflow states could not be read, so a disabled "
+                          "workflow cannot be told from a red one")
+                   for repo, got in states.items() if got is None)
+    return tuple(replace(w, state=(states[w.repo] or {}).get(w.file, ACTIVE))
+                 for w in watched), errors
+
+
 def discover_workflows(root: Path, config: Config,
                        dirs: Mapping[str, Path] | None = None,
                        skip: str | None = None,
@@ -732,7 +787,12 @@ def _hours(hours: float) -> str:
 
 
 def _red(w: WatchedWorkflow, runs: Sequence[Mapping[str, Any]], now: datetime) -> list[str]:
-    """Why one workflow is red, naming each run; empty when it is green."""
+    """Why one workflow is red, naming each run; empty when it is green.
+
+    A disabled workflow is never red: it is switched off, not failing.
+    """
+    if not w.enabled:
+        return []
     why = []
     newest_first = sorted(runs, key=lambda r: r["created_at"], reverse=True)
     done = [r for r in newest_first if r.get("status") == "completed"]
@@ -779,7 +839,12 @@ def check_workflows(runs: Mapping[str, Sequence[Mapping[str, Any]] | str],
     ``results`` maps a private repository to the result of the separate job
     that checked it (``success``, ``failure``, ``cancelled``, ``skipped``):
     pass, red, or not measured.
+
+    A disabled workflow (MODEL-574) is left out: not measured, not red, not
+    overdue, and not counted in a private repository's total. The callers
+    list it separately as disabled.
     """
+    watched = [w for w in watched if w.enabled]
     findings: list[Finding] = []
     out: list[str] = [f"{repo}: {msg}" for repo, msg in errors if repo not in private]
     measured = 0
@@ -904,13 +969,15 @@ def repo_clients(config: Config, gh: Gh = gh_cli,
 
 def fetch_runs(watched: Sequence[WatchedWorkflow], clients: Mapping[str, Gh | str]
                ) -> dict[str, Sequence[Mapping[str, Any]] | str]:
-    """One REST call per workflow: its ten newest runs on main.
+    """One REST call per enabled workflow: its ten newest runs on main.
 
     A failed call reads as ``UNREADABLE``. The ``gh`` stderr is dropped, not
     kept: it can name a private repository's workflows.
     """
     out: dict[str, Sequence[Mapping[str, Any]] | str] = {}
     for w in watched:
+        if not w.enabled:
+            continue
         gh = clients.get(w.repo, UNREADABLE)
         if isinstance(gh, str):
             out[w.key] = gh
@@ -987,10 +1054,16 @@ def read_workflow_health(root: Path, config: Config, *, gh: Gh = gh_cli,
                          with_token: Callable[[str], Gh] = gh_with_token,
                          ) -> tuple[tuple[WatchedWorkflow, ...], tuple[ListingError, ...],
                                     dict[str, Sequence[Mapping[str, Any]] | str]]:
-    """The watched workflows, the errors listing them, and their runs."""
+    """The watched workflows with their states, the errors listing them, and their runs.
+
+    A workflow whose state is not ``active`` keeps its place in ``watched``
+    (``WatchedWorkflow.enabled`` is false) so it can be listed as disabled; its
+    runs are not read.
+    """
     clients = repo_clients(config, gh, environ, with_token)
     watched, errors = discover_workflows(root, config, dirs, skip, clients)
-    return watched, errors, fetch_runs(watched, clients)
+    watched, state_errors = with_states(watched, clients)
+    return watched, errors + state_errors, fetch_runs(watched, clients)
 
 
 def read_repo(root: Path, as_of: date, *, gh: Gh = gh_cli,

@@ -130,15 +130,25 @@ def _workflows(args: argparse.Namespace) -> int:
                     check_workflows(runs, watched, now, errors, private))
     shown = [w for w in watched if w.repo not in private]
     red = {f.subject for f in result.findings}
-    print(f"workflow-health: {result.status.upper()} ({len(watched)} workflows, "
+    enabled = [w for w in watched if w.enabled]
+    print(f"workflow-health: {result.status.upper()} ({len(enabled)} workflows, "
+          f"{len(watched) - len(enabled)} disabled, "
           f"{len(result.findings)} red finding(s), {len(result.errors)} error(s)) "
           f"at {now.isoformat()}")
     for w in shown:
-        every = f"every {w.cadence_hours:g} h" if w.cadence_hours else "unscheduled"
-        print(f"  {'RED  ' if w.key in red else 'green'} {w.key} ({every})")
+        if w.enabled:
+            every = f"every {w.cadence_hours:g} h" if w.cadence_hours else "unscheduled"
+            print(f"  {'RED  ' if w.key in red else 'green'} {w.key} ({every})")
+    # MODEL-574: switched off, so neither red nor overdue. Name only.
+    for w in shown:
+        if not w.enabled:
+            print(f"  disabled {w.key}")
     for repo in sorted(private & scope):
-        n = sum(w.repo == repo for w in watched)
-        print(f"  {repo.split('/')[-1]}: {n} scheduled workflow(s), private; counts only")
+        # A private repository: counts only, never a name (MODEL-421).
+        n = sum(w.repo == repo and w.enabled for w in watched)
+        off = sum(w.repo == repo and not w.enabled for w in watched)
+        print(f"  {repo.split('/')[-1]}: {n} scheduled workflow(s), {off} disabled, "
+              "private; counts only")
     for f in result.findings:
         print(f"- {f.subject}: {f.detail}")
     for e in result.errors:

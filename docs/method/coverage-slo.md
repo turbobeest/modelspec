@@ -90,6 +90,14 @@ issue per target.
   production switch, not a failure. `deploy-sites.yml` has no schedule but is
   watched under `unscheduled`, where only a red run counts.
 
+  A workflow that is switched off is never red or overdue (MODEL-574). One
+  REST call per repository (`actions/workflows`) reads each workflow's
+  `state`; one whose state is not `active`, such as `disabled_manually`, is
+  left out of the check, its runs are not read, and `python -m scripts.slo
+  workflows` lists it as `disabled`. A private repository's disabled workflows
+  appear only as a count. If the states cannot be read, the check is an error
+  and every workflow is judged as enabled.
+
   This report, its log, its page and its issues are public, so
   `modelspec-data` never appears in them by workflow name, run URL, date or
   error text, and no raw `gh` stderr is kept for any repository. On GitHub the
