@@ -448,7 +448,7 @@ stage=()
 if [ "$STAGE_FAILURE" = "true" ]; then stage=(--stage-failure); fi
 corrections=()
 if [ "$DATA_SPLIT_ENABLED" = "true" ]; then
-  corrections=(--private-data-root .accuracy-private)
+  corrections=(--private-data-root .accuracy-private --private-data)
 fi
 python scripts/accuracy.py --profile nightly --output-dir accuracy-report "${stage[@]}" "${corrections[@]}"
 """
@@ -764,7 +764,7 @@ _PRIVATE_JOB_TAILS = {
         (
             ('env_sha256', 'cfdfaeb14593c650faf5aa2420a3dc6e532224f16d091318f46fe46d2d3796e7'),
             ('name', 'Vendor the scorer into the Worker bundle'),
-            ('run_sha256', 'b86373d58a9f257ca39a6e99ec1468983325e9a276c75c80c413e1ee2df8920b'),
+            ('run_sha256', 'd0ed5b33707297c73cc8f0e33d77c2225a60c218d7bfb42e27eb3625c5de64d0'),
         ),
         (
             ('env_sha256', '4cc70b1dfc3fcff19a2c015882793e684f1b2c3e1165fcd90c61e22ff574a77e'),
@@ -809,7 +809,7 @@ _PRIVATE_JOB_TAILS = {
         (
             ('env_sha256', 'cfdfaeb14593c650faf5aa2420a3dc6e532224f16d091318f46fe46d2d3796e7'),
             ('name', 'Vendor the scorer into the Worker bundle'),
-            ('run_sha256', 'b86373d58a9f257ca39a6e99ec1468983325e9a276c75c80c413e1ee2df8920b'),
+            ('run_sha256', 'd0ed5b33707297c73cc8f0e33d77c2225a60c218d7bfb42e27eb3625c5de64d0'),
         ),
         (
             ('env_sha256', '4cc70b1dfc3fcff19a2c015882793e684f1b2c3e1165fcd90c61e22ff574a77e'),
@@ -1267,13 +1267,13 @@ _SURROUNDING_PINS = {
 }
 _STEP_PINS = {
     ("accuracy-nightly.yml", "accuracy"):
-        "e95b17b940ec629c378e706283ae9a8c7346103a638c2878bb343f86c940c23e",
+        "87cf944dab6c9765639cde01276a932cf17e4ba86332114c71762494b2472780",
     ("data-lag.yml", "lag"):
         "4073d896920e594663d02fadb66fe4e029259f3436f32ab9f2d95602e1c9f835",
     ("rank-api.yml", "deploy-staging"):
-        "3f56082ba0e87ec558d3012580e64873e84bb79422c9cbbb2ab4122df1486f00",
+        "629a7d82cc7a1bbb1a213c1cb08fd875a35574b0a56c6206f2ee71f778e96da6",
     ("rank-api.yml", "deploy"):
-        "ee6da731e3bd7be04b85f2961302ec6b03745873f9fc6f0989cd3fa4b2b34b52",
+        "b7c3e593dbd5a5d344a0106a1e5351ca5c1cd4805f9502243af37f324f59c883",
 }
 _FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
 _DOCKER_PIN = re.compile(r"^docker://[^@\s]+@sha256:[0-9a-f]{64}$")

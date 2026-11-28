@@ -145,7 +145,7 @@ jobs:
           REPORT_DATE: ${{ steps.date.outputs.date }}
           REPORT_SEED: ${{ steps.date.outputs.seed }}
         run: |
-          python -I -m scripts.data_trust run --data-dir . --n 60 \
+          python -I -m scripts.data_trust run --data-dir . --private-data --n 60 \
             --date "$REPORT_DATE" --seed "$REPORT_SEED" \
             --output-dir reports/data-trust --defect-log reports/data-trust/defects.jsonl \
             --summary-only > "$RUNNER_TEMP/data-trust-summary.txt"

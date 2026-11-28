@@ -1113,7 +1113,7 @@ def test_fallback_workflow_argv_uses_isolated_python_and_passes_both_artifacts_a
     ]
     assert (tmp_path / "argv").read_text().splitlines() == expected + (
         ["--fallback-fake"] if fake else []
-    )
+    ) + ["--private-data"]
     assert "secrets." not in json.dumps(step)
 
 

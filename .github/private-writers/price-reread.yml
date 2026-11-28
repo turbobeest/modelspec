@@ -128,7 +128,7 @@ jobs:
           python -I -m pip install --require-hashes --no-deps -r "$GITHUB_WORKSPACE/engine/scripts/price-reread-render.requirements.txt"
           python -I -m playwright install --with-deps --only-shell chromium
       - name: Render eligible pages once
-        run: python -I -m scripts.price_reread --render-to "$RUNNER_TEMP/rendered"
+        run: python -I -m scripts.price_reread --render-to "$RUNNER_TEMP/rendered" --private-data
       - name: Pass rendered pages to the re-read job
         uses: actions/upload-artifact@v4
         with:
@@ -277,10 +277,10 @@ jobs:
           path: ${{ runner.temp }}/rendered
       - name: Read only failed eligible pages
         if: github.event_name == 'schedule' && github.ref == 'refs/heads/main'
-        run: python -I -m scripts.price_reread --fallback-from-render "$RUNNER_TEMP/rendered" --fallback-to "$RUNNER_TEMP/fallback" --fallback-ledger "$RUNNER_TEMP/firecrawl-ledger"
+        run: python -I -m scripts.price_reread --fallback-from-render "$RUNNER_TEMP/rendered" --fallback-to "$RUNNER_TEMP/fallback" --fallback-ledger "$RUNNER_TEMP/firecrawl-ledger" --private-data
       - name: Fake fallback demo without credentials or network
         if: github.event_name == 'workflow_dispatch' && inputs.fallback_fake
-        run: python -I -m scripts.price_reread --fallback-from-render "$RUNNER_TEMP/rendered" --fallback-to "$RUNNER_TEMP/fallback" --fallback-ledger "$RUNNER_TEMP/firecrawl-ledger" --fallback-fake
+        run: python -I -m scripts.price_reread --fallback-from-render "$RUNNER_TEMP/rendered" --fallback-to "$RUNNER_TEMP/fallback" --fallback-ledger "$RUNNER_TEMP/firecrawl-ledger" --fallback-fake --private-data
       - name: Retain fallback pages and skips
         if: always()
         uses: actions/upload-artifact@v4
@@ -462,7 +462,7 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
           FALLBACK_RESULT: ${{ needs.fallback.result }}
         run: |
-          args=(--rendered-from "$RUNNER_TEMP/rendered" --report-json "$RUNNER_TEMP/report.json" --report-md "$RUNNER_TEMP/report.md" --retain-only-cited)
+          args=(--private-data --rendered-from "$RUNNER_TEMP/rendered" --report-json "$RUNNER_TEMP/report.json" --report-md "$RUNNER_TEMP/report.md" --retain-only-cited)
           if [ "$FALLBACK_RESULT" = "success" ]; then
             args+=(--fallback-from "$RUNNER_TEMP/fallback")
           fi

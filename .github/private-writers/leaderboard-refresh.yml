@@ -212,7 +212,7 @@ jobs:
           MODELSPEC_SOURCE_CACHE: ${{ runner.temp }}/reread-copies
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          args=(--root . --observed-at "$(date -u +%F)" --source-cache "$MODELSPEC_SOURCE_CACHE" --report-json "$RUNNER_TEMP/evidence-reread.json")
+          args=(--root . --private-data --observed-at "$(date -u +%F)" --source-cache "$MODELSPEC_SOURCE_CACHE" --report-json "$RUNNER_TEMP/evidence-reread.json")
           if [ "$DRY_RUN" = "true" ]; then
             args+=(--dry-run)
           fi
