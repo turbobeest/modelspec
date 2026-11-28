@@ -507,6 +507,13 @@ def test_a_disabled_workflow_is_not_red_even_when_failed_and_overdue() -> None:
     off = WatchedWorkflow(PUBLIC, "off.yml", 24, 36, state="disabled_manually")
     runs = {off.key: [_run("failure", 300)], DAILY.key: [_run("success", 1)]}
     check = check_workflows(runs, [off, DAILY], NOW)
+    assert (check.measured, check.findings, check.errors) == (2, (), ())
+    assert settle(TARGET, check).status == "met"
+
+
+def test_a_repository_whose_every_workflow_is_disabled_is_met_not_empty() -> None:
+    off = WatchedWorkflow(PRIVATE, "off.yml", 168, 252, state="disabled_manually")
+    check = check_workflows({}, [off], NOW, (), CONFIG.private_repos)
     assert (check.measured, check.findings, check.errors) == (1, (), ())
     assert settle(TARGET, check).status == "met"
 

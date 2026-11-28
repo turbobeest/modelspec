@@ -845,14 +845,16 @@ def check_workflows(runs: Mapping[str, Sequence[Mapping[str, Any]] | str],
     that checked it (``success``, ``failure``, ``cancelled``, ``skipped``):
     pass, red, or not measured.
 
-    A disabled workflow (MODEL-574) is left out: not measured, not red, not
-    overdue, and not counted in a private repository's total. The callers
-    list it separately as disabled.
+    A disabled workflow (MODEL-574) is left out: not red, not overdue, and not
+    counted in a private repository's total. Its state was read, so it counts
+    as measured: a repository whose every workflow is switched off is not an
+    empty check. The callers list it separately as disabled.
     """
+    disabled = sum(not w.enabled for w in watched)
     watched = [w for w in watched if w.enabled]
     findings: list[Finding] = []
     out: list[str] = [f"{repo}: {msg}" for repo, msg in errors if repo not in private]
-    measured = 0
+    measured = disabled
     total: dict[str, int] = defaultdict(int)
     red: dict[str, int] = defaultdict(int)
     unread: dict[str, int] = defaultdict(int)
